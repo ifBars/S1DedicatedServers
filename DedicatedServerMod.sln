@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36401.2
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DedicatedServerMod", "DedicatedServerMod.csproj", "{6168030F-4B71-4234-A122-75C1C742365D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Il2cpp_Client|Any CPU = Il2cpp_Client|Any CPU
+		Il2cpp_Server|Any CPU = Il2cpp_Server|Any CPU
+		Mono_Client|Any CPU = Mono_Client|Any CPU
+		Mono_Server|Any CPU = Mono_Server|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6168030F-4B71-4234-A122-75C1C742365D}.Il2cpp_Client|Any CPU.ActiveCfg = Il2cpp_Client|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Il2cpp_Client|Any CPU.Build.0 = Il2cpp_Client|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Il2cpp_Server|Any CPU.ActiveCfg = Il2cpp_Server|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Il2cpp_Server|Any CPU.Build.0 = Il2cpp_Server|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Mono_Client|Any CPU.ActiveCfg = Mono_Client|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Mono_Client|Any CPU.Build.0 = Mono_Client|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Mono_Server|Any CPU.ActiveCfg = Mono_Server|Any CPU
+		{6168030F-4B71-4234-A122-75C1C742365D}.Mono_Server|Any CPU.Build.0 = Mono_Server|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {64048E90-9558-4F95-8E05-1C43375FE031}
+	EndGlobalSection
+EndGlobal

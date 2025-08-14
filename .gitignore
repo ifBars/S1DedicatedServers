@@ -1,0 +1,9 @@
+*.log
+/bin/
+bin/
+/obj/
+obj/
+/.vs/
+.vs/
+/research/
+research/
