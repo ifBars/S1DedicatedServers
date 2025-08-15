@@ -10,6 +10,7 @@ using FishNet.Managing.Client;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using ScheduleOne.Intro;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
 using Steamworks;
@@ -100,6 +101,29 @@ namespace DedicatedServerMod
             catch (Exception ex)
             {
                 logger.Error($"Error ensuring quest initialization: {ex}");
+            }
+        }
+
+        private static System.Collections.IEnumerator DelayedSaveRequest(Player player)
+        {
+            // Wait for appearance and clothing to be fully applied
+            yield return new WaitForSeconds(1f);
+            
+            try
+            {
+                logger.Msg("Requesting player save after character creation");
+                player.RequestSavePlayer();
+                
+                // Force a clothing refresh to ensure everything is properly applied
+                if (player.Clothing != null)
+                {
+                    logger.Msg("Forcing clothing refresh to ensure proper synchronization");
+                    player.Clothing.RefreshAppearance();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in delayed save request: {ex}");
             }
         }
 
@@ -339,6 +363,8 @@ namespace DedicatedServerMod
             if (needsCharacterCreation && characterCreator != null && characterCreator.DefaultSettings != null)
             {
                 logger.Msg("Opening character creator with default settings");
+                var introManager = Singleton<IntroManager>.Instance;
+                introManager.Container.transform.Find("Canvas").gameObject.SetActive(false);
                 
                 // Set up the completion callback to handle intro completion
                 characterCreator.onCompleteWithClothing.RemoveAllListeners();
@@ -347,36 +373,60 @@ namespace DedicatedServerMod
                     
                     try
                     {
-                        // Mark intro as completed
-                        player.HasCompletedIntro = true;
-                        
-                        // Set the appearance
-                        player.SetAppearance(appearance, true);
-                        
-                        // Apply clothing
+                        // Apply clothing to inventory FIRST before setting appearance
                         if (clothing != null)
                         {
+                            logger.Msg($"Applying {clothing.Count} clothing items to inventory");
                             foreach (var clothe in clothing)
                             {
                                 player.Clothing.InsertClothing(clothe);
+                                logger.Msg($"Added clothing: {clothe.Name} to slot {(clothe.Definition as ScheduleOne.Clothing.ClothingDefinition)?.Slot}");
                             }
                         }
                         
-                        // Request save
-                        player.RequestSavePlayer();
+                        // Mark intro as completed BEFORE setting appearance to avoid conflicts
+                        player.HasCompletedIntro = true;
                         
-                        // Enable player movement and UI
-                        if (PlayerSingleton<PlayerMovement>.Instance != null)
-                            PlayerSingleton<PlayerMovement>.Instance.canMove = true;
+                        // Use proper networking flow: SendAppearance (ServerRpc) instead of SetAppearance (ObserversRpc)
+                        // The server will handle the SetAppearance call and broadcast to all clients
+                        logger.Msg("Sending appearance via proper networking flow");
+                        player.SendAppearance(appearance);
                         
-                        if (PlayerSingleton<PlayerInventory>.Instance != null)
-                            PlayerSingleton<PlayerInventory>.Instance.SetInventoryEnabled(true);
+                        // Handle intro completion manually instead of calling introManager.CharacterCreationDone
+                        // to avoid conflicts and duplicate operations
                         
-                        if (Singleton<HUD>.Instance != null)
-                            Singleton<HUD>.Instance.canvas.enabled = true;
+                        // Position player correctly
+                        if (!introManager.rv._isExploded)
+                        {
+                            player.transform.position = introManager.PlayerInitialPosition.position;
+                            player.transform.rotation = introManager.PlayerInitialPosition.rotation;
+                        }
+                        else
+                        {
+                            player.transform.position = introManager.PlayerInitialPosition_AfterRVExplosion.position;
+                            player.transform.rotation = introManager.PlayerInitialPosition_AfterRVExplosion.rotation;
+                        }
                         
-                        // Close character creator
+                        // Stop camera overrides and enable player controls
+                        PlayerSingleton<PlayerCamera>.Instance.StopTransformOverride(0f, reenableCameraLook: false);
+                        PlayerSingleton<PlayerCamera>.Instance.StopFOVOverride(0f);
+                        PlayerSingleton<PlayerCamera>.Instance.RemoveActiveUIElement(introManager.name);
+                        PlayerSingleton<PlayerCamera>.Instance.SetCanLook(true);
+                        PlayerSingleton<PlayerMovement>.Instance.canMove = true;
+                        PlayerSingleton<PlayerInventory>.Instance.SetInventoryEnabled(true);
+                        Singleton<HUD>.Instance.canvas.enabled = true;
+                        
+                        // Close character creator and disable intro stuff
                         characterCreator.Close();
+                        characterCreator.DisableStuff();
+                        introManager.gameObject.SetActive(false);
+                        
+                        // Invoke intro completion events
+                        if (introManager.onIntroDone != null)
+                            introManager.onIntroDone.Invoke();
+                        
+                        // Wait a moment for appearance to be applied, then request save
+                        MelonCoroutines.Start(DelayedSaveRequest(player));
                         
                         logger.Msg("Dedicated server player setup complete");
                     }
