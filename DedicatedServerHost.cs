@@ -16,6 +16,7 @@ using System;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using System.IO;
+using ScheduleOne.Intro;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.DedicatedServerHost), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -119,6 +120,17 @@ namespace DedicatedServerMod
                         BindingFlags.Static | BindingFlags.NonPublic);
                     harmony.Patch(startGameMethod, new HarmonyMethod(prefixMethod));
                     logger.Msg("Patched LoadManager.StartGame for dedicated server mode");
+                }
+
+                // Patch Player spawning to ensure proper quest initialization for new clients
+                var playerType = typeof(ScheduleOne.PlayerScripts.Player);
+                var playerInitMethod = playerType.GetMethod("MarkPlayerInitialized", BindingFlags.Public | BindingFlags.Instance);
+                if (playerInitMethod != null)
+                {
+                    var postfixMethod = typeof(DedicatedServerHost).GetMethod(nameof(PlayerInitializedPostfix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(playerInitMethod, postfix: new HarmonyMethod(postfixMethod));
+                    logger.Msg("Patched Player.MarkPlayerInitialized for quest initialization");
                 }
             }
             catch (Exception ex)
@@ -370,6 +382,22 @@ namespace DedicatedServerMod
             {
                 if (p != null && p.Owner != null && p.Owner.IsLocalClient)
                 {
+                    // Trigger intro completion events for quest initialization
+                    /*
+                    var introManager = Singleton<IntroManager>.Instance;
+                    if (introManager != null)
+                    {
+                        logger.Msg("Triggering intro completion events for dedicated server quest initialization");
+                        if (introManager.onIntroDoneAsServer != null)
+                            introManager.onIntroDoneAsServer.Invoke();
+                        if (introManager.onIntroDone != null)
+                            introManager.onIntroDone.Invoke();
+                    }
+                    */
+                                        
+                    // Initialize default quests for the server
+                    MelonCoroutines.Start(InitializeServerQuests());
+                    
                     // Rename and hide the loopback player's visuals everywhere
                     p.gameObject.name = "[DedicatedServerHostLoopback]";
                     p.SetVisible(false, network: true);
@@ -395,17 +423,33 @@ namespace DedicatedServerMod
                 for (int i = 0; i < Player.PlayerList.Count; i++)
                 {
                     var p = Player.PlayerList[i];
-                    if (p != null && p.Owner != null && p.Owner.IsLocalClient)
+                                    if (p != null && p.Owner != null && p.Owner.IsLocalClient)
+                {
+                    // Trigger intro completion events for quest initialization
+                    /*
+                    var introManager = Singleton<IntroManager>.Instance;
+                    if (introManager != null)
                     {
-                        p.gameObject.name = "[DedicatedServerHostLoopback]";
-                        p.SetVisible(false, network: true);
-                        p.SetVisibleToLocalPlayer(false);
-
-                        _loopbackPlayerHandled = true;
-                        logger.Msg("Loopback client player (existing) hidden and renamed for dedicated server.");
-                        Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_LoopbackHandler));
-                        break;
+                        logger.Msg("Triggering intro completion events for dedicated server quest initialization (existing player)");
+                        if (introManager.onIntroDoneAsServer != null)
+                            introManager.onIntroDoneAsServer.Invoke();
+                        if (introManager.onIntroDone != null)
+                            introManager.onIntroDone.Invoke();
                     }
+                    */
+
+                    // Initialize default quests for the server
+                    MelonCoroutines.Start(InitializeServerQuests());
+                    
+                    p.gameObject.name = "[DedicatedServerHostLoopback]";
+                    p.SetVisible(false, network: true);
+                    p.SetVisibleToLocalPlayer(false);
+
+                    _loopbackPlayerHandled = true;
+                    logger.Msg("Loopback client player (existing) hidden and renamed for dedicated server.");
+                    Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_LoopbackHandler));
+                    break;
+                }
                 }
             }
             catch (Exception ex)
@@ -597,6 +641,147 @@ namespace DedicatedServerMod
             }
         }
 
+        private static void PlayerInitializedPostfix(ScheduleOne.PlayerScripts.Player __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer)
+                return;
+
+            try
+            {
+                // Don't handle the loopback player
+                if (__instance.Owner != null && __instance.Owner.IsLocalClient)
+                    return;
+
+                logger.Msg($"Player initialized on dedicated server: {__instance.PlayerName} (ClientId: {__instance.Owner?.ClientId})");
+                
+                // Start coroutine to ensure quest initialization for this new player
+                MelonCoroutines.Start(EnsureQuestInitializationForNewClient(__instance));
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in PlayerInitialized postfix: {ex}");
+            }
+        }
+
+        private static System.Collections.IEnumerator InitializeServerQuests()
+        {
+            // Wait for quest system to be ready
+            yield return new WaitForSeconds(2f);
+            
+            try
+            {
+                logger.Msg("Initializing server-side quest system");
+                
+                var questManager = NetworkSingleton<ScheduleOne.Quests.QuestManager>.Instance;
+                if (questManager != null)
+                {
+                    logger.Msg("QuestManager found - ensuring default quests are initialized");
+                    
+                    if (questManager.DefaultQuests != null && questManager.DefaultQuests.Length > 0)
+                    {
+                        logger.Msg($"Found {questManager.DefaultQuests.Length} default quests");
+                        
+                        foreach (var quest in questManager.DefaultQuests)
+                        {
+                            if (quest != null)
+                            {
+                                logger.Msg($"Default quest '{quest.GetQuestTitle()}' current state: {quest.QuestState}");
+                                
+                                // Initialize quest if it's inactive
+                                if (quest.QuestState == ScheduleOne.Quests.EQuestState.Inactive)
+                                {
+                                    logger.Msg($"Initializing quest: {quest.GetQuestTitle()}");
+                                    quest.Begin(network: true);
+                                }
+                            }
+                        }
+                        
+                        // Save the quest state
+                        Singleton<ScheduleOne.Persistence.SaveManager>.Instance.Save();
+                        logger.Msg("Server quest initialization completed");
+                    }
+                    else
+                    {
+                        logger.Warning("No default quests found in QuestManager");
+                    }
+                }
+                else
+                {
+                    logger.Warning("QuestManager not found during server quest initialization");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error initializing server quests: {ex}");
+            }
+        }
+
+        private static System.Collections.IEnumerator EnsureQuestInitializationForNewClient(ScheduleOne.PlayerScripts.Player player)
+        {
+            // Wait a moment for everything to settle
+            yield return new WaitForSeconds(1f);
+            
+            try
+            {
+                if (player == null || player.gameObject == null)
+                    yield break;
+
+                logger.Msg($"Ensuring quest initialization for new client: {player.PlayerName}");
+                
+                var questManager = NetworkSingleton<ScheduleOne.Quests.QuestManager>.Instance;
+                if (questManager != null)
+                {
+                    // For dedicated server, we want to ensure quest data is properly synced to new clients
+                    // The quests should already be initialized by InitializeServerQuests, but we need to ensure
+                    // the client receives the current quest state
+                    
+                    logger.Msg($"Synchronizing quest state for new client: {player.PlayerName}");
+                    
+                    if (questManager.DefaultQuests != null)
+                    {
+                        foreach (var quest in questManager.DefaultQuests)
+                        {
+                            if (quest != null)
+                            {
+                                logger.Msg($"Syncing quest '{quest.GetQuestTitle()}' (state: {quest.QuestState}) to client {player.PlayerName}");
+                                
+                                // Force sync quest state to this specific client
+                                if (quest.QuestState != ScheduleOne.Quests.EQuestState.Inactive)
+                                {
+                                    questManager.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.QuestState);
+                                }
+                                
+                                // Sync quest entry states
+                                for (int i = 0; i < quest.Entries.Count; i++)
+                                {
+                                    if (quest.Entries[i].State != ScheduleOne.Quests.EQuestState.Inactive)
+                                    {
+                                        questManager.ReceiveQuestEntryState(player.Owner, quest.GUID.ToString(), i, quest.Entries[i].State);
+                                    }
+                                }
+                                
+                                // Sync tracking state
+                                if (quest.IsTracked)
+                                {
+                                    questManager.SetQuestTracked(player.Owner, quest.GUID.ToString(), true);
+                                }
+                            }
+                        }
+                    }
+                    
+                    logger.Msg($"Quest synchronization completed for new client: {player.PlayerName}");
+                }
+                else
+                {
+                    logger.Warning("QuestManager not found during new client quest sync");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error ensuring quest sync for new client: {ex}");
+            }
+        }
+
         public override void OnUpdate()
         {
             // Debug keys for testing
@@ -613,6 +798,54 @@ namespace DedicatedServerMod
                     logger.Msg("F12 pressed - server status");
                     LogServerStatus();
                 }
+                
+                if (Input.GetKeyDown(KeyCode.F10))
+                {
+                    logger.Msg("F10 pressed - quest status");
+                    LogQuestStatus();
+                }
+            }
+        }
+
+        private void LogQuestStatus()
+        {
+            try
+            {
+                var questManager = NetworkSingleton<ScheduleOne.Quests.QuestManager>.Instance;
+                if (questManager != null)
+                {
+                    var status = "=== Quest Manager Status ===\n";
+                    
+                    if (questManager.DefaultQuests != null)
+                    {
+                        status += $"Default Quests Count: {questManager.DefaultQuests.Length}\n";
+                        foreach (var quest in questManager.DefaultQuests)
+                        {
+                            if (quest != null)
+                            {
+                                status += $"Quest: {quest.GetQuestTitle()} - State: {quest.QuestState}\n";
+                            }
+                        }
+                    }
+                    else
+                    {
+                        status += "No default quests found\n";
+                    }
+                    
+                    // Check total quest count
+                    var totalQuests = ScheduleOne.Quests.Quest.Quests?.Count ?? 0;
+                    status += $"Total Active Quests: {totalQuests}\n";
+                    
+                    logger.Msg(status);
+                }
+                else
+                {
+                    logger.Warning("QuestManager not found for status check");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error getting quest status: {ex}");
             }
         }
 

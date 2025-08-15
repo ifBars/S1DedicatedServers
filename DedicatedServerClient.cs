@@ -205,6 +205,8 @@ namespace DedicatedServerMod
                     harmony.Patch(playerLoadedMethod, new HarmonyMethod(skipIntroPrefix));
                     logger.Msg("Patched Player.PlayerLoaded to skip intro in dedicated mode");
                 }
+
+                // Note: Quest initialization is now handled server-side in DedicatedServerHost mod
             }
             catch (Exception ex)
             {
@@ -774,6 +776,8 @@ namespace DedicatedServerMod
                 logger.Error($"Error in delayed loopback check: {ex}");
             }
         }
+
+
 
         public override void OnUpdate()
         {
