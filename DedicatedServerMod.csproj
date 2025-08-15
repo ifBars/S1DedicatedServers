@@ -906,13 +906,17 @@
 		</Reference>
 	</ItemGroup>
 	<ItemGroup>
+	  <EmbeddedResource Remove="research\**" />
+	  <None Remove="research\**" />
+	</ItemGroup>
+	<ItemGroup>
 	  <Compile Include="ConnectionHelper.cs" />
 	  <Compile Include="TransportManager.cs" />
 	</ItemGroup>
 
 	<!-- Client builds include the client mod entry -->
 	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'">
-		<Compile Include="DedicatedServerClient.cs" />
+		<Compile Include="Client\*.cs" />
 	</ItemGroup>
 
 	<!-- Server builds include the server mod entry -->
