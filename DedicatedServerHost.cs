@@ -38,6 +38,120 @@ namespace DedicatedServerMod
         private static bool _autoStartServer = false;
         private static bool _debugMode = false;
         private static bool _loopbackPlayerHandled = false;
+        private static bool _ignoreGhostHostForSleep = true; // Configurable option for server owners
+        private static bool _timeNeverStops = true; // Configurable option to prevent 4 AM time freeze
+        private static bool _autoSaveEnabled = true; // Enable/disable auto-save functionality
+        private static float _autoSaveIntervalMinutes = 10f; // Auto-save interval in minutes
+        private static bool _autoSaveOnPlayerJoin = true; // Save when a new player joins
+        private static bool _autoSaveOnPlayerLeave = true; // Save when a player leaves
+        private static DateTime _lastAutoSave = DateTime.MinValue; // Track last auto-save time
+
+        /// <summary>
+        /// Gets or sets whether to ignore the ghost host when checking if all players are ready to sleep.
+        /// This allows sleep cycling to work properly on dedicated servers.
+        /// </summary>
+        public static bool IgnoreGhostHostForSleep
+        {
+            get => _ignoreGhostHostForSleep;
+            set
+            {
+                _ignoreGhostHostForSleep = value;
+                logger?.Msg($"Ignore ghost host for sleep set to: {_ignoreGhostHostForSleep}");
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether time never stops at 4 AM on the dedicated server.
+        /// When enabled, time will continue past 4 AM without requiring players to sleep.
+        /// </summary>
+        public static bool TimeNeverStops
+        {
+            get => _timeNeverStops;
+            set
+            {
+                _timeNeverStops = value;
+                logger?.Msg($"Time never stops set to: {_timeNeverStops}");
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether auto-save is enabled on the dedicated server.
+        /// </summary>
+        public static bool AutoSaveEnabled
+        {
+            get => _autoSaveEnabled;
+            set
+            {
+                _autoSaveEnabled = value;
+                logger?.Msg($"Auto-save enabled set to: {_autoSaveEnabled}");
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the auto-save interval in minutes.
+        /// </summary>
+        public static float AutoSaveIntervalMinutes
+        {
+            get => _autoSaveIntervalMinutes;
+            set
+            {
+                if (value > 0)
+                {
+                    _autoSaveIntervalMinutes = value;
+                    logger?.Msg($"Auto-save interval set to: {_autoSaveIntervalMinutes} minutes");
+                }
+                else
+                {
+                    logger?.Warning("Auto-save interval must be greater than 0");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether to auto-save when a player joins.
+        /// </summary>
+        public static bool AutoSaveOnPlayerJoin
+        {
+            get => _autoSaveOnPlayerJoin;
+            set
+            {
+                _autoSaveOnPlayerJoin = value;
+                logger?.Msg($"Auto-save on player join set to: {_autoSaveOnPlayerJoin}");
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether to auto-save when a player leaves.
+        /// </summary>
+        public static bool AutoSaveOnPlayerLeave
+        {
+            get => _autoSaveOnPlayerLeave;
+            set
+            {
+                _autoSaveOnPlayerLeave = value;
+                logger?.Msg($"Auto-save on player leave set to: {_autoSaveOnPlayerLeave}");
+            }
+        }
+
+        /// <summary>
+        /// Gets the time of the last auto-save.
+        /// </summary>
+        public static DateTime LastAutoSave => _lastAutoSave;
+
+        /// <summary>
+        /// Manually triggers an auto-save (if conditions are met).
+        /// </summary>
+        public static void ManualSave()
+        {
+            if (_isServerMode && InstanceFinder.IsServer)
+            {
+                TriggerAutoSave("manual_request");
+            }
+            else
+            {
+                logger?.Warning("Manual save can only be called on a dedicated server");
+            }
+        }
 
         public override void OnInitializeMelon()
         {
@@ -88,6 +202,48 @@ namespace DedicatedServerMod
                         _debugMode = true;
                         logger.Msg("Server debug mode enabled");
                         break;
+                    case "--ignore-ghost-sleep":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool ignoreGhost))
+                        {
+                            _ignoreGhostHostForSleep = ignoreGhost;
+                            logger.Msg($"Ignore ghost host for sleep set to: {_ignoreGhostHostForSleep}");
+                        }
+                        break;
+                    case "--time-never-stops":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool timeNeverStops))
+                        {
+                            _timeNeverStops = timeNeverStops;
+                            logger.Msg($"Time never stops set to: {_timeNeverStops}");
+                        }
+                        break;
+                    case "--auto-save":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool autoSaveEnabled))
+                        {
+                            _autoSaveEnabled = autoSaveEnabled;
+                            logger.Msg($"Auto-save enabled set to: {_autoSaveEnabled}");
+                        }
+                        break;
+                    case "--auto-save-interval":
+                        if (i + 1 < args.Length && float.TryParse(args[i + 1], out float autoSaveInterval))
+                        {
+                            _autoSaveIntervalMinutes = autoSaveInterval;
+                            logger.Msg($"Auto-save interval set to: {_autoSaveIntervalMinutes} minutes");
+                        }
+                        break;
+                    case "--auto-save-on-join":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool autoSaveOnJoin))
+                        {
+                            _autoSaveOnPlayerJoin = autoSaveOnJoin;
+                            logger.Msg($"Auto-save on player join set to: {_autoSaveOnPlayerJoin}");
+                        }
+                        break;
+                    case "--auto-save-on-leave":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool autoSaveOnLeave))
+                        {
+                            _autoSaveOnPlayerLeave = autoSaveOnLeave;
+                            logger.Msg($"Auto-save on player leave set to: {_autoSaveOnPlayerLeave}");
+                        }
+                        break;
                 }
             }
         }
@@ -132,6 +288,38 @@ namespace DedicatedServerMod
                         BindingFlags.Static | BindingFlags.NonPublic);
                     harmony.Patch(playerInitMethod, postfix: new HarmonyMethod(postfixMethod));
                     logger.Msg("Patched Player.MarkPlayerInitialized for quest initialization");
+                }
+
+                // Patch AreAllPlayersReadyToSleep to ignore ghost host for sleep cycling
+                var areAllPlayersReadyMethod = playerType.GetMethod("AreAllPlayersReadyToSleep", 
+                    BindingFlags.Public | BindingFlags.Static);
+                if (areAllPlayersReadyMethod != null)
+                {
+                    var prefixMethod = typeof(DedicatedServerHost).GetMethod(nameof(AreAllPlayersReadyToSleepPrefix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(areAllPlayersReadyMethod, new HarmonyMethod(prefixMethod));
+                    logger.Msg("Patched Player.AreAllPlayersReadyToSleep to ignore ghost host");
+                }
+
+                // Patch TimeManager.Tick to prevent time from stopping at 4 AM (inspired by TimeNeverStopsMod)
+                var timeManagerType = typeof(ScheduleOne.GameTime.TimeManager);
+                var tickMethod = timeManagerType.GetMethod("Tick", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (tickMethod != null)
+                {
+                    var prefixMethod = typeof(DedicatedServerHost).GetMethod(nameof(TimeManagerTickPrefix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(tickMethod, new HarmonyMethod(prefixMethod));
+                    logger.Msg("Patched TimeManager.Tick to prevent time stopping at 4 AM on dedicated servers");
+                }
+
+                // Patch Player OnDestroy to handle player disconnect events for auto-save
+                var playerOnDestroyMethod = playerType.GetMethod("OnDestroy", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (playerOnDestroyMethod != null)
+                {
+                    var prefixMethod = typeof(DedicatedServerHost).GetMethod(nameof(PlayerOnDestroyPrefix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(playerOnDestroyMethod, new HarmonyMethod(prefixMethod));
+                    logger.Msg("Patched Player.OnDestroy for player disconnect auto-save");
                 }
             }
             catch (Exception ex)
@@ -347,6 +535,14 @@ namespace DedicatedServerMod
             TryHandleExistingLoopbackPlayer();
             Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_LoopbackHandler));
             Player.onPlayerSpawned = (Action<Player>)Delegate.Combine(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_LoopbackHandler));
+            
+            // Subscribe to player events for auto-save
+            if (_autoSaveOnPlayerJoin)
+            {
+                Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(Player.onPlayerSpawned, new Action<Player>(OnPlayerJoined));
+                Player.onPlayerSpawned = (Action<Player>)Delegate.Combine(Player.onPlayerSpawned, new Action<Player>(OnPlayerJoined));
+                logger.Msg("Subscribed to player join events for auto-save");
+            }
 
             // Step 6: Load save data
             logger.Msg("Step 6: Loading save data");
@@ -369,10 +565,114 @@ namespace DedicatedServerMod
             
             ServerManager.Initialize();
 
+            // Start auto-save system if enabled
+            if (_autoSaveEnabled)
+            {
+                MelonCoroutines.Start(AutoSaveCoroutine());
+                logger.Msg($"Auto-save system started with {_autoSaveIntervalMinutes} minute intervals");
+            }
+
             logger.Msg("=== DEDICATED SERVER READY ===");
             logger.Msg($"Server running on port {_serverPort}");
             logger.Msg($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             logger.Msg("Waiting for client connections...");
+        }
+
+        /// <summary>
+        /// Auto-save coroutine that runs periodically to save game data
+        /// </summary>
+        private static IEnumerator AutoSaveCoroutine()
+        {
+            logger.Msg("Auto-save coroutine started");
+            
+            while (_serverStarted && _autoSaveEnabled)
+            {
+                // Wait for the specified interval
+                yield return new WaitForSeconds(_autoSaveIntervalMinutes * 60f);
+                
+                // Only save if server is still running and game is loaded
+                if (_serverStarted && InstanceFinder.IsServer && Singleton<LoadManager>.Instance.IsGameLoaded)
+                {
+                    TriggerAutoSave("interval");
+                }
+            }
+            
+            logger.Msg("Auto-save coroutine ended");
+        }
+
+        /// <summary>
+        /// Triggers an auto-save with the specified reason
+        /// </summary>
+        private static void TriggerAutoSave(string reason)
+        {
+            try
+            {
+                var saveManager = Singleton<SaveManager>.Instance;
+                if (saveManager != null && !saveManager.IsSaving)
+                {
+                    var timeSinceLastSave = DateTime.Now - _lastAutoSave;
+                    logger.Msg($"Auto-save triggered by: {reason} (last save: {timeSinceLastSave.TotalMinutes:F1} minutes ago)");
+                    
+                    saveManager.Save();
+                    _lastAutoSave = DateTime.Now;
+                    
+                    logger.Msg("Auto-save completed successfully");
+                }
+                else if (saveManager?.IsSaving == true)
+                {
+                    logger.Msg($"Auto-save skipped - save already in progress (triggered by: {reason})");
+                }
+                else
+                {
+                    logger.Warning($"Auto-save failed - SaveManager not available (triggered by: {reason})");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Auto-save error (triggered by: {reason}): {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Handles player joining events for auto-save
+        /// </summary>
+        private static void OnPlayerJoined(Player player)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer || !_autoSaveOnPlayerJoin)
+                return;
+
+            // Don't trigger save for the loopback player
+            if (player.gameObject.name == "[DedicatedServerHostLoopback]")
+                return;
+
+            logger.Msg($"Player joined: {player.PlayerName} - triggering auto-save");
+            MelonCoroutines.Start(DelayedPlayerJoinSave(player.PlayerName));
+        }
+
+        /// <summary>
+        /// Handles player leaving events for auto-save
+        /// </summary>
+        private static void OnPlayerLeft(Player player)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer || !_autoSaveOnPlayerLeave)
+                return;
+
+            // Don't trigger save for the loopback player
+            if (player.gameObject.name == "[DedicatedServerHostLoopback]")
+                return;
+
+            logger.Msg($"Player left: {player.PlayerName} - triggering auto-save");
+            TriggerAutoSave($"player_leave_{player.PlayerName}");
+        }
+
+        /// <summary>
+        /// Delayed save after player joins to ensure all data is synchronized
+        /// </summary>
+        private static IEnumerator DelayedPlayerJoinSave(string playerName)
+        {
+            // Wait a few seconds for the player to fully initialize
+            yield return new WaitForSeconds(5f);
+            TriggerAutoSave($"player_join_{playerName}");
         }
 
         private static void OnPlayerSpawned_LoopbackHandler(Player p)
@@ -691,6 +991,198 @@ namespace DedicatedServerMod
             }
         }
 
+        private static bool AreAllPlayersReadyToSleepPrefix(ref bool __result)
+        {
+            // Only apply our custom logic if we're in server mode and the feature is enabled
+            if (!_isServerMode || !InstanceFinder.IsServer || !_ignoreGhostHostForSleep)
+            {
+                return true; // Let the original method run
+            }
+
+            try
+            {
+                // Replicate the original logic but exclude the ghost loopback player
+                var playerList = Player.PlayerList;
+                if (playerList.Count == 0)
+                {
+                    if (_debugMode)
+                        logger.Msg("Sleep check: No players in list");
+                    __result = false;
+                    return false; // Skip original method
+                }
+
+                int realPlayerCount = 0;
+                int readyPlayerCount = 0;
+
+                for (int i = 0; i < playerList.Count; i++)
+                {
+                    var player = playerList[i];
+                    if (player == null) continue;
+
+                    // Skip the ghost loopback player (identified by name)
+                    if (player.gameObject.name == "[DedicatedServerHostLoopback]")
+                    {
+                        if (_debugMode)
+                            logger.Msg($"Sleep check: Ignoring ghost host player: {player.PlayerName}");
+                        continue;
+                    }
+
+                    realPlayerCount++;
+                    
+                    // Check if this non-ghost player is ready to sleep
+                    if (player.IsReadyToSleep)
+                    {
+                        readyPlayerCount++;
+                        if (_debugMode)
+                            logger.Msg($"Sleep check: Player {player.PlayerName} is ready to sleep");
+                    }
+                    else
+                    {
+                        if (_debugMode)
+                            logger.Msg($"Sleep check: Player {player.PlayerName} is NOT ready to sleep");
+                        __result = false;
+                        return false; // Skip original method
+                    }
+                }
+
+                if (_debugMode)
+                    logger.Msg($"Sleep check: All {realPlayerCount} real players are ready to sleep ({readyPlayerCount}/{realPlayerCount})");
+
+                __result = true;
+                return false; // Skip original method
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in AreAllPlayersReadyToSleep patch: {ex}");
+                return true; // Let original method run as fallback
+            }
+        }
+
+        /// <summary>
+        /// Harmony prefix patch for TimeManager.Tick to prevent time from stopping at 4 AM
+        /// Inspired by TimeNeverStopsMod - implements continuous time progression on dedicated servers
+        /// </summary>
+        private static bool TimeManagerTickPrefix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            // Only apply this patch in server mode and if time never stops is enabled
+            if (!_isServerMode || !InstanceFinder.IsServer || !_timeNeverStops)
+            {
+                return true; // Let original method run normally
+            }
+
+            try
+            {
+                // Check if time would normally freeze (4 AM or 4-6 AM range)
+                bool wouldFreeze = (__instance.CurrentTime == 400) || 
+                                   (__instance.IsCurrentTimeWithinRange(400, 600) && !GameManager.IS_TUTORIAL);
+
+                if (!wouldFreeze)
+                {
+                    return true; // Let normal tick happen - no freeze would occur
+                }
+
+                // Custom time progression logic to bypass the 4 AM freeze
+                // This replicates the normal Tick logic but skips the freeze check
+                
+                if (Player.Local == null)
+                {
+                    logger.Warning("Local player does not exist. Waiting for player to spawn.");
+                    return false; // Skip original method
+                }
+
+                __instance.TimeOnCurrentMinute = 0f;
+                
+                try
+                {
+                    // Trigger minute pass events using reflection since StaggeredMinPass is private
+                    var staggeredMinPassMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("StaggeredMinPass", 
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (staggeredMinPassMethod != null)
+                    {
+                        var coroutine = staggeredMinPassMethod.Invoke(__instance, new object[] { 
+                            1f / (__instance.TimeProgressionMultiplier * Time.timeScale) 
+                        });
+                        __instance.StartCoroutine((IEnumerator)coroutine);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Error invoking onMinutePass: {ex}");
+                }
+
+                // Time advancement logic (same as original Tick)
+                if (__instance.CurrentTime == 2359)
+                {
+                    __instance.ElapsedDays++;
+                    __instance.CurrentTime = 0;
+                    __instance.DailyMinTotal = 0;
+                    __instance.onDayPass?.Invoke();
+                    __instance.onHourPass?.Invoke();
+                    if (__instance.CurrentDay == EDay.Monday && __instance.onWeekPass != null)
+                    {
+                        __instance.onWeekPass();
+                    }
+                }
+                else if (__instance.CurrentTime % 100 >= 59)
+                {
+                    __instance.CurrentTime += 41;
+                    __instance.onHourPass?.Invoke();
+                }
+                else
+                {
+                    __instance.CurrentTime++;
+                }
+
+                __instance.DailyMinTotal = TimeManager.GetMinSumFrom24HourTime(__instance.CurrentTime);
+                __instance.HasChanged = true;
+                
+                // Handle first night event
+                if (__instance.ElapsedDays == 0 && __instance.CurrentTime == 2000 && __instance.onFirstNight != null)
+                {
+                    __instance.onFirstNight.Invoke();
+                }
+
+                if (_debugMode)
+                {
+                    logger.Msg($"Dedicated server: Advanced time past 4 AM freeze - now {__instance.CurrentTime}");
+                }
+
+                return false; // Skip original method - we've handled the tick
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in TimeManager Tick patch: {ex}");
+                return true; // Let original method run as fallback
+            }
+        }
+
+        /// <summary>
+        /// Harmony prefix patch for Player.OnDestroy to handle player disconnect events
+        /// </summary>
+        private static void PlayerOnDestroyPrefix(Player __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer || !_autoSaveOnPlayerLeave)
+                return;
+
+            try
+            {
+                // Don't trigger save for the loopback player
+                if (__instance.gameObject.name == "[DedicatedServerHostLoopback]")
+                    return;
+
+                // Check if this is a real disconnect (not just a scene change)
+                if (__instance.Owner != null && !__instance.Owner.IsLocalClient)
+                {
+                    logger.Msg($"Player disconnecting: {__instance.PlayerName} - triggering auto-save");
+                    TriggerAutoSave($"player_disconnect_{__instance.PlayerName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in Player OnDestroy patch: {ex}");
+            }
+        }
+
         private static IEnumerator InitializeServerQuests()
         {
             // Wait for quest system to be ready
@@ -831,6 +1323,12 @@ namespace DedicatedServerMod
                     logger.Msg("F10 pressed - quest status");
                     LogQuestStatus();
                 }
+                
+                if (Input.GetKeyDown(KeyCode.F9))
+                {
+                    logger.Msg("F9 pressed - manual save");
+                    TriggerAutoSave("manual_debug");
+                }
             }
         }
 
@@ -884,6 +1382,21 @@ namespace DedicatedServerMod
                 status += $"Server Mode: {_isServerMode}\n";
                 status += $"Server Started: {_serverStarted}\n";
                 status += $"Server Port: {_serverPort}\n";
+                status += $"Ignore Ghost Host for Sleep: {_ignoreGhostHostForSleep}\n";
+                status += $"Time Never Stops: {_timeNeverStops}\n";
+                status += $"Auto-Save Enabled: {_autoSaveEnabled}\n";
+                status += $"Auto-Save Interval: {_autoSaveIntervalMinutes} minutes\n";
+                status += $"Auto-Save on Join: {_autoSaveOnPlayerJoin}\n";
+                status += $"Auto-Save on Leave: {_autoSaveOnPlayerLeave}\n";
+                if (_lastAutoSave != DateTime.MinValue)
+                {
+                    var timeSinceLastSave = DateTime.Now - _lastAutoSave;
+                    status += $"Last Auto-Save: {timeSinceLastSave.TotalMinutes:F1} minutes ago\n";
+                }
+                else
+                {
+                    status += $"Last Auto-Save: Never\n";
+                }
                 status += $"FishNet Is Server: {InstanceFinder.IsServer}\n";
                 status += $"FishNet Is Client: {InstanceFinder.IsClient}\n";
                 status += $"Current Scene: {SceneManager.GetActiveScene().name}\n";
