@@ -928,7 +928,7 @@
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<!-- Client builds: copy and restart game -->
-		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="(tasklist | findstr /I &quot;Schedule.*I.exe&quot; &gt;nul &amp;&amp; taskkill /F /IM &quot;Schedule I.exe&quot; &amp;&amp; timeout /t 3 /nobreak &gt;nul) || echo Game not running&#xD;&#xA;for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(ModsPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
+		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(ModsPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
 		<!-- Server builds: copy only -->
 		<Exec Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(ModsPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 	</Target>
