@@ -17,6 +17,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using System.IO;
 using ScheduleOne.Intro;
+using ScheduleOne.Quests;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.DedicatedServerHost), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -123,7 +124,7 @@ namespace DedicatedServerMod
                 }
 
                 // Patch Player spawning to ensure proper quest initialization for new clients
-                var playerType = typeof(ScheduleOne.PlayerScripts.Player);
+                var playerType = typeof(Player);
                 var playerInitMethod = playerType.GetMethod("MarkPlayerInitialized", BindingFlags.Public | BindingFlags.Instance);
                 if (playerInitMethod != null)
                 {
@@ -155,7 +156,7 @@ namespace DedicatedServerMod
                         BindingFlags.NonPublic | BindingFlags.Instance);
                     if (transportsField != null)
                     {
-                        var transports = transportsField.GetValue(__instance) as System.Collections.Generic.List<Transport>;
+                        var transports = transportsField.GetValue(__instance) as List<Transport>;
                         if (transports != null)
                         {
                             transports.Add(tugboat);
@@ -402,6 +403,21 @@ namespace DedicatedServerMod
                     p.gameObject.name = "[DedicatedServerHostLoopback]";
                     p.SetVisible(false, network: true);
                     p.SetVisibleToLocalPlayer(false);
+                    
+                    // Move the ghost player far away from the game world to prevent quest interference
+                    // Use the game's proper teleport system to avoid issues
+                    var playerMovement = p.GetComponent<PlayerMovement>();
+                    if (playerMovement != null)
+                    {
+                        playerMovement.Teleport(new Vector3(16.456f, 31.176f, -165.366f));
+                        logger.Msg("Teleported loopback player far from game world to prevent quest interference");
+                    }
+                    else
+                    {
+                        // Fallback to direct transform if PlayerMovement not available
+                        p.transform.position = new Vector3(16.456f, 31.176f, -165.366f);
+                        logger.Msg("Moved loopback player far from game world (fallback method)");
+                    }
 
                     _loopbackPlayerHandled = true;
                     logger.Msg("Loopback client player hidden and renamed for dedicated server.");
@@ -420,11 +436,9 @@ namespace DedicatedServerMod
                 return;
             try
             {
-                for (int i = 0; i < Player.PlayerList.Count; i++)
+                foreach (var p in Player.PlayerList)
                 {
-                    var p = Player.PlayerList[i];
-                                    if (p != null && p.Owner != null && p.Owner.IsLocalClient)
-                {
+                    if (p == null || p.Owner == null || !p.Owner.IsLocalClient) continue;
                     // Trigger intro completion events for quest initialization
                     /*
                     var introManager = Singleton<IntroManager>.Instance;
@@ -444,12 +458,26 @@ namespace DedicatedServerMod
                     p.gameObject.name = "[DedicatedServerHostLoopback]";
                     p.SetVisible(false, network: true);
                     p.SetVisibleToLocalPlayer(false);
+                    
+                    // Move the ghost player far away from the game world to prevent quest interference
+                    // Use the game's proper teleport system to avoid issues
+                    var playerMovement = p.GetComponent<PlayerMovement>();
+                    if (playerMovement != null)
+                    {
+                        playerMovement.Teleport(new Vector3(16.456f, 31.176f, -165.366f));
+                        logger.Msg("Teleported existing loopback player far from game world to prevent quest interference");
+                    }
+                    else
+                    {
+                        // Fallback to direct transform if PlayerMovement not available
+                        p.transform.position = new Vector3(16.456f, 31.176f, 165.366f);
+                        logger.Msg("Moved existing loopback player far from game world (fallback method)");
+                    }
 
                     _loopbackPlayerHandled = true;
                     logger.Msg("Loopback client player (existing) hidden and renamed for dedicated server.");
                     Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_LoopbackHandler));
                     break;
-                }
                 }
             }
             catch (Exception ex)
@@ -539,14 +567,14 @@ namespace DedicatedServerMod
             
             foreach (var baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
             {
-                string loadPath = System.IO.Path.Combine(loadManager.LoadedGameFolderPath, baseSaveable.SaveFolderName);
+                string loadPath = Path.Combine(loadManager.LoadedGameFolderPath, baseSaveable.SaveFolderName);
                 logger.Msg($"Creating load request for: {baseSaveable.SaveFolderName} at {loadPath}");
                 new LoadRequest(loadPath, baseSaveable.Loader);
             }
 
             // Wait for all load requests to complete (mirror Load() logic)
             var loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
-            var loadRequests = loadRequestsField?.GetValue(loadManager) as System.Collections.Generic.List<LoadRequest>;
+            var loadRequests = loadRequestsField?.GetValue(loadManager) as List<LoadRequest>;
             
             if (loadRequests != null)
             {
@@ -563,7 +591,7 @@ namespace DedicatedServerMod
                         {
                             loadRequest.Complete();
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
                             logger.Error($"LOAD ERROR for load request: {loadRequest.Path} : {ex.Message}");
                             if (loadRequests.Count > 0 && loadRequests[0] == loadRequest)
@@ -641,7 +669,7 @@ namespace DedicatedServerMod
             }
         }
 
-        private static void PlayerInitializedPostfix(ScheduleOne.PlayerScripts.Player __instance)
+        private static void PlayerInitializedPostfix(Player __instance)
         {
             if (!_isServerMode || !InstanceFinder.IsServer)
                 return;
@@ -663,7 +691,7 @@ namespace DedicatedServerMod
             }
         }
 
-        private static System.Collections.IEnumerator InitializeServerQuests()
+        private static IEnumerator InitializeServerQuests()
         {
             // Wait for quest system to be ready
             yield return new WaitForSeconds(2f);
@@ -672,7 +700,7 @@ namespace DedicatedServerMod
             {
                 logger.Msg("Initializing server-side quest system");
                 
-                var questManager = NetworkSingleton<ScheduleOne.Quests.QuestManager>.Instance;
+                var questManager = NetworkSingleton<QuestManager>.Instance;
                 if (questManager != null)
                 {
                     logger.Msg("QuestManager found - ensuring default quests are initialized");
@@ -681,23 +709,22 @@ namespace DedicatedServerMod
                     {
                         logger.Msg($"Found {questManager.DefaultQuests.Length} default quests");
                         
-                        foreach (var quest in questManager.DefaultQuests)
+                        // Only start the first default quest
+                        var firstQuest = questManager.DefaultQuests[9];
+                        if (firstQuest != null)
                         {
-                            if (quest != null)
+                            logger.Msg($"First quest '{firstQuest.GetQuestTitle()}' current state: {firstQuest.QuestState}");
+                            
+                            // Initialize quest if it's inactive
+                            if (firstQuest.QuestState == EQuestState.Inactive && firstQuest is Quest_WelcomeToHylandPoint)
                             {
-                                logger.Msg($"Default quest '{quest.GetQuestTitle()}' current state: {quest.QuestState}");
-                                
-                                // Initialize quest if it's inactive
-                                if (quest.QuestState == ScheduleOne.Quests.EQuestState.Inactive)
-                                {
-                                    logger.Msg($"Initializing quest: {quest.GetQuestTitle()}");
-                                    quest.Begin(network: true);
-                                }
+                                logger.Msg($"Initializing first quest: {firstQuest.GetQuestTitle()}");
+                                firstQuest.Begin(network: true);
                             }
                         }
                         
                         // Save the quest state
-                        Singleton<ScheduleOne.Persistence.SaveManager>.Instance.Save();
+                        Singleton<SaveManager>.Instance.Save();
                         logger.Msg("Server quest initialization completed");
                     }
                     else
@@ -716,7 +743,7 @@ namespace DedicatedServerMod
             }
         }
 
-        private static System.Collections.IEnumerator EnsureQuestInitializationForNewClient(ScheduleOne.PlayerScripts.Player player)
+        private static IEnumerator EnsureQuestInitializationForNewClient(Player player)
         {
             // Wait a moment for everything to settle
             yield return new WaitForSeconds(1f);
@@ -728,7 +755,7 @@ namespace DedicatedServerMod
 
                 logger.Msg($"Ensuring quest initialization for new client: {player.PlayerName}");
                 
-                var questManager = NetworkSingleton<ScheduleOne.Quests.QuestManager>.Instance;
+                var questManager = NetworkSingleton<QuestManager>.Instance;
                 if (questManager != null)
                 {
                     // For dedicated server, we want to ensure quest data is properly synced to new clients
@@ -746,7 +773,7 @@ namespace DedicatedServerMod
                                 logger.Msg($"Syncing quest '{quest.GetQuestTitle()}' (state: {quest.QuestState}) to client {player.PlayerName}");
                                 
                                 // Force sync quest state to this specific client
-                                if (quest.QuestState != ScheduleOne.Quests.EQuestState.Inactive)
+                                if (quest.QuestState != EQuestState.Inactive)
                                 {
                                     questManager.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.QuestState);
                                 }
@@ -754,7 +781,7 @@ namespace DedicatedServerMod
                                 // Sync quest entry states
                                 for (int i = 0; i < quest.Entries.Count; i++)
                                 {
-                                    if (quest.Entries[i].State != ScheduleOne.Quests.EQuestState.Inactive)
+                                    if (quest.Entries[i].State != EQuestState.Inactive)
                                     {
                                         questManager.ReceiveQuestEntryState(player.Owner, quest.GUID.ToString(), i, quest.Entries[i].State);
                                     }
@@ -811,7 +838,7 @@ namespace DedicatedServerMod
         {
             try
             {
-                var questManager = NetworkSingleton<ScheduleOne.Quests.QuestManager>.Instance;
+                var questManager = NetworkSingleton<QuestManager>.Instance;
                 if (questManager != null)
                 {
                     var status = "=== Quest Manager Status ===\n";
@@ -833,7 +860,7 @@ namespace DedicatedServerMod
                     }
                     
                     // Check total quest count
-                    var totalQuests = ScheduleOne.Quests.Quest.Quests?.Count ?? 0;
+                    var totalQuests = Quest.Quests?.Count ?? 0;
                     status += $"Total Active Quests: {totalQuests}\n";
                     
                     logger.Msg(status);
