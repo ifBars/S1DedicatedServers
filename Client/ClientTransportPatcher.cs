@@ -232,7 +232,7 @@ namespace DedicatedServerMod.Client
         /// Harmony patch for ConfirmExitScreen.ConfirmExit
         /// Handles disconnection from dedicated server when in Tugboat mode
         /// </summary>
-        public static void ConfirmExitPrefix()
+        public static bool ConfirmExitPrefix()
         {
             try
             {
@@ -244,12 +244,21 @@ namespace DedicatedServerMod.Client
                     
                     // Start coroutine to save player data and then disconnect
                     MelonCoroutines.Start(SaveAndDisconnectCoroutine());
+                    
+                    // Return false to prevent the original method from running
+                    return false;
                 }
+                
+                // Return true to allow the original method to run for non-Tugboat mode
+                return true;
             }
             catch (Exception ex)
             {
                 var logger = new MelonLogger.Instance("ClientTransportPatcher");
                 logger.Error($"Error in ConfirmExit patch: {ex}");
+                
+                // Return true to allow the original method to run as fallback
+                return true;
             }
         }
 
@@ -297,6 +306,8 @@ namespace DedicatedServerMod.Client
                 }
                 
                 logger.Msg("Dedicated server disconnection completed");
+                
+                Application.Quit();
             }
             catch (Exception ex)
             {

@@ -16,6 +16,7 @@ using System;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using ScheduleOne.Intro;
 using ScheduleOne.Quests;
 
@@ -45,6 +46,7 @@ namespace DedicatedServerMod
         private static bool _autoSaveOnPlayerJoin = true; // Save when a new player joins
         private static bool _autoSaveOnPlayerLeave = true; // Save when a player leaves
         private static DateTime _lastAutoSave = DateTime.MinValue; // Track last auto-save time
+        private static bool _timeLoopsStarted = false; // Ensure TimeLoop/TickLoop start only once
 
         /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking if all players are ready to sleep.
@@ -158,6 +160,14 @@ namespace DedicatedServerMod
             logger = LoggerInstance;
             logger.Msg("DedicatedServerHost initialized");
             
+            // Initialize ServerConfig system
+            ServerConfig.Initialize(logger);
+            logger.Msg("Server configuration system initialized");
+            
+            // Initialize Server Admin Commands
+            ServerAdminCommands.Initialize(logger);
+            logger.Msg("Server admin commands initialized");
+            
             // Parse command line arguments
             ParseCommandLineArgs();
             
@@ -175,6 +185,8 @@ namespace DedicatedServerMod
         private void ParseCommandLineArgs()
         {
             var args = Environment.GetCommandLineArgs();
+            
+            // First handle dedicated server specific args
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -188,6 +200,7 @@ namespace DedicatedServerMod
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int port))
                         {
                             _serverPort = port;
+                            ServerConfig.Instance.ServerPort = port;
                             logger.Msg($"Server port set to: {_serverPort}");
                         }
                         break;
@@ -200,12 +213,14 @@ namespace DedicatedServerMod
                         break;
                     case "--debug-server":
                         _debugMode = true;
+                        ServerConfig.Instance.DebugMode = true;
                         logger.Msg("Server debug mode enabled");
                         break;
                     case "--ignore-ghost-sleep":
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool ignoreGhost))
                         {
                             _ignoreGhostHostForSleep = ignoreGhost;
+                            ServerConfig.Instance.IgnoreGhostHostForSleep = ignoreGhost;
                             logger.Msg($"Ignore ghost host for sleep set to: {_ignoreGhostHostForSleep}");
                         }
                         break;
@@ -213,6 +228,7 @@ namespace DedicatedServerMod
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool timeNeverStops))
                         {
                             _timeNeverStops = timeNeverStops;
+                            ServerConfig.Instance.TimeNeverStops = timeNeverStops;
                             logger.Msg($"Time never stops set to: {_timeNeverStops}");
                         }
                         break;
@@ -220,6 +236,7 @@ namespace DedicatedServerMod
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool autoSaveEnabled))
                         {
                             _autoSaveEnabled = autoSaveEnabled;
+                            ServerConfig.Instance.AutoSaveEnabled = autoSaveEnabled;
                             logger.Msg($"Auto-save enabled set to: {_autoSaveEnabled}");
                         }
                         break;
@@ -227,6 +244,7 @@ namespace DedicatedServerMod
                         if (i + 1 < args.Length && float.TryParse(args[i + 1], out float autoSaveInterval))
                         {
                             _autoSaveIntervalMinutes = autoSaveInterval;
+                            ServerConfig.Instance.AutoSaveIntervalMinutes = autoSaveInterval;
                             logger.Msg($"Auto-save interval set to: {_autoSaveIntervalMinutes} minutes");
                         }
                         break;
@@ -234,6 +252,7 @@ namespace DedicatedServerMod
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool autoSaveOnJoin))
                         {
                             _autoSaveOnPlayerJoin = autoSaveOnJoin;
+                            ServerConfig.Instance.AutoSaveOnPlayerJoin = autoSaveOnJoin;
                             logger.Msg($"Auto-save on player join set to: {_autoSaveOnPlayerJoin}");
                         }
                         break;
@@ -241,11 +260,15 @@ namespace DedicatedServerMod
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool autoSaveOnLeave))
                         {
                             _autoSaveOnPlayerLeave = autoSaveOnLeave;
+                            ServerConfig.Instance.AutoSaveOnPlayerLeave = autoSaveOnLeave;
                             logger.Msg($"Auto-save on player leave set to: {_autoSaveOnPlayerLeave}");
                         }
                         break;
                 }
             }
+            
+            // Let ServerConfig handle its own command line args
+            ServerConfig.ParseCommandLineArgs(args);
         }
 
         private void ApplyServerPatches()
@@ -301,7 +324,7 @@ namespace DedicatedServerMod
                     logger.Msg("Patched Player.AreAllPlayersReadyToSleep to ignore ghost host");
                 }
 
-                // Patch TimeManager.Tick to prevent time from stopping at 4 AM (inspired by TimeNeverStopsMod)
+                // Patch TimeManager.Tick to prevent time from stopping at 4 AM and to broadcast time
                 var timeManagerType = typeof(ScheduleOne.GameTime.TimeManager);
                 var tickMethod = timeManagerType.GetMethod("Tick", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (tickMethod != null)
@@ -309,7 +332,62 @@ namespace DedicatedServerMod
                     var prefixMethod = typeof(DedicatedServerHost).GetMethod(nameof(TimeManagerTickPrefix), 
                         BindingFlags.Static | BindingFlags.NonPublic);
                     harmony.Patch(tickMethod, new HarmonyMethod(prefixMethod));
-                    logger.Msg("Patched TimeManager.Tick to prevent time stopping at 4 AM on dedicated servers");
+
+                    var postfixMethodTick = typeof(DedicatedServerHost).GetMethod(nameof(TimeManagerTickPostfix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(tickMethod, postfix: new HarmonyMethod(postfixMethodTick));
+
+                    logger.Msg("Patched TimeManager.Tick for 4AM prevention and minute broadcasts on dedicated servers");
+                }
+
+                // CRITICAL FIX: Patch TimeManager.Update to fix sleep detection on dedicated servers
+                var updateMethod = timeManagerType.GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (updateMethod != null)
+                {
+                    var prefixMethod = typeof(DedicatedServerHost).GetMethod(nameof(TimeManagerUpdatePrefix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(updateMethod, new HarmonyMethod(prefixMethod));
+                    logger.Msg("Patched TimeManager.Update to fix sleep detection on dedicated servers");
+                }
+
+                // CRITICAL FIX: Patch TimeManager.OnStartClient to start TimeLoop on dedicated servers
+                var onStartClientMethod = timeManagerType.GetMethod("OnStartClient", BindingFlags.Public | BindingFlags.Instance);
+                if (onStartClientMethod != null)
+                {
+                    var postfixMethod = typeof(DedicatedServerHost).GetMethod(nameof(TimeManagerOnStartClientPostfix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(onStartClientMethod, postfix: new HarmonyMethod(postfixMethod));
+                    logger.Msg("Patched TimeManager.OnStartClient to ensure server-side time progression");
+                }
+
+                // CRITICAL FIX: Patch TimeManager.FastForwardToWakeTime to ensure proper time sync after sleep
+                var fastForwardMethod = timeManagerType.GetMethod("FastForwardToWakeTime", BindingFlags.Public | BindingFlags.Instance);
+                if (fastForwardMethod != null)
+                {
+                    var postfixMethod = typeof(DedicatedServerHost).GetMethod(nameof(FastForwardToWakeTimePostfix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(fastForwardMethod, postfix: new HarmonyMethod(postfixMethod));
+                    logger.Msg("Patched TimeManager.FastForwardToWakeTime to ensure proper time sync after sleep");
+                }
+
+                // CRITICAL FIX: Patch TimeManager sleep RPC methods to handle dedicated server sleep flow
+                var startSleepRpcMethod = timeManagerType.GetMethod("RpcLogic___StartSleep_2166136261", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (startSleepRpcMethod != null)
+                {
+                    var postfixMethod = typeof(DedicatedServerHost).GetMethod(nameof(StartSleepRpcPostfix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(startSleepRpcMethod, postfix: new HarmonyMethod(postfixMethod));
+                    logger.Msg("Patched TimeManager StartSleep RPC for dedicated server sleep handling");
+                }
+
+                // CRITICAL FIX: Patch TimeManager EndSleep RPC to send time data on dedicated servers
+                var endSleepRpcMethod = timeManagerType.GetMethod("RpcLogic___EndSleep_2166136261", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (endSleepRpcMethod != null)
+                {
+                    var postfixMethod = typeof(DedicatedServerHost).GetMethod(nameof(EndSleepRpcPostfix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(endSleepRpcMethod, postfix: new HarmonyMethod(postfixMethod));
+                    logger.Msg("Patched TimeManager EndSleep RPC to fix time sync on dedicated servers");
                 }
 
                 // Patch Player OnDestroy to handle player disconnect events for auto-save
@@ -320,6 +398,18 @@ namespace DedicatedServerMod
                         BindingFlags.Static | BindingFlags.NonPublic);
                     harmony.Patch(playerOnDestroyMethod, new HarmonyMethod(prefixMethod));
                     logger.Msg("Patched Player.OnDestroy for player disconnect auto-save");
+                }
+
+                // CRITICAL: Patch Console.SubmitCommand to allow admin/operator command execution on dedicated servers
+                var consoleType = typeof(ScheduleOne.Console);
+                var submitCommandMethod = consoleType.GetMethod("SubmitCommand", 
+                    BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(List<string>) }, null);
+                if (submitCommandMethod != null)
+                {
+                    var prefixMethod = typeof(DedicatedServerHost).GetMethod(nameof(ConsoleSubmitCommandPrefix), 
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(submitCommandMethod, new HarmonyMethod(prefixMethod));
+                    logger.Msg("Patched Console.SubmitCommand to allow admin/operator commands on dedicated servers");
                 }
             }
             catch (Exception ex)
@@ -480,6 +570,9 @@ namespace DedicatedServerMod
             logger.Msg("Main scene loaded");
             loadManager.LoadStatus = LoadManager.ELoadStatus.Initializing;
 
+            // Ensure default quests are registered with GUIDManager before loading saved quest data
+            TryRegisterDefaultQuestsWithGuidManager();
+
             // Step 4: Start FishNet server
             logger.Msg("Step 4: Starting FishNet server");
             
@@ -557,10 +650,46 @@ namespace DedicatedServerMod
             loadManager.IsGameLoaded = true;
             _serverStarted = true;
 
-            // Ensure time progression is active
-            if (NetworkSingleton<TimeManager>.Instance != null)
+            // Ensure time progression is active (start loops once)
+            if (NetworkSingleton<TimeManager>.Instance != null && !_timeLoopsStarted)
             {
                 NetworkSingleton<TimeManager>.Instance.TimeProgressionMultiplier = 1f;
+
+                logger.Msg("Manually starting TimeLoop and TickLoop for dedicated server time progression");
+                try
+                {
+                    var timeManager = NetworkSingleton<TimeManager>.Instance;
+
+                    var timeLoopMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("TimeLoop",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (timeLoopMethod != null)
+                    {
+                        var timeLoopCoroutine = timeLoopMethod.Invoke(timeManager, null) as IEnumerator;
+                        if (timeLoopCoroutine != null)
+                        {
+                            timeManager.StartCoroutine(timeLoopCoroutine);
+                            logger.Msg("Started TimeLoop coroutine on dedicated server");
+                        }
+                    }
+
+                    var tickLoopMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("TickLoop",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (tickLoopMethod != null)
+                    {
+                        var tickLoopCoroutine = tickLoopMethod.Invoke(timeManager, null) as IEnumerator;
+                        if (tickLoopCoroutine != null)
+                        {
+                            timeManager.StartCoroutine(tickLoopCoroutine);
+                            logger.Msg("Started TickLoop coroutine on dedicated server");
+                        }
+                    }
+
+                    _timeLoopsStarted = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Error starting TimeLoop/TickLoop on dedicated server: {ex}");
+                }
             }
             
             ServerManager.Initialize();
@@ -576,6 +705,79 @@ namespace DedicatedServerMod
             logger.Msg($"Server running on port {_serverPort}");
             logger.Msg($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             logger.Msg("Waiting for client connections...");
+        }
+
+        /// <summary>
+        /// On dedicated servers the built-in quest components usually defer initialization
+        /// until a local player exists. During server boot there isn't a typical local player,
+        /// which means quests may not have registered their GUIDs yet when the save loader runs.
+        /// This proactively registers all default quests with the GUID system using their
+        /// configured StaticGUIDs (or generates one if missing) so that the QuestsLoader can
+        /// resolve saved quest references.
+        /// </summary>
+        private static void TryRegisterDefaultQuestsWithGuidManager()
+        {
+            try
+            {
+                if (!_isServerMode)
+                {
+                    return;
+                }
+
+                var questManager = NetworkSingleton<QuestManager>.Instance;
+                if (questManager == null)
+                {
+                    // Fallback in case NetworkSingleton hasn't assigned yet
+                    questManager = UnityEngine.Object.FindObjectOfType<QuestManager>();
+                }
+
+                if (questManager == null || questManager.DefaultQuests == null)
+                {
+                    return;
+                }
+
+                int total = questManager.DefaultQuests.Length;
+                int registered = 0;
+
+                for (int i = 0; i < questManager.DefaultQuests.Length; i++)
+                {
+                    var quest = questManager.DefaultQuests[i];
+                    if (quest == null)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        // Ensure the quest has a valid StaticGUID
+                        string guidString = quest.StaticGUID;
+                        if (!GUIDManager.IsGUIDValid(guidString))
+                        {
+                            var newGuid = GUIDManager.GenerateUniqueGUID();
+                            guidString = newGuid.ToString();
+                            quest.StaticGUID = guidString;
+                        }
+
+                        // Register with GUIDManager so loaders can resolve it
+                        var guid = new Guid(guidString);
+                        quest.SetGUID(guid);
+                        registered++;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning($"Failed to pre-register quest '{quest?.GetQuestTitle()}' with GUID system: {ex.Message}");
+                    }
+                }
+
+                if (registered > 0)
+                {
+                    logger.Msg($"Pre-registered {registered}/{total} default quests with GUIDManager before loading save data");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error while pre-registering default quests: {ex}");
+            }
         }
 
         /// <summary>
@@ -1157,6 +1359,341 @@ namespace DedicatedServerMod
         }
 
         /// <summary>
+        /// CRITICAL FIX: Harmony prefix patch for TimeManager.Update to fix sleep detection on dedicated servers
+        /// The original Update() only runs sleep logic if InstanceFinder.IsHost is true, but dedicated servers
+        /// are IsServer, not IsHost. This patch runs the sleep logic on dedicated servers.
+        /// </summary>
+        private static bool TimeManagerUpdatePrefix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer)
+            {
+                return true; // Let original method run on non-dedicated servers
+            }
+
+            try
+            {
+                // Replicate the critical sleep detection logic that normally only runs for IsHost
+                if (__instance.SleepInProgress)
+                {
+                    // Get sleepEndTime using reflection since it's private
+                    var sleepEndTimeField = typeof(ScheduleOne.GameTime.TimeManager).GetField("sleepEndTime", 
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (sleepEndTimeField != null)
+                    {
+                        var sleepEndTime = (int)sleepEndTimeField.GetValue(__instance);
+                        if (__instance.IsCurrentTimeWithinRange(sleepEndTime, 
+                            ScheduleOne.GameTime.TimeManager.AddMinutesTo24HourTime(sleepEndTime, 60)))
+                        {
+                            if (_debugMode)
+                                logger.Msg($"Dedicated server: Sleep end time reached, ending sleep (time: {__instance.CurrentTime}, end: {sleepEndTime})");
+                            
+                            // Use reflection to call private EndSleep method
+                            var endSleepMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("EndSleep", 
+                                BindingFlags.NonPublic | BindingFlags.Instance);
+                            endSleepMethod?.Invoke(__instance, null);
+                        }
+                    }
+                }
+                else if (Player.AreAllPlayersReadyToSleep())
+                {
+                    if (_debugMode)
+                        logger.Msg("Dedicated server: All players ready to sleep, starting sleep");
+                    
+                    // Use reflection to call private StartSleep method
+                    var startSleepMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("StartSleep", 
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    startSleepMethod?.Invoke(__instance, null);
+                }
+
+                return true; // Let original method run normally for other logic
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in TimeManager Update patch: {ex}");
+                return true; // Let original method run as fallback
+            }
+        }
+
+        /// <summary>
+        /// CRITICAL FIX: Harmony postfix patch for TimeManager.OnStartClient to ensure TimeLoop runs on dedicated servers
+        /// The original OnStartClient only runs on clients, but dedicated servers need TimeLoop for time progression
+        /// </summary>
+        private static void TimeManagerOnStartClientPostfix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            // No-op on dedicated server to avoid double-starting loops.
+            // Loops are started explicitly in LoadAsDedicatedServer once.
+            return;
+        }
+
+        /// <summary>
+        /// CRITICAL FIX: Harmony postfix patch for TimeManager.FastForwardToWakeTime 
+        /// Ensures proper time synchronization to all clients after sleep ends
+        /// </summary>
+        private static void FastForwardToWakeTimePostfix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer)
+            {
+                return;
+            }
+
+            try
+            {
+                logger.Msg($"Sleep ended - synchronizing time to all clients (New time: Day {__instance.ElapsedDays}, Time {__instance.CurrentTime})");
+                
+                // Delay the time sync to ensure clients are ready to receive it
+                MelonCoroutines.Start(DelayedTimeSyncAfterSleep(__instance));
+                
+                // Also trigger a save since time advanced significantly
+                if (_autoSaveEnabled)
+                {
+                    MelonCoroutines.Start(DelayedSaveAfterSleep());
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in FastForwardToWakeTime postfix: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// CRITICAL FIX: Harmony postfix patch for StartSleep RPC logic
+        /// Ensures dedicated server properly handles sleep initiation and daily summary flow
+        /// </summary>
+        private static void StartSleepRpcPostfix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer)
+            {
+                return;
+            }
+
+            try
+            {
+                logger.Msg("Sleep started on dedicated server - initiating server-side daily summary flow");
+                
+                // On dedicated servers, we need to automatically mark the host sleep as done
+                // since there's no real host player to go through the daily summary
+                MelonCoroutines.Start(HandleDedicatedServerSleepFlow(__instance));
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in StartSleep RPC postfix: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// CRITICAL FIX: Harmony postfix patch for EndSleep RPC logic
+        /// The original EndSleep only sends time data if IsHost is true, but dedicated servers are IsServer, not IsHost.
+        /// This ensures time synchronization happens on dedicated servers after sleep ends.
+        /// </summary>
+        private static void EndSleepRpcPostfix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer)
+            {
+                return;
+            }
+
+            try
+            {
+                logger.Msg("EndSleep on dedicated server - sending time data to all clients");
+
+                // Send to each remote client individually to avoid running SetData locally on server
+                var networkManager = InstanceFinder.NetworkManager;
+                var serverMgr = networkManager?.ServerManager;
+                if (serverMgr != null)
+                {
+                    foreach (var kvp in serverMgr.Clients)
+                    {
+                        var client = kvp.Value;
+                        if (client == null || client.IsLocalClient)
+                            continue;
+                        __instance.SendTimeData(client);
+                    }
+                }
+
+                logger.Msg($"Time sync sent after sleep: Day {__instance.ElapsedDays}, Time {__instance.CurrentTime}");
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in EndSleep RPC postfix: {ex}");
+            }
+        }
+
+        // Track last broadcast to avoid duplicate sends within the same minute/day
+        private static int _lastBroadcastDay = int.MinValue;
+        private static int _lastBroadcastTimeVal = int.MinValue;
+
+        /// <summary>
+        /// Postfix on TimeManager.Tick to broadcast authoritative time to all clients once per in-game minute.
+        /// Prevents desync between clients and ensures clients progress past 4 AM.
+        /// </summary>
+        private static void TimeManagerTickPostfix(ScheduleOne.GameTime.TimeManager __instance)
+        {
+            if (!_isServerMode || !InstanceFinder.IsServer)
+            {
+                return;
+            }
+
+            try
+            {
+                // Only send when the displayed minute changed AND only from one source (avoid double tick/loop)
+                if (__instance.ElapsedDays == _lastBroadcastDay && __instance.CurrentTime == _lastBroadcastTimeVal)
+                {
+                    return;
+                }
+
+                // Only resync on key boundaries to avoid double-triggering client onTimeChanged every minute.
+                // 1) Top of hour (mm == 00)
+                // 2) 04:00 boundary
+                // 3) 07:00 wake time boundary
+                int minutes = __instance.CurrentTime % 100;
+                bool isTopOfHour = minutes == 0;
+                bool isCriticalBoundary = (__instance.CurrentTime == 400) || (__instance.CurrentTime == 700);
+                if (!isTopOfHour && !isCriticalBoundary)
+                {
+                    _lastBroadcastDay = __instance.ElapsedDays;
+                    _lastBroadcastTimeVal = __instance.CurrentTime;
+                    return;
+                }
+
+                _lastBroadcastDay = __instance.ElapsedDays;
+                _lastBroadcastTimeVal = __instance.CurrentTime;
+
+                // Broadcast to each remote client individually via SendTimeData(target)
+                var networkManager = InstanceFinder.NetworkManager;
+                var serverMgr = networkManager?.ServerManager;
+                if (serverMgr != null)
+                {
+                    foreach (var kvp in serverMgr.Clients)
+                    {
+                        var client = kvp.Value;
+                        if (client == null || client.IsLocalClient)
+                            continue;
+                        __instance.SendTimeData(client);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error broadcasting time tick: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Handles the dedicated server sleep flow, including daily summary and host sleep done logic
+        /// </summary>
+        private static IEnumerator HandleDedicatedServerSleepFlow(ScheduleOne.GameTime.TimeManager timeManager)
+        {
+            logger.Msg("Starting dedicated server sleep flow");
+            
+            // Wait a moment for the sleep to fully initialize
+            yield return new WaitForSeconds(1f);
+            
+            // Reset host sleep done at the beginning (like SleepCanvas does)
+            logger.Msg("Resetting host sleep done on dedicated server");
+            timeManager.ResetHostSleepDone();
+            
+            // Wait for any post-sleep events to complete (trash generation, etc.)
+            // This mimics the timing in SleepCanvas
+            yield return new WaitForSeconds(3f);
+            
+            // Mark host sleep done so clients can proceed
+            logger.Msg("Marking host sleep done on dedicated server");
+            timeManager.MarkHostSleepDone();
+            
+            // Ensure the HostDailySummaryDone flag is properly set
+            yield return new WaitForSeconds(0.5f);
+            logger.Msg($"Host daily summary done status: {timeManager.HostDailySummaryDone}");
+            
+            // Additional wait to ensure synchronization
+            yield return new WaitForSeconds(0.5f);
+            
+            logger.Msg("Dedicated server sleep flow completed");
+        }
+
+        /// <summary>
+        /// Delayed time synchronization after sleep to ensure clients are ready
+        /// </summary>
+        private static IEnumerator DelayedTimeSyncAfterSleep(ScheduleOne.GameTime.TimeManager timeManager)
+        {
+            logger.Msg("Starting delayed time synchronization after sleep");
+            
+            // CRITICAL: Wait for FastForwardToWakeTime to be called on the server first
+            logger.Msg($"Server time before FastForward: Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
+            
+            // Ensure the server advances its own time first
+            if (timeManager.SleepInProgress)
+            {
+                logger.Msg("Server: Manually calling FastForwardToWakeTime to advance server time");
+                timeManager.FastForwardToWakeTime();
+                yield return new WaitForSeconds(0.5f); // Let server process the time advancement
+            }
+            
+            logger.Msg($"Server time after FastForward: Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
+            
+            // Wait for clients to fully process sleep end
+            yield return new WaitForSeconds(2f);
+            
+            // Send time data to all clients multiple times to ensure delivery
+            for (int i = 0; i < 5; i++) // Increased attempts
+            {
+                logger.Msg($"Time sync attempt {i + 1}/5 - Broadcasting time: Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
+                
+                // Force time sync using both direct SetData and SendTimeData for maximum reliability
+                try
+                {
+                    // Method 1: Direct SetData call
+                    var setDataMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("SetData", 
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (setDataMethod != null)
+                    {
+                        logger.Msg($"Server: Calling SetData directly - Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
+                        setDataMethod.Invoke(timeManager, new object[] { 
+                            null, 
+                            timeManager.ElapsedDays, 
+                            timeManager.CurrentTime, 
+                            DateTime.UtcNow.Ticks / 10000000f 
+                        });
+                    }
+                    
+                    // Method 2: Standard SendTimeData (as backup)
+                    logger.Msg($"Server: Calling SendTimeData as backup - Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
+                    timeManager.SendTimeData(null);
+                    
+                    // Method 3: Force sync to each individual client (most reliable)
+                    var networkManager = InstanceFinder.NetworkManager;
+                    if (networkManager != null && networkManager.ServerManager != null)
+                    {
+                        foreach (var client in networkManager.ServerManager.Clients.Values)
+                        {
+                            if (client != null && !client.IsLocalClient)
+                            {
+                                logger.Msg($"Server: Sending time sync to individual client {client.ClientId}");
+                                timeManager.SendTimeData(client);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Error in time sync attempts: {ex}");
+                }
+                
+                yield return new WaitForSeconds(0.5f);
+            }
+            
+            logger.Msg("Completed delayed time synchronization after sleep");
+        }
+
+        /// <summary>
+        /// Delayed save coroutine after sleep to ensure world state is persisted
+        /// </summary>
+        private static IEnumerator DelayedSaveAfterSleep()
+        {
+            yield return new WaitForSeconds(2f);
+            TriggerAutoSave("post_sleep");
+        }
+
+        /// <summary>
         /// Harmony prefix patch for Player.OnDestroy to handle player disconnect events
         /// </summary>
         private static void PlayerOnDestroyPrefix(Player __instance)
@@ -1180,6 +1717,60 @@ namespace DedicatedServerMod
             catch (Exception ex)
             {
                 logger.Error($"Error in Player OnDestroy patch: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// CRITICAL: Harmony prefix patch for Console.SubmitCommand to allow admin/operator command execution
+        /// This replaces the original host-only check with our admin permission system
+        /// </summary>
+        private static bool ConsoleSubmitCommandPrefix(List<string> args)
+        {
+            if (args.Count == 0) return true; // Let original method handle empty commands
+
+            try
+            {
+                // On dedicated servers, check if the current player is an admin/operator
+                if (_isServerMode && InstanceFinder.IsServer && !InstanceFinder.IsHost)
+                {
+                    var localPlayer = Player.Local;
+                    if (localPlayer == null)
+                    {
+                        // No local player means this is being called from the server itself
+                        // Allow execution for server console commands
+                        return true;
+                    }
+
+                    // Check if the player has permission to use console commands
+                    if (!ServerConfig.CanUseConsole(localPlayer))
+                    {
+                        ScheduleOne.Console.LogWarning("You don't have permission to use console commands on this server.");
+                        return false; // Block original method
+                    }
+
+                    // Check if the player can use this specific command
+                    string command = args[0].ToLower();
+                    if (!ServerConfig.CanUseCommand(localPlayer, command))
+                    {
+                        ScheduleOne.Console.LogWarning($"You don't have permission to use the '{command}' command.");
+                        return false; // Block original method
+                    }
+
+                    // Log admin command usage
+                    string argsString = args.Count > 1 ? string.Join(" ", args.Skip(1)) : "";
+                    ServerConfig.LogAdminAction(localPlayer, command, argsString);
+
+                    // Allow the command to execute by falling through to original method
+                    return true;
+                }
+
+                // For normal hosts or non-dedicated servers, let original method handle it
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"Error in Console SubmitCommand patch: {ex}");
+                return true; // Let original method run as fallback
             }
         }
 
