@@ -5,6 +5,7 @@ using UnityEngine;
 using Newtonsoft.Json;
 using MelonLoader;
 using FishNet;
+using MelonLoader.Utils;
 using ScheduleOne.PlayerScripts;
 using Steamworks;
 
@@ -167,7 +168,7 @@ namespace DedicatedServerMod
         public static void Initialize(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
-            configPath = Path.Combine(Application.persistentDataPath, "server_config.json");
+            configPath = Path.Combine(MelonEnvironment.UserDataDirectory, "server_config.json");
             LoadConfig();
         }
         #endregion
