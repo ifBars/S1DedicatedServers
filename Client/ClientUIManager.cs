@@ -1,7 +1,9 @@
 using MelonLoader;
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DedicatedServerMod.Client
 {
@@ -15,8 +17,27 @@ namespace DedicatedServerMod.Client
         private readonly ClientConnectionManager connectionManager;
         
         // UI state
-        private GameObject prototypeButton;
+        private GameObject serversButton;
         private bool menuUISetup = false;
+
+        // Server menu UI
+        private GameObject serverMenuOverlay;
+        private GameObject serverMenuPanel;
+        private CanvasGroup serverMenuCanvasGroup;
+        private TMP_InputField serverAddressInput;
+        private TMP_Text serverMenuStatusText;
+        private Button serverMenuConnectButton;
+        private Button serverMenuListButton;
+        private Button serverMenuCloseButton;
+
+        // Theme
+        private static readonly Color ACCENT = new Color(0.10f, 0.65f, 1f, 1f);
+        private static readonly Color PANEL_BG = new Color(0.08f, 0.09f, 0.12f, 0.96f);
+        private static readonly Color OVERLAY_DIM = new Color(0f, 0f, 0f, 0.45f);
+        private static readonly Color INPUT_BG = new Color(0.12f, 0.13f, 0.16f, 1f);
+        private static readonly Color BTN_BG = new Color(0.18f, 0.20f, 0.25f, 0.95f);
+        private static readonly Color BTN_BG_HOVER = new Color(0.22f, 0.24f, 0.30f, 0.95f);
+        private static readonly Color BTN_BG_PRESSED = new Color(0.14f, 0.16f, 0.20f, 0.95f);
 
         public ClientUIManager(MelonLogger.Instance logger, ClientConnectionManager connectionManager)
         {
@@ -69,7 +90,7 @@ namespace DedicatedServerMod.Client
             
             try
             {
-                if (AddPrototypeButton())
+                if (AddServersButton())
                 {
                     menuUISetup = true;
                     logger.Msg("Menu UI setup completed");
@@ -90,7 +111,7 @@ namespace DedicatedServerMod.Client
         /// <summary>
         /// Add the prototype server connection button to the main menu
         /// </summary>
-        private bool AddPrototypeButton()
+        private bool AddServersButton()
         {
             try
             {
@@ -123,25 +144,28 @@ namespace DedicatedServerMod.Client
                     return false;
                 }
 
-                // Create prototype button by cloning continue button
-                prototypeButton = GameObject.Instantiate(continueButton.gameObject, bank);
-                prototypeButton.name = "PrototypeServerButton";
+                // Create servers button by cloning continue button
+                serversButton = GameObject.Instantiate(continueButton.gameObject, bank);
+                serversButton.name = "ServersButton";
                 
-                // Position it below continue button
-                PositionPrototypeButton(prototypeButton, continueButton);
+                // Position it to the right of the continue button so it's not blocked
+                PositionServersButton(serversButton, continueButton);
                 
                 // Update button appearance
-                UpdateButtonText(prototypeButton);
+                UpdateServersButtonText(serversButton);
                 
-                // Setup button functionality
-                SetupButtonClick(prototypeButton);
+                // Replace original button component to strip persistent onClick listeners from the cloned Continue button
+                StripPersistentOnClick(serversButton);
 
-                logger.Msg("Prototype button added to main menu successfully");
+                // Setup button functionality
+                SetupServersButtonClick(serversButton);
+
+                logger.Msg("Servers button added to main menu successfully");
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error($"Error adding prototype button: {ex}");
+                logger.Error($"Error adding servers button: {ex}");
                 return false;
             }
         }
@@ -149,77 +173,89 @@ namespace DedicatedServerMod.Client
         /// <summary>
         /// Position the prototype button relative to the continue button
         /// </summary>
-        private void PositionPrototypeButton(GameObject prototypeButton, Transform continueButton)
+        private void PositionServersButton(GameObject newButton, Transform continueButton)
         {
-            var rectTransform = prototypeButton.GetComponent<RectTransform>();
+            var rectTransform = newButton.GetComponent<RectTransform>();
             if (rectTransform != null)
             {
                 var pos = rectTransform.anchoredPosition;
-                rectTransform.anchoredPosition = new Vector2(pos.x, pos.y - 60f);
+                rectTransform.anchoredPosition = new Vector2(pos.x + 100f, pos.y);
             }
         }
 
         /// <summary>
         /// Update the button text to reflect its purpose
         /// </summary>
-        private void UpdateButtonText(GameObject button)
+        private void UpdateServersButtonText(GameObject button)
         {
-            var textComponent = button.GetComponentInChildren<UnityEngine.UI.Text>();
-            if (textComponent != null)
+            var tmp = button.GetComponentInChildren<TMP_Text>();
+            if (tmp != null)
             {
-                textComponent.text = "Connect to Dedicated Server (Prototype)";
+                tmp.text = "Servers";
+                return;
             }
-            else
+            var legacy = button.GetComponentInChildren<Text>();
+            if (legacy != null)
             {
-                logger.Warning("Could not find text component on prototype button");
+                legacy.text = "Servers";
+                return;
+            }
+            logger.Warning("Could not find text component on servers button");
+        }
+
+        /// <summary>
+        /// Remove any persistent listeners copied from the original Continue button, ensuring only our handler runs.
+        /// </summary>
+        private void StripPersistentOnClick(GameObject button)
+        {
+            try
+            {
+                var btn = button.GetComponent<Button>();
+                if (btn == null)
+                {
+                    logger.Warning("StripPersistentOnClick: Button component not found");
+                    return;
+                }
+
+                // Replace the entire UnityEvent to ensure no persistent listeners remain
+                btn.onClick = new Button.ButtonClickedEvent();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error stripping onClick listeners: {ex}");
             }
         }
 
         /// <summary>
         /// Setup the button click handler
         /// </summary>
-        private void SetupButtonClick(GameObject button)
+        private void SetupServersButtonClick(GameObject button)
         {
-            var buttonComponent = button.GetComponent<UnityEngine.UI.Button>();
+            var buttonComponent = button.GetComponent<Button>();
             if (buttonComponent != null)
             {
                 buttonComponent.onClick.RemoveAllListeners();
-                buttonComponent.onClick.AddListener(OnPrototypeButtonClicked);
+                buttonComponent.onClick.AddListener(OnServersButtonClicked);
             }
             else
             {
-                logger.Warning("Could not find Button component on prototype button");
+                logger.Warning("Could not find Button component on servers button");
             }
         }
 
         /// <summary>
         /// Handle prototype button click
         /// </summary>
-        private void OnPrototypeButtonClicked()
+        private void OnServersButtonClicked()
         {
             try
             {
-                logger.Msg("Prototype server button clicked");
-                
-                if (connectionManager.IsConnecting)
-                {
-                    logger.Msg("Connection already in progress - ignoring button click");
-                    return;
-                }
-
-                if (connectionManager.IsConnectedToDedicatedServer)
-                {
-                    logger.Msg("Already connected to dedicated server - disconnecting first");
-                    connectionManager.DisconnectFromDedicatedServer();
-                    return;
-                }
-
-                // Start dedicated server connection
-                connectionManager.StartDedicatedConnection();
+                logger.Msg("Servers button clicked - opening server menu");
+                ToggleServerMenu(true);
             }
             catch (Exception ex)
             {
-                logger.Error($"Error handling prototype button click: {ex}");
+                logger.Error($"Error handling servers button click: {ex}");
             }
         }
 
@@ -228,26 +264,15 @@ namespace DedicatedServerMod.Client
         /// </summary>
         public void UpdateButtonState()
         {
-            if (prototypeButton == null)
+            if (serversButton == null)
                 return;
 
             try
             {
-                var textComponent = prototypeButton.GetComponentInChildren<UnityEngine.UI.Text>();
+                var textComponent = serversButton.GetComponentInChildren<Text>();
                 if (textComponent != null)
                 {
-                    if (connectionManager.IsConnecting)
-                    {
-                        textComponent.text = "Connecting to Dedicated Server...";
-                    }
-                    else if (connectionManager.IsConnectedToDedicatedServer)
-                    {
-                        textComponent.text = "Disconnect from Dedicated Server";
-                    }
-                    else
-                    {
-                        textComponent.text = "Connect to Dedicated Server (Prototype)";
-                    }
+                    textComponent.text = "Servers";
                 }
             }
             catch (Exception ex)
@@ -301,13 +326,13 @@ namespace DedicatedServerMod.Client
             try
             {
                 // F8 - Show connection status
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F8))
+                if (Input.GetKeyDown(KeyCode.F8))
                 {
                     ShowConnectionStatus();
                 }
 
                 // F10 - Update button state
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F10))
+                if (Input.GetKeyDown(KeyCode.F10))
                 {
                     UpdateButtonState();
                 }
@@ -325,12 +350,23 @@ namespace DedicatedServerMod.Client
         {
             try
             {
-                if (prototypeButton != null)
+                if (serversButton != null)
                 {
-                    GameObject.Destroy(prototypeButton);
-                    prototypeButton = null;
+                    GameObject.Destroy(serversButton);
+                    serversButton = null;
                 }
                 
+                if (serverMenuPanel != null)
+                {
+                    GameObject.Destroy(serverMenuPanel);
+                    serverMenuPanel = null;
+                    serverAddressInput = null;
+                    serverMenuStatusText = null;
+                    serverMenuConnectButton = null;
+                    serverMenuListButton = null;
+                    serverMenuCloseButton = null;
+                }
+
                 menuUISetup = false;
                 logger.Msg("UI elements cleaned up");
             }
@@ -353,6 +389,391 @@ namespace DedicatedServerMod.Client
             catch (Exception ex)
             {
                 logger.Error($"Error resetting UI state: {ex}");
+            }
+        }
+
+        private void ToggleServerMenu(bool show)
+        {
+            try
+            {
+                if (serverMenuPanel == null && show)
+                {
+                    CreateServerMenuUI();
+                }
+
+                if (serverMenuPanel != null)
+                {
+                    if (serverMenuOverlay != null)
+                    {
+                        serverMenuOverlay.SetActive(show);
+                    }
+                    serverMenuPanel.SetActive(show);
+                    if (serverMenuCanvasGroup != null)
+                    {
+                        serverMenuCanvasGroup.alpha = show ? 1f : 0f;
+                        serverMenuCanvasGroup.interactable = show;
+                        serverMenuCanvasGroup.blocksRaycasts = show;
+                    }
+                    if (show)
+                    {
+                        PrefillServerAddress();
+                        UpdateServerMenuState();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error toggling server menu: {ex}");
+            }
+        }
+
+        private void PrefillServerAddress()
+        {
+            try
+            {
+                if (serverAddressInput != null)
+                {
+                    var target = ClientConnectionManager.GetTargetServer();
+                    serverAddressInput.text = $"{target.ip}:{target.port}";
+                    serverAddressInput.caretPosition = serverAddressInput.text.Length;
+                    serverAddressInput.selectionStringAnchorPosition = serverAddressInput.caretPosition;
+                    serverAddressInput.selectionStringFocusPosition = serverAddressInput.caretPosition;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error pre-filling server address: {ex}");
+            }
+        }
+
+        private void CreateServerMenuUI()
+        {
+            // Find main menu root to attach our panel
+            var mainMenu = GameObject.Find("MainMenu");
+            if (mainMenu == null)
+            {
+                logger.Warning("Cannot create server menu - MainMenu not found");
+                return;
+            }
+
+            // Overlay dim
+            serverMenuOverlay = new GameObject("ServerMenuOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            serverMenuOverlay.transform.SetParent(mainMenu.transform, false);
+            var overlayRect = serverMenuOverlay.GetComponent<RectTransform>();
+            overlayRect.anchorMin = new Vector2(0f, 0f);
+            overlayRect.anchorMax = new Vector2(1f, 1f);
+            overlayRect.pivot = new Vector2(0.5f, 0.5f);
+            overlayRect.sizeDelta = Vector2.zero;
+            var overlayImage = serverMenuOverlay.GetComponent<Image>();
+            overlayImage.color = OVERLAY_DIM;
+
+            // Panel
+            serverMenuPanel = new GameObject("ServerMenuPanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+            serverMenuPanel.transform.SetParent(serverMenuOverlay.transform, false);
+
+            serverMenuCanvasGroup = serverMenuPanel.GetComponent<CanvasGroup>();
+            serverMenuCanvasGroup.alpha = 1f;
+
+            var panelRect = serverMenuPanel.GetComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.sizeDelta = new Vector2(680f, 380f);
+            panelRect.anchoredPosition = new Vector2(0f, 0f);
+
+            var panelImage = serverMenuPanel.GetComponent<Image>();
+            panelImage.color = PANEL_BG;
+            panelImage.raycastTarget = true;
+
+            // Panel decorative border
+            var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
+            border.transform.SetParent(serverMenuPanel.transform, false);
+            var borderRect = border.GetComponent<RectTransform>();
+            borderRect.anchorMin = new Vector2(0f, 0f);
+            borderRect.anchorMax = new Vector2(1f, 1f);
+            borderRect.offsetMin = new Vector2(2f, 2f);
+            borderRect.offsetMax = new Vector2(-2f, -2f);
+            var borderImage = border.GetComponent<Image>();
+            borderImage.color = new Color(1f, 1f, 1f, 0.03f);
+
+            // Title
+            var titleGO = new GameObject("Title", typeof(RectTransform));
+            titleGO.transform.SetParent(serverMenuPanel.transform, false);
+            var titleRect = titleGO.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0.5f, 1f);
+            titleRect.anchorMax = new Vector2(0.5f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.sizeDelta = new Vector2(560f, 40f);
+            titleRect.anchoredPosition = new Vector2(0f, -18f);
+            var titleText = titleGO.AddComponent<TextMeshProUGUI>();
+            titleText.text = "Dedicated Servers";
+            titleText.alignment = TextAlignmentOptions.Center;
+            titleText.fontSize = 30;
+            titleText.color = Color.white;
+            titleText.fontStyle = FontStyles.Bold;
+
+            // Address label
+            var addrLabelGO = new GameObject("AddressLabel", typeof(RectTransform));
+            addrLabelGO.transform.SetParent(serverMenuPanel.transform, false);
+            var addrLabelRect = addrLabelGO.GetComponent<RectTransform>();
+            addrLabelRect.anchorMin = new Vector2(0f, 1f);
+            addrLabelRect.anchorMax = new Vector2(0f, 1f);
+            addrLabelRect.pivot = new Vector2(0f, 1f);
+            addrLabelRect.sizeDelta = new Vector2(200f, 26f);
+            addrLabelRect.anchoredPosition = new Vector2(28f, -84f);
+            var addrLabelText = addrLabelGO.AddComponent<TextMeshProUGUI>();
+            addrLabelText.text = "Server (IP:Port)";
+            addrLabelText.alignment = TextAlignmentOptions.Left;
+            addrLabelText.fontSize = 20;
+            addrLabelText.color = new Color(1f, 1f, 1f, 0.9f);
+
+            // Address input background
+            var addrBG = new GameObject("AddressInputBG", typeof(RectTransform), typeof(Image));
+            addrBG.transform.SetParent(serverMenuPanel.transform, false);
+            var addrBGRect = addrBG.GetComponent<RectTransform>();
+            addrBGRect.anchorMin = new Vector2(0f, 1f);
+            addrBGRect.anchorMax = new Vector2(0f, 1f);
+            addrBGRect.pivot = new Vector2(0f, 1f);
+            addrBGRect.sizeDelta = new Vector2(440f, 44f);
+            addrBGRect.anchoredPosition = new Vector2(28f, -118f);
+            var addrBGImage = addrBG.GetComponent<Image>();
+            addrBGImage.color = INPUT_BG;
+            addrBGImage.raycastTarget = true;
+
+            // Input border accent
+            var addrBorder = new GameObject("AddressBorder", typeof(RectTransform), typeof(Image));
+            addrBorder.transform.SetParent(addrBG.transform, false);
+            var addrBorderRect = addrBorder.GetComponent<RectTransform>();
+            addrBorderRect.anchorMin = new Vector2(0f, 0f);
+            addrBorderRect.anchorMax = new Vector2(1f, 0f);
+            addrBorderRect.pivot = new Vector2(0.5f, 0f);
+            addrBorderRect.sizeDelta = new Vector2(0f, 2f);
+            addrBorderRect.anchoredPosition = new Vector2(0f, 0f);
+            var addrBorderImage = addrBorder.GetComponent<Image>();
+            addrBorderImage.color = ACCENT;
+
+            // Address input
+            var addrInputGO = new GameObject("AddressInput", typeof(RectTransform));
+            addrInputGO.transform.SetParent(addrBG.transform, false);
+            var addrInputRect = addrInputGO.GetComponent<RectTransform>();
+            addrInputRect.anchorMin = new Vector2(0f, 0f);
+            addrInputRect.anchorMax = new Vector2(1f, 1f);
+            addrInputRect.pivot = new Vector2(0.5f, 0.5f);
+            addrInputRect.sizeDelta = new Vector2(-16f, -16f);
+            addrInputRect.anchoredPosition = new Vector2(0f, 0f);
+            serverAddressInput = addrInputGO.AddComponent<TMP_InputField>();
+            var addrText = addrInputGO.AddComponent<TextMeshProUGUI>();
+            addrText.fontSize = 18;
+            addrText.color = Color.white;
+            addrText.enableWordWrapping = false;
+            addrText.alignment = TextAlignmentOptions.MidlineLeft;
+            serverAddressInput.textComponent = addrText;
+            var placeholder = new GameObject("Placeholder", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+            placeholder.transform.SetParent(addrInputGO.transform, false);
+            var phRect = placeholder.GetComponent<RectTransform>();
+            phRect.anchorMin = new Vector2(0f, 0f);
+            phRect.anchorMax = new Vector2(1f, 1f);
+            phRect.offsetMin = new Vector2(0f, 0f);
+            phRect.offsetMax = new Vector2(0f, 0f);
+            placeholder.text = "e.g. 127.0.0.1:38465";
+            placeholder.fontSize = 18;
+            placeholder.color = new Color(1f, 1f, 1f, 0.35f);
+            placeholder.alignment = TextAlignmentOptions.MidlineLeft;
+            serverAddressInput.placeholder = placeholder;
+
+            // Connect button
+            serverMenuConnectButton = CreateStyledButton(serverMenuPanel.transform, new Vector2(488f, -118f), new Vector2(152f, 44f), "Connect");
+            serverMenuConnectButton.onClick.AddListener(OnConnectClicked);
+
+            // Server list button
+            serverMenuListButton = CreateStyledButton(serverMenuPanel.transform, new Vector2(28f, -178f), new Vector2(180f, 40f), "Server List");
+            serverMenuListButton.onClick.AddListener(OnServerListClicked);
+
+            // Status text
+            var statusGO = new GameObject("StatusText", typeof(RectTransform));
+            statusGO.transform.SetParent(serverMenuPanel.transform, false);
+            var statusRect = statusGO.GetComponent<RectTransform>();
+            statusRect.anchorMin = new Vector2(0f, 0f);
+            statusRect.anchorMax = new Vector2(1f, 0f);
+            statusRect.pivot = new Vector2(0.5f, 0f);
+            statusRect.sizeDelta = new Vector2(-40f, 60f);
+            statusRect.anchoredPosition = new Vector2(0f, 20f);
+            serverMenuStatusText = statusGO.AddComponent<TextMeshProUGUI>();
+            serverMenuStatusText.text = "";
+            serverMenuStatusText.alignment = TextAlignmentOptions.TopLeft;
+            serverMenuStatusText.fontSize = 16;
+            serverMenuStatusText.color = new Color(1f, 1f, 1f, 0.9f);
+
+            // Close button
+            serverMenuCloseButton = CreateIconButton(serverMenuPanel.transform, new Vector2(640f, -24f), new Vector2(28f, 28f), "X");
+            var closeRect = serverMenuCloseButton.GetComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(1f, 1f);
+            closeRect.anchorMax = new Vector2(1f, 1f);
+            closeRect.pivot = new Vector2(1f, 1f);
+            closeRect.anchoredPosition = new Vector2(-24f, -24f);
+            serverMenuCloseButton.onClick.AddListener(() => ToggleServerMenu(false));
+
+            // Hide initially
+            serverMenuOverlay.SetActive(false);
+            serverMenuPanel.SetActive(false);
+        }
+
+        private Button CreateStyledButton(Transform parent, Vector2 anchoredPosition, Vector2 size, string label)
+        {
+            var buttonGO = new GameObject($"Button_{label}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            buttonGO.transform.SetParent(parent, false);
+            var rect = buttonGO.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = anchoredPosition;
+
+            var image = buttonGO.GetComponent<Image>();
+            image.color = BTN_BG;
+
+            var colors = new ColorBlock
+            {
+                colorMultiplier = 1f,
+                disabledColor = new Color(1f, 1f, 1f, 0.3f),
+                highlightedColor = BTN_BG_HOVER,
+                normalColor = BTN_BG,
+                pressedColor = BTN_BG_PRESSED,
+                selectedColor = BTN_BG
+            };
+            var btn = buttonGO.GetComponent<Button>();
+            btn.colors = colors;
+
+            var textGO = new GameObject("Text", typeof(RectTransform));
+            textGO.transform.SetParent(buttonGO.transform, false);
+            var textRect = textGO.GetComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.pivot = new Vector2(0.5f, 0.5f);
+            textRect.sizeDelta = new Vector2(-10f, -10f);
+            var text = textGO.AddComponent<TextMeshProUGUI>();
+            text.text = label;
+            text.fontSize = 20;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = Color.white;
+
+            return btn;
+        }
+
+        private Button CreateIconButton(Transform parent, Vector2 anchoredPosition, Vector2 size, string label)
+        {
+            var button = CreateStyledButton(parent, anchoredPosition, size, label);
+            var text = button.GetComponentInChildren<TextMeshProUGUI>();
+            text.fontSize = 16;
+            text.color = new Color(1f, 1f, 1f, 0.85f);
+            return button;
+        }
+
+        private void OnConnectClicked()
+        {
+            try
+            {
+                string input = serverAddressInput != null ? serverAddressInput.text : string.Empty;
+                if (!TryParseAddress(input, out string ip, out int port))
+                {
+                    SetStatusText("Invalid address. Use IP:Port, e.g. 127.0.0.1:38465");
+                    return;
+                }
+
+                connectionManager.SetTargetServer(ip, port);
+                SetStatusText($"Connecting to {ip}:{port}...");
+                UpdateServerMenuState();
+                connectionManager.StartDedicatedConnection();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error handling connect click: {ex}");
+            }
+        }
+
+        private void OnServerListClicked()
+        {
+            try
+            {
+                SetStatusText("Server list not implemented yet.");
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error handling server list click: {ex}");
+            }
+        }
+
+        private void SetStatusText(string message)
+        {
+            if (serverMenuStatusText != null)
+            {
+                serverMenuStatusText.text = message ?? string.Empty;
+            }
+        }
+
+        private void UpdateServerMenuState()
+        {
+            try
+            {
+                bool isConnecting = connectionManager.IsConnecting;
+                if (serverMenuConnectButton != null)
+                {
+                    serverMenuConnectButton.interactable = !isConnecting;
+                }
+                if (serverAddressInput != null)
+                {
+                    serverAddressInput.interactable = !isConnecting;
+                }
+                if (serverMenuStatusText != null)
+                {
+                    if (isConnecting)
+                    {
+                        serverMenuStatusText.text = "Connecting...";
+                    }
+                    else if (connectionManager.IsConnectedToDedicatedServer)
+                    {
+                        serverMenuStatusText.text = "Connected";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error updating server menu state: {ex}");
+            }
+        }
+
+        private bool TryParseAddress(string input, out string ip, out int port)
+        {
+            ip = null;
+            port = 0;
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
+            input = input.Trim();
+
+            int colonIndex = input.LastIndexOf(':');
+            if (colonIndex > 0 && colonIndex < input.Length - 1)
+            {
+                string ipPart = input.Substring(0, colonIndex);
+                string portPart = input.Substring(colonIndex + 1);
+                if (int.TryParse(portPart, out int parsedPort) && parsedPort > 0 && parsedPort <= 65535)
+                {
+                    ip = ipPart;
+                    port = parsedPort;
+                    return true;
+                }
+                return false;
+            }
+            else
+            {
+                // No port provided; use current default
+                var target = ClientConnectionManager.GetTargetServer();
+                ip = input;
+                port = target.port;
+                return true;
             }
         }
     }

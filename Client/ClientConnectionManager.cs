@@ -295,6 +295,32 @@ namespace DedicatedServerMod.Client
         public static (string ip, int port) GetTargetServer() => (_targetServerIP, _targetServerPort);
 
         /// <summary>
+        /// Set the target server IP and port for the next connection
+        /// </summary>
+        public void SetTargetServer(string ip, int port)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    throw new ArgumentException("IP cannot be empty");
+                }
+                if (port <= 0 || port > 65535)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(port), "Port must be between 1 and 65535");
+                }
+
+                _targetServerIP = ip.Trim();
+                _targetServerPort = port;
+                logger.Msg($"Target server updated to {_targetServerIP}:{_targetServerPort}");
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error setting target server: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Helper method for coroutine starting
         /// </summary>
         private object StartCoroutine(IEnumerator coroutine)
