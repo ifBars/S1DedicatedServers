@@ -6,6 +6,7 @@ using FishNet.Component.Scenes;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using FishNet.Connection;
 using ScheduleOne.Persistence;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
@@ -19,6 +20,8 @@ using System.IO;
 using System.Linq;
 using ScheduleOne.Intro;
 using ScheduleOne.Quests;
+using DedicatedServerMod.Shared;
+using ScheduleOne.UI;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.DedicatedServerHost), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -313,6 +316,16 @@ namespace DedicatedServerMod
                     logger.Msg("Patched Player.MarkPlayerInitialized for quest initialization");
                 }
 
+                // Patch Player RpcLogic___ReceivePlayerNameData to capture SteamID mapping immediately on server
+                var recvNameMethod = playerType.GetMethod("RpcLogic___ReceivePlayerNameData_3895153758", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (recvNameMethod != null)
+                {
+                    var recvNamePostfix = typeof(DedicatedServerHost).GetMethod(nameof(PlayerReceivePlayerNameDataPostfix),
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(recvNameMethod, postfix: new HarmonyMethod(recvNamePostfix));
+                    logger.Msg("Patched Player.ReceivePlayerNameData to bind SteamID mapping on server");
+                }
+
                 // Patch AreAllPlayersReadyToSleep to ignore ghost host for sleep cycling
                 var areAllPlayersReadyMethod = playerType.GetMethod("AreAllPlayersReadyToSleep", 
                     BindingFlags.Public | BindingFlags.Static);
@@ -410,6 +423,16 @@ namespace DedicatedServerMod
                         BindingFlags.Static | BindingFlags.NonPublic);
                     harmony.Patch(submitCommandMethod, new HarmonyMethod(prefixMethod));
                     logger.Msg("Patched Console.SubmitCommand to allow admin/operator commands on dedicated servers");
+                }
+
+                // Register custom messaging by patching DailySummary.Awake (postfix)
+                var dailySummaryType = typeof(DailySummary);
+                var awakeMethod = dailySummaryType.GetMethod("Awake", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (awakeMethod != null)
+                {
+                    var dsPostfix = typeof(DedicatedServerHost).GetMethod(nameof(DailySummaryAwakePostfix), BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(awakeMethod, postfix: new HarmonyMethod(dsPostfix));
+                    logger.Msg("Patched DailySummary.Awake to register custom messaging RPCs");
                 }
             }
             catch (Exception ex)
@@ -1193,6 +1216,29 @@ namespace DedicatedServerMod
             }
         }
 
+        // Harmony postfix to Player.RpcLogic___ReceivePlayerNameData_3895153758
+        // Binds the (connection -> SteamID, PlayerName) mapping as soon as the server sees the data
+        private static void PlayerReceivePlayerNameDataPostfix(Player __instance, NetworkConnection conn, string playerName, string id)
+        {
+            try
+            {
+                // Only meaningful on server; conn may be null when broadcast via Observers
+                if (!InstanceFinder.IsServer)
+                    return;
+
+                // Prefer the player's owner connection if 'conn' is null
+                var targetConn = conn ?? __instance.Owner;
+                if (targetConn == null)
+                    return;
+
+                DedicatedServerMod.ServerManager.SetPlayerIdentity(targetConn, id, playerName);
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"Error in PlayerReceivePlayerNameDataPostfix: {ex}");
+            }
+        }
+
         private static bool AreAllPlayersReadyToSleepPrefix(ref bool __result)
         {
             // Only apply our custom logic if we're in server mode and the feature is enabled
@@ -1718,6 +1764,13 @@ namespace DedicatedServerMod
             {
                 logger.Error($"Error in Player OnDestroy patch: {ex}");
             }
+        }
+
+        // Postfix hook target used above to register our custom message RPCs on startup.
+        private static void DailySummaryAwakePostfix(DailySummary __instance)
+        {
+            // Delegate to shared hub (safe to call repeatedly; internal register handles duplicates)
+            CustomMessaging.DailySummaryAwakePostfix(__instance);
         }
 
         /// <summary>

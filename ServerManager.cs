@@ -9,6 +9,7 @@ using System.Diagnostics;
 using FishNet.Transporting;
 using Steamworks;
 using UnityEngine;
+using System.Collections;
 
 namespace DedicatedServerMod
 {
@@ -61,6 +62,12 @@ namespace DedicatedServerMod
                 {
                     logger.Warning("ServerManager could not find FishNet ServerManager");
                 }
+
+                // Subscribe to player lifecycle to capture SteamIDs and names as they arrive
+                Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned));
+                Player.onPlayerSpawned = (Action<Player>)Delegate.Combine(Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned));
+                Player.onPlayerDespawned = (Action<Player>)Delegate.Remove(Player.onPlayerDespawned, new Action<Player>(OnPlayerDespawned));
+                Player.onPlayerDespawned = (Action<Player>)Delegate.Combine(Player.onPlayerDespawned, new Action<Player>(OnPlayerDespawned));
             }
             catch (Exception ex)
             {
@@ -167,6 +174,103 @@ namespace DedicatedServerMod
             {
                 logger.Error($"Error handling client disconnection: {ex}");
             }
+        }
+
+        /// <summary>
+        /// Player spawned; bind Player instance and resolve SteamID/Name once available.
+        /// </summary>
+        private static void OnPlayerSpawned(Player player)
+        {
+            try
+            {
+                if (player == null || player.Owner == null)
+                    return;
+
+                if (!connectedPlayers.TryGetValue(player.Owner, out var cp))
+                {
+                    cp = new ConnectedPlayer { Connection = player.Owner, ConnectTime = DateTime.Now };
+                    connectedPlayers[player.Owner] = cp;
+                }
+                cp.PlayerInstance = player;
+
+                // Start a short polling coroutine to capture SteamID (PlayerCode) once RPC sets it
+                MelonCoroutines.Start(WaitAndBindPlayerIdentity(player));
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in OnPlayerSpawned: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Player despawned; clear instance reference.
+        /// </summary>
+        private static void OnPlayerDespawned(Player player)
+        {
+            try
+            {
+                if (player == null || player.Owner == null)
+                    return;
+                if (connectedPlayers.TryGetValue(player.Owner, out var cp))
+                {
+                    cp.PlayerInstance = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in OnPlayerDespawned: {ex}");
+            }
+        }
+
+        private static IEnumerator WaitAndBindPlayerIdentity(Player player)
+        {
+            // Poll up to ~5 seconds total
+            float waited = 0f;
+            const float step = 0.1f;
+            while (player != null && player.gameObject != null && waited < 5f)
+            {
+                try
+                {
+                    string sid = player.PlayerCode; // SteamID as string when available
+                    if (!string.IsNullOrEmpty(sid))
+                    {
+                        if (connectedPlayers.TryGetValue(player.Owner, out var cp))
+                        {
+                            cp.SteamId = sid;
+                            cp.PlayerName = player.PlayerName;
+                            logger.Msg($"[ID MAP] Bound ClientId {player.Owner.ClientId} -> SteamID {sid} ({player.PlayerName})");
+                        }
+                        yield break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"WaitAndBindPlayerIdentity error: {ex.Message}");
+                }
+                yield return new WaitForSeconds(step);
+                waited += step;
+            }
+            // If not resolved, keep name at least
+            if (player != null && connectedPlayers.TryGetValue(player.Owner, out var cp2))
+            {
+                cp2.PlayerName = player.PlayerName;
+            }
+        }
+
+        /// <summary>
+        /// Allows external patches (e.g., Harmony on ReceivePlayerNameData) to set identity immediately.
+        /// </summary>
+        public static void SetPlayerIdentity(NetworkConnection conn, string steamId, string playerName)
+        {
+            if (conn == null) return;
+            if (!connectedPlayers.TryGetValue(conn, out var cp))
+            {
+                cp = new ConnectedPlayer { Connection = conn, ConnectTime = DateTime.Now };
+                connectedPlayers[conn] = cp;
+            }
+            cp.SteamId = steamId;
+            cp.PlayerName = playerName;
+            logger.Msg($"[ID MAP] (direct) ClientId {conn.ClientId} -> SteamID {steamId} ({playerName})");
         }
 
         /// <summary>

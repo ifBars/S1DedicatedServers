@@ -6,6 +6,7 @@ using ScheduleOne;
 using ScheduleOne.PlayerScripts;
 using MelonLoader;
 using Console = ScheduleOne.Console;
+using DedicatedServerMod.Shared;
 
 namespace DedicatedServerMod
 {
@@ -32,18 +33,25 @@ namespace DedicatedServerMod
 
             if (commands != null)
             {
-                commands.Add("op", new OpCommand());
-                commands.Add("deop", new DeopCommand());
-                commands.Add("admin", new AdminCommand());
-                commands.Add("deadmin", new DeadminCommand());
-                commands.Add("listops", new ListOpsCommand());
-                commands.Add("listadmins", new ListAdminsCommand());
-                commands.Add("serverinfo", new ServerInfoCommand());
-                commands.Add("reloadconfig", new ReloadConfigCommand());
-                commands.Add("kick", new KickPlayerCommand());
-                commands.Add("ban", new BanPlayerCommand());
-                commands.Add("unban", new UnbanPlayerCommand());
-                commands.Add("listplayers", new ListPlayersCommand());
+                // Ensure default game console commands are present first
+                if (!commands.ContainsKey("settime") || !commands.ContainsKey("give"))
+                {
+                    CustomMessaging.InitializeConsoleCommands(commands);
+                }
+
+                // Register admin commands idempotently
+                if (!commands.ContainsKey("op")) commands.Add("op", new OpCommand());
+                if (!commands.ContainsKey("deop")) commands.Add("deop", new DeopCommand());
+                if (!commands.ContainsKey("admin")) commands.Add("admin", new AdminCommand());
+                if (!commands.ContainsKey("deadmin")) commands.Add("deadmin", new DeadminCommand());
+                if (!commands.ContainsKey("listops")) commands.Add("listops", new ListOpsCommand());
+                if (!commands.ContainsKey("listadmins")) commands.Add("listadmins", new ListAdminsCommand());
+                if (!commands.ContainsKey("serverinfo")) commands.Add("serverinfo", new ServerInfoCommand());
+                if (!commands.ContainsKey("reloadconfig")) commands.Add("reloadconfig", new ReloadConfigCommand());
+                if (!commands.ContainsKey("kick")) commands.Add("kick", new KickPlayerCommand());
+                if (!commands.ContainsKey("ban")) commands.Add("ban", new BanPlayerCommand());
+                if (!commands.ContainsKey("unban")) commands.Add("unban", new UnbanPlayerCommand());
+                if (!commands.ContainsKey("listplayers")) commands.Add("listplayers", new ListPlayersCommand());
 
                 logger?.Msg("Registered server admin commands");
             }

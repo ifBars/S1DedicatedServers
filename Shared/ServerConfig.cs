@@ -317,54 +317,139 @@ namespace DedicatedServerMod
         #region Permission Checking
         public static bool CanUseConsole(Player player)
         {
-            if (player?.Owner?.ClientId == null) return false;
-
-            // Always allow console on dedicated server for operators/admins
-            if (InstanceFinder.IsServer && !InstanceFinder.IsHost)
+            logger?.Msg($"[DEBUG] CanUseConsole called for player: {player?.PlayerName ?? "null"}");
+            
+            if (player?.Owner?.ClientId == null)
             {
-                if (IsOperator(player) && Instance.EnableConsoleForOps) return true;
-                if (IsAdmin(player) && Instance.EnableConsoleForAdmins) return true;
+                logger?.Warning("[DEBUG] CanUseConsole: Player or Owner or ClientId is null");
+                return false;
             }
 
+            // Allow console on server for remote clients (treat loopback host as non-remote)
+            if (InstanceFinder.IsServer)
+            {
+                bool isHostFlag = InstanceFinder.IsHost;
+                bool isClientFlag = InstanceFinder.IsClient;
+                bool isRemoteClient = player.Owner != null && !player.Owner.IsLocalClient;
+                
+                logger?.Msg($"[DEBUG] CanUseConsole: Server-side check (IsServer: {InstanceFinder.IsServer}, IsHost: {isHostFlag}, IsClient: {isClientFlag}, PlayerIsRemote: {isRemoteClient})");
+                
+                if (!isRemoteClient)
+                {
+                    logger?.Warning($"[DEBUG] CanUseConsole: Player {player.PlayerName} is local/loopback; denying console access here");
+                    return false;
+                }
+                
+                bool isOp = IsOperator(player);
+                bool isAdmin = IsAdmin(player);
+                
+                logger?.Msg($"[DEBUG] CanUseConsole: Player {player.PlayerName} - IsOperator: {isOp}, IsAdmin: {isAdmin}");
+                logger?.Msg($"[DEBUG] CanUseConsole: EnableConsoleForOps: {Instance.EnableConsoleForOps}, EnableConsoleForAdmins: {Instance.EnableConsoleForAdmins}");
+                
+                if (isOp && Instance.EnableConsoleForOps)
+                {
+                    logger?.Msg($"[DEBUG] CanUseConsole: Allowing console access for operator {player.PlayerName}");
+                    return true;
+                }
+                if (isAdmin && Instance.EnableConsoleForAdmins)
+                {
+                    logger?.Msg($"[DEBUG] CanUseConsole: Allowing console access for admin {player.PlayerName}");
+                    return true;
+                }
+                
+                logger?.Warning($"[DEBUG] CanUseConsole: Denying console access for {player.PlayerName} - not operator/admin or console disabled");
+            }
+            else
+            {
+                logger?.Msg($"[DEBUG] CanUseConsole: Not on server (IsServer: {InstanceFinder.IsServer}), denying");
+            }
+
+            logger?.Warning($"[DEBUG] CanUseConsole: Final result: false for {player?.PlayerName ?? "null"}");
             return false;
         }
 
         public static bool CanUseCommand(Player player, string command)
         {
-            if (player?.Owner?.ClientId == null) return false;
-            if (string.IsNullOrEmpty(command)) return false;
+            logger?.Msg($"[DEBUG] CanUseCommand called for player: {player?.PlayerName ?? "null"}, command: {command}");
+            
+            if (player?.Owner?.ClientId == null)
+            {
+                logger?.Warning("[DEBUG] CanUseCommand: Player or Owner or ClientId is null");
+                return false;
+            }
+            if (string.IsNullOrEmpty(command))
+            {
+                logger?.Warning("[DEBUG] CanUseCommand: Command is null or empty");
+                return false;
+            }
 
             command = command.ToLower();
+            logger?.Msg($"[DEBUG] CanUseCommand: Normalized command: {command}");
 
             // Operators can use all commands
-            if (IsOperator(player)) return true;
+            if (IsOperator(player))
+            {
+                logger?.Msg($"[DEBUG] CanUseCommand: Player {player.PlayerName} is operator - allowing all commands");
+                return true;
+            }
 
             // Admins can use allowed commands but not restricted ones
             if (IsAdmin(player))
             {
-                if (Instance.RestrictedCommands.Contains(command)) return false;
-                return Instance.AllowedCommands.Contains(command);
+                logger?.Msg($"[DEBUG] CanUseCommand: Player {player.PlayerName} is admin - checking command permissions");
+                
+                if (Instance.RestrictedCommands.Contains(command))
+                {
+                    logger?.Warning($"[DEBUG] CanUseCommand: Command '{command}' is restricted for admins");
+                    return false;
+                }
+                
+                bool isAllowed = Instance.AllowedCommands.Contains(command);
+                logger?.Msg($"[DEBUG] CanUseCommand: Command '{command}' allowed for admin: {isAllowed}");
+                return isAllowed;
             }
 
+            logger?.Warning($"[DEBUG] CanUseCommand: Player {player.PlayerName} is neither operator nor admin");
             return false;
         }
 
         public static bool CanUseCommand(string steamId, string command)
         {
-            if (string.IsNullOrEmpty(steamId) || string.IsNullOrEmpty(command)) return false;
+            logger?.Msg($"[DEBUG] CanUseCommand(string) called for steamId: {steamId}, command: {command}");
+            
+            if (string.IsNullOrEmpty(steamId) || string.IsNullOrEmpty(command))
+            {
+                logger?.Warning("[DEBUG] CanUseCommand(string): SteamId or command is null or empty");
+                return false;
+            }
 
             command = command.ToLower();
+            logger?.Msg($"[DEBUG] CanUseCommand(string): Normalized command: {command}");
 
             // Operators can use all commands
-            if (IsOperator(steamId)) return true;
+            if (IsOperator(steamId))
+            {
+                logger?.Msg($"[DEBUG] CanUseCommand(string): SteamId {steamId} is operator - allowing all commands");
+                return true;
+            }
 
             // Admins can use allowed commands but not restricted ones
             if (IsAdmin(steamId))
             {
-                if (Instance.RestrictedCommands.Contains(command)) return false;
-                return Instance.AllowedCommands.Contains(command);
+                logger?.Msg($"[DEBUG] CanUseCommand(string): SteamId {steamId} is admin - checking command permissions");
+                
+                if (Instance.RestrictedCommands.Contains(command))
+                {
+                    logger?.Warning($"[DEBUG] CanUseCommand(string): Command '{command}' is restricted for admins");
+                    return false;
+                }
+                
+                bool isAllowed = Instance.AllowedCommands.Contains(command);
+                logger?.Msg($"[DEBUG] CanUseCommand(string): Command '{command}' allowed for admin: {isAllowed}");
+                return isAllowed;
             }
 
+            logger?.Warning($"[DEBUG] CanUseCommand(string): SteamId {steamId} is neither operator nor admin");
             return false;
         }
         #endregion
@@ -374,41 +459,93 @@ namespace DedicatedServerMod
         {
             try
             {
-                if (player?.Owner?.ClientId == null) return null;
+                logger?.Msg($"[DEBUG] GetPlayerSteamId called for player: {player?.PlayerName ?? "null"}");
 
-                // Try to get Steam ID from FishNet connection
-                // This might need adjustment based on how Steam integration works in your game
-                var connection = player.Owner;
-                
-                // For now, we'll use ClientId as a fallback, but you'll want to integrate with Steam
-                // TODO: Integrate with actual Steam ID retrieval
-                return connection.ClientId.ToString();
+                if (player == null || player.Owner == null)
+                {
+                    logger?.Warning("[DEBUG] GetPlayerSteamId: Player or Owner is null");
+                    return null;
+                }
+
+                // Preferred: PlayerCode is synced from client via SendPlayerNameData and holds SteamID as string
+                if (!string.IsNullOrEmpty(player.PlayerCode))
+                {
+                    logger?.Msg($"[DEBUG] GetPlayerSteamId: Using Player.PlayerCode: {player.PlayerCode}");
+                    return player.PlayerCode;
+                }
+
+                // Secondary (server-only): Look up mapping captured by ServerManager when player spawned
+#if SERVER
+                var connected = ServerManager.GetPlayer(player.Owner);
+                if (connected != null && !string.IsNullOrEmpty(connected.SteamId))
+                {
+                    logger?.Msg($"[DEBUG] GetPlayerSteamId: Using ServerManager mapping: {connected.SteamId}");
+                    return connected.SteamId;
+                }
+#endif
+
+                // Tertiary (local only): If Steam is running and this is the local server client
+                if (SteamAPI.IsSteamRunning() && player.Owner.IsLocalClient)
+                {
+                    try
+                    {
+                        var localSteamId = SteamUser.GetSteamID().m_SteamID.ToString();
+                        logger?.Msg($"[DEBUG] GetPlayerSteamId: LocalClient fallback SteamID: {localSteamId}");
+                        return localSteamId;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.Warning($"[DEBUG] GetPlayerSteamId: Failed local SteamID read: {ex.Message}");
+                    }
+                }
+
+                // Last resort: use FishNet ClientId as placeholder (NOT a real SteamID)
+                string fallbackId = player.Owner.ClientId.ToString();
+                logger?.Warning($"[DEBUG] GetPlayerSteamId: Falling back to ClientId (not a SteamID): {fallbackId}");
+                return fallbackId;
             }
             catch (Exception ex)
             {
-                logger?.Error($"Error getting player Steam ID: {ex}");
+                logger?.Error($"[DEBUG] GetPlayerSteamId error: {ex}");
                 return null;
             }
         }
 
         public static Player GetPlayerBySteamId(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return null;
+            logger?.Msg($"[DEBUG] GetPlayerBySteamId called for steamId: {steamId}");
+            
+            if (string.IsNullOrEmpty(steamId))
+            {
+                logger?.Warning("[DEBUG] GetPlayerBySteamId: SteamId is null or empty");
+                return null;
+            }
 
             foreach (var player in Player.PlayerList)
             {
-                if (GetPlayerSteamId(player) == steamId)
+                string playerSteamId = GetPlayerSteamId(player);
+                logger?.Msg($"[DEBUG] GetPlayerBySteamId: Checking player {player?.PlayerName ?? "null"} with steamId: {playerSteamId}");
+                
+                if (playerSteamId == steamId)
                 {
+                    logger?.Msg($"[DEBUG] GetPlayerBySteamId: Found player {player.PlayerName} for steamId {steamId}");
                     return player;
                 }
             }
 
+            logger?.Warning($"[DEBUG] GetPlayerBySteamId: No player found for steamId {steamId}");
             return null;
         }
 
         public static void LogAdminAction(Player player, string command, string args = "")
         {
-            if (!Instance.LogAdminCommands) return;
+            logger?.Msg($"[DEBUG] LogAdminAction called for player: {player?.PlayerName ?? "null"}, command: {command}, args: {args}");
+            
+            if (!Instance.LogAdminCommands)
+            {
+                logger?.Msg("[DEBUG] LogAdminAction: Admin command logging is disabled");
+                return;
+            }
 
             string steamId = GetPlayerSteamId(player);
             string playerName = player?.PlayerName ?? "Unknown";
@@ -427,10 +564,62 @@ namespace DedicatedServerMod
                 string adminLogPath = Path.Combine(Application.persistentDataPath, "admin_actions.log");
                 string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}\n";
                 File.AppendAllText(adminLogPath, logEntry);
+                logger?.Msg($"[DEBUG] LogAdminAction: Wrote to admin log file: {adminLogPath}");
             }
             catch (Exception ex)
             {
-                logger?.Error($"Failed to write to admin log: {ex}");
+                logger?.Error($"[DEBUG] LogAdminAction: Failed to write to admin log: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Get the current local player's Steam ID for testing/admin purposes
+        /// </summary>
+        public static string GetLocalPlayerSteamId()
+        {
+            try
+            {
+                if (SteamManager.Initialized)
+                {
+                    CSteamID steamId = SteamUser.GetSteamID();
+                    string steamIdString = steamId.m_SteamID.ToString();
+                    logger?.Msg($"[DEBUG] GetLocalPlayerSteamId: Local Steam ID: {steamIdString}");
+                    return steamIdString;
+                }
+                else
+                {
+                    logger?.Warning("[DEBUG] GetLocalPlayerSteamId: Steam not initialized");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"[DEBUG] GetLocalPlayerSteamId error: {ex}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Add the current local player as an operator (for testing)
+        /// </summary>
+        public static bool AddLocalPlayerAsOperator()
+        {
+            try
+            {
+                string steamId = GetLocalPlayerSteamId();
+                if (string.IsNullOrEmpty(steamId))
+                {
+                    logger?.Warning("[DEBUG] AddLocalPlayerAsOperator: Could not get local Steam ID");
+                    return false;
+                }
+
+                logger?.Msg($"[DEBUG] AddLocalPlayerAsOperator: Adding local player {steamId} as operator");
+                return AddOperator(steamId);
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"[DEBUG] AddLocalPlayerAsOperator error: {ex}");
+                return false;
             }
         }
         #endregion

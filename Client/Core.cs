@@ -4,6 +4,8 @@ using HarmonyLib;
 using ScheduleOne.PlayerScripts;
 using System.Reflection;
 using System;
+using DedicatedServerMod.Shared;
+using ScheduleOne.UI;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Core), "DedicatedServerClient", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -83,11 +85,27 @@ namespace DedicatedServerMod
                     harmony.Patch(areAllPlayersReadyMethod, new HarmonyMethod(prefixMethod));
                     logger.Msg("Client: Patched Player.AreAllPlayersReadyToSleep to ignore ghost host");
                 }
+
+                // Patch DailySummary.Awake (postfix) to register custom messaging RPCs on client too
+                var dailySummaryType = typeof(DailySummary);
+                var awakeMethod = dailySummaryType.GetMethod("Awake", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (awakeMethod != null)
+                {
+                    var dsPostfix = typeof(Core).GetMethod(nameof(DailySummaryAwakePostfix), BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(awakeMethod, postfix: new HarmonyMethod(dsPostfix));
+                    logger.Msg("Client: Patched DailySummary.Awake to register custom messaging RPCs");
+                }
             }
             catch (Exception ex)
             {
                 logger.Error($"Failed to apply client patches: {ex}");
             }
+        }
+
+        // Delegate to shared messaging hub
+        private static void DailySummaryAwakePostfix(DailySummary __instance)
+        {
+            CustomMessaging.DailySummaryAwakePostfix(__instance);
         }
 
         private void InitializeManagers()

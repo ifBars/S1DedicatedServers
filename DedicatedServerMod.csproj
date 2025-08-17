@@ -911,6 +911,7 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Include="ConnectionHelper.cs" />
+	  <Compile Include="Shared\*.cs" />
 	  <Compile Include="TransportManager.cs" />
 	</ItemGroup>
 
@@ -923,7 +924,6 @@
 	<ItemGroup Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'">
 		<Compile Include="DedicatedServerHost.cs" />
 		<Compile Include="ServerManager.cs" />
-		<Compile Include="ServerConfig.cs" />
 		<Compile Include="ServerAdminCommands.cs" />
 	</ItemGroup>
 

@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using DedicatedServerMod.Shared;
 using FishNet;
 using HarmonyLib;
 using MelonLoader;
@@ -62,6 +63,9 @@ namespace DedicatedServerMod.Client
                 
                 // Patch Console.SubmitCommand to ensure client admin permissions are checked
                 PatchConsoleSubmitCommand();
+
+                // Hook client console submit to send to server via custom messaging as well
+                // so servers without our Console.SubmitCommand server patch can still receive text.
                 
                 logger.Msg("Console patches applied successfully");
             }
@@ -258,6 +262,9 @@ namespace DedicatedServerMod.Client
                             ScheduleOne.Console.LogWarning($"Command '{command}' requires higher privileges than {permissionLevel}");
                             return false; // Block the command
                         }
+
+                        // Relay to server via custom messaging so server can validate/execute centrally
+                        CustomMessaging.SendToServer("admin_console", args);
                     }
                 }
 

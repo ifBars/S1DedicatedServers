@@ -39,37 +39,57 @@ namespace DedicatedServerMod.Client
         {
             try
             {
+                logger?.Msg("[DEBUG] IsLocalPlayerAdmin: Starting admin status check");
+                
                 // Return cached result if recent and valid
                 if (_cachedAdminStatus.HasValue && 
                     Time.time - _lastStatusCheck < STATUS_CHECK_INTERVAL)
                 {
+                    logger?.Msg($"[DEBUG] IsLocalPlayerAdmin: Using cached result: {_cachedAdminStatus.Value} (age: {Time.time - _lastStatusCheck:F1}s)");
                     return _cachedAdminStatus.Value;
                 }
 
                 var localPlayer = Player.Local;
                 if (localPlayer == null)
                 {
+                    logger?.Warning("[DEBUG] IsLocalPlayerAdmin: Local player is null");
                     _cachedAdminStatus = false;
                     _lastStatusCheck = Time.time;
                     return false;
                 }
 
+                logger?.Msg($"[DEBUG] IsLocalPlayerAdmin: Local player found: {localPlayer.PlayerName}");
+
                 // For dedicated server connections, we need to implement proper admin checking
                 if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
+                    logger?.Msg("[DEBUG] IsLocalPlayerAdmin: On dedicated server (client, not host)");
+                    
                     // Method 1: Check if we have cached admin status from server
                     string playerId = GetLocalPlayerId();
+                    logger?.Msg($"[DEBUG] IsLocalPlayerAdmin: Local player ID: {playerId}");
+                    
                     if (!string.IsNullOrEmpty(playerId))
                     {
-                        if (_cachedAdminList.TryGetValue(playerId, out bool isAdmin) ||
-                            _cachedOperatorList.TryGetValue(playerId, out bool isOperator))
+                        if (_cachedAdminList.TryGetValue(playerId, out bool isAdmin))
                         {
-                            // bool result = isAdmin || isOperator;
+                            logger?.Msg($"[DEBUG] IsLocalPlayerAdmin: Found cached admin status: {isAdmin}");
                             bool result = isAdmin;
                             _cachedAdminStatus = result;
                             _lastStatusCheck = Time.time;
                             return result;
                         }
+                        
+                        if (_cachedOperatorList.TryGetValue(playerId, out bool isOperator))
+                        {
+                            logger?.Msg($"[DEBUG] IsLocalPlayerAdmin: Found cached operator status: {isOperator}");
+                            bool result = isOperator;
+                            _cachedAdminStatus = result;
+                            _lastStatusCheck = Time.time;
+                            return result;
+                        }
+                        
+                        logger?.Msg("[DEBUG] IsLocalPlayerAdmin: No cached status found, checking fallback");
                     }
 
                     // Method 2: Try to query server for admin status
@@ -79,6 +99,8 @@ namespace DedicatedServerMod.Client
                     // Method 3: Fallback - assume connected clients on dedicated servers
                     // might be admins if they have certain characteristics
                     bool fallbackAdmin = CheckFallbackAdminStatus(localPlayer);
+                    logger?.Msg($"[DEBUG] IsLocalPlayerAdmin: Fallback admin check result: {fallbackAdmin}");
+                    
                     _cachedAdminStatus = fallbackAdmin;
                     _lastStatusCheck = Time.time;
                     return fallbackAdmin;
@@ -87,20 +109,20 @@ namespace DedicatedServerMod.Client
                 // For hosts, they always have admin access
                 if (InstanceFinder.IsHost)
                 {
+                    logger?.Msg("[DEBUG] IsLocalPlayerAdmin: Is host - always admin");
                     _cachedAdminStatus = true;
                     _lastStatusCheck = Time.time;
                     return true;
                 }
 
+                logger?.Warning("[DEBUG] IsLocalPlayerAdmin: Not client, not host, not admin");
                 _cachedAdminStatus = false;
                 _lastStatusCheck = Time.time;
                 return false;
             }
             catch (Exception ex)
             {
-                logger?.Error($"Error checking admin status: {ex}");
-                _cachedAdminStatus = false;
-                _lastStatusCheck = Time.time;
+                logger?.Error($"[DEBUG] IsLocalPlayerAdmin: Exception occurred: {ex}");
                 return false;
             }
         }
@@ -208,18 +230,24 @@ namespace DedicatedServerMod.Client
         {
             try
             {
+                logger?.Msg("[DEBUG] GetLocalPlayerId: Getting local player identifier");
+                
                 var localPlayer = Player.Local;
                 if (localPlayer?.Owner?.ClientId != null)
                 {
                     // For now, use ClientId as identifier
                     // In production, this should be the actual Steam ID
-                    return localPlayer.Owner.ClientId.ToString();
+                    string clientId = localPlayer.Owner.ClientId.ToString();
+                    logger?.Msg($"[DEBUG] GetLocalPlayerId: Using ClientId as identifier: {clientId}");
+                    return clientId;
                 }
+                
+                logger?.Warning("[DEBUG] GetLocalPlayerId: Local player or Owner or ClientId is null");
                 return null;
             }
             catch (Exception ex)
             {
-                logger?.Error($"Error getting local player ID: {ex}");
+                logger?.Error($"[DEBUG] GetLocalPlayerId: Error getting local player ID: {ex}");
                 return null;
             }
         }
@@ -232,21 +260,28 @@ namespace DedicatedServerMod.Client
         {
             try
             {
+                logger?.Msg("[DEBUG] CheckFallbackAdminStatus: Starting fallback admin check");
+                
                 // Temporary fallback logic:
                 // 1. Check if player name contains "admin" or "op"
                 string playerName = localPlayer.PlayerName?.ToLower() ?? "";
+                logger?.Msg($"[DEBUG] CheckFallbackAdminStatus: Player name: '{playerName}'");
+                
                 if (playerName.Contains("admin") || playerName.Contains("op") || 
                     playerName.Contains("moderator") || playerName.Contains("mod"))
                 {
-                    logger?.Msg($"Fallback admin check: Player name '{playerName}' suggests admin status");
+                    logger?.Msg($"[DEBUG] CheckFallbackAdminStatus: Player name '{playerName}' suggests admin status");
                     return true;
                 }
 
                 // 2. Check if this is the first player to connect (might be server owner)
                 // This is a very basic heuristic
-                if (Player.PlayerList.Count <= 2) // Account for loopback player
+                int playerCount = Player.PlayerList.Count;
+                logger?.Msg($"[DEBUG] CheckFallbackAdminStatus: Player count: {playerCount}");
+                
+                if (playerCount <= 2) // Account for loopback player
                 {
-                    logger?.Msg("Fallback admin check: Early connection suggests possible admin status");
+                    logger?.Msg("[DEBUG] CheckFallbackAdminStatus: Early connection suggests possible admin status");
                     return true;
                 }
 
@@ -254,15 +289,16 @@ namespace DedicatedServerMod.Client
                 // Remove this in production
                 if (Application.isEditor || Debug.isDebugBuild)
                 {
-                    logger?.Msg("Fallback admin check: Development build allows console access");
+                    logger?.Msg("[DEBUG] CheckFallbackAdminStatus: Development build allows console access");
                     return true;
                 }
 
+                logger?.Msg("[DEBUG] CheckFallbackAdminStatus: No fallback conditions met, not admin");
                 return false;
             }
             catch (Exception ex)
             {
-                logger?.Error($"Error in fallback admin check: {ex}");
+                logger?.Error($"[DEBUG] CheckFallbackAdminStatus: Error in fallback admin check: {ex}");
                 return false;
             }
         }
