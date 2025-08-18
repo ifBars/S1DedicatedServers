@@ -89,6 +89,23 @@ namespace DedicatedServerMod.Server.Core
                     logger.Msg($"Config file location: {ServerConfig.ConfigFilePath}");
                     yield break;
                 }
+
+                // Prepare/seed the save folder similar to host flow (DefaultSave + Player_0 + metadata)
+                try
+                {
+                    var orgName = new DirectoryInfo(configuredPath).Name;
+                    DedicatedServerMod.Server.Persistence.SaveInitializer.EnsureSavePrepared(
+                        configuredPath,
+                        orgName,
+                        "DedicatedServerHost",
+                        logger
+                    );
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Save preparation encountered an issue: {ex.Message}");
+                }
+
                 if (!LoadManager.TryLoadSaveInfo(configuredPath, 0, out actualSaveInfo))
                 {
                     logger.Error($"Failed to load save info from: {configuredPath}");

@@ -943,6 +943,7 @@
 		
 		<!-- Persistence system -->
 		<Compile Include="Server\Persistence\PersistenceManager.cs" />
+		<Compile Include="Server\Persistence\SaveInitializer.cs" />
 		
 		<!-- Game systems -->
 		<Compile Include="Server\Game\DedicatedServerPatches.cs" />
@@ -954,7 +955,13 @@
 		<!-- Legacy files (for backward compatibility during transition) -->
 	</ItemGroup>
 	<ItemGroup>
+	  <None Remove="Assets\Player_0.zip" />
+	</ItemGroup>
+	<ItemGroup>
 	  <Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="Assets\Player_0.zip" />
 	</ItemGroup>
 
 	<PropertyGroup>
