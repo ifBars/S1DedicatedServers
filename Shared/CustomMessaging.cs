@@ -13,6 +13,8 @@ using ScheduleOne;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
+using ScheduleOne.Vehicles;
+using UnityEngine;
 using Console = ScheduleOne.Console;
 
 namespace DedicatedServerMod.Shared
@@ -127,52 +129,46 @@ namespace DedicatedServerMod.Shared
 			try
 			{
 				string raw = ((Reader)reader).ReadString();
-				logger.Msg($"[DEBUG] OnClientMessageReceived: Raw message: {raw}");
 				
 				var msg = JsonConvert.DeserializeObject<Message>(raw);
 				if (msg.command == null)
 				{
-					logger.Warning("[DEBUG] OnClientMessageReceived: Message command is null");
+					logger.Warning("OnClientMessageReceived: Message command is null");
 					return;
 				}
 
-				logger.Msg($"[DEBUG] OnClientMessageReceived: Parsed message - command: {msg.command}, data: {msg.data}");
 				HandleClientMessage(msg.command, msg.data);
 			}
 			catch (Exception ex)
 			{
-				logger.Error($"[DEBUG] OnClientMessageReceived error: {ex}");
+				logger.Error($"OnClientMessageReceived error: {ex}");
 			}
 		}
 
 		private static void OnServerMessageReceived(PooledReader reader, Channel channel, NetworkConnection conn)
-		{
-			logger.Msg($"[DEBUG] OnServerMessageReceived: Called with connection ClientId: {conn?.ClientId}");
-			
+		{	
 			if (!InstanceFinder.IsServer)
 			{
-				logger.Warning("[DEBUG] OnServerMessageReceived: Not on server, ignoring message");
+				logger.Warning("OnServerMessageReceived: Not on server, ignoring message");
 				return;
 			}
 			
 			try
 			{
 				string raw = ((Reader)reader).ReadString();
-				logger.Msg($"[DEBUG] OnServerMessageReceived: Raw message: {raw}");
 				
 				var msg = JsonConvert.DeserializeObject<Message>(raw);
 				if (msg.command == null)
 				{
-					logger.Warning("[DEBUG] OnServerMessageReceived: Message command is null");
+					logger.Warning("OnServerMessageReceived: Message command is null");
 					return;
 				}
 
-				logger.Msg($"[DEBUG] OnServerMessageReceived: Parsed message - command: {msg.command}, data: {msg.data}");
 				HandleServerMessage(conn, msg.command, msg.data);
 			}
 			catch (Exception ex)
 			{
-				logger.Error($"[DEBUG] OnServerMessageReceived error: {ex}");
+				logger.Error($"OnServerMessageReceived error: {ex}");
 			}
 		}
 		#endregion
@@ -180,17 +176,14 @@ namespace DedicatedServerMod.Shared
 		#region Routing
 		private static void HandleClientMessage(string command, string data)
 		{
-			logger.Msg($"[DEBUG] HandleClientMessage: command: {command}, data: {data}");
-			
 			try
 			{
 				if (command == "exec_console")
 				{
-					logger.Msg("[DEBUG] HandleClientMessage: Executing console command locally on client context");
 					var parts = new List<string>(data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
 					if (parts.Count == 0)
 					{
-						logger.Warning("[DEBUG] HandleClientMessage: No command parts found for exec_console");
+						logger.Warning("HandleClientMessage: No command parts found for exec_console");
 						return;
 					}
 
@@ -201,155 +194,164 @@ namespace DedicatedServerMod.Shared
 					var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
 					if (commands == null)
 					{
-						logger.Error("[DEBUG] HandleClientMessage: Could not access Console.commands on client");
+						logger.Error("HandleClientMessage: Could not access Console.commands on client");
 						return;
 					}
 					
 					if (!commands.ContainsKey(cmd))
 					{
-						logger.Warning($"[DEBUG] HandleClientMessage: Command '{cmd}' not found on client");
+						logger.Warning($"HandleClientMessage: Command '{cmd}' not found on client");
 						ScheduleOne.Console.LogWarning($"Command '{cmd}' not found.");
 						return;
 					}
 
-					logger.Msg($"[DEBUG] HandleClientMessage: Invoking command '{cmd}' on client with args: [{string.Join(" ", parts)}]");
 					commands[cmd].Execute(parts);
 					return;
 				}
 			}
 			catch (Exception ex)
 			{
-				logger.Error($"[DEBUG] HandleClientMessage error: {ex}");
+				logger.Error($"HandleClientMessage error: {ex}");
 			}
 		}
 
 		private static void HandleServerMessage(NetworkConnection conn, string command, string data)
 		{
-			logger.Msg($"[DEBUG] HandleServerMessage: Processing message from connection {conn?.ClientId} - command: {command}, data: {data}");
-
 			// Example command: execute console command on server if sender is admin.
 			if (command == "admin_console")
 			{
-				logger.Msg("[DEBUG] HandleServerMessage: Processing admin_console command");
-				
 				try
 				{
 					var player = FindPlayerByConnection(conn);
 					if (player == null)
 					{
-						logger.Warning("[DEBUG] HandleServerMessage: Could not find player for connection");
+						logger.Warning("HandleServerMessage: Could not find player for connection");
 						return;
 					}
-
-					logger.Msg($"[DEBUG] HandleServerMessage: Found player: {player.PlayerName}");
 
 					// Permission check
-					logger.Msg("[DEBUG] HandleServerMessage: Checking if player can use console");
 					if (!ServerConfig.CanUseConsole(player))
 					{
-						logger.Warning($"[DEBUG] HandleServerMessage: Player {player.PlayerName} not permitted to use admin console.");
+						logger.Warning($"HandleServerMessage: Player {player.PlayerName} not permitted to use admin console.");
 						return;
 					}
 
-					logger.Msg($"[DEBUG] HandleServerMessage: Player {player.PlayerName} has console permission, checking command permission");
-
 					var parts = new List<string>(data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
-					logger.Msg($"[DEBUG] HandleServerMessage: Command parts: [{string.Join(", ", parts)}]");
 					
 					if (parts.Count == 0)
 					{
-						logger.Warning("[DEBUG] HandleServerMessage: No command parts found");
+						logger.Warning("HandleServerMessage: No command parts found");
 						return;
 					}
 					
 					string cmd = parts[0].ToLower();
-					logger.Msg($"[DEBUG] HandleServerMessage: Command to execute: {cmd}");
 					
 					if (!ServerConfig.CanUseCommand(player, cmd))
 					{
-						logger.Warning($"[DEBUG] HandleServerMessage: Player {player.PlayerName} not permitted to run '{cmd}'.");
+						logger.Warning($"HandleServerMessage: Player {player.PlayerName} not permitted to run '{cmd}'.");
 						return;
 					}
 
-					logger.Msg($"[DEBUG] HandleServerMessage: Player {player.PlayerName} has permission to run '{cmd}', executing...");
+					// Server-authoritative handling for vehicle spawns
+					if (cmd == "spawnvehicle")
+					{
+						try
+						{
+							parts.RemoveAt(0);
+							if (parts.Count == 0)
+							{
+								Console.LogWarning("Unrecognized command format. Correct format example(s): 'spawnvehicle shitbox'");
+								return;
+							}
+							string vehicleCode = parts[0].ToLower();
+							var vm = NetworkSingleton<VehicleManager>.Instance;
+							if (vm == null)
+							{
+								logger.Error("HandleServerMessage: VehicleManager instance not found on server");
+								return;
+							}
+							if (vm.GetVehiclePrefab(vehicleCode) == null)
+							{
+								Console.LogWarning($"Unrecognized vehicle code '{vehicleCode}'");
+								return;
+							}
 
-					// Execute via Console commands map to bypass host guard.
-				    var commandsField = typeof(Console).GetField("commands", BindingFlags.NonPublic | BindingFlags.Static);
-				    var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
-				
-				    if (commands == null)
-				    {
-					    logger.Error("[DEBUG] HandleServerMessage: Could not access Console.commands field");
-					    return;
-				    }
-				
-				    // Ensure default console commands are registered even if some custom ones were added first
-				    // On dedicated servers, admin commands may be registered before defaults; check for a few core defaults
-				    if (!commands.ContainsKey("settime") || !commands.ContainsKey("give"))
-				    {
-					    logger.Msg("[DEBUG] HandleServerMessage: Default console commands missing, initializing now...");
-					    InitializeConsoleCommands(commands);
-				    }
-				
-				    logger.Msg($"[DEBUG] HandleServerMessage: Found {commands.Count} available console commands");
+							Vector3 position = player.transform.position + player.transform.forward * 4f + player.transform.up * 1f;
+							Quaternion rotation = player.transform.rotation;
+							var spawned = vm.SpawnAndReturnVehicle(vehicleCode, position, rotation, playerOwned: true);
+							if (spawned != null)
+							{
+								try { spawned.NetworkObject.GiveOwnership(player.Owner); } catch {}
+								ServerConfig.LogAdminAction(player, cmd, vehicleCode);
+							}
+							else
+							{
+								logger.Warning("HandleServerMessage: SpawnAndReturnVehicle returned null");
+							}
+							return; // handled on server
+						}
+						catch (Exception ex)
+						{
+							logger.Error($"HandleServerMessage: Error spawning vehicle server-side: {ex}");
+							return;
+						}
+					}
+
+					// Execute via Console commands map to bypass host guard for other commands
+					var commandsField = typeof(Console).GetField("commands", BindingFlags.NonPublic | BindingFlags.Static);
+					var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
+					if (commands == null)
+					{
+						logger.Error("HandleServerMessage: Could not access Console.commands field");
+						return;
+					}
+					// Ensure a few core defaults exist
+					if (!commands.ContainsKey("settime") || !commands.ContainsKey("give"))
+					{
+						InitializeConsoleCommands(commands);
+					}
 					
 					if (commands.TryGetValue(cmd, out var handler))
 					{
-						logger.Msg($"[DEBUG] HandleServerMessage: Found handler for command '{cmd}', relaying to client {player.PlayerName} for execution...");
 						
 						parts.RemoveAt(0);
 						string argsString = string.Join(" ", parts);
-						logger.Msg($"[DEBUG] HandleServerMessage: Relaying '{cmd} {argsString}' to client via exec_console");
 						
 						// Relay to the specific client's context so Player.Local refers to their player, not loopback
 						SendToClient(player.Owner, "exec_console", string.IsNullOrEmpty(argsString) ? cmd : ($"{cmd} {argsString}"));
-						logger.Msg($"[DEBUG] HandleServerMessage: Relay for '{cmd}' sent to client {player.PlayerName}");
 						
 						ServerConfig.LogAdminAction(player, cmd, argsString);
 					}
 					else
 					{
-						logger.Warning($"[DEBUG] HandleServerMessage: Command '{cmd}' not found in available commands");
+						logger.Warning($"HandleServerMessage: Command '{cmd}' not found in available commands");
 						Console.LogWarning($"Command '{cmd}' not found.");
 					}
 				}
 				catch (Exception ex)
 				{
-					logger.Error($"[DEBUG] HandleServerMessage: Error executing admin console command: {ex}");
+					logger.Error($"HandleServerMessage: Error executing admin console command: {ex}");
 				}
-			}
-			else
-			{
-				logger.Msg($"[DEBUG] HandleServerMessage: Unknown command '{command}', ignoring");
 			}
 		}
 
 		private static Player FindPlayerByConnection(NetworkConnection conn)
 		{
-			logger.Msg($"[DEBUG] FindPlayerByConnection: Looking for player with connection ClientId: {conn?.ClientId}");
-			
 			if (conn == null)
 			{
-				logger.Warning("[DEBUG] FindPlayerByConnection: Connection is null");
+				logger.Warning("FindPlayerByConnection: Connection is null");
 				return null;
 			}
-			
-			logger.Msg($"[DEBUG] FindPlayerByConnection: Player.PlayerList count: {Player.PlayerList.Count}");
 			
 			foreach (var p in Player.PlayerList)
 			{
 				if (p?.Owner == conn)
 				{
-					logger.Msg($"[DEBUG] FindPlayerByConnection: Found player {p.PlayerName} for connection {conn.ClientId}");
 					return p;
-				}
-				else
-				{
-					logger.Msg($"[DEBUG] FindPlayerByConnection: Player {p?.PlayerName ?? "null"} has owner ClientId: {p?.Owner?.ClientId}");
 				}
 			}
 			
-			logger.Warning($"[DEBUG] FindPlayerByConnection: No player found for connection {conn.ClientId}");
+			logger.Warning($"FindPlayerByConnection: No player found for connection {conn.ClientId}");
 			return null;
 		}
 		#endregion
@@ -363,8 +365,6 @@ namespace DedicatedServerMod.Shared
 		{
 			try
 			{
-				logger.Msg("[DEBUG] InitializeConsoleCommands: Initializing console commands for dedicated server");
-				
 				// Replicate the exact initialization from Console.Awake(), but add only if missing
 				if (!commands.ContainsKey("freecam")) commands.Add("freecam", new Console.FreeCamCommand());
 				if (!commands.ContainsKey("save")) commands.Add("save", new Console.Save());
@@ -408,12 +408,10 @@ namespace DedicatedServerMod.Shared
 				if (!commands.ContainsKey("showfps")) commands.Add("showfps", new Console.ShowFPS());
 				if (!commands.ContainsKey("hidefps")) commands.Add("hidefps", new Console.HideFPS());
 				if (!commands.ContainsKey("cleartrash")) commands.Add("cleartrash", new Console.ClearTrash());
-
-				logger.Msg($"[DEBUG] InitializeConsoleCommands: Successfully initialized {commands.Count} console commands");
 			}
 			catch (Exception ex)
 			{
-				logger.Error($"[DEBUG] InitializeConsoleCommands: Error initializing console commands: {ex}");
+				logger.Error($"InitializeConsoleCommands: Error initializing console commands: {ex}");
 			}
 		}
 		#endregion

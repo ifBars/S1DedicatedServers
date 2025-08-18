@@ -116,7 +116,7 @@ namespace DedicatedServerMod.Client
                 // Request time synchronization from the server
                 if (Player.Local != null)
                 {
-                    logger.Msg("Client: Detected 4 AM freeze condition, deferring to dedicated server time progression");
+                    // logger.Msg("Client: Detected 4 AM freeze condition, deferring to dedicated server time progression");
                     
                     // Reset the time progression accumulator to prevent client-side advancement
                     __instance.TimeOnCurrentMinute = 0f;

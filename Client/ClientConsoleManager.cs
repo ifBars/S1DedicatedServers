@@ -151,18 +151,14 @@ namespace DedicatedServerMod.Client
         {
             try
             {
-                // Check if we're connected to a dedicated server (not host)
+                // On dedicated servers, allow console UI for all clients; server will enforce per-command permissions
                 if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
-                    // Check if the local player is an admin/operator
-                    if (AdminStatusManager.IsLocalPlayerAdmin())
-                    {
-                        __result = true;
-                        return false; // Skip original method
-                    }
+                    __result = true;
+                    return false; // Skip original method
                 }
 
-                // Let original method run for hosts or non-admin players
+                // Let original method run for hosts or offline
                 return true;
             }
             catch (Exception ex)
@@ -180,51 +176,43 @@ namespace DedicatedServerMod.Client
         {
             try
             {
-                // Check if we're connected to a dedicated server (not host)
+                // On dedicated servers, allow console UI for all clients and manage UI state here
                 if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
-                    // Check if the local player is an admin/operator
-                    if (AdminStatusManager.IsLocalPlayerAdmin())
+                    if (open)
                     {
-                        // Allow console opening by modifying the original check
-                        // We'll manually implement the SetIsOpen logic for admin players
+                        _logger?.Msg($"Opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
+                    }
+                    
+                    var canvas = __instance.canvas;
+                    var container = __instance.Container;
+                    var inputField = __instance.InputField;
+                    
+                    if (canvas != null && container != null && inputField != null)
+                    {
+                        canvas.enabled = open;
+                        container.gameObject.SetActive(open);
+                        inputField.SetTextWithoutNotify("");
+                        
                         if (open)
                         {
-                            _logger?.Msg($"Admin player opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
-                        }
-                        
-                        // Allow the original method to run, but ensure console settings are correct
-                        var canvas = __instance.canvas;
-                        var container = __instance.Container;
-                        var inputField = __instance.InputField;
-                        
-                        if (canvas != null && container != null && inputField != null)
-                        {
-                            canvas.enabled = open;
-                            container.gameObject.SetActive(open);
-                            inputField.SetTextWithoutNotify("");
+                            PlayerSingleton<PlayerCamera>.Instance.AddActiveUIElement(__instance.name);
+                            GameInput.IsTyping = true;
                             
-                            if (open)
-                            {
-                                // Set up console UI state for admin player
-                                PlayerSingleton<PlayerCamera>.Instance.AddActiveUIElement(__instance.name);
-                                GameInput.IsTyping = true;
-                                
-                                // Focus the input field
-                                MelonCoroutines.Start(FocusInputField(inputField));
-                            }
-                            else
-                            {
-                                PlayerSingleton<PlayerCamera>.Instance.RemoveActiveUIElement(__instance.name);
-                                GameInput.IsTyping = false;
-                            }
+                            // Focus the input field
+                            MelonCoroutines.Start(FocusInputField(inputField));
                         }
-                        
-                        return false; // Skip original method
+                        else
+                        {
+                            PlayerSingleton<PlayerCamera>.Instance.RemoveActiveUIElement(__instance.name);
+                            GameInput.IsTyping = false;
+                        }
                     }
+                    
+                    return false; // Skip original method
                 }
 
-                // Let original method run for hosts or non-admin players
+                // Let original method run for hosts or offline
                 return true;
             }
             catch (Exception ex)
@@ -242,33 +230,15 @@ namespace DedicatedServerMod.Client
         {
             try
             {
-                // Only intervene on dedicated servers for admin players
-                if (InstanceFinder.IsClient && !InstanceFinder.IsHost && AdminStatusManager.IsLocalPlayerAdmin())
+                // On dedicated servers, route all commands to server for centralized validation and execution
+                if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
-                    _logger?.Msg($"Admin player executing command: {args}");
-                    
-                    // Check if the command is allowed (basic client-side validation)
-                    var argsList = new System.Collections.Generic.List<string>(
-                        args.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
-                    
-                    if (argsList.Count > 0)
-                    {
-                        string command = argsList[0].ToLower();
-                        
-                        // Use AdminStatusManager for command permission checking
-                        if (!AdminStatusManager.CanUseCommand(command))
-                        {
-                            string permissionLevel = AdminStatusManager.IsLocalPlayerOperator() ? "operator" : "admin";
-                            ScheduleOne.Console.LogWarning($"Command '{command}' requires higher privileges than {permissionLevel}");
-                            return false; // Block the command
-                        }
-
-                        // Relay to server via custom messaging so server can validate/execute centrally
-                        CustomMessaging.SendToServer("admin_console", args);
-                    }
+                    _logger?.Msg($"Submitting command to server: {args}");
+                    CustomMessaging.SendToServer("admin_console", args);
+                    return false; // Prevent local execution to avoid duplication; server will handle and relay if needed
                 }
 
-                return true; // Let original method handle the command
+                return true; // Let original method handle the command when hosting/offline
             }
             catch (Exception ex)
             {
