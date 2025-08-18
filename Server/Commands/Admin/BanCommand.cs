@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "ban";
         public override string Description => "Bans a player from the server";
         public override string Usage => "ban <player_name_or_id> [reason]";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
 
         public override void Execute(CommandContext context)
         {

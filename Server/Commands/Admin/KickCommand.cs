@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "kick";
         public override string Description => "Kicks a player from the server";
         public override string Usage => "kick <player_name_or_id> [reason]";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
 
         public override void Execute(CommandContext context)
         {

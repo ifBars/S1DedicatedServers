@@ -20,7 +20,7 @@ namespace DedicatedServerMod.Server.Commands.Server
         public override string CommandWord => "shutdown";
         public override string Description => "Gracefully shuts down the server";
         public override string Usage => "shutdown [reason]";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
 
         public override void Execute(CommandContext context)
         {

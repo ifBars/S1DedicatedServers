@@ -74,9 +74,6 @@ namespace DedicatedServerMod
 
         [JsonProperty("autoSaveOnPlayerLeave")]
         public bool AutoSaveOnPlayerLeave { get; set; } = true;
-
-        [JsonProperty("maxAutoSaveBackups")]
-        public int MaxAutoSaveBackups { get; set; } = 5;
         #endregion
 
         #region Admin/Operator System

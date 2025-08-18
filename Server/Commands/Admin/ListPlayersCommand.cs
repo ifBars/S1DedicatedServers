@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "listplayers";
         public override string Description => "Lists all connected players";
         public override string Usage => "listplayers";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
 
         public override void Execute(CommandContext context)
         {

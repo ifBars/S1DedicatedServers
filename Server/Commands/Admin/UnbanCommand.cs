@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "unban";
         public override string Description => "Removes a ban from a player";
         public override string Usage => "unban <steamid>";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
 
         public override void Execute(CommandContext context)
         {
