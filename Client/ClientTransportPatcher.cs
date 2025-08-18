@@ -21,7 +21,7 @@ namespace DedicatedServerMod.Client
     {
         private readonly MelonLogger.Instance logger;
         private HarmonyLib.Harmony harmony;
-        private bool isExiting = false;
+        private static bool isExiting = false;
 
         public ClientTransportPatcher(MelonLogger.Instance logger)
         {
