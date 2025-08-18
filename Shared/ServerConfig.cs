@@ -284,11 +284,10 @@ namespace DedicatedServerMod
         public static bool AddOperator(string steamId)
         {
             if (string.IsNullOrEmpty(steamId)) return false;
-            
             bool added = Instance.Operators.Add(steamId);
             if (added)
             {
-                // Also add to admins if not already there
+                // Ensure operators always have admin as well
                 Instance.Admins.Add(steamId);
                 SaveConfig();
                 logger?.Msg($"Added operator: {steamId}");
@@ -299,7 +298,6 @@ namespace DedicatedServerMod
         public static bool RemoveOperator(string steamId)
         {
             if (string.IsNullOrEmpty(steamId)) return false;
-            
             bool removed = Instance.Operators.Remove(steamId);
             if (removed)
             {
@@ -312,7 +310,9 @@ namespace DedicatedServerMod
         public static bool AddAdmin(string steamId)
         {
             if (string.IsNullOrEmpty(steamId)) return false;
-            
+            // Do not allow adding admin if already operator (operator already implies admin)
+            if (Instance.Operators.Contains(steamId))
+                return Instance.Admins.Add(steamId);
             bool added = Instance.Admins.Add(steamId);
             if (added)
             {
@@ -325,12 +325,11 @@ namespace DedicatedServerMod
         public static bool RemoveAdmin(string steamId)
         {
             if (string.IsNullOrEmpty(steamId)) return false;
-            
+            // Never remove admin if user is still operator; operator implies admin
+            if (Instance.Operators.Contains(steamId)) return false;
             bool removed = Instance.Admins.Remove(steamId);
             if (removed)
             {
-                // Also remove from operators if they were one
-                Instance.Operators.Remove(steamId);
                 SaveConfig();
                 logger?.Msg($"Removed admin: {steamId}");
             }
@@ -497,7 +496,7 @@ namespace DedicatedServerMod
 #if SERVER
                 try
                 {
-                    var pm = DedicatedServerMod.Server.Core.ServerBootstrap.Players;
+                    var pm = Server.Core.ServerBootstrap.Players;
                     var connectedInfo = pm?.GetPlayer(player.Owner);
                     if (connectedInfo != null && !string.IsNullOrEmpty(connectedInfo.SteamId)) return connectedInfo.SteamId;
                 }

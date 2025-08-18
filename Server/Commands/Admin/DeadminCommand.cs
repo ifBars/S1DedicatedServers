@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "deadmin";
         public override string Description => "Removes administrator privileges from a player";
         public override string Usage => "deadmin <player_name_or_steamid>";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
 
         public override void Execute(CommandContext context)
         {

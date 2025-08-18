@@ -183,6 +183,15 @@ namespace DedicatedServerMod.Server.Commands
             if (player == null)
                 return true;
 
+            // Disallow administrators from executing operator-tier role management commands
+            bool isRoleMgmtOpOnly = command.CommandWord == "op" || command.CommandWord == "deop" || command.CommandWord == "admin" || command.CommandWord == "deadmin";
+            if (isRoleMgmtOpOnly)
+            {
+                var level = playerManager.Permissions.GetPermissionLevel(player);
+                if (level < PermissionLevel.Operator)
+                    return false;
+            }
+
             // Check permission level
             return playerManager.Permissions.CanExecuteCommand(player, command.RequiredPermission);
         }

@@ -130,11 +130,12 @@ namespace DedicatedServerMod.Server.Player
             if (string.IsNullOrEmpty(steamId))
                 return PermissionLevel.None;
 
-            if (IsAdministrator(steamId))
-                return PermissionLevel.Administrator;
-            
+            // Operator implies highest privileges
             if (IsOperator(steamId))
                 return PermissionLevel.Operator;
+            
+            if (IsAdministrator(steamId))
+                return PermissionLevel.Administrator;
 
             return PermissionLevel.Player;
         }
@@ -187,8 +188,8 @@ namespace DedicatedServerMod.Server.Player
     {
         None = 0,
         Player = 1,
-        Operator = 2,
-        Administrator = 3
+        Administrator = 2,
+        Operator = 3
     }
 
     /// <summary>

@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "admin";
         public override string Description => "Grants administrator privileges to a player";
         public override string Usage => "admin <player_name_or_steamid>";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
 
         public override void Execute(CommandContext context)
         {
