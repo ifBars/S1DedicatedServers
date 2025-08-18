@@ -21,6 +21,7 @@ namespace DedicatedServerMod.Client
     {
         private readonly MelonLogger.Instance logger;
         private HarmonyLib.Harmony harmony;
+        private bool isExiting = false;
 
         public ClientTransportPatcher(MelonLogger.Instance logger)
         {
@@ -238,10 +239,10 @@ namespace DedicatedServerMod.Client
             {
                 var logger = new MelonLogger.Instance("ClientTransportPatcher");
                 
-                if (ClientConnectionManager.IsTugboatMode)
+                if (ClientConnectionManager.IsTugboatMode && !isExiting)
                 {
                     logger.Msg("ConfirmExit called while in Tugboat mode - initiating save and disconnect sequence");
-                    
+                    isExiting = true;
                     // Start coroutine to save player data and then disconnect
                     MelonCoroutines.Start(SaveAndDisconnectCoroutine());
                     
