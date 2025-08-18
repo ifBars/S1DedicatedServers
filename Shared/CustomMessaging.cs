@@ -31,7 +31,7 @@ namespace DedicatedServerMod.Shared
 			public string data;
 		}
 
-		// Use a small id to avoid transport truncation (matches Bisect pattern)
+		// Use a small id to avoid transport truncation
 		public static readonly uint MessageId = 105u;
 
 		private static MelonLogger.Instance logger = new MelonLogger.Instance("CustomMessaging");
