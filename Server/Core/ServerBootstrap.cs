@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections;
+using System.Collections.Generic;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands;
@@ -10,6 +11,9 @@ using DedicatedServerMod.Server.Persistence;
 using DedicatedServerMod.Server.Game;
 using DedicatedServerMod.Shared;
 using HarmonyLib;
+using DedicatedServerMod.API;
+using UnityEngine;
+using DedicatedServerMod.Server.TcpConsole;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -31,6 +35,7 @@ namespace DedicatedServerMod.Server.Core
         private static CommandManager _commandManager;
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
+        private static TcpConsoleServer _tcpConsole;
         
         // Server state
         private static bool _isServerMode = false;
@@ -78,6 +83,8 @@ namespace DedicatedServerMod.Server.Core
             
             try
             {
+                // Initialize mod discovery so OnServerInitialize can be delivered after subsystems init
+                ModManager.Initialize();
                 InitializeServer();
             }
             catch (Exception ex)
@@ -92,6 +99,7 @@ namespace DedicatedServerMod.Server.Core
         /// </summary>
         private void InitializeServer()
         {
+            AudioListener.volume = 0;
             logger.Msg("Initializing server subsystems...");
             
             // Step 1: Initialize existing ServerConfig system (must be first)
@@ -137,6 +145,9 @@ namespace DedicatedServerMod.Server.Core
             _gameSystemManager.Initialize();
             logger.Msg("✓ Game system manager initialized");
             
+            // Optional: Start TCP Console
+            TryStartTcpConsole();
+            
             // Step 9: Wire up player events with persistence
             WirePlayerEvents();
             
@@ -149,6 +160,12 @@ namespace DedicatedServerMod.Server.Core
             
             _isInitialized = true;
             logger.Msg("=== Dedicated Server Bootstrap Complete ===");
+
+            // Notify API mods: server initialized and running
+            ModManager.NotifyServerInitialize();
+
+            // Ensure server message forwarding is wired after init
+            ModManager.EnsureServerMessageForwarding();
         }
 
         /// <summary>
@@ -248,7 +265,10 @@ namespace DedicatedServerMod.Server.Core
             
             try
             {
+                // Notify API mods prior to tearing down subsystems
+                ModManager.NotifyServerShutdown();
                 // Shutdown in reverse order
+                try { _tcpConsole?.Dispose(); } catch { }
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
@@ -264,9 +284,59 @@ namespace DedicatedServerMod.Server.Core
             }
         }
 
-        /// <summary>
-        /// Get server status information
-        /// </summary>
+        private void TryStartTcpConsole()
+        {
+            try
+            {
+                var cfg = ServerConfig.Instance;
+                if (!cfg.TcpConsoleEnabled)
+                {
+                    return;
+                }
+
+                _tcpConsole = new TcpConsoleServer(
+                    cfg.TcpConsoleBindAddress,
+                    cfg.TcpConsolePort,
+                    cfg.TcpConsoleRequirePassword ? cfg.TcpConsolePassword : null,
+                    (line) =>
+                    {
+                        try
+                        {
+                            if (string.IsNullOrWhiteSpace(line)) return "";
+                            var parts = new List<string>(line.Trim().Split(' '));
+                            var cmd = parts[0];
+                            parts.RemoveAt(0);
+                            var output = new System.Text.StringBuilder();
+                            bool ok = _commandManager.ExecuteCommand(
+                                cmd,
+                                parts,
+                                s => output.AppendLine(s),
+                                s => output.AppendLine("[WARN] " + s),
+                                s => output.AppendLine("[ERR] " + s)
+                            );
+                            if (!ok)
+                            {
+                                return $"Unknown or unauthorized command: {cmd}\r\n";
+                            }
+                            return output.ToString();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error($"TCP console command error: {ex}");
+                            return $"Error: {ex.Message}\r\n";
+                        }
+                    },
+                    logger
+                );
+                _tcpConsole.Start();
+                logger.Msg($"✓ TCP console listening on {cfg.TcpConsoleBindAddress}:{cfg.TcpConsolePort}");
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"TCP console failed to start: {ex.Message}");
+            }
+        }
+
         public static ServerStatus GetStatus()
         {
             if (!_isInitialized)
@@ -289,9 +359,6 @@ namespace DedicatedServerMod.Server.Core
             };
         }
 
-        /// <summary>
-        /// Expose legacy properties for backward compatibility
-        /// </summary>
         public static bool IgnoreGhostHostForSleep
         {
             get => ServerConfig.Instance.IgnoreGhostHostForSleep;
@@ -318,9 +385,6 @@ namespace DedicatedServerMod.Server.Core
 
         public static DateTime LastAutoSave => _persistenceManager?.LastAutoSave ?? DateTime.MinValue;
 
-        /// <summary>
-        /// Manually triggers a save (legacy compatibility)
-        /// </summary>
         public static void ManualSave()
         {
             if (_isInitialized && _persistenceManager != null)

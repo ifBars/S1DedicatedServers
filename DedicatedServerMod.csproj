@@ -912,22 +912,27 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Include="Shared\*.cs" />
+	  <Compile Include="API\S1DS.cs" />
+	  <Compile Include="API\IServerMod.cs" />
+	  <Compile Include="API\IClientMod.cs" />
+	  <Compile Include="API\ModManager.cs" />
 	</ItemGroup>
 
 	<!-- Client builds include the client mod entry -->
 	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'">
 		<Compile Include="Client\*.cs" />
+		<Compile Include="API\S1DS.Client.cs" />
 	</ItemGroup>
 
 	<!-- Server builds include the new organized server structure -->
 	<ItemGroup Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'">
 		<!-- Core server bootstrap -->
 		<Compile Include="Server\Core\ServerBootstrap.cs" />
-		
-		<!-- Configuration system -->
+		<Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
 		
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />
+		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />
 		
 		<!-- Player management -->
 		<Compile Include="Server\Player\PlayerManager.cs" />
@@ -951,14 +956,12 @@
 		<Compile Include="Server\Game\TimeSystemManager.cs" />
 		<Compile Include="Server\Game\SleepSystemManager.cs" />
 		<Compile Include="Server\Game\GamePatchManager.cs" />
+		<Compile Include="API\S1DS.Server.cs" />
 		
 		<!-- Legacy files (for backward compatibility during transition) -->
 	</ItemGroup>
 	<ItemGroup>
 	  <None Remove="Assets\Player_0.zip" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
 	</ItemGroup>
 	<ItemGroup>
 	  <EmbeddedResource Include="Assets\Player_0.zip" />

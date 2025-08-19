@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using DedicatedServerMod;
+using DedicatedServerMod.API;
 using FishNet.Transporting;
 
 namespace DedicatedServerMod.Server.Player
@@ -81,8 +82,8 @@ namespace DedicatedServerMod.Server.Player
             // Hook into player spawn/despawn events
             try
             {
-                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, OnPlayerSpawned);
-                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, OnPlayerSpawned);
+                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
+                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 logger.Msg("Player spawn hooks established");
@@ -141,6 +142,7 @@ namespace DedicatedServerMod.Server.Player
 
                 // Trigger connection event
                 OnPlayerJoined?.Invoke(playerInfo);
+                try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
             }
             catch (Exception ex)
             {
@@ -162,6 +164,7 @@ namespace DedicatedServerMod.Server.Player
 
                     // Trigger disconnection event
                     OnPlayerLeft?.Invoke(playerInfo);
+                    try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
 
                     logger.Msg($"Current players: {connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers}");
                 }
@@ -179,7 +182,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Handle player spawned
         /// </summary>
-        private void OnPlayerSpawned(ScheduleOne.PlayerScripts.Player player)
+        private void HandleOnPlayerSpawned(ScheduleOne.PlayerScripts.Player player)
         {
             try
             {
@@ -399,6 +402,7 @@ namespace DedicatedServerMod.Server.Player
             playerInfo.SteamId = steamId;
             playerInfo.PlayerName = playerName;
             logger.Msg($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
+            OnPlayerSpawned?.Invoke(playerInfo);
         }
 
         /// <summary>
@@ -451,6 +455,7 @@ namespace DedicatedServerMod.Server.Player
         // Events
         public event Action<ConnectedPlayerInfo> OnPlayerJoined;
         public event Action<ConnectedPlayerInfo> OnPlayerLeft;
+        public event Action<ConnectedPlayerInfo> OnPlayerSpawned;
     }
 
     /// <summary>

@@ -56,6 +56,12 @@ namespace DedicatedServerMod.Shared
 			}
 		}
 
+		// API hooks: mods can subscribe without Harmony
+		public delegate void ClientMessageHook(string command, string data);
+		public delegate void ServerMessageHook(NetworkConnection conn, string command, string data);
+		public static event ClientMessageHook ClientMessageReceived;
+		public static event ServerMessageHook ServerMessageReceived;
+
 		#region Send helpers
 		public static void SendToServer(string command, string data = "")
 		{
@@ -63,7 +69,10 @@ namespace DedicatedServerMod.Shared
 			{
 				var ds = NetworkSingleton<DailySummary>.Instance;
 				if (ds == null)
+				{
+					logger.Warning($"SendToServer skipped: DailySummary instance null for cmd='{command}'");
 					return;
+				}
 
 				var msg = new Message { command = command, data = data };
 				string raw = JsonConvert.SerializeObject(msg);
@@ -71,6 +80,7 @@ namespace DedicatedServerMod.Shared
 				((Writer)writer).WriteString(raw);
 				((NetworkBehaviour)ds).SendServerRpc(MessageId, writer, Channel.Reliable, DataOrderType.Default);
 				writer.Store();
+				logger.Msg($"SendToServer cmd='{command}' len={data?.Length ?? 0}");
 			}
 			catch (Exception ex)
 			{
@@ -84,7 +94,10 @@ namespace DedicatedServerMod.Shared
 			{
 				var ds = NetworkSingleton<DailySummary>.Instance;
 				if (ds == null || conn == null)
+				{
+					logger.Warning($"SendToClient skipped: ds null? {ds==null}, conn null? {conn==null} for cmd='{command}'");
 					return;
+				}
 
 				var msg = new Message { command = command, data = data };
 				string raw = JsonConvert.SerializeObject(msg);
@@ -92,6 +105,7 @@ namespace DedicatedServerMod.Shared
 				((Writer)writer).WriteString(raw);
 				((NetworkBehaviour)ds).SendTargetRpc(MessageId, writer, Channel.Reliable, DataOrderType.Default, conn, false, true);
 				writer.Store();
+				logger.Msg($"SendToClient cmd='{command}' len={data?.Length ?? 0} to={conn.ClientId}");
 			}
 			catch (Exception ex)
 			{
@@ -137,6 +151,11 @@ namespace DedicatedServerMod.Shared
 					return;
 				}
 
+				logger.Msg($"OnClientMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0}");
+
+				// First, raise API event for mods
+				try { ClientMessageReceived?.Invoke(msg.command, msg.data); } catch {}
+				// Then, built-in routing if any
 				HandleClientMessage(msg.command, msg.data);
 			}
 			catch (Exception ex)
@@ -164,6 +183,11 @@ namespace DedicatedServerMod.Shared
 					return;
 				}
 
+				logger.Msg($"OnServerMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0} from={conn?.ClientId}");
+
+				// First, raise API event for mods
+				try { ServerMessageReceived?.Invoke(conn, msg.command, msg.data); } catch {}
+				// Then, built-in routing if any
 				HandleServerMessage(conn, msg.command, msg.data);
 			}
 			catch (Exception ex)

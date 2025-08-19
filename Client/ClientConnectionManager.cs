@@ -4,6 +4,7 @@ using ScheduleOne.Persistence;
 using System;
 using System.Collections;
 using ScheduleOne.DevUtilities;
+using DedicatedServerMod.API;
 using UnityEngine;
 
 namespace DedicatedServerMod.Client
@@ -178,6 +179,7 @@ namespace DedicatedServerMod.Client
                 if (ScheduleOne.PlayerScripts.Player.Local != null)
                 {
                     logger.Msg("Local player found - connection setup complete");
+                    try { ModManager.NotifyConnectedToServer(); } catch {}
                 }
                 else
                 {
@@ -239,6 +241,7 @@ namespace DedicatedServerMod.Client
                 _isTugboatMode = false;
                 
                 logger.Msg("Disconnected from dedicated server");
+                try { ModManager.NotifyDisconnectedFromServer(); } catch {}
             }
             catch (Exception ex)
             {

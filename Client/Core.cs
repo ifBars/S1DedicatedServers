@@ -5,12 +5,13 @@ using ScheduleOne.PlayerScripts;
 using System.Reflection;
 using System;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.API;
 using ScheduleOne.UI;
 
-[assembly: MelonInfo(typeof(DedicatedServerMod.Core), "DedicatedServerClient", "1.0.0", "Bars")]
+[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core), "DedicatedServerClient", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
-namespace DedicatedServerMod
+namespace DedicatedServerMod.Client
 {
     /// <summary>
     /// Main entry point for the Dedicated Server Client mod.
@@ -51,6 +52,8 @@ namespace DedicatedServerMod
             
             try
             {
+                // Initialize API mod discovery so client mods can receive init event
+                ModManager.Initialize();
                 // Apply client-side patches
                 ApplyClientPatches();
                 
@@ -61,6 +64,9 @@ namespace DedicatedServerMod
                 InitializeManagers();
                 
                 logger.Msg("DedicatedServerClient mod initialized successfully");
+
+                // Notify API mods: client initialized
+                ModManager.NotifyClientInitialize();
             }
             catch (System.Exception ex)
             {
@@ -175,16 +181,23 @@ namespace DedicatedServerMod
                 connectionManager?.StartDedicatedConnection();
             }
         }
-
-        /// <summary>
-        /// Public access to connection manager for other components
-        /// </summary>
-        public static ClientConnectionManager ConnectionManager => Instance?.connectionManager;
         
         /// <summary>
         /// Access to the Core instance
         /// </summary>
         public static Core Instance { get; private set; }
+        
+        /// <summary>
+        /// Public access to connection manager for other components
+        /// </summary>
+        public static ClientConnectionManager ConnectionManager => Instance?.connectionManager;
+
+        public ClientTransportPatcher TransportPatcher => transportPatcher;
+        public ClientPlayerSetup PlayerSetupManager => playerSetup;
+        public ClientUIManager UIManager => uiManager;
+        public ClientQuestManager QuestManager => questManager;
+        public ClientLoopbackHandler LoopbackManager => loopbackHandler;
+        public ClientConsoleManager ConsoleManager => consoleManager;
 
         public override void OnApplicationStart()
         {

@@ -175,6 +175,42 @@ namespace DedicatedServerMod.Server.Commands
         }
 
         /// <summary>
+        /// Execute a server command with custom output sinks (e.g., TCP console)
+        /// </summary>
+        public bool ExecuteCommand(string commandWord, List<string> args,
+            System.Action<string> outputInfo,
+            System.Action<string> outputWarning,
+            System.Action<string> outputError)
+        {
+            try
+            {
+                if (!serverCommands.TryGetValue(commandWord.ToLower(), out var command))
+                {
+                    return false; // Command not found
+                }
+
+                var context = new CommandContext
+                {
+                    Executor = null,
+                    Arguments = args,
+                    Logger = logger,
+                    PlayerManager = playerManager,
+                    OutputInfo = outputInfo,
+                    OutputWarning = outputWarning,
+                    OutputError = outputError
+                };
+
+                command.Execute(context);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error executing command '{commandWord}': {ex}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Check if a player can execute a command
         /// </summary>
         private bool CanExecuteCommand(ConnectedPlayerInfo player, IServerCommand command)

@@ -61,6 +61,13 @@ namespace DedicatedServerMod.Server.Commands
         public PlayerManager PlayerManager { get; set; }
 
         /// <summary>
+        /// Optional sinks for console output redirection (e.g., TCP console)
+        /// </summary>
+        public System.Action<string> OutputInfo { get; set; }
+        public System.Action<string> OutputWarning { get; set; }
+        public System.Action<string> OutputError { get; set; }
+
+        /// <summary>
         /// Whether the command is being executed from console
         /// </summary>
         public bool IsConsoleExecution => Executor == null;
@@ -72,7 +79,7 @@ namespace DedicatedServerMod.Server.Commands
         {
             if (IsConsoleExecution)
             {
-                // Send to console/logger
+                OutputInfo?.Invoke(message);
                 Logger?.Msg($"[COMMAND] {message}");
                 ScheduleOne.Console.Log(message);
             }
@@ -90,6 +97,7 @@ namespace DedicatedServerMod.Server.Commands
         {
             if (IsConsoleExecution)
             {
+                OutputWarning?.Invoke(message);
                 Logger?.Warning($"[COMMAND] {message}");
                 ScheduleOne.Console.LogWarning(message);
             }
@@ -106,6 +114,7 @@ namespace DedicatedServerMod.Server.Commands
         {
             if (IsConsoleExecution)
             {
+                OutputError?.Invoke(message);
                 Logger?.Error($"[COMMAND] {message}");
                 ScheduleOne.Console.LogError(message);
             }
