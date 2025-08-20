@@ -158,6 +158,27 @@ namespace DedicatedServerMod.API
         }
 
         /// <summary>
+        /// Notifies all server mods that the server is started
+        /// </summary>
+        public static void NotifyServerStarted()
+        {
+            if (!S1DS.IsServer) return;
+
+            MelonLogger.Msg("Notifying server mods of startup...");
+            foreach (var mod in _serverMods.ToList())
+            {
+                try
+                {
+                    mod.OnServerStarted();
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"Error in server mod {mod.GetType().Name}.OnServerStarted(): {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
         /// Notifies all server mods that the server is shutting down
         /// </summary>
         public static void NotifyServerShutdown()
@@ -285,6 +306,26 @@ namespace DedicatedServerMod.API
                 catch (Exception ex)
                 {
                     MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnConnectedToServer(): {ex.Message}");
+                }
+            }
+        }
+        /// <summary>
+        /// Notifies all client mods that the local player is spawned and systems are ready.
+        /// This should be invoked after messaging/UI are initialized to avoid race conditions.
+        /// </summary>
+        public static void NotifyClientPlayerReady()
+        {
+            if (!S1DS.IsClient) return;
+
+            foreach (var mod in _clientMods.ToList())
+            {
+                try
+                {
+                    mod.OnClientPlayerReady();
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnClientPlayerReady(): {ex.Message}");
                 }
             }
         }

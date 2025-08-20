@@ -63,6 +63,7 @@ namespace DedicatedServerMod.Server.Commands
             RegisterCommand(new ListPlayersCommand(logger, playerManager));
 
             // Server management commands
+            RegisterCommand(new HelpCommand(logger, playerManager, this));
             RegisterCommand(new ServerInfoCommand(logger, playerManager));
             RegisterCommand(new ReloadConfigCommand(logger, playerManager));
             RegisterCommand(new SaveCommand(logger, playerManager));

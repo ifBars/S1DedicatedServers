@@ -9,12 +9,17 @@ namespace DedicatedServerMod.API
     public interface IServerMod
     {
         /// <summary>
-        /// Called when the server is starting up and this mod should initialize
+        /// Called when the server is starting up
         /// </summary>
         void OnServerInitialize();
 
         /// <summary>
-        /// Called when the server is shutting down and this mod should clean up
+        /// Called when the server is fully started
+        /// </summary>
+        void OnServerStarted();
+
+        /// <summary>
+        /// Called when the server is shutting down
         /// </summary>
         void OnServerShutdown();
 

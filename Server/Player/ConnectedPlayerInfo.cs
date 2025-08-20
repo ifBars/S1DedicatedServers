@@ -46,9 +46,14 @@ namespace DedicatedServerMod.Server.Player
         public bool IsAuthenticated { get; set; }
 
         /// <summary>
+        /// Whether the player is currently connected to the server
+        /// </summary>
+        public bool IsConnected => Connection.IsActive;
+
+        /// <summary>
         /// Whether the player is currently spawned in the game
         /// </summary>
-        public bool IsSpawned => PlayerInstance != null && PlayerInstance.gameObject != null;
+        public bool IsSpawned => PlayerInstance != null;
 
         /// <summary>
         /// How long the player has been connected

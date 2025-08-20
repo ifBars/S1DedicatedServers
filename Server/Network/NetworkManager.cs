@@ -60,7 +60,7 @@ namespace DedicatedServerMod.Server.Network
             if (_hooksRegistered) return true;
             var serverManager = InstanceFinder.ServerManager;
             if (serverManager == null) return false;
-            serverManager.OnServerConnectionState -= OnServerConnectionState; // ensure no duplicates
+            serverManager.OnServerConnectionState -= OnServerConnectionState;
             serverManager.OnServerConnectionState += OnServerConnectionState;
             _hooksRegistered = true;
             logger.Msg("Network event hooks established");
@@ -69,7 +69,6 @@ namespace DedicatedServerMod.Server.Network
 
         private IEnumerator WaitAndRegisterHooks()
         {
-            // Wait until FishNet NetworkManager and ServerManager are ready, then hook
             while (InstanceFinder.NetworkManager == null || InstanceFinder.ServerManager == null)
                 yield return null;
             TryRegisterHooks();
@@ -109,14 +108,12 @@ namespace DedicatedServerMod.Server.Network
 
             try
             {
-                // Ensure transport is properly configured
                 if (!SetupTugboatTransport())
                 {
                     logger.Error("Failed to setup Tugboat transport");
                     yield break;
                 }
 
-                // Start the server
                 var networkManager = InstanceFinder.NetworkManager;
                 if (networkManager != null && networkManager.ServerManager != null)
                 {
@@ -158,7 +155,6 @@ namespace DedicatedServerMod.Server.Network
                     return false;
                 }
 
-                // Get or add Tugboat component
                 var tugboat = multipass.gameObject.GetComponent<Tugboat>();
                 if (tugboat == null)
                 {
@@ -171,10 +167,11 @@ namespace DedicatedServerMod.Server.Network
                     logger.Msg("Added Tugboat transport component");
                 }
 
-                // Configure Tugboat for server
                 tugboat.SetPort((ushort)ServerConfig.Instance.ServerPort);
 
-                // Set as server transport
+                // Ensure Tugboat is registered in Multipass transports list
+                TryAddTransportToMultipassList(multipass, tugboat);
+
                 if (!SetServerTransport(multipass, tugboat))
                 {
                     logger.Error("Failed to set Tugboat as server transport");
@@ -198,40 +195,60 @@ namespace DedicatedServerMod.Server.Network
         {
             try
             {
-                // Try to set server transport using reflection
-                var serverTransportField = typeof(Multipass).GetField("_clientTransport",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-
-                if (serverTransportField != null)
-                {
-                    serverTransportField.SetValue(multipass, transport);
-                    logger.Msg("Set server transport using reflection");
-                    return true;
-                }
-
-                // Try alternative method
+                // Prefer method if available
                 var methods = typeof(Multipass).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
                 foreach (var method in methods)
                 {
-                    if (method.Name.Contains("SetClientTransport") && method.GetParameters().Length == 1)
+                    if (method.Name.Contains("SetServerTransport") && method.GetParameters().Length == 1)
                     {
                         var paramType = method.GetParameters()[0].ParameterType;
                         if (paramType.IsAssignableFrom(typeof(Transport)))
                         {
                             method.Invoke(multipass, new object[] { transport });
-                            logger.Msg("Set server transport using method reflection");
+                            logger.Msg("Set server transport using Multipass.SetServerTransport");
                             return true;
                         }
                     }
                 }
 
-                logger.Warning("Could not find method to set server transport");
+                // Fallback to field
+                var serverTransportField = typeof(Multipass).GetField("_serverTransport",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (serverTransportField != null)
+                {
+                    serverTransportField.SetValue(multipass, transport);
+                    logger.Msg("Set server transport via _serverTransport field");
+                    return true;
+                }
+
+                logger.Warning("Could not set server transport (no method/field found)");
                 return false;
             }
             catch (Exception ex)
             {
                 logger.Error($"Error setting server transport: {ex}");
                 return false;
+            }
+        }
+
+        private void TryAddTransportToMultipassList(Multipass multipass, Transport transport)
+        {
+            try
+            {
+                var transportsField = typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (transportsField == null) return;
+                var list = transportsField.GetValue(multipass) as System.Collections.Generic.List<Transport>;
+                if (list == null) return;
+                if (!list.Contains(transport))
+                {
+                    list.Add(transport);
+                    logger.Msg($"Registered {transport.GetType().Name} in Multipass transports list");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Unable to register transport in Multipass list: {ex.Message}");
             }
         }
 

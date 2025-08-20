@@ -33,8 +33,8 @@ namespace DedicatedServerMod.Server.Commands.Server
                 context.Reply($"Initiating server shutdown: {reason}");
                 logger.Msg($"Server shutdown initiated by {context.Executor?.DisplayName ?? "Console"}: {reason}");
                 
-                // Notify all players
-                playerManager.BroadcastMessage($"Server shutting down: {reason}");
+                // Notify all players via a UI popup
+                // playerManager.BroadcastMessage($"Server shutting down: {reason}");
                 
                 // Trigger graceful shutdown
                 MelonCoroutines.Start(DelayedShutdown(reason));

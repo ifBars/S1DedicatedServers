@@ -10,6 +10,7 @@ using System.Collections;
 using System.Reflection;
 using ScheduleOne.DevUtilities;
 using UnityEngine;
+using DedicatedServerMod.API;
 
 namespace DedicatedServerMod.Client
 {
@@ -412,6 +413,17 @@ namespace DedicatedServerMod.Client
                 // Request player save to persist everything
                 player.RequestSavePlayer();
                 logger.Msg("Player save requested to finalize setup");
+
+                // Notify API mods that the local player is ready and messaging/UI are initialized
+                try
+                {
+                    ModManager.NotifyClientPlayerReady();
+                    logger.Msg("Notified mods: OnClientPlayerReady");
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Error notifying OnClientPlayerReady: {ex}");
+                }
             }
             catch (Exception ex)
             {

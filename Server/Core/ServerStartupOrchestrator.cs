@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
+using DedicatedServerMod.API;
 using FishNet;
 using FishNet.Component.Scenes;
 using FishNet.Transporting;
@@ -224,6 +225,9 @@ namespace DedicatedServerMod.Server.Core
             logger.Msg($"Server running on port {ServerConfig.Instance.ServerPort}");
             logger.Msg($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             logger.Msg("Waiting for client connections...");
+
+            // Notify API mods: server started
+            ModManager.NotifyServerStarted();
         }
 
         private static void TrySetClientTransport(Multipass multipass, Transport transport)

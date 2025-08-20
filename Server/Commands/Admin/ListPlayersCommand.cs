@@ -42,7 +42,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
                     _ => ""
                 };
 
-                var statusText = player.IsSpawned ? "Online" : "Connecting";
+                var statusText = player.IsConnected ? "Online" : "Connecting";
                 var duration = player.ConnectionDuration.ToString(@"mm\:ss");
                 
                 context.Reply($"  {player.DisplayName}{permText} - {statusText} ({duration})");

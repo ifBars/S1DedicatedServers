@@ -10,7 +10,7 @@ namespace DedicatedServerMod.API
     /// Example mod demonstrating how to use the S1DS API
     /// This mod works on both server and client sides
     /// </summary>
-    public class ExampleMod : MelonMod, IServerMod, IClientMod
+    public class ExampleMod : SideAwareMelonModBase
     {
         public override void OnInitializeMelon()
         {
@@ -21,9 +21,9 @@ namespace DedicatedServerMod.API
             // because it implements IServerMod and/or IClientMod
         }
 
-        #region IServerMod Implementation
+        #region Server Hooks
 
-        public void OnServerInitialize()
+        public override void OnServerInitialize()
         {
             MelonLogger.Msg("ExampleMod: Server initialized!");
 
@@ -31,12 +31,12 @@ namespace DedicatedServerMod.API
             MelonLogger.Msg($"Server is running with {S1DS.Server.PlayerCount} players");
         }
 
-        public void OnServerShutdown()
+        public override void OnServerShutdown()
         {
             MelonLogger.Msg("ExampleMod: Server shutting down!");
         }
 
-        public void OnPlayerConnected(string playerId)
+        public override void OnPlayerConnected(string playerId)
         {
             MelonLogger.Msg($"ExampleMod: Player {playerId} connected!");
 
@@ -44,16 +44,16 @@ namespace DedicatedServerMod.API
             MelonLogger.Msg($"Could send welcome message to {playerId}");
         }
 
-        public void OnPlayerDisconnected(string playerId)
+        public override void OnPlayerDisconnected(string playerId)
         {
             MelonLogger.Msg($"ExampleMod: Player {playerId} disconnected!");
         }
 
         #endregion
 
-        #region IClientMod Implementation
+        #region Client Hooks
 
-        public void OnClientInitialize()
+        public override void OnClientInitialize()
         {
             MelonLogger.Msg("ExampleMod: Client initialized!");
 
@@ -61,12 +61,12 @@ namespace DedicatedServerMod.API
             MelonLogger.Msg("Client is ready!");
         }
 
-        public void OnClientShutdown()
+        public override void OnClientShutdown()
         {
             MelonLogger.Msg("ExampleMod: Client shutting down!");
         }
 
-        public void OnConnectedToServer()
+        public override void OnConnectedToServer()
         {
             MelonLogger.Msg("ExampleMod: Connected to server!");
 
@@ -74,7 +74,7 @@ namespace DedicatedServerMod.API
             MelonLogger.Msg("Ready to interact with server!");
         }
 
-        public void OnDisconnectedFromServer()
+        public override void OnDisconnectedFromServer()
         {
             MelonLogger.Msg("ExampleMod: Disconnected from server!");
         }

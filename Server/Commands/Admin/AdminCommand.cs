@@ -32,7 +32,6 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 if (playerManager.Permissions.AddAdministrator(targetPlayer.SteamId))
                 {
                     context.Reply($"Granted administrator privileges to {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    playerManager.BroadcastMessage($"{targetPlayer.DisplayName} has been granted administrator privileges");
                     logger.Msg($"Administrator granted to {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else

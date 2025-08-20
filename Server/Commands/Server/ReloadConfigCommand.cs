@@ -30,9 +30,6 @@ namespace DedicatedServerMod.Server.Commands.Server
                 
                 context.Reply("Server configuration reloaded successfully");
                 logger.Msg($"Configuration reloaded by {context.Executor?.DisplayName ?? "Console"}");
-                
-                // Broadcast to all players
-                playerManager.BroadcastMessage("Server configuration has been reloaded");
             }
             catch (Exception ex)
             {

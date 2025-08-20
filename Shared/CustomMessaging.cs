@@ -225,7 +225,7 @@ namespace DedicatedServerMod.Shared
 					if (!commands.ContainsKey(cmd))
 					{
 						logger.Warning($"HandleClientMessage: Command '{cmd}' not found on client");
-						ScheduleOne.Console.LogWarning($"Command '{cmd}' not found.");
+						Console.LogCommandError($"Command '{cmd}' not found.");
 						return;
 					}
 
@@ -284,7 +284,7 @@ namespace DedicatedServerMod.Shared
 							parts.RemoveAt(0);
 							if (parts.Count == 0)
 							{
-								Console.LogWarning("Unrecognized command format. Correct format example(s): 'spawnvehicle shitbox'");
+								Console.LogCommandError("Unrecognized command format. Correct format example(s): 'spawnvehicle shitbox'");
 								return;
 							}
 							string vehicleCode = parts[0].ToLower();
@@ -296,7 +296,7 @@ namespace DedicatedServerMod.Shared
 							}
 							if (vm.GetVehiclePrefab(vehicleCode) == null)
 							{
-								Console.LogWarning($"Unrecognized vehicle code '{vehicleCode}'");
+								Console.LogCommandError($"Unrecognized vehicle code '{vehicleCode}'");
 								return;
 							}
 
@@ -349,12 +349,33 @@ namespace DedicatedServerMod.Shared
 					else
 					{
 						logger.Warning($"HandleServerMessage: Command '{cmd}' not found in available commands");
-						Console.LogWarning($"Command '{cmd}' not found.");
+						Console.LogCommandError($"Command '{cmd}' not found.");
 					}
 				}
 				catch (Exception ex)
 				{
 					logger.Error($"HandleServerMessage: Error executing admin console command: {ex}");
+				}
+			}
+			else if (command == "request_server_data")
+			{
+				// Build minimal server data snapshot and send back
+				try
+				{
+					var cfg = ServerConfig.Instance;
+					var sd = new ServerData
+					{
+						ServerName = cfg.ServerName,
+						AllowSleeping = cfg.AllowSleeping,
+						TimeNeverStops = cfg.TimeNeverStops,
+						PublicServer = cfg.PublicServer
+					};
+					string payload = JsonConvert.SerializeObject(sd);
+					SendToClient(conn, "server_data", payload);
+				}
+				catch (Exception ex)
+				{
+					logger.Error($"HandleServerMessage: Error handling request_server_data: {ex}");
 				}
 			}
 		}

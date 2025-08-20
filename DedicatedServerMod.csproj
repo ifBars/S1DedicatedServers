@@ -916,6 +916,9 @@
 	  <Compile Include="API\IServerMod.cs" />
 	  <Compile Include="API\IClientMod.cs" />
 	  <Compile Include="API\ModManager.cs" />
+	  <Compile Include="API\ServerModBase.cs" />
+	  <Compile Include="API\ClientModBase.cs" />
+	  <Compile Include="API\SideAwareMelonModBase.cs" />
 	</ItemGroup>
 
 	<!-- Client builds include the client mod entry -->

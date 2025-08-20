@@ -145,7 +145,7 @@ namespace DedicatedServerMod.Server.Core
             _gameSystemManager.Initialize();
             logger.Msg("✓ Game system manager initialized");
             
-            // Optional: Start TCP Console
+            // Start TCP Console if enabled in ServerConfig
             TryStartTcpConsole();
             
             // Step 9: Wire up player events with persistence
@@ -197,26 +197,6 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 logger.Warning($"Error processing command line arguments: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Apply Harmony patches needed for dedicated server operation
-        /// </summary>
-        private void ApplyServerPatches()
-        {
-            try
-            {
-                logger.Msg("Applying server patches...");
-                
-                // Let the GameSystemManager handle patch application
-                // This will be done during GameSystemManager initialization
-                
-                logger.Msg("Server patches applied");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error applying server patches: {ex}");
             }
         }
 
@@ -384,18 +364,6 @@ namespace DedicatedServerMod.Server.Core
         }
 
         public static DateTime LastAutoSave => _persistenceManager?.LastAutoSave ?? DateTime.MinValue;
-
-        public static void ManualSave()
-        {
-            if (_isInitialized && _persistenceManager != null)
-            {
-                _persistenceManager.TriggerManualSave("manual_request");
-            }
-            else
-            {
-                logger?.Warning("Manual save can only be called on an initialized server");
-            }
-        }
     }
 
     /// <summary>

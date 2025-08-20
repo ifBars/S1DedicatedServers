@@ -173,6 +173,16 @@ namespace DedicatedServerMod.Client
                 IsConnectedToDedicatedServer = true;
                 IsConnecting = false;
                 
+                // Request initial server data snapshot
+                try
+                {
+                    DedicatedServerMod.Shared.CustomMessaging.SendToServer("request_server_data");
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Failed to request server data: {ex.Message}");
+                }
+
                 // Wait for player to spawn and initialize
                 yield return new WaitForSeconds(2f);
                 

@@ -32,7 +32,6 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 if (playerManager.Permissions.AddOperator(targetPlayer.SteamId))
                 {
                     context.Reply($"Granted operator privileges to {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    playerManager.BroadcastMessage($"{targetPlayer.DisplayName} has been granted operator privileges");
                     logger.Msg($"Operator granted to {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else

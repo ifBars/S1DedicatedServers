@@ -85,7 +85,6 @@ namespace DedicatedServerMod.Server.Commands
             }
             else
             {
-                // Send to player (TODO: implement when RPC system is available)
                 Logger?.Msg($"[COMMAND -> {Executor.DisplayName}] {message}");
             }
         }
