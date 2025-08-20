@@ -37,9 +37,6 @@ namespace DedicatedServerMod.Server.Commands.Server
                     ServerBootstrap.Persistence.TriggerManualSave($"manual_save_by_{context.Executor?.DisplayName ?? "console"}");
                     context.Reply("Manual save triggered successfully");
                     logger.Msg($"Manual save triggered by {context.Executor?.DisplayName ?? "Console"}");
-                    
-                    // Broadcast to players
-                    playerManager.BroadcastMessage("Game save in progress...");
                 }
                 else
                 {

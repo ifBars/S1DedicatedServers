@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using DedicatedServerMod;
+using DedicatedServerMod.API;
 using FishNet.Transporting;
 
 namespace DedicatedServerMod.Server.Player
@@ -71,18 +72,16 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         private void SetupPlayerHooks()
         {
-            // Hook into FishNet connection events
             if (InstanceFinder.ServerManager != null)
             {
                 InstanceFinder.ServerManager.OnRemoteConnectionState += OnClientConnectionState;
                 logger.Msg("Player connection hooks established");
             }
 
-            // Hook into player spawn/despawn events
             try
             {
-                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, OnPlayerSpawned);
-                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, OnPlayerSpawned);
+                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
+                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 logger.Msg("Player spawn hooks established");
@@ -118,15 +117,13 @@ namespace DedicatedServerMod.Server.Player
             {
                 logger.Msg($"Player connecting: ClientId {connection.ClientId}");
 
-                // Check if server is full
                 if (connectedPlayers.Count >= ServerConfig.Instance.MaxPlayers)
                 {
                     logger.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
                     connection.Disconnect(true);
                     return;
                 }
-
-                // Create player info
+                
                 var playerInfo = new ConnectedPlayerInfo
                 {
                     Connection = connection,
@@ -136,11 +133,28 @@ namespace DedicatedServerMod.Server.Player
                 };
 
                 connectedPlayers[connection] = playerInfo;
-
                 logger.Msg($"Player connected: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
-
-                // Trigger connection event
                 OnPlayerJoined?.Invoke(playerInfo);
+                try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
+
+                // Proactively send initial server data snapshot
+                try
+                {
+                    var cfg = ServerConfig.Instance;
+                    var sd = new DedicatedServerMod.Shared.ServerData
+                    {
+                        ServerName = cfg.ServerName,
+                        AllowSleeping = cfg.AllowSleeping,
+                        TimeNeverStops = cfg.TimeNeverStops,
+                        PublicServer = cfg.PublicServer
+                    };
+                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(sd);
+                    DedicatedServerMod.Shared.CustomMessaging.SendToClient(connection, "server_data", json);
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -159,9 +173,8 @@ namespace DedicatedServerMod.Server.Player
                 {
                     logger.Msg($"Player disconnected: {playerInfo.DisplayName} (ClientId {connection.ClientId})");
                     connectedPlayers.Remove(connection);
-
-                    // Trigger disconnection event
                     OnPlayerLeft?.Invoke(playerInfo);
+                    try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
 
                     logger.Msg($"Current players: {connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers}");
                 }
@@ -179,7 +192,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Handle player spawned
         /// </summary>
-        private void OnPlayerSpawned(ScheduleOne.PlayerScripts.Player player)
+        private void HandleOnPlayerSpawned(ScheduleOne.PlayerScripts.Player player)
         {
             try
             {
@@ -190,8 +203,6 @@ namespace DedicatedServerMod.Server.Player
                 {
                     playerInfo.PlayerInstance = player;
                     logger.Msg($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId})");
-
-                    // Start identity binding coroutine
                     MelonCoroutines.Start(BindPlayerIdentity(player, playerInfo));
                 }
                 else
@@ -309,7 +320,6 @@ namespace DedicatedServerMod.Server.Player
             {
                 logger.Msg($"Kicking player {player.DisplayName}: {reason}");
                 player.Connection.Disconnect(true);
-                BroadcastMessage($"Player {player.DisplayName} was kicked: {reason}");
                 return true;
             }
             catch (Exception ex)
@@ -332,18 +342,15 @@ namespace DedicatedServerMod.Server.Player
                     return false;
                 }
 
-                            // Add to ban list using ServerConfig
-            if (!ServerConfig.Instance.BannedPlayers.Contains(player.SteamId))
-            {
-                ServerConfig.Instance.BannedPlayers.Add(player.SteamId);
-                ServerConfig.SaveConfig(); // Save the updated config
-            }
+                if (!ServerConfig.Instance.BannedPlayers.Contains(player.SteamId))
+                {
+                    ServerConfig.Instance.BannedPlayers.Add(player.SteamId);
+                    ServerConfig.SaveConfig();
+                }
 
                 // Kick the player
                 KickPlayer(player, $"Banned: {reason}");
-                
                 logger.Msg($"Player banned: {player.DisplayName} ({player.SteamId}) - {reason}");
-                BroadcastMessage($"Player {player.DisplayName} was banned: {reason}");
                 
                 return true;
             }
@@ -360,22 +367,6 @@ namespace DedicatedServerMod.Server.Player
         public bool IsPlayerBanned(string steamId)
         {
             return ServerConfig.Instance.BannedPlayers.Contains(steamId);
-        }
-
-        /// <summary>
-        /// Broadcast a message to all players
-        /// </summary>
-        public void BroadcastMessage(string message)
-        {
-            try
-            {
-                logger.Msg($"[BROADCAST] {message}");
-                // TODO: Implement actual message broadcasting when RPC system is available
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error broadcasting message: {ex}");
-            }
         }
 
         /// <summary>
@@ -399,6 +390,7 @@ namespace DedicatedServerMod.Server.Player
             playerInfo.SteamId = steamId;
             playerInfo.PlayerName = playerName;
             logger.Msg($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
+            OnPlayerSpawned?.Invoke(playerInfo);
         }
 
         /// <summary>
@@ -451,6 +443,7 @@ namespace DedicatedServerMod.Server.Player
         // Events
         public event Action<ConnectedPlayerInfo> OnPlayerJoined;
         public event Action<ConnectedPlayerInfo> OnPlayerLeft;
+        public event Action<ConnectedPlayerInfo> OnPlayerSpawned;
     }
 
     /// <summary>

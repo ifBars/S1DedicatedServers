@@ -8,7 +8,6 @@ using FishNet;
 using MelonLoader.Utils;
 using ScheduleOne.PlayerScripts;
 using Steamworks;
-using DedicatedServerMod.Server;
 
 namespace DedicatedServerMod
 {
@@ -43,6 +42,23 @@ namespace DedicatedServerMod
 
         [JsonProperty("publicServer")]
         public bool PublicServer { get; set; } = true;
+        #endregion
+
+        #region TCP Console Settings
+        [JsonProperty("tcpConsoleEnabled")]
+        public bool TcpConsoleEnabled { get; set; } = false;
+
+        [JsonProperty("tcpConsoleBindAddress")]
+        public string TcpConsoleBindAddress { get; set; } = "127.0.0.1";
+
+        [JsonProperty("tcpConsolePort")]
+        public int TcpConsolePort { get; set; } = 4050;
+
+        [JsonProperty("tcpConsoleRequirePassword")]
+        public bool TcpConsoleRequirePassword { get; set; } = false;
+
+        [JsonProperty("tcpConsolePassword")]
+        public string TcpConsolePassword { get; set; } = "";
         #endregion
 
         #region Time & Gameplay Settings
@@ -675,6 +691,36 @@ namespace DedicatedServerMod
                     case "--verbose":
                         Instance.VerboseLogging = true;
                         logger?.Msg("Verbose logging enabled");
+                        break;
+
+                    case "--tcp-console":
+                        Instance.TcpConsoleEnabled = true;
+                        logger?.Msg("TCP console enabled via CLI");
+                        break;
+
+                    case "--tcp-console-port":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int tcpPort))
+                        {
+                            Instance.TcpConsolePort = tcpPort;
+                            logger?.Msg($"TCP console port set to: {Instance.TcpConsolePort}");
+                        }
+                        break;
+
+                    case "--tcp-console-bind":
+                        if (i + 1 < args.Length)
+                        {
+                            Instance.TcpConsoleBindAddress = args[i + 1];
+                            logger?.Msg($"TCP console bind address set to: {Instance.TcpConsoleBindAddress}");
+                        }
+                        break;
+
+                    case "--tcp-console-password":
+                        if (i + 1 < args.Length)
+                        {
+                            Instance.TcpConsolePassword = args[i + 1];
+                            Instance.TcpConsoleRequirePassword = true;
+                            logger?.Msg("TCP console password set via CLI and requirement enabled");
+                        }
                         break;
                 }
             }

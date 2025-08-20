@@ -86,22 +86,12 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                // If friends check is not required, allow everyone
-                if (!ServerConfig.Instance.RequireFriends)
-                {
-                    return true;
-                }
-
                 // Check if player is banned
                 if (IsPlayerBanned(steamId))
                 {
                     logger.Msg($"Player {steamId} is banned, denying access");
                     return false;
                 }
-
-                // TODO: Implement Steam friends check
-                // This would involve checking if the player is friends with the host
-                logger.Msg($"TODO: Check friendship status for {steamId}");
                 
                 // For now, allow all non-banned players
                 return true;

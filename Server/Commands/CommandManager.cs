@@ -63,6 +63,7 @@ namespace DedicatedServerMod.Server.Commands
             RegisterCommand(new ListPlayersCommand(logger, playerManager));
 
             // Server management commands
+            RegisterCommand(new HelpCommand(logger, playerManager, this));
             RegisterCommand(new ServerInfoCommand(logger, playerManager));
             RegisterCommand(new ReloadConfigCommand(logger, playerManager));
             RegisterCommand(new SaveCommand(logger, playerManager));
@@ -162,6 +163,42 @@ namespace DedicatedServerMod.Server.Commands
                     Arguments = args,
                     Logger = logger,
                     PlayerManager = playerManager
+                };
+
+                command.Execute(context);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error executing command '{commandWord}': {ex}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Execute a server command with custom output sinks (e.g., TCP console)
+        /// </summary>
+        public bool ExecuteCommand(string commandWord, List<string> args,
+            System.Action<string> outputInfo,
+            System.Action<string> outputWarning,
+            System.Action<string> outputError)
+        {
+            try
+            {
+                if (!serverCommands.TryGetValue(commandWord.ToLower(), out var command))
+                {
+                    return false; // Command not found
+                }
+
+                var context = new CommandContext
+                {
+                    Executor = null,
+                    Arguments = args,
+                    Logger = logger,
+                    PlayerManager = playerManager,
+                    OutputInfo = outputInfo,
+                    OutputWarning = outputWarning,
+                    OutputError = outputError
                 };
 
                 command.Execute(context);

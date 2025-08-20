@@ -153,7 +153,6 @@ namespace DedicatedServerMod.Server.Persistence
 
             logger.Msg($"Starting {(isAutoSave ? "auto" : "manual")} save: {reason}");
 
-            // Check if SaveManager is available (no yield inside try/catch blocks)
             if (SaveManager.Instance == null)
             {
                 logger.Error("SaveManager instance not available");
@@ -161,7 +160,6 @@ namespace DedicatedServerMod.Server.Persistence
                 yield break;
             }
 
-            // Trigger the save using the game's save system
             bool saveStarted = false;
             try
             {
@@ -178,13 +176,12 @@ namespace DedicatedServerMod.Server.Persistence
 
             if (saveStarted)
             {
-                // Wait for save to complete (timeout after 30 seconds)
                 float timeout = 30f;
                 float elapsed = 0f;
 
                 while (elapsed < timeout)
                 {
-                    // TODO: Check SaveManager save status; for now, assume complete within 5s
+                    // Might be better if we check SaveManager save status; for now, assume complete within 5s
                     yield return new WaitForSeconds(0.5f);
                     elapsed += 0.5f;
                     if (elapsed >= 5f)
@@ -267,7 +264,6 @@ namespace DedicatedServerMod.Server.Persistence
                 {
                     TriggerManualSave("server_shutdown");
                     
-                    // Wait briefly for save to start
                     var waitTime = DateTime.Now.AddSeconds(5);
                     while (_saveInProgress && DateTime.Now < waitTime)
                     {

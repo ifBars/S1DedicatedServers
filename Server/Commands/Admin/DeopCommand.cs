@@ -32,7 +32,6 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 if (playerManager.Permissions.RemoveOperator(targetPlayer.SteamId))
                 {
                     context.Reply($"Removed operator privileges from {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    playerManager.BroadcastMessage($"{targetPlayer.DisplayName} is no longer an operator");
                     logger.Msg($"Operator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else

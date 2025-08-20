@@ -5,12 +5,13 @@ using ScheduleOne.PlayerScripts;
 using System.Reflection;
 using System;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.API;
 using ScheduleOne.UI;
 
-[assembly: MelonInfo(typeof(DedicatedServerMod.Core), "DedicatedServerClient", "1.0.0", "Bars")]
+[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core), "DedicatedServerClient", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
-namespace DedicatedServerMod
+namespace DedicatedServerMod.Client
 {
     /// <summary>
     /// Main entry point for the Dedicated Server Client mod.
@@ -51,6 +52,8 @@ namespace DedicatedServerMod
             
             try
             {
+                // Initialize API mod discovery so client mods can receive init event
+                ModManager.Initialize();
                 // Apply client-side patches
                 ApplyClientPatches();
                 
@@ -61,6 +64,9 @@ namespace DedicatedServerMod
                 InitializeManagers();
                 
                 logger.Msg("DedicatedServerClient mod initialized successfully");
+
+                // Notify API mods: client initialized
+                ModManager.NotifyClientInitialize();
             }
             catch (System.Exception ex)
             {
@@ -95,6 +101,20 @@ namespace DedicatedServerMod
                     harmony.Patch(awakeMethod, postfix: new HarmonyMethod(dsPostfix));
                     logger.Msg("Client: Patched DailySummary.Awake to register custom messaging RPCs");
                 }
+
+                // Patch SleepCanvas.SetIsOpen to respect server AllowSleeping
+                var sleepCanvasType = typeof(SleepCanvas);
+                var setIsOpen = sleepCanvasType.GetMethod("SetIsOpen", BindingFlags.Public | BindingFlags.Instance);
+                if (setIsOpen != null)
+                {
+                    var prefix = typeof(Core).GetMethod(nameof(SleepCanvas_SetIsOpen_Prefix), BindingFlags.Static | BindingFlags.NonPublic);
+                    harmony.Patch(setIsOpen, new HarmonyMethod(prefix));
+                    logger.Msg("Client: Patched SleepCanvas.SetIsOpen to respect server AllowSleeping");
+                }
+
+                // Apply client network RPC guards to stop client-side Observers sends
+                ClientPolicePatcher.Apply(harmony, logger);
+                ClientRpcWriterGuardPatcher.Apply(harmony, logger);
             }
             catch (Exception ex)
             {
@@ -117,6 +137,22 @@ namespace DedicatedServerMod
             // Initialize connection manager
             connectionManager = new ClientConnectionManager(logger);
             connectionManager.Initialize();
+
+            // Subscribe for server_data delivery
+            try
+            {
+                CustomMessaging.ClientMessageReceived += (cmd, data) =>
+                {
+                    if (cmd != "server_data") return;
+                    try
+                    {
+                        var sd = Newtonsoft.Json.JsonConvert.DeserializeObject<DedicatedServerMod.Shared.ServerData>(data);
+                        if (sd != null) DedicatedServerMod.Client.ServerDataStore.Update(sd);
+                    }
+                    catch {}
+                };
+            }
+            catch {}
 
             // Initialize console manager (for admin console access)
             consoleManager = new ClientConsoleManager(logger);
@@ -175,16 +211,23 @@ namespace DedicatedServerMod
                 connectionManager?.StartDedicatedConnection();
             }
         }
-
-        /// <summary>
-        /// Public access to connection manager for other components
-        /// </summary>
-        public static ClientConnectionManager ConnectionManager => Instance?.connectionManager;
         
         /// <summary>
         /// Access to the Core instance
         /// </summary>
         public static Core Instance { get; private set; }
+        
+        /// <summary>
+        /// Public access to connection manager for other components
+        /// </summary>
+        public static ClientConnectionManager ConnectionManager => Instance?.connectionManager;
+
+        public ClientTransportPatcher TransportPatcher => transportPatcher;
+        public ClientPlayerSetup PlayerSetupManager => playerSetup;
+        public ClientUIManager UIManager => uiManager;
+        public ClientQuestManager QuestManager => questManager;
+        public ClientLoopbackHandler LoopbackManager => loopbackHandler;
+        public ClientConsoleManager ConsoleManager => consoleManager;
 
         public override void OnApplicationStart()
         {
@@ -285,6 +328,32 @@ namespace DedicatedServerMod
             {
                 logger?.Error($"Error checking for ghost loopback player: {ex}");
                 return false;
+            }
+        }
+
+        // Prevent opening Sleep UI if server disallows sleeping
+        private static bool SleepCanvas_SetIsOpen_Prefix(SleepCanvas __instance, bool open)
+        {
+            try
+            {
+                if (!open) return true; // allow closing
+
+                // Only enforce when connected to a server (remote)
+                if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsHost)
+                {
+                    if (!DedicatedServerMod.Client.ServerDataStore.AllowSleeping)
+                    {
+                        logger?.Msg("Server has disabled sleeping; suppressing SleepCanvas open");
+                        // Optionally show a hint/toast here if desired
+                        return false; // skip original, do not open
+                    }
+                }
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                logger?.Warning($"SleepCanvas_SetIsOpen_Prefix error: {ex.Message}");
+                return true;
             }
         }
     }

@@ -70,16 +70,15 @@ namespace DedicatedServerMod.Server.Game
                     if (mp == null) return;
 
                     var tug = mp.gameObject.GetComponent<Tugboat>();
-                    if (tug == null)
+                    if (tug == null) 
+                    {
+                        var clientField = typeof(Multipass).GetField("_clientTransport", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (clientField != null)
+                            clientField.SetValue(mp, tug);
                         tug = mp.gameObject.AddComponent<Tugboat>();
-
-                    // Configure server port from config
+                    }
+                        
                     tug.SetPort((ushort)ServerConfig.Instance.ServerPort);
-
-                    // Set server transport via reflection
-                    var serverField = typeof(Multipass).GetField("_serverTransport", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (serverField != null)
-                        serverField.SetValue(mp, tug);
                 }
                 catch (Exception ex)
                 {

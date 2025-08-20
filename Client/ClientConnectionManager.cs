@@ -4,6 +4,7 @@ using ScheduleOne.Persistence;
 using System;
 using System.Collections;
 using ScheduleOne.DevUtilities;
+using DedicatedServerMod.API;
 using UnityEngine;
 
 namespace DedicatedServerMod.Client
@@ -172,12 +173,23 @@ namespace DedicatedServerMod.Client
                 IsConnectedToDedicatedServer = true;
                 IsConnecting = false;
                 
+                // Request initial server data snapshot
+                try
+                {
+                    DedicatedServerMod.Shared.CustomMessaging.SendToServer("request_server_data");
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Failed to request server data: {ex.Message}");
+                }
+
                 // Wait for player to spawn and initialize
                 yield return new WaitForSeconds(2f);
                 
                 if (ScheduleOne.PlayerScripts.Player.Local != null)
                 {
                     logger.Msg("Local player found - connection setup complete");
+                    try { ModManager.NotifyConnectedToServer(); } catch {}
                 }
                 else
                 {
@@ -239,6 +251,7 @@ namespace DedicatedServerMod.Client
                 _isTugboatMode = false;
                 
                 logger.Msg("Disconnected from dedicated server");
+                try { ModManager.NotifyDisconnectedFromServer(); } catch {}
             }
             catch (Exception ex)
             {

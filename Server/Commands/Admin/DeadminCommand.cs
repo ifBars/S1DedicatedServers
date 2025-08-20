@@ -32,7 +32,6 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 if (playerManager.Permissions.RemoveAdministrator(targetPlayer.SteamId))
                 {
                     context.Reply($"Removed administrator privileges from {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    playerManager.BroadcastMessage($"{targetPlayer.DisplayName} is no longer an administrator");
                     logger.Msg($"Administrator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
