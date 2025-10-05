@@ -444,7 +444,7 @@ namespace DedicatedServerMod.Server.Core
                         }
                     }
                     var firstQuest = welcomeQuest ?? questManager.DefaultQuests[0];
-                    if (firstQuest != null && firstQuest.QuestState == EQuestState.Inactive)
+                    if (firstQuest != null && firstQuest.State == EQuestState.Inactive)
                     {
                         firstQuest.Begin(network: true);
                         logger.Msg($"Initialized quest: {firstQuest.GetQuestTitle()}");
@@ -483,9 +483,9 @@ namespace DedicatedServerMod.Server.Core
                     {
                         if (quest == null) continue;
                         // Sync main quest state to the specific client
-                        if (quest.QuestState != EQuestState.Inactive)
+                        if (quest.State != EQuestState.Inactive)
                         {
-                            qm.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.QuestState);
+                            qm.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.State);
                         }
                         for (int i = 0; i < quest.Entries.Count; i++)
                         {

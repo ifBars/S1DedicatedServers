@@ -4,6 +4,9 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
+using UnityEngine.SceneManagement;
+using DedicatedServerMod.Assets;
 
 namespace DedicatedServerMod.Client
 {
@@ -30,6 +33,16 @@ namespace DedicatedServerMod.Client
         private Button serverMenuListButton;
         private Button serverMenuCloseButton;
 
+        // AssetBundle-driven UI (replaces runtime-created UI)
+        private AssetBundle dedicatedUiBundle;
+        private Transform dsServerBrowserPanel;
+        private Transform dsDirectConnectPanel;
+        private Button dsOpenDirectConnectButton;
+        private Button dsConnectButton;
+        private Button dsCancelButton;
+        private TMP_InputField dsIpInput;
+        private TMP_InputField dsPortInput;
+
         // Theme
         private static readonly Color ACCENT = new Color(0.10f, 0.65f, 1f, 1f);
         private static readonly Color PANEL_BG = new Color(0.08f, 0.09f, 0.12f, 0.96f);
@@ -38,6 +51,11 @@ namespace DedicatedServerMod.Client
         private static readonly Color BTN_BG = new Color(0.18f, 0.20f, 0.25f, 0.95f);
         private static readonly Color BTN_BG_HOVER = new Color(0.22f, 0.24f, 0.30f, 0.95f);
         private static readonly Color BTN_BG_PRESSED = new Color(0.14f, 0.16f, 0.20f, 0.95f);
+
+        // Captured fonts from existing UI to apply to AssetBundle panels
+        private TMP_FontAsset capturedTmpFont;
+        private Material capturedTmpMaterial;
+        private Font capturedLegacyFont;
 
         public ClientUIManager(MelonLogger.Instance logger, ClientConnectionManager connectionManager)
         {
@@ -192,12 +210,20 @@ namespace DedicatedServerMod.Client
             if (tmp != null)
             {
                 tmp.text = "Servers";
+                // Capture TMP font/material from existing UI to reuse inside bundle panels
+                var tmpUGUI = tmp as TextMeshProUGUI;
+                if (tmpUGUI != null)
+                {
+                    capturedTmpFont = tmpUGUI.font ?? capturedTmpFont;
+                    capturedTmpMaterial = tmpUGUI.fontMaterial ?? capturedTmpMaterial;
+                }
                 return;
             }
             var legacy = button.GetComponentInChildren<Text>();
             if (legacy != null)
             {
                 legacy.text = "Servers";
+                capturedLegacyFont = legacy.font ?? capturedLegacyFont;
                 return;
             }
             logger.Warning("Could not find text component on servers button");
@@ -367,6 +393,22 @@ namespace DedicatedServerMod.Client
                     serverMenuCloseButton = null;
                 }
 
+                if (dsServerBrowserPanel != null)
+                {
+                    GameObject.Destroy(dsServerBrowserPanel.gameObject);
+                    dsServerBrowserPanel = null;
+                }
+                if (dsDirectConnectPanel != null)
+                {
+                    GameObject.Destroy(dsDirectConnectPanel.gameObject);
+                    dsDirectConnectPanel = null;
+                }
+                if (dedicatedUiBundle != null)
+                {
+                    try { dedicatedUiBundle.Unload(false); } catch { }
+                    dedicatedUiBundle = null;
+                }
+
                 menuUISetup = false;
                 logger.Msg("UI elements cleaned up");
             }
@@ -396,6 +438,24 @@ namespace DedicatedServerMod.Client
         {
             try
             {
+                // Prefer AssetBundle-driven UI. Fall back to runtime-built panel if bundle missing.
+                if (show)
+                {
+                    if (EnsureDedicatedClientUi())
+                    {
+                        PrefillDedicatedDirectConnectFields();
+                        ShowDirectConnectPanel(false);
+                        return;
+                    }
+                }
+                else
+                {
+                    if (dsServerBrowserPanel != null) dsServerBrowserPanel.gameObject.SetActive(false);
+                    if (dsDirectConnectPanel != null) dsDirectConnectPanel.gameObject.SetActive(false);
+                    return;
+                }
+
+                // Fallback path (legacy runtime-created panel)
                 if (serverMenuPanel == null && show)
                 {
                     CreateServerMenuUI();
@@ -425,6 +485,220 @@ namespace DedicatedServerMod.Client
             {
                 logger.Error($"Error toggling server menu: {ex}");
             }
+        }
+
+        private bool EnsureDedicatedClientUi()
+        {
+            try
+            {
+                // Load embedded AssetBundle containing the prefab
+                if (dedicatedUiBundle == null)
+                {
+                    dedicatedUiBundle = AssetBundleLoader.LoadEmbeddedBundle(
+                        "DedicatedServerMod.Assets.dedicatedclientui",
+                        msg => logger.Error(msg),
+                        msg => logger.Msg(msg));
+                }
+
+                if (dedicatedUiBundle == null)
+                {
+                    logger.Warning("Dedicated client UI bundle could not be loaded; using runtime UI");
+                    return false;
+                }
+
+                // Load both panels as separate prefabs to avoid nesting a Canvas in a Canvas
+                var serverBrowserPrefab = AssetBundleLoader.LoadAsset<GameObject>(dedicatedUiBundle, "ServerBrowserPanel (GameUI)", msg => logger.Error(msg))
+                    ?? AssetBundleLoader.LoadAsset<GameObject>(dedicatedUiBundle, "ServerBrowserPanel", msg => logger.Error(msg));
+                var directConnectPrefab = AssetBundleLoader.LoadAsset<GameObject>(dedicatedUiBundle, "DirectConnectPanel", msg => logger.Error(msg));
+
+                if (serverBrowserPrefab == null || directConnectPrefab == null)
+                {
+                    logger.Warning("Required UI prefabs not found in bundle; expected 'ServerBrowserPanel (GameUI)' and 'DirectConnectPanel'");
+                    return false;
+                }
+
+                var mainMenu = GameObject.Find("MainMenu");
+                Transform parent = mainMenu != null ? mainMenu.transform : null;
+
+                var serverBrowserGO = parent != null ? GameObject.Instantiate(serverBrowserPrefab, parent) : GameObject.Instantiate(serverBrowserPrefab);
+                var directConnectGO = parent != null ? GameObject.Instantiate(directConnectPrefab, parent) : GameObject.Instantiate(directConnectPrefab);
+
+                dsServerBrowserPanel = serverBrowserGO.transform;
+                dsDirectConnectPanel = directConnectGO.transform;
+
+                dsServerBrowserPanel.gameObject.name = "ServerBrowserPanel_Instance";
+                dsDirectConnectPanel.gameObject.name = "DirectConnectPanel_Instance";
+                dsServerBrowserPanel.gameObject.SetActive(false);
+                dsDirectConnectPanel.gameObject.SetActive(false);
+
+                // Wire up buttons and inputs inside the prefabs
+                dsOpenDirectConnectButton = FindDeepChild(dsServerBrowserPanel, "DirectConnectButton")?.GetComponent<Button>();
+                dsConnectButton = FindDeepChild(dsDirectConnectPanel, "ConnectButton")?.GetComponent<Button>();
+                dsCancelButton = FindDeepChild(dsDirectConnectPanel, "CancelButton")?.GetComponent<Button>();
+
+                var ipTransform = FindDeepChild(dsDirectConnectPanel, "IP");
+                var portTransform = FindDeepChild(dsDirectConnectPanel, "Port");
+                dsIpInput = ipTransform != null ? ipTransform.GetComponent<TMP_InputField>() : null;
+                dsPortInput = portTransform != null ? portTransform.GetComponent<TMP_InputField>() : null;
+
+                // Fallback to legacy InputField if TMP not used
+                if (dsIpInput == null && ipTransform != null)
+                {
+                    var legacy = ipTransform.GetComponent<InputField>();
+                    if (legacy != null)
+                    {
+                        dsIpInput = ipTransform.gameObject.AddComponent<TMP_InputField>();
+                        var text = ipTransform.GetComponent<TextMeshProUGUI>() ?? ipTransform.gameObject.AddComponent<TextMeshProUGUI>();
+                        dsIpInput.textComponent = text;
+                        dsIpInput.text = legacy.text;
+                    }
+                }
+                if (dsPortInput == null && portTransform != null)
+                {
+                    var legacy = portTransform.GetComponent<InputField>();
+                    if (legacy != null)
+                    {
+                        dsPortInput = portTransform.gameObject.AddComponent<TMP_InputField>();
+                        var text = portTransform.GetComponent<TextMeshProUGUI>() ?? portTransform.gameObject.AddComponent<TextMeshProUGUI>();
+                        dsPortInput.textComponent = text;
+                        dsPortInput.text = legacy.text;
+                    }
+                }
+
+                // Hook up behavior
+                if (dsOpenDirectConnectButton != null)
+                {
+                    dsOpenDirectConnectButton.onClick.RemoveAllListeners();
+                    dsOpenDirectConnectButton.onClick.AddListener(() => ShowDirectConnectPanel(true));
+                }
+                if (dsCancelButton != null)
+                {
+                    dsCancelButton.onClick.RemoveAllListeners();
+                    dsCancelButton.onClick.AddListener(() => ShowDirectConnectPanel(false));
+                }
+                if (dsConnectButton != null)
+                {
+                    dsConnectButton.onClick.RemoveAllListeners();
+                    dsConnectButton.onClick.AddListener(OnDirectConnectConfirm);
+                }
+
+                // Apply captured fonts/colors so text is visible in game
+                ApplyCapturedFonts(dsServerBrowserPanel);
+                ApplyCapturedFonts(dsDirectConnectPanel);
+
+                ShowDirectConnectPanel(false);
+                PrefillDedicatedDirectConnectFields();
+
+                logger.Msg("Dedicated client UI loaded and initialized from AssetBundle");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error loading dedicated client UI: {ex}");
+                return false;
+            }
+        }
+
+        private void ShowDirectConnectPanel(bool show)
+        {
+            try
+            {
+                if (dsDirectConnectPanel != null)
+                {
+                    dsDirectConnectPanel.gameObject.SetActive(show);
+                }
+                if (dsServerBrowserPanel != null)
+                {
+                    dsServerBrowserPanel.gameObject.SetActive(!show);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error toggling DirectConnect panel: {ex}");
+            }
+        }
+
+        private void ApplyCapturedFonts(Transform root)
+        {
+            try
+            {
+                if (root == null) return;
+
+                // Apply to TMP texts
+                var tmpTexts = root.GetComponentsInChildren<TextMeshProUGUI>(true);
+                for (int i = 0; i < tmpTexts.Length; i++)
+                {
+                    var t = tmpTexts[i];
+                    if (capturedTmpFont != null) t.font = capturedTmpFont;
+                    if (capturedTmpMaterial != null) t.fontMaterial = capturedTmpMaterial;
+                }
+
+                // Apply to legacy Text components
+                var legacyTexts = root.GetComponentsInChildren<Text>(true);
+                for (int i = 0; i < legacyTexts.Length; i++)
+                {
+                    var t = legacyTexts[i];
+                    if (capturedLegacyFont != null) t.font = capturedLegacyFont;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error applying captured fonts: {ex}");
+            }
+        }
+
+        private void PrefillDedicatedDirectConnectFields()
+        {
+            try
+            {
+                var target = ClientConnectionManager.GetTargetServer();
+                if (dsIpInput != null) dsIpInput.text = target.ip ?? string.Empty;
+                if (dsPortInput != null) dsPortInput.text = target.port.ToString();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error pre-filling dedicated UI fields: {ex}");
+            }
+        }
+
+        private void OnDirectConnectConfirm()
+        {
+            try
+            {
+                string ip = dsIpInput != null ? dsIpInput.text : string.Empty;
+                string portText = dsPortInput != null ? dsPortInput.text : string.Empty;
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    SetStatusText("IP address is required.");
+                    return;
+                }
+                if (!int.TryParse(portText, out int port) || port <= 0 || port > 65535)
+                {
+                    SetStatusText("Invalid port. Enter a number between 1 and 65535.");
+                    return;
+                }
+
+                connectionManager.SetTargetServer(ip.Trim(), port);
+                SetStatusText($"Connecting to {ip.Trim()}:{port}...");
+                connectionManager.StartDedicatedConnection();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error handling direct connect confirm: {ex}");
+            }
+        }
+
+        private Transform FindDeepChild(Transform parent, string childName)
+        {
+            if (parent == null || string.IsNullOrEmpty(childName)) return null;
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var child = parent.GetChild(i);
+                if (child.name == childName) return child;
+                var result = FindDeepChild(child, childName);
+                if (result != null) return result;
+            }
+            return null;
         }
 
         private void PrefillServerAddress()

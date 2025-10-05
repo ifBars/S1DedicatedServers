@@ -66,6 +66,10 @@ namespace DedicatedServerMod.Server.Game
                     appliedPatches.Add("TimeNeverStopsEnabled");
                 if (ServerConfig.Instance.IgnoreGhostHostForSleep)
                     appliedPatches.Add("IgnoreGhostHostForSleepEnabled");
+
+                // 4) Server authority for police systems
+                DedicatedServerMod.Shared.PoliceAuthorityPatches.ApplyServer(harmony, logger);
+                appliedPatches.Add("PoliceAuthorityPatches_Server");
             }
             catch (Exception ex)
             {

@@ -7,3 +7,5 @@ obj/
 .vs/
 /research/
 research/
+.cursor/
+/.cursor/

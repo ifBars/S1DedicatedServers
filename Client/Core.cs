@@ -112,9 +112,9 @@ namespace DedicatedServerMod.Client
                     logger.Msg("Client: Patched SleepCanvas.SetIsOpen to respect server AllowSleeping");
                 }
 
-                // Apply client network RPC guards to stop client-side Observers sends
-                ClientPolicePatcher.Apply(harmony, logger);
-                ClientRpcWriterGuardPatcher.Apply(harmony, logger);
+                // Apply client network RPC guards to stop client-side Observers sends for police systems
+                PoliceAuthorityPatches.ApplyClient(harmony, logger);
+                logger.Msg("Client: Applied police observer guards");
             }
             catch (Exception ex)
             {
