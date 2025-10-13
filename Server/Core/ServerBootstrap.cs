@@ -36,6 +36,7 @@ namespace DedicatedServerMod.Server.Core
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
         private static TcpConsoleServer _tcpConsole;
+        private static MasterServerClient _masterServerClient;
         
         // Server state
         private static bool _isServerMode = false;
@@ -75,6 +76,11 @@ namespace DedicatedServerMod.Server.Core
         /// Gets the game system manager instance
         /// </summary>
         public static GameSystemManager GameSystems => _gameSystemManager;
+        
+        /// <summary>
+        /// Gets the master server client instance
+        /// </summary>
+        public static MasterServerClient MasterServer => _masterServerClient;
 
         public override void OnInitializeMelon()
         {
@@ -145,13 +151,18 @@ namespace DedicatedServerMod.Server.Core
             _gameSystemManager.Initialize();
             logger.Msg("✓ Game system manager initialized");
             
+            // Step 9: Master Server Client
+            _masterServerClient = new MasterServerClient(logger);
+            _masterServerClient.Initialize();
+            logger.Msg("✓ Master server client initialized");
+            
             // Start TCP Console if enabled in ServerConfig
             TryStartTcpConsole();
             
-            // Step 9: Wire up player events with persistence
+            // Step 10: Wire up player events with persistence
             WirePlayerEvents();
             
-            // Step 10: Auto-start server if requested via command line
+            // Step 11: Auto-start server if requested via command line
             if (_autoStartServer)
             {
                 logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
@@ -245,10 +256,22 @@ namespace DedicatedServerMod.Server.Core
             
             try
             {
+                // Unregister from master server gracefully
+                if (_masterServerClient != null && _masterServerClient.IsRegistered)
+                {
+                    logger.Msg("Unregistering from master server...");
+                    var unregisterCoroutine = _masterServerClient.UnregisterFromMasterServer();
+                    while (unregisterCoroutine.MoveNext())
+                    {
+                        System.Threading.Thread.Sleep(100); // Simple wait since we're in shutdown
+                    }
+                }
+                
                 // Notify API mods prior to tearing down subsystems
                 ModManager.NotifyServerShutdown();
                 // Shutdown in reverse order
                 try { _tcpConsole?.Dispose(); } catch { }
+                _masterServerClient?.Shutdown();
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();

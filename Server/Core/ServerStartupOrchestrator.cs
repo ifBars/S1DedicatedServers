@@ -226,6 +226,16 @@ namespace DedicatedServerMod.Server.Core
             logger.Msg($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             logger.Msg("Waiting for client connections...");
 
+            // Register with master server if enabled
+            if (ServerBootstrap.MasterServer != null)
+            {
+                yield return ServerBootstrap.MasterServer.RegisterWithMasterServer();
+                if (ServerBootstrap.MasterServer.IsRegistered)
+                {
+                    ServerBootstrap.MasterServer.StartHeartbeat();
+                }
+            }
+
             // Notify API mods: server started
             ModManager.NotifyServerStarted();
         }

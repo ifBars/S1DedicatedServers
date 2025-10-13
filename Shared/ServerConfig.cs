@@ -44,6 +44,26 @@ namespace DedicatedServerMod
         public bool PublicServer { get; set; } = true;
         #endregion
 
+        #region Master Server Settings
+        [JsonProperty("registerWithMasterServer")]
+        public bool RegisterWithMasterServer { get; set; } = false;
+
+        [JsonProperty("masterServerUrl")]
+        public string MasterServerUrl { get; set; } = "https://s1-server-list.YOUR_SUBDOMAIN.workers.dev";
+
+        [JsonProperty("masterServerApiKey")]
+        public string MasterServerApiKey { get; set; } = "";
+
+        [JsonProperty("masterServerServerId")]
+        public string MasterServerServerId { get; set; } = "";
+
+        [JsonProperty("masterServerOwnerContact")]
+        public string MasterServerOwnerContact { get; set; } = "";
+
+        [JsonProperty("publicServerAddress")]
+        public string PublicServerAddress { get; set; } = "";
+        #endregion
+
         #region TCP Console Settings
         [JsonProperty("tcpConsoleEnabled")]
         public bool TcpConsoleEnabled { get; set; } = false;
