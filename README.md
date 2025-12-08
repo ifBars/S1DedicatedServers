@@ -6,6 +6,7 @@
 
 **Professional dedicated server framework for Schedule I** - Run authoritative, headless servers with full multiplayer support, admin management, and extensive modding capabilities.
 
+<<<<<<< HEAD
 ---
 
 ## 🎯 Overview
@@ -488,3 +489,17 @@ This is an alpha/beta release. Expect bugs and incomplete features. Use in produ
 ---
 
 **Made with ❤️ for the Schedule I community**
+
+---
+
+## 🖥️ Running Entirely Headless
+
+You can disable the MelonLoader console window to run the server completely headless:
+
+1. Navigate to `Schedule I/UserData/`
+2. Open `MelonLoader.cfg` in a text editor (may be named `Loader.cfg` in older MelonLoader versions)
+3. Find the `[Console]` section
+4. Set `HideConsole = true` (or `hide_console = true` in older versions)
+5. Restart the server
+
+The server will now run without any visible windows. Use the TCP console or log files for monitoring.
