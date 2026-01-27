@@ -1,225 +1,376 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
+using System.Reflection;
+using FishNet;
+using FishNet.Connection;
 using Newtonsoft.Json;
 using MelonLoader;
-using FishNet;
 using MelonLoader.Utils;
 using ScheduleOne.PlayerScripts;
 using Steamworks;
 
-namespace DedicatedServerMod
+namespace DedicatedServerMod.Shared
 {
     /// <summary>
-    /// Comprehensive server configuration management system with admin/operator permissions
-    /// Handles all server settings, admin management, and persistence
+    /// Server configuration and permission management (backward compatibility wrapper).
     /// </summary>
+    /// <remarks>
+    /// DEPRECATED: This class is maintained for backward compatibility.
+    /// New code should use:
+    /// - <see cref="Configuration.ServerConfig"/> for configuration
+    /// - <see cref="Permissions.PermissionManager"/> for permissions
+    /// - <see cref="Permissions.PlayerResolver"/> for Steam ID utilities
+    /// 
+    /// This class provides obsolete wrapper methods that delegate to the new classes.
+    /// </remarks>
     [Serializable]
+    [Obsolete("Use Configuration.ServerConfig, Permissions.PermissionManager, and Permissions.PlayerResolver instead")]
     public class ServerConfig
     {
-        #region Server Settings
+        #region Server Settings (delegated to Configuration.ServerConfig)
+
         [JsonProperty("serverName")]
-        public string ServerName { get; set; } = "Schedule One Dedicated Server";
+        public string ServerName
+        {
+            get => Configuration.ServerConfig.Instance.ServerName;
+            set => Configuration.ServerConfig.Instance.ServerName = value;
+        }
 
         [JsonProperty("serverDescription")]
-        public string ServerDescription { get; set; } = "A dedicated server for Schedule One";
+        public string ServerDescription
+        {
+            get => Configuration.ServerConfig.Instance.ServerDescription;
+            set => Configuration.ServerConfig.Instance.ServerDescription = value;
+        }
 
         [JsonProperty("maxPlayers")]
-        public int MaxPlayers { get; set; } = 16;
+        public int MaxPlayers
+        {
+            get => Configuration.ServerConfig.Instance.MaxPlayers;
+            set => Configuration.ServerConfig.Instance.MaxPlayers = value;
+        }
 
         [JsonProperty("serverPort")]
-        public int ServerPort { get; set; } = 38465;
+        public int ServerPort
+        {
+            get => Configuration.ServerConfig.Instance.ServerPort;
+            set => Configuration.ServerConfig.Instance.ServerPort = value;
+        }
 
         [JsonProperty("serverPassword")]
-        public string ServerPassword { get; set; } = "";
+        public string ServerPassword
+        {
+            get => Configuration.ServerConfig.Instance.ServerPassword;
+            set => Configuration.ServerConfig.Instance.ServerPassword = value;
+        }
 
         [JsonProperty("requireAuthentication")]
-        public bool RequireAuthentication { get; set; } = false;
+        public bool RequireAuthentication
+        {
+            get => Configuration.ServerConfig.Instance.RequireAuthentication;
+            set => Configuration.ServerConfig.Instance.RequireAuthentication = value;
+        }
 
         [JsonProperty("requireFriends")]
-        public bool RequireFriends { get; set; } = false;
+        public bool RequireFriends
+        {
+            get => Configuration.ServerConfig.Instance.RequireFriends;
+            set => Configuration.ServerConfig.Instance.RequireFriends = value;
+        }
 
         [JsonProperty("publicServer")]
-        public bool PublicServer { get; set; } = true;
-        #endregion
+        public bool PublicServer
+        {
+            get => Configuration.ServerConfig.Instance.PublicServer;
+            set => Configuration.ServerConfig.Instance.PublicServer = value;
+        }
 
-        #region Master Server Settings
-        [JsonProperty("registerWithMasterServer")]
-        public bool RegisterWithMasterServer { get; set; } = false;
-
-        [JsonProperty("masterServerUrl")]
-        public string MasterServerUrl { get; set; } = "https://s1-server-list.YOUR_SUBDOMAIN.workers.dev";
-
-        [JsonProperty("masterServerApiKey")]
-        public string MasterServerApiKey { get; set; } = "";
-
-        [JsonProperty("masterServerServerId")]
-        public string MasterServerServerId { get; set; } = "";
-
-        [JsonProperty("masterServerOwnerContact")]
-        public string MasterServerOwnerContact { get; set; } = "";
-
-        [JsonProperty("publicServerAddress")]
-        public string PublicServerAddress { get; set; } = "";
         #endregion
 
         #region TCP Console Settings
+
         [JsonProperty("tcpConsoleEnabled")]
-        public bool TcpConsoleEnabled { get; set; } = false;
+        public bool TcpConsoleEnabled
+        {
+            get => Configuration.ServerConfig.Instance.TcpConsoleEnabled;
+            set => Configuration.ServerConfig.Instance.TcpConsoleEnabled = value;
+        }
 
         [JsonProperty("tcpConsoleBindAddress")]
-        public string TcpConsoleBindAddress { get; set; } = "127.0.0.1";
+        public string TcpConsoleBindAddress
+        {
+            get => Configuration.ServerConfig.Instance.TcpConsoleBindAddress;
+            set => Configuration.ServerConfig.Instance.TcpConsoleBindAddress = value;
+        }
 
         [JsonProperty("tcpConsolePort")]
-        public int TcpConsolePort { get; set; } = 4050;
+        public int TcpConsolePort
+        {
+            get => Configuration.ServerConfig.Instance.TcpConsolePort;
+            set => Configuration.ServerConfig.Instance.TcpConsolePort = value;
+        }
 
         [JsonProperty("tcpConsoleRequirePassword")]
-        public bool TcpConsoleRequirePassword { get; set; } = false;
+        public bool TcpConsoleRequirePassword
+        {
+            get => Configuration.ServerConfig.Instance.TcpConsoleRequirePassword;
+            set => Configuration.ServerConfig.Instance.TcpConsoleRequirePassword = value;
+        }
 
         [JsonProperty("tcpConsolePassword")]
-        public string TcpConsolePassword { get; set; } = "";
+        public string TcpConsolePassword
+        {
+            get => Configuration.ServerConfig.Instance.TcpConsolePassword;
+            set => Configuration.ServerConfig.Instance.TcpConsolePassword = value;
+        }
+
         #endregion
 
         #region Time & Gameplay Settings
+
         [JsonProperty("ignoreGhostHostForSleep")]
-        public bool IgnoreGhostHostForSleep { get; set; } = true;
+        public bool IgnoreGhostHostForSleep
+        {
+            get => Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep;
+            set => Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep = value;
+        }
 
         [JsonProperty("timeNeverStops")]
-        public bool TimeNeverStops { get; set; } = true;
+        public bool TimeNeverStops
+        {
+            get => Configuration.ServerConfig.Instance.TimeNeverStops;
+            set => Configuration.ServerConfig.Instance.TimeNeverStops = value;
+        }
 
         [JsonProperty("timeProgressionMultiplier")]
-        public float TimeProgressionMultiplier { get; set; } = 1.0f;
+        public float TimeProgressionMultiplier
+        {
+            get => Configuration.ServerConfig.Instance.TimeProgressionMultiplier;
+            set => Configuration.ServerConfig.Instance.TimeProgressionMultiplier = value;
+        }
 
         [JsonProperty("allowSleeping")]
-        public bool AllowSleeping { get; set; } = true;
+        public bool AllowSleeping
+        {
+            get => Configuration.ServerConfig.Instance.AllowSleeping;
+            set => Configuration.ServerConfig.Instance.AllowSleeping = value;
+        }
 
         [JsonProperty("pauseGameWhenEmpty")]
-        public bool PauseGameWhenEmpty { get; set; } = false;
+        public bool PauseGameWhenEmpty
+        {
+            get => Configuration.ServerConfig.Instance.PauseGameWhenEmpty;
+            set => Configuration.ServerConfig.Instance.PauseGameWhenEmpty = value;
+        }
+
         #endregion
 
         #region Auto-Save Settings
+
         [JsonProperty("autoSaveEnabled")]
-        public bool AutoSaveEnabled { get; set; } = true;
+        public bool AutoSaveEnabled
+        {
+            get => Configuration.ServerConfig.Instance.AutoSaveEnabled;
+            set => Configuration.ServerConfig.Instance.AutoSaveEnabled = value;
+        }
 
         [JsonProperty("autoSaveIntervalMinutes")]
-        public float AutoSaveIntervalMinutes { get; set; } = 10f;
+        public float AutoSaveIntervalMinutes
+        {
+            get => Configuration.ServerConfig.Instance.AutoSaveIntervalMinutes;
+            set => Configuration.ServerConfig.Instance.AutoSaveIntervalMinutes = value;
+        }
 
         [JsonProperty("autoSaveOnPlayerJoin")]
-        public bool AutoSaveOnPlayerJoin { get; set; } = true;
+        public bool AutoSaveOnPlayerJoin
+        {
+            get => Configuration.ServerConfig.Instance.AutoSaveOnPlayerJoin;
+            set => Configuration.ServerConfig.Instance.AutoSaveOnPlayerJoin = value;
+        }
 
         [JsonProperty("autoSaveOnPlayerLeave")]
-        public bool AutoSaveOnPlayerLeave { get; set; } = true;
+        public bool AutoSaveOnPlayerLeave
+        {
+            get => Configuration.ServerConfig.Instance.AutoSaveOnPlayerLeave;
+            set => Configuration.ServerConfig.Instance.AutoSaveOnPlayerLeave = value;
+        }
+
         #endregion
 
-        #region Admin/Operator System
+        #region Admin/Operator System (delegated to PermissionManager)
+
         [JsonProperty("operators")]
-        public HashSet<string> Operators { get; set; } = new HashSet<string>();
+        public HashSet<string> Operators
+        {
+            get => PermissionManager.Config?.Operators ?? new HashSet<string>();
+            set => PermissionManager.Config.Operators = value;
+        }
 
         [JsonProperty("admins")]
-        public HashSet<string> Admins { get; set; } = new HashSet<string>();
+        public HashSet<string> Admins
+        {
+            get => PermissionManager.Config?.Admins ?? new HashSet<string>();
+            set => PermissionManager.Config.Admins = value;
+        }
 
-        // Added to support ban/unban features used by the server command system
         [JsonProperty("bannedPlayers")]
-        public HashSet<string> BannedPlayers { get; set; } = new HashSet<string>();
+        public HashSet<string> BannedPlayers
+        {
+            get => PermissionManager.Config?.BannedPlayers ?? new HashSet<string>();
+            set => PermissionManager.Config.BannedPlayers = value;
+        }
 
         [JsonProperty("enableConsoleForOps")]
-        public bool EnableConsoleForOps { get; set; } = true;
+        public bool EnableConsoleForOps
+        {
+            get => PermissionManager.Config?.EnableConsoleForOps ?? true;
+            set => PermissionManager.Config.EnableConsoleForOps = value;
+        }
 
         [JsonProperty("enableConsoleForAdmins")]
-        public bool EnableConsoleForAdmins { get; set; } = true;
+        public bool EnableConsoleForAdmins
+        {
+            get => PermissionManager.Config?.EnableConsoleForAdmins ?? true;
+            set => PermissionManager.Config.EnableConsoleForAdmins = value;
+        }
 
-        // Allow regular players to open the console UI on dedicated servers (commands still checked individually)
         [JsonProperty("enableConsoleForPlayers")]
-        public bool EnableConsoleForPlayers { get; set; } = true;
+        public bool EnableConsoleForPlayers
+        {
+            get => PermissionManager.Config?.EnableConsoleForPlayers ?? true;
+            set => PermissionManager.Config.EnableConsoleForPlayers = value;
+        }
 
         [JsonProperty("logAdminCommands")]
-        public bool LogAdminCommands { get; set; } = true;
-
-        // Admin permissions (kept for backward-compatibility)
-        [JsonProperty("allowedCommands")]
-        public HashSet<string> AllowedCommands { get; set; } = new HashSet<string>
+        public bool LogAdminCommands
         {
-            // Safe commands that admins can use (removed save and endtutorial)
-            "settime", "teleport", "give", "clearinventory",
-            "changecash", "changebalance", "addxp", "spawnvehicle",
-            "setmovespeed", "setjumpforce", "setowned", "sethealth",
-            "setenergy", "setvar", "setqueststate", "setquestentrystate",
-            "setemotion", "setunlocked", "setrelationship", "addemployee",
-            "setdiscovered", "growplants", "setlawintensity", "setquality",
-            "cleartrash", "raisewanted", "lowerwanted", "clearwanted",
-            "packageproduct", "setstaminareserve"
-        };
+            get => PermissionManager.Config?.LogAdminCommands ?? true;
+            set => PermissionManager.Config.LogAdminCommands = value;
+        }
+
+        [JsonProperty("allowedCommands")]
+        public HashSet<string> AllowedCommands
+        {
+            get => PermissionManager.Config?.AllowedCommands ?? new HashSet<string>();
+            set => PermissionManager.Config.AllowedCommands = value;
+        }
 
         [JsonProperty("restrictedCommands")]
-        public HashSet<string> RestrictedCommands { get; set; } = new HashSet<string>
+        public HashSet<string> RestrictedCommands
         {
-            // Commands only operators can use (removed endtutorial, showfps, hidefps)
-            "settimescale", "freecam", "disable", "enable",
-            "disablenpcasset", "hideui"
-        };
+            get => PermissionManager.Config?.RestrictedCommands ?? new HashSet<string>();
+            set => PermissionManager.Config.RestrictedCommands = value;
+        }
 
-        // Regular player allowlist (denied by default unless present here)
         [JsonProperty("playerAllowedCommands")]
-        public HashSet<string> PlayerAllowedCommands { get; set; } = new HashSet<string>
+        public HashSet<string> PlayerAllowedCommands
         {
-            // Commands that regular players can use
-            "showfps", "hidefps"
-        };
+            get => PermissionManager.Config?.PlayerAllowedCommands ?? new HashSet<string>();
+            set => PermissionManager.Config.PlayerAllowedCommands = value;
+        }
 
-        // Global disabled commands (deny for everyone, including operators)
         [JsonProperty("globalDisabledCommands")]
-        public HashSet<string> GlobalDisabledCommands { get; set; } = new HashSet<string>
+        public HashSet<string> GlobalDisabledCommands
         {
-            // Commands disabled for everyone
-            "save", "endtutorial"
-        };
-        #endregion
+            get => PermissionManager.Config?.GlobalDisabledCommands ?? new HashSet<string>();
+            set => PermissionManager.Config.GlobalDisabledCommands = value;
+        }
 
-        #region Save Path (Server)
-        [JsonProperty("saveGamePath")]
-        public string SaveGamePath { get; set; } = "";
-        #endregion
-
-        #region MOTD & Welcome Messages
-        [JsonProperty("enableMotd")]
-        public bool EnableMotd { get; set; } = true;
-
-        [JsonProperty("motdMessage")]
-        public string MotdMessage { get; set; } = "Welcome to the server! Type /help for commands.";
-
-        [JsonProperty("welcomeMessage")]
-        public string WelcomeMessage { get; set; } = "Welcome {playerName} to {serverName}!";
-
-        [JsonProperty("showPlayerJoinMessages")]
-        public bool ShowPlayerJoinMessages { get; set; } = true;
-
-        [JsonProperty("showPlayerLeaveMessages")]
-        public bool ShowPlayerLeaveMessages { get; set; } = true;
         #endregion
 
         #region Debug & Logging
+
         [JsonProperty("debugMode")]
-        public bool DebugMode { get; set; } = false;
+        public bool DebugMode
+        {
+            get => Configuration.ServerConfig.Instance.DebugMode;
+            set => Configuration.ServerConfig.Instance.DebugMode = value;
+        }
 
         [JsonProperty("verboseLogging")]
-        public bool VerboseLogging { get; set; } = false;
+        public bool VerboseLogging
+        {
+            get => Configuration.ServerConfig.Instance.VerboseLogging;
+            set => Configuration.ServerConfig.Instance.VerboseLogging = value;
+        }
 
         [JsonProperty("logPlayerActions")]
-        public bool LogPlayerActions { get; set; } = true;
+        public bool LogPlayerActions
+        {
+            get => Configuration.ServerConfig.Instance.LogPlayerActions;
+            set => Configuration.ServerConfig.Instance.LogPlayerActions = value;
+        }
 
         [JsonProperty("enablePerformanceMonitoring")]
-        public bool EnablePerformanceMonitoring { get; set; } = false;
+        public bool EnablePerformanceMonitoring
+        {
+            get => Configuration.ServerConfig.Instance.EnablePerformanceMonitoring;
+            set => Configuration.ServerConfig.Instance.EnablePerformanceMonitoring = value;
+        }
+
+        #endregion
+
+        #region Save Path
+
+        [JsonProperty("saveGamePath")]
+        public string SaveGamePath
+        {
+            get => Configuration.ServerConfig.Instance.SaveGamePath;
+            set => Configuration.ServerConfig.Instance.SaveGamePath = value;
+        }
+
+        #endregion
+
+        #region MOTD & Welcome Messages
+
+        [JsonProperty("enableMotd")]
+        public bool EnableMotd
+        {
+            get => Configuration.ServerConfig.Instance.EnableMotd;
+            set => Configuration.ServerConfig.Instance.EnableMotd = value;
+        }
+
+        [JsonProperty("motdMessage")]
+        public string MotdMessage
+        {
+            get => Configuration.ServerConfig.Instance.MotdMessage;
+            set => Configuration.ServerConfig.Instance.MotdMessage = value;
+        }
+
+        [JsonProperty("welcomeMessage")]
+        public string WelcomeMessage
+        {
+            get => Configuration.ServerConfig.Instance.WelcomeMessage;
+            set => Configuration.ServerConfig.Instance.WelcomeMessage = value;
+        }
+
+        [JsonProperty("showPlayerJoinMessages")]
+        public bool ShowPlayerJoinMessages
+        {
+            get => Configuration.ServerConfig.Instance.ShowPlayerJoinMessages;
+            set => Configuration.ServerConfig.Instance.ShowPlayerJoinMessages = value;
+        }
+
+        [JsonProperty("showPlayerLeaveMessages")]
+        public bool ShowPlayerLeaveMessages
+        {
+            get => Configuration.ServerConfig.Instance.ShowPlayerLeaveMessages;
+            set => Configuration.ServerConfig.Instance.ShowPlayerLeaveMessages = value;
+        }
+
         #endregion
 
         #region Static Instance & Management
-        private static ServerConfig _instance;
-        private static MelonLogger.Instance logger;
-        private static string configPath;
-        
-        // Expose the resolved config file path (UserData/server_config.json)
-        public static string ConfigFilePath => configPath ?? Path.Combine(MelonEnvironment.UserDataDirectory, "server_config.json");
 
+        private static ServerConfig _instance;
+        private static MelonLogger.Instance _logger;
+        private static string _configPath;
+
+        public static string ConfigFilePath => _configPath ?? 
+            Path.Combine(MelonEnvironment.UserDataDirectory, "server_config.json");
+
+        [Obsolete("Use Configuration.ServerConfig.Instance instead")]
         public static ServerConfig Instance
         {
             get
@@ -232,540 +383,228 @@ namespace DedicatedServerMod
             }
         }
 
+        [Obsolete("Use Configuration.ServerConfig.Initialize() instead")]
         public static void Initialize(MelonLogger.Instance loggerInstance)
         {
-            logger = loggerInstance;
-            configPath = Path.Combine(MelonEnvironment.UserDataDirectory, "server_config.json");
+            _logger = loggerInstance;
+            _configPath = Path.Combine(MelonEnvironment.UserDataDirectory, "server_config.json");
+            Configuration.ServerConfig.Initialize(loggerInstance, _configPath);
+            PermissionManager.Initialize(loggerInstance);
+            PlayerResolver.Initialize(loggerInstance);
             LoadConfig();
         }
+
         #endregion
 
         #region Config File Management
+
+        [Obsolete("Use Configuration.ServerConfig.LoadConfig() instead")]
         public static void LoadConfig()
         {
             try
             {
-                if (File.Exists(configPath))
+                if (File.Exists(ConfigFilePath))
                 {
-                    string json = File.ReadAllText(configPath);
+                    string json = File.ReadAllText(ConfigFilePath);
                     _instance = JsonConvert.DeserializeObject<ServerConfig>(json);
-                    logger?.Msg("Server configuration loaded successfully");
+                    Logger?.Msg("Server configuration loaded successfully");
                 }
                 else
                 {
                     _instance = new ServerConfig();
                     SaveConfig();
-                    logger?.Msg("Created new server configuration file");
+                    Logger?.Msg("Created new server configuration file");
                 }
             }
             catch (Exception ex)
             {
-                logger?.Error($"Failed to load server config: {ex}");
+                Logger?.Error($"Failed to load server config: {ex}");
                 _instance = new ServerConfig();
                 SaveConfig();
             }
         }
 
+        [Obsolete("Use Configuration.ServerConfig.SaveConfig() instead")]
         public static void SaveConfig()
         {
             try
             {
-                string json = JsonConvert.SerializeObject(_instance, Formatting.Indented);
-                File.WriteAllText(configPath, json);
-                logger?.Msg("Server configuration saved successfully");
+                // Sync to new config system
+                Configuration.ServerConfig.SaveConfig();
+                Logger?.Msg("Server configuration saved successfully");
             }
             catch (Exception ex)
             {
-                logger?.Error($"Failed to save server config: {ex}");
+                Logger?.Error($"Failed to save server config: {ex}");
             }
         }
 
+        [Obsolete("Use Configuration.ServerConfig.ReloadConfig() instead")]
         public static void ReloadConfig()
         {
-            logger?.Msg("Reloading server configuration...");
-            LoadConfig();
+            Logger?.Msg("Reloading server configuration...");
+            Configuration.ServerConfig.ReloadConfig();
         }
+
         #endregion
 
-        #region Admin/Operator Management
+        #region Admin/Operator Management (delegated to PermissionManager)
+
+        [Obsolete("Use PermissionManager.IsOperator() instead")]
         public static bool IsOperator(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            return Instance.Operators.Contains(steamId);
+            return PermissionManager.IsOperator(steamId);
         }
 
+        [Obsolete("Use PermissionManager.IsAdmin() instead")]
         public static bool IsAdmin(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            return Instance.Admins.Contains(steamId) || IsOperator(steamId);
+            return PermissionManager.IsAdmin(steamId);
         }
 
+        [Obsolete("Use PermissionManager.IsOperator() instead")]
         public static bool IsOperator(Player player)
         {
-            if (player?.Owner?.ClientId == null) return false;
-            string steamId = GetPlayerSteamId(player);
-            return IsOperator(steamId);
+            return PermissionManager.IsOperator(player);
         }
 
+        [Obsolete("Use PermissionManager.IsAdmin() instead")]
         public static bool IsAdmin(Player player)
         {
-            if (player?.Owner?.ClientId == null) return false;
-            string steamId = GetPlayerSteamId(player);
-            return IsAdmin(steamId);
+            return PermissionManager.IsAdmin(player);
         }
 
+        [Obsolete("Use PermissionManager.AddOperator() instead")]
         public static bool AddOperator(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            bool added = Instance.Operators.Add(steamId);
-            if (added)
-            {
-                // Ensure operators always have admin as well
-                Instance.Admins.Add(steamId);
-                SaveConfig();
-                logger?.Msg($"Added operator: {steamId}");
-            }
-            return added;
+            return PermissionManager.AddOperator(steamId);
         }
 
+        [Obsolete("Use PermissionManager.RemoveOperator() instead")]
         public static bool RemoveOperator(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            bool removed = Instance.Operators.Remove(steamId);
-            if (removed)
-            {
-                SaveConfig();
-                logger?.Msg($"Removed operator: {steamId}");
-            }
-            return removed;
+            return PermissionManager.RemoveOperator(steamId);
         }
 
+        [Obsolete("Use PermissionManager.AddAdmin() instead")]
         public static bool AddAdmin(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            // Do not allow adding admin if already operator (operator already implies admin)
-            if (Instance.Operators.Contains(steamId))
-                return Instance.Admins.Add(steamId);
-            bool added = Instance.Admins.Add(steamId);
-            if (added)
-            {
-                SaveConfig();
-                logger?.Msg($"Added admin: {steamId}");
-            }
-            return added;
+            return PermissionManager.AddAdmin(steamId);
         }
 
+        [Obsolete("Use PermissionManager.RemoveAdmin() instead")]
         public static bool RemoveAdmin(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            // Never remove admin if user is still operator; operator implies admin
-            if (Instance.Operators.Contains(steamId)) return false;
-            bool removed = Instance.Admins.Remove(steamId);
-            if (removed)
-            {
-                SaveConfig();
-                logger?.Msg($"Removed admin: {steamId}");
-            }
-            return removed;
+            return PermissionManager.RemoveAdmin(steamId);
         }
 
-        // Ban management helpers for convenience
+        [Obsolete("Use PermissionManager.AddBan() instead")]
         public static bool AddBan(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            bool added = Instance.BannedPlayers.Add(steamId);
-            if (added)
-            {
-                SaveConfig();
-                logger?.Msg($"Added ban: {steamId}");
-            }
-            return added;
+            return PermissionManager.AddBan(steamId);
         }
 
+        [Obsolete("Use PermissionManager.RemoveBan() instead")]
         public static bool RemoveBan(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return false;
-            bool removed = Instance.BannedPlayers.Remove(steamId);
-            if (removed)
-            {
-                SaveConfig();
-                logger?.Msg($"Removed ban: {steamId}");
-            }
-            return removed;
+            return PermissionManager.RemoveBan(steamId);
         }
 
+        [Obsolete("Use PermissionManager.GetAllOperators() instead")]
         public static List<string> GetAllOperators()
         {
-            return new List<string>(Instance.Operators);
+            return PermissionManager.GetAllOperators() as List<string>;
         }
 
+        [Obsolete("Use PermissionManager.GetAllAdmins() instead")]
         public static List<string> GetAllAdmins()
         {
-            return new List<string>(Instance.Admins);
+            return PermissionManager.GetAllAdmins() as List<string>;
         }
+
         #endregion
 
-        #region Permission Checking
+        #region Permission Checking (delegated to PermissionManager)
+
+        [Obsolete("Use PermissionManager.CanUseConsole() instead")]
         public static bool CanUseConsole(Player player)
         {
-            if (player?.Owner?.ClientId == null)
-            {
-                return false;
-            }
-
-            // Allow console on server for remote clients (treat loopback host as non-remote)
-            if (InstanceFinder.IsServer)
-            {
-                bool isHostFlag = InstanceFinder.IsHost;
-                bool isClientFlag = InstanceFinder.IsClient;
-                bool isRemoteClient = player.Owner != null && !player.Owner.IsLocalClient;
-
-                if (!isRemoteClient)
-                {
-                    return false;
-                }
-                
-                bool isOp = IsOperator(player);
-                bool isAdmin = IsAdmin(player);
-                
-                if (isOp && Instance.EnableConsoleForOps)
-                {
-                    return true;
-                }
-
-                if (isAdmin && Instance.EnableConsoleForAdmins)
-                {
-                    return true;
-                }
-
-                // If regular players have any allowed commands configured and player consoles are enabled, allow console open
-                if (Instance.EnableConsoleForPlayers && Instance.PlayerAllowedCommands.Count > 0)
-                {
-                    return true;
-                }
-                
-                logger?.Warning($"CanUseConsole: Denying console access for {player.PlayerName} - not operator/admin or console disabled");
-            }
-            
-            return false;
+            return PermissionManager.CanUseConsole(player);
         }
 
+        [Obsolete("Use PermissionManager.CanUseCommand() instead")]
         public static bool CanUseCommand(Player player, string command)
-        {   
-            if (player?.Owner?.ClientId == null)
-            {
-                logger?.Warning("CanUseCommand: Player or Owner or ClientId is null");
-                return false;
-            }
-            if (string.IsNullOrEmpty(command))
-            {
-                logger?.Warning("CanUseCommand: Command is null or empty");
-                return false;
-            }
-
-            command = command.ToLower();
-
-            // 0) Global disables override everything
-            if (Instance.GlobalDisabledCommands.Contains(command)) return false;
-
-            // Operators can use all commands
-            if (IsOperator(player))
-            {
-                return true;
-            }
-
-            // Admins can use allowed commands but not restricted ones
-            if (IsAdmin(player))
-            {
-                if (Instance.RestrictedCommands.Contains(command)) return false;
-                
-                bool isAllowed = Instance.AllowedCommands.Contains(command);
-                return isAllowed;
-            }
-
-            // Regular player: only allow if present in PlayerAllowedCommands
-            bool playerAllowed = Instance.PlayerAllowedCommands.Contains(command);
-            return playerAllowed;
+        {
+            return PermissionManager.CanUseCommand(player, command);
         }
 
+        [Obsolete("Use PermissionManager.CanUseCommand() instead")]
         public static bool CanUseCommand(string steamId, string command)
         {
-            if (string.IsNullOrEmpty(steamId) || string.IsNullOrEmpty(command)) return false;
-
-            command = command.ToLower();
-
-            // 0) Global disables override everything
-            if (Instance.GlobalDisabledCommands.Contains(command)) return false;
-
-            // Operators can use all commands
-            if (IsOperator(steamId)) return true;
-
-            // Admins can use allowed commands but not restricted ones
-            if (IsAdmin(steamId))
-            {
-                if (Instance.RestrictedCommands.Contains(command)) return false;
-                
-                bool isAllowed = Instance.AllowedCommands.Contains(command);
-                return isAllowed;
-            }
-
-            // Regular player: only allow if present in PlayerAllowedCommands
-            bool playerAllowed = Instance.PlayerAllowedCommands.Contains(command);
-            return playerAllowed;
+            return PermissionManager.CanUseCommand(steamId, command);
         }
+
         #endregion
 
-        #region Utility Methods
+        #region Utility Methods (delegated to PlayerResolver)
+
+        [Obsolete("Use PlayerResolver.GetSteamId() instead")]
         public static string GetPlayerSteamId(Player player)
         {
-            try
-            {
-                if (player == null || player.Owner == null) return null;
-
-                // Preferred: PlayerCode is synced from client via SendPlayerNameData and holds SteamID as string
-                if (!string.IsNullOrEmpty(player.PlayerCode)) return player.PlayerCode;
-
-                // Secondary (server-only): Look up mapping via ServerBootstrap player manager when available
-#if SERVER
-                try
-                {
-                    var pm = Server.Core.ServerBootstrap.Players;
-                    var connectedInfo = pm?.GetPlayer(player.Owner);
-                    if (connectedInfo != null && !string.IsNullOrEmpty(connectedInfo.SteamId)) return connectedInfo.SteamId;
-                }
-                catch { /* ignore */ }
-#endif
-
-                // Tertiary (local only): If Steam is running and this is the local server client
-                if (SteamAPI.IsSteamRunning() && player.Owner.IsLocalClient)
-                {
-                    try
-                    {
-                        var localSteamId = SteamUser.GetSteamID().m_SteamID.ToString();
-                        return localSteamId;
-                    }
-                    catch (Exception ex)
-                    {
-                        logger?.Warning($"GetPlayerSteamId: Failed local SteamID read: {ex.Message}");
-                    }
-                }
-
-                // Last resort: use FishNet ClientId as placeholder (NOT a real SteamID)
-                string fallbackId = player.Owner.ClientId.ToString();
-                logger?.Warning($"GetPlayerSteamId: Falling back to ClientId (not a SteamID): {fallbackId}");
-                return fallbackId;
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"GetPlayerSteamId error: {ex}");
-                return null;
-            }
+            return PlayerResolver.GetSteamId(player);
         }
 
+        [Obsolete("Use PlayerResolver.GetPlayerBySteamId() instead")]
         public static Player GetPlayerBySteamId(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return null;
-
-            foreach (var player in Player.PlayerList)
-            {
-                string playerSteamId = GetPlayerSteamId(player);
-                if (playerSteamId == steamId) return player;
-            }
-
-            logger?.Warning($"GetPlayerBySteamId: No player found for steamId {steamId}");
-            return null;
+            return PlayerResolver.GetPlayerBySteamId(steamId);
         }
 
+        [Obsolete("Use PlayerResolver.LogAdminAction() instead")]
         public static void LogAdminAction(Player player, string command, string args = "")
         {
-            if (!Instance.LogAdminCommands) return;
-
-            string steamId = GetPlayerSteamId(player);
-            string playerName = player?.PlayerName ?? "Unknown";
-            string logMessage = $"Admin Action - Player: {playerName} ({steamId}) | Command: {command}";
-            
-            if (!string.IsNullOrEmpty(args))
-            {
-                logMessage += $" | Args: {args}";
-            }
-
-            logger?.Msg(logMessage);
-
-            // Also write to admin log file
-            try
-            {
-                string adminLogPath = Path.Combine(MelonEnvironment.UserDataDirectory, "admin_actions.log");
-                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}\n";
-                File.AppendAllText(adminLogPath, logEntry);
-                logger?.Msg($"LogAdminAction: Wrote to admin log file: {adminLogPath}");
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"LogAdminAction: Failed to write to admin log: {ex}");
-            }
+            PlayerResolver.LogAdminAction(player, command, args);
         }
 
-        /// <summary>
-        /// Get the current local player's Steam ID for testing/admin purposes
-        /// </summary>
+        [Obsolete("Use PlayerResolver.GetLocalPlayerSteamId() instead")]
         public static string GetLocalPlayerSteamId()
         {
-            try
-            {
-                if (SteamManager.Initialized)
-                {
-                    CSteamID steamId = SteamUser.GetSteamID();
-                    string steamIdString = steamId.m_SteamID.ToString();
-                    return steamIdString;
-                }
-                else
-                {
-                    logger?.Warning("GetLocalPlayerSteamId: Steam not initialized");
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"GetLocalPlayerSteamId error: {ex}");
-                return null;
-            }
+            return PlayerResolver.GetLocalPlayerSteamId();
         }
 
-        /// <summary>
-        /// Add the current local player as an operator (for testing)
-        /// </summary>
+        [Obsolete("Use PlayerResolver.AddLocalPlayerAsOperator() instead")]
         public static bool AddLocalPlayerAsOperator()
         {
-            try
-            {
-                string steamId = GetLocalPlayerSteamId();
-                if (string.IsNullOrEmpty(steamId))
-                {
-                    logger?.Warning("AddLocalPlayerAsOperator: Could not get local Steam ID");
-                    return false;
-                }
-
-                logger?.Msg($"AddLocalPlayerAsOperator: Adding local player {steamId} as operator");
-                return AddOperator(steamId);
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"AddLocalPlayerAsOperator error: {ex}");
-                return false;
-            }
+            return PlayerResolver.AddLocalPlayerAsOperator();
         }
+
         #endregion
 
         #region Command Line Integration
+
+        [Obsolete("Use Configuration.ServerConfig.ParseCommandLineArgs() instead")]
         public static void ParseCommandLineArgs(string[] args)
         {
-            logger?.Msg("Parsing command line arguments for server config...");
-
-            for (int i = 0; i < args.Length; i++)
-            {
-                switch (args[i])
-                {
-                    case "--server-name":
-                        if (i + 1 < args.Length)
-                        {
-                            Instance.ServerName = args[i + 1];
-                            logger?.Msg($"Server name set to: {Instance.ServerName}");
-                        }
-                        break;
-
-                    case "--max-players":
-                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int maxPlayers))
-                        {
-                            Instance.MaxPlayers = maxPlayers;
-                            logger?.Msg($"Max players set to: {Instance.MaxPlayers}");
-                        }
-                        break;
-
-                    case "--server-password":
-                        if (i + 1 < args.Length)
-                        {
-                            Instance.ServerPassword = args[i + 1];
-                            logger?.Msg("Server password set");
-                        }
-                        break;
-
-                    case "--add-operator":
-                        if (i + 1 < args.Length)
-                        {
-                            AddOperator(args[i + 1]);
-                        }
-                        break;
-
-                    case "--add-admin":
-                        if (i + 1 < args.Length)
-                        {
-                            AddAdmin(args[i + 1]);
-                        }
-                        break;
-
-                    case "--debug":
-                        Instance.DebugMode = true;
-                        logger?.Msg("Debug mode enabled");
-                        break;
-
-                    case "--verbose":
-                        Instance.VerboseLogging = true;
-                        logger?.Msg("Verbose logging enabled");
-                        break;
-
-                    case "--tcp-console":
-                        Instance.TcpConsoleEnabled = true;
-                        logger?.Msg("TCP console enabled via CLI");
-                        break;
-
-                    case "--tcp-console-port":
-                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int tcpPort))
-                        {
-                            Instance.TcpConsolePort = tcpPort;
-                            logger?.Msg($"TCP console port set to: {Instance.TcpConsolePort}");
-                        }
-                        break;
-
-                    case "--tcp-console-bind":
-                        if (i + 1 < args.Length)
-                        {
-                            Instance.TcpConsoleBindAddress = args[i + 1];
-                            logger?.Msg($"TCP console bind address set to: {Instance.TcpConsoleBindAddress}");
-                        }
-                        break;
-
-                    case "--tcp-console-password":
-                        if (i + 1 < args.Length)
-                        {
-                            Instance.TcpConsolePassword = args[i + 1];
-                            Instance.TcpConsoleRequirePassword = true;
-                            logger?.Msg("TCP console password set via CLI and requirement enabled");
-                        }
-                        break;
-                }
-            }
-
-            SaveConfig();
+            Configuration.ServerConfig.ParseCommandLineArgs(args);
         }
+
         #endregion
 
         #region Server Info
+
+        [Obsolete("Use Configuration.ServerConfig.GetServerInfo() instead")]
         public static string GetServerInfo()
         {
-            var info = "=== Server Configuration ===\n";
-            info += $"Server Name: {Instance.ServerName}\n";
-            info += $"Max Players: {Instance.MaxPlayers}\n";
-            info += $"Server Port: {Instance.ServerPort}\n";
-            info += $"Password Protected: {!string.IsNullOrEmpty(Instance.ServerPassword)}\n";
-            info += $"Public Server: {Instance.PublicServer}\n";
-            info += $"Operators: {Instance.Operators.Count}\n";
-            info += $"Admins: {Instance.Admins.Count}\n";
-            info += $"Auto-Save: {Instance.AutoSaveEnabled} ({Instance.AutoSaveIntervalMinutes}min)\n";
-            info += $"Time Never Stops: {Instance.TimeNeverStops}\n";
-            info += $"Debug Mode: {Instance.DebugMode}\n";
-
-            return info;
+            return Configuration.ServerConfig.GetServerInfo();
         }
+
+        #endregion
+
+        #region Private Methods
+
+        private static MelonLogger.Instance Logger => _logger ?? 
+            new MelonLogger.Instance("ServerConfig");
+
         #endregion
     }
 }

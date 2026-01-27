@@ -930,11 +930,17 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <EmbeddedResource Remove="research\**" />
-	  <EmbeddedResource Remove="Server\Configuration\**" />
 	  <None Remove="research\**" />
 	</ItemGroup>
+	
+	<!-- Utility infrastructure (shared by all builds) -->
 	<ItemGroup>
-	  <Compile Include="Shared\*.cs" />
+	  <Compile Include="Utils\*.cs" />
+	</ItemGroup>
+	
+	<!-- API layer (shared by all builds) -->
+	<ItemGroup>
+	  <Compile Include="API\Version.cs" />
 	  <Compile Include="API\S1DS.cs" />
 	  <Compile Include="API\IServerMod.cs" />
 	  <Compile Include="API\IClientMod.cs" />
@@ -943,13 +949,36 @@
 	  <Compile Include="API\ClientModBase.cs" />
 	  <Compile Include="API\SideAwareMelonModBase.cs" />
 	</ItemGroup>
+	
+	<!-- Shared layer (shared by server and client) -->
+	<ItemGroup>
+	  <!-- Configuration -->
+	  <Compile Include="Shared\Configuration\*.cs" />
+	  <!-- Networking -->
+	  <Compile Include="Shared\Networking\*.cs" />
+	  <!-- Permissions -->
+	  <Compile Include="Shared\Permissions\*.cs" />
+	  <!-- Patches -->
+	  <Compile Include="Shared\Patches\*.cs" />
+	</ItemGroup>
 
-	<!-- Client builds include the client mod entry -->
+		<!-- Client builds include the client mod entry -->
 	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'">
 		<None Remove="Assets\Player_0.zip" />
 		<EmbeddedResource Include="Assets\dedicatedclientui" />
 
-		<Compile Include="Client\*.cs" />
+		<!-- Client bootstrap and entry point -->
+		<Compile Include="Client\ClientBootstrap.cs" />
+		
+		<!-- Client managers -->
+		<Compile Include="Client\Managers\*.cs" />
+		
+		<!-- Client patches -->
+		<Compile Include="Client\Patches\*.cs" />
+		
+		<!-- Client data -->
+		<Compile Include="Client\Data\*.cs" />
+		
 		<Compile Include="API\S1DS.Client.cs" />
 		<Compile Include="Assets\AssetBundleLoader.cs" />
 	</ItemGroup>
