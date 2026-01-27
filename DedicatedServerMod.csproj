@@ -994,6 +994,8 @@
 		
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />
+		<Compile Include="Server\Network\ServerHeartbeatData.cs" />
+		<Compile Include="Server\Network\MasterServerClient.cs" />
 		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />
 		
 		<!-- Player management -->
