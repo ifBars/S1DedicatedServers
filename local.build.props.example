@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  Local Build Configuration Template
+  
+  Copy this file to 'local.build.props' and update the paths to match your local environment.
+  The 'local.build.props' file is git-ignored so each contributor can have their own paths.
+-->
+<Project>
+	<PropertyGroup>
+		<!-- 
+			Mono Game Path
+			Point this to your Mono build of Schedule I (if you have one)
+		-->
+		<MonoGamePath>D:\SteamLibrary\steamapps\common\Schedule I_alternate</MonoGamePath>
+		
+		<!-- 
+			IL2CPP Game Path
+			Point this to your IL2CPP build of Schedule I (if you have one)
+		-->
+		<Il2CppGamePath>D:\SteamLibrary\steamapps\common\Schedule I_public</Il2CppGamePath>
+	</PropertyGroup>
+</Project>

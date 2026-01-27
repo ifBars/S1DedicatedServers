@@ -1,4 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+	<!-- Import local build configuration (user-specific paths) -->
+	<Import Project="local.build.props" Condition="Exists('local.build.props')" />
+	
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -7,10 +10,41 @@
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server</Configurations>
 	</PropertyGroup>
+	
+	<!-- NuGet Package References -->
+	<ItemGroup>
+		<PackageReference Include="Krafs.Publicizer" Version="2.3.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+	
+	<!-- MelonLoader references (common to all configurations) -->
+	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server'">
+		<Reference Include="MelonLoader">
+			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
+		</Reference>
+		<Reference Include="0Harmony">
+			<HintPath>$(MelonLoaderPath)\0Harmony.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+	
+	<ItemGroup Condition="'$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Il2cpp_Server'">
+		<Reference Include="MelonLoader">
+			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
+		</Reference>
+		<Reference Include="0Harmony">
+			<HintPath>$(MelonLoaderPath)\0Harmony.dll</HintPath>
+		</Reference>
+		<Reference Include="Il2CppInterop.Runtime">
+			<HintPath>$(MelonLoaderPath)\Il2CppInterop.Runtime.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
 	<!-- Define paths and constants for different configurations -->
+	<!-- These use paths from local.build.props if it exists, otherwise use empty defaults -->
 	<PropertyGroup Condition="'$(Configuration)'=='Mono_Client'">
-		<GamePath>D:\SteamLibrary\steamapps\common\Schedule I_alternate</GamePath>
+		<GamePath>$(MonoGamePath)</GamePath>
 		<ManagedPath>$(GamePath)\Schedule I_Data\Managed</ManagedPath>
 		<MelonLoaderPath>$(GamePath)\MelonLoader\net35</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
@@ -20,7 +54,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Mono_Server'">
-		<GamePath>D:\SteamLibrary\steamapps\common\Schedule I_alternate</GamePath>
+		<GamePath>$(MonoGamePath)</GamePath>
 		<ManagedPath>$(GamePath)\Schedule I_Data\Managed</ManagedPath>
 		<MelonLoaderPath>$(GamePath)\MelonLoader\net35</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
@@ -30,7 +64,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Client'">
-		<GamePath>D:\SteamLibrary\steamapps\common\Schedule I_public</GamePath>
+		<GamePath>$(Il2CppGamePath)</GamePath>
 		<ManagedPath>$(GamePath)\MelonLoader\Il2CppAssemblies</ManagedPath>
 		<MelonLoaderPath>$(GamePath)\MelonLoader\net6</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
@@ -40,7 +74,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Server'">
-		<GamePath>D:\SteamLibrary\steamapps\common\Schedule I_public</GamePath>
+		<GamePath>$(Il2CppGamePath)</GamePath>
 		<ManagedPath>$(GamePath)\MelonLoader\Il2CppAssemblies</ManagedPath>
 		<MelonLoaderPath>$(GamePath)\MelonLoader\net6</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
@@ -66,9 +100,11 @@
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(ManagedPath)\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
-		<Reference Include="Assembly-CSharp-publicized">
-			<HintPath>$(ManagedPath)\Assembly-CSharp-publicized.dll</HintPath>
+		<Reference Include="Assembly-CSharp">
+			<HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
 		</Reference>
+		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
+		<Publicize Include="Assembly-CSharp" />
 		<Reference Include="AstarPathfindingProject">
 			<HintPath>$(ManagedPath)\AstarPathfindingProject.dll</HintPath>
 		</Reference>
@@ -501,12 +537,6 @@
 		<Reference Include="VisualDesignCafe.ShaderX">
 			<HintPath>$(ManagedPath)\VisualDesignCafe.ShaderX.dll</HintPath>
 		</Reference>
-		<Reference Include="MelonLoader">
-			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
-		</Reference>
-		<Reference Include="0Harmony">
-			<HintPath>$(MelonLoaderPath)\0Harmony.dll</HintPath>
-		</Reference>
 	</ItemGroup>
 
 	<!-- Il2cpp references -->
@@ -529,6 +559,8 @@
 		<Reference Include="Assembly-CSharp" Condition="'$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Il2cpp_Server'">
 			<HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
 		</Reference>
+		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
+		<Publicize Include="Assembly-CSharp" />
 		<Reference Include="Il2CppAstarPathfindingProject">
 			<HintPath>$(ManagedPath)\Il2CppAstarPathfindingProject.dll</HintPath>
 		</Reference>
@@ -894,15 +926,6 @@
 		</Reference>
 		<Reference Include="Il2Cppmscorlib">
 			<HintPath>$(ManagedPath)\Il2Cppmscorlib.dll</HintPath>
-		</Reference>
-		<Reference Include="MelonLoader">
-			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
-		</Reference>
-		<Reference Include="0Harmony">
-			<HintPath>$(MelonLoaderPath)\0Harmony.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppInterop.Runtime">
-			<HintPath>$(MelonLoaderPath)\Il2CppInterop.Runtime.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<ItemGroup>
