@@ -33,6 +33,7 @@ jobs:
 
       - name: Determine Assembly Branch
         id: assembly-branch
+        shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
             echo "branch=${{ inputs.assembly_branch }}" >> $GITHUB_OUTPUT
@@ -126,123 +127,11 @@ jobs:
         if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
         with:
           path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
-
-  build-il2cpp:
-    runs-on: windows-latest
-    needs: build-mono
-    steps:
-      - name: Checkout DedicatedServerMod
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Determine Assembly Branch
-        id: assembly-branch
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
-            echo "branch=${{ inputs.assembly_branch }}" >> $GITHUB_OUTPUT
-            echo "Using ${{ inputs.assembly_branch }} assemblies"
-          else
-            echo "branch=main" >> $GITHUB_OUTPUT
-            echo "Using main assemblies"
-          fi
-
-      - name: Create Assembly Directory Structure
-        run: |
-          mkdir -p DedicatedServerMod/ScheduleOneAssemblies/Il2CppAssemblies
-          mkdir -p DedicatedServerMod/ScheduleOneAssemblies/MelonLoader
-
-      - name: Restore IL2CPP Assemblies from Cache
-        id: cache-il2cpp
-        uses: actions/cache/restore@v4
-        with:
-          path: DedicatedServerMod/ScheduleOneAssemblies
-          key: il2cpp-game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
-          restore-keys: |
-            il2cpp-game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-
-
-      - name: Checkout IL2CPP Game Assemblies
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.IL2CPP_ASSEMBLIES_REPO }}
-          token: ${{ secrets.IL2CPP_ASSEMBLIES_TOKEN }}
-          ref: ${{ steps.assembly-branch.outputs.branch }}
-          path: il2cpp-scheduleone-assemblies
-          fetch-depth: 1
-        if: steps.cache-il2cpp.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-
-      - name: Copy IL2CPP Assemblies
-        run: |
-          if [ -d "il2cpp-scheduleone-assemblies/MelonLoader/Il2CppAssemblies" ]; then
-            cp -r il2cpp-scheduleone-assemblies/MelonLoader/Il2CppAssemblies/* DedicatedServerMod/ScheduleOneAssemblies/Il2CppAssemblies/ || echo "Failed to copy IL2CPP assemblies"
-            echo "Copied IL2CPP assemblies"
-          fi
-
-          if [ -d "il2cpp-scheduleone-assemblies/MelonLoader/net6" ]; then
-            cp -r il2cpp-scheduleone-assemblies/MelonLoader/net6/* DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
-            echo "Copied MelonLoader assemblies"
-          fi
-        if: steps.cache-il2cpp.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-
-      - name: Verify IL2CPP Assemblies
-        run: |
-          if [ -f "DedicatedServerMod/ScheduleOneAssemblies/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
-            echo "✓ Found Assembly-CSharp.dll"
-          else
-            echo "✗ Missing Assembly-CSharp.dll"
-            exit 1
-          fi
-
-      - name: Create CI Build Properties
-        run: |
-          cat > ci.build.props << 'EOF'
-          <Project>
-              <PropertyGroup>
-                  <AutomateLocalDeployment>false</AutomateLocalDeployment>
-                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)DedicatedServerMod/ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
-                  <Il2CppAssembliesPath>$(MSBuildThisFileDirectory)DedicatedServerMod/ScheduleOneAssemblies/Il2CppAssemblies</Il2CppAssembliesPath>
-              </PropertyGroup>
-          </Project>
-          EOF
-
-      - name: Restore Dependencies
-        run: dotnet restore DedicatedServerMod/DedicatedServerMod.csproj
-
-      - name: Build IL2CPP Server
-        run: dotnet build DedicatedServerMod/DedicatedServerMod.csproj --no-restore -c Il2cpp_Server -v normal
-
-      - name: Build IL2CPP Client
-        run: dotnet build DedicatedServerMod/DedicatedServerMod.csproj --no-restore -c Il2cpp_Client -v normal
-
-      - name: Upload IL2CPP Server Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DedicatedServerMod-Il2cpp-Server
-          path: DedicatedServerMod/bin/Il2cpp_Server/net6.0/*.dll
-
-      - name: Upload IL2CPP Client Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DedicatedServerMod-Il2cpp-Client
-          path: DedicatedServerMod/bin/Il2cpp_Client/net6.0/*.dll
-
-      - name: Save IL2CPP Assemblies to Cache
-        uses: actions/cache/save@v4
-        if: always() && steps.cache-il2cpp.outputs.cache-hit != 'true'
-        with:
-          path: DedicatedServerMod/ScheduleOneAssemblies
-          key: il2cpp-game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+           key: game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
 
   summary:
     runs-on: ubuntu-latest
-    needs: [build-mono, build-il2cpp]
+    needs: [build-mono]
     if: always()
     steps:
       - name: Build Summary
@@ -250,5 +139,3 @@ jobs:
           echo "=== Build Complete ==="
           echo "Mono Server: ${{ needs.build-mono.result }}"
           echo "Mono Client: ${{ needs.build-mono.result }}"
-          echo "IL2CPP Server: ${{ needs.build-il2cpp.result }}"
-          echo "IL2CPP Client: ${{ needs.build-il2cpp.result }}"
