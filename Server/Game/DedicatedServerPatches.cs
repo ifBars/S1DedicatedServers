@@ -14,8 +14,11 @@ using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
+using ScheduleOne.Product;
 using ScheduleOne.UI;
 using UnityEngine;
+using CorgiGodRays;
+using ScheduleOne.Heatmap;
 
 namespace DedicatedServerMod.Server.Game
 {
@@ -243,6 +246,62 @@ namespace DedicatedServerMod.Server.Game
                     logger.Warning($"AreAllPlayersReadyToSleep prefix error: {ex.Message}");
                     return true;
                 }
+            }
+        }
+
+        // ------- ProductIconManager: Prevent icon generation crashing headless server -------
+        [HarmonyPatch(typeof(ProductIconManager), "GenerateIcons")]
+        private static class ProductIconManager_GenerateIcons_Prefix
+        {
+            private static bool Prefix()
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    return false; // Skip original method
+                }
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(IconGenerator), "GeneratePackagingIcon")]
+        private static class IconGenerator_GeneratePackagingIcon_Prefix
+        {
+            private static bool Prefix(ref Texture2D __result)
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    __result = Texture2D.whiteTexture; 
+                    return false; // Skip original method
+                }
+                return true;
+            }
+        }
+
+        // ------- CorgiGodRays: Prevent compute buffer creation on server -------
+        [HarmonyPatch(typeof(GodRaysRenderPass), "Initialize")]
+        private static class GodRaysRenderPass_Initialize_Prefix
+        {
+            private static bool Prefix()
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // ------- HeatmapManager: Prevent compute shader usage on server -------
+        [HarmonyPatch(typeof(HeatmapManager), "Start")]
+        private static class HeatmapManager_Start_Prefix
+        {
+            private static bool Prefix()
+            {
+                 if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    return false;
+                }
+                return true;
             }
         }
     }
