@@ -6,7 +6,6 @@
 
 **Professional dedicated server framework for Schedule I** - Run authoritative, headless servers with full multiplayer support, admin management, and extensive modding capabilities.
 
-<<<<<<< HEAD
 ---
 
 ## 🎯 Overview
