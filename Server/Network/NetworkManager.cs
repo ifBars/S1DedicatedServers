@@ -9,6 +9,7 @@ using System.Collections;
 using System.Reflection;
 using UnityEngine;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Network
 {

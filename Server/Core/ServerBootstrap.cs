@@ -10,10 +10,12 @@ using DedicatedServerMod.Server.Commands;
 using DedicatedServerMod.Server.Persistence;
 using DedicatedServerMod.Server.Game;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.Shared.Configuration;
 using HarmonyLib;
 using DedicatedServerMod.API;
 using UnityEngine;
 using DedicatedServerMod.Server.TcpConsole;
+using MasterServerClient = DedicatedServerMod.Server.Network.MasterServerClient;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -36,6 +38,7 @@ namespace DedicatedServerMod.Server.Core
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
         private static TcpConsoleServer _tcpConsole;
+        private static MasterServerClient _masterServerClient;
         
         // Server state
         private static bool _isServerMode = false;
@@ -49,7 +52,7 @@ namespace DedicatedServerMod.Server.Core
         /// <summary>
         /// Gets the server configuration instance (from existing ServerConfig)
         /// </summary>
-        public static ServerConfig Configuration => ServerConfig.Instance;
+        public static Shared.Configuration.ServerConfig Configuration => Shared.Configuration.ServerConfig.Instance;
         
         /// <summary>
         /// Gets the network manager instance
@@ -75,6 +78,11 @@ namespace DedicatedServerMod.Server.Core
         /// Gets the game system manager instance
         /// </summary>
         public static GameSystemManager GameSystems => _gameSystemManager;
+        
+        /// <summary>
+        /// Gets the master server client instance
+        /// </summary>
+        public static MasterServerClient MasterServer => _masterServerClient;
 
         public override void OnInitializeMelon()
         {
@@ -103,18 +111,18 @@ namespace DedicatedServerMod.Server.Core
             logger.Msg("Initializing server subsystems...");
             
             // Step 1: Initialize existing ServerConfig system (must be first)
-            ServerConfig.Initialize(logger);
+            Shared.Configuration.ServerConfig.Initialize(logger);
             logger.Msg("✓ Configuration system initialized");
             
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
             
             // Abort startup until the user configures a save path
-            if (string.IsNullOrEmpty(ServerConfig.Instance.SaveGamePath))
+            if (string.IsNullOrEmpty(Shared.Configuration.ServerConfig.Instance.SaveGamePath))
             {
                 logger.Error("Server startup aborted: 'saveGamePath' is not configured in server_config.json.");
                 logger.Msg($"Please edit the config and set 'saveGamePath' to your save folder. Make sure to use double backslashes not single, otherwise your server will not load the config.");
-                logger.Msg($"Config file location: {ServerConfig.ConfigFilePath}");
+                logger.Msg($"Config file location: {Shared.Configuration.ServerConfig.ConfigFilePath}");
                 return;
             }
             
@@ -145,13 +153,18 @@ namespace DedicatedServerMod.Server.Core
             _gameSystemManager.Initialize();
             logger.Msg("✓ Game system manager initialized");
             
+            // Step 9: Master Server Client
+            _masterServerClient = new MasterServerClient(logger);
+            _masterServerClient.Initialize();
+            logger.Msg("✓ Master server client initialized");
+            
             // Start TCP Console if enabled in ServerConfig
             TryStartTcpConsole();
             
-            // Step 9: Wire up player events with persistence
+            // Step 10: Wire up player events with persistence
             WirePlayerEvents();
             
-            // Step 10: Auto-start server if requested via command line
+            // Step 11: Auto-start server if requested via command line
             if (_autoStartServer)
             {
                 logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
@@ -192,7 +205,7 @@ namespace DedicatedServerMod.Server.Core
                 }
                 
                 // Let ServerConfig handle its own command line arguments
-                ServerConfig.ParseCommandLineArgs(args);
+                Shared.Configuration.ServerConfig.ParseCommandLineArgs(args);
             }
             catch (Exception ex)
             {
@@ -245,10 +258,22 @@ namespace DedicatedServerMod.Server.Core
             
             try
             {
+                // Unregister from master server gracefully
+                if (_masterServerClient != null && _masterServerClient.IsRegistered)
+                {
+                    logger.Msg("Unregistering from master server...");
+                    var unregisterCoroutine = _masterServerClient.UnregisterFromMasterServer();
+                    while (unregisterCoroutine.MoveNext())
+                    {
+                        System.Threading.Thread.Sleep(100); // Simple wait since we're in shutdown
+                    }
+                }
+                
                 // Notify API mods prior to tearing down subsystems
                 ModManager.NotifyServerShutdown();
                 // Shutdown in reverse order
                 try { _tcpConsole?.Dispose(); } catch { }
+                _masterServerClient?.Shutdown();
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
@@ -268,7 +293,7 @@ namespace DedicatedServerMod.Server.Core
         {
             try
             {
-                var cfg = ServerConfig.Instance;
+                var cfg = Shared.Configuration.ServerConfig.Instance;
                 if (!cfg.TcpConsoleEnabled)
                 {
                     return;
@@ -332,8 +357,8 @@ namespace DedicatedServerMod.Server.Core
             {
                 IsRunning = _networkManager?.IsServerRunning ?? false,
                 PlayerCount = _playerManager?.ConnectedPlayerCount ?? 0,
-                MaxPlayers = ServerConfig.Instance.MaxPlayers,
-                ServerName = ServerConfig.Instance.ServerName,
+                MaxPlayers = Shared.Configuration.ServerConfig.Instance.MaxPlayers,
+                ServerName = Shared.Configuration.ServerConfig.Instance.ServerName,
                 Uptime = _networkManager?.Uptime ?? TimeSpan.Zero,
                 Message = "Server operational"
             };
@@ -341,26 +366,26 @@ namespace DedicatedServerMod.Server.Core
 
         public static bool IgnoreGhostHostForSleep
         {
-            get => ServerConfig.Instance.IgnoreGhostHostForSleep;
-            set => ServerConfig.Instance.IgnoreGhostHostForSleep = value;
+            get => Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep;
+            set => Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep = value;
         }
 
         public static bool TimeNeverStops
         {
-            get => ServerConfig.Instance.TimeNeverStops;
-            set => ServerConfig.Instance.TimeNeverStops = value;
+            get => Shared.Configuration.ServerConfig.Instance.TimeNeverStops;
+            set => Shared.Configuration.ServerConfig.Instance.TimeNeverStops = value;
         }
 
         public static bool AutoSaveEnabled
         {
-            get => ServerConfig.Instance.AutoSaveEnabled;
-            set => ServerConfig.Instance.AutoSaveEnabled = value;
+            get => Shared.Configuration.ServerConfig.Instance.AutoSaveEnabled;
+            set => Shared.Configuration.ServerConfig.Instance.AutoSaveEnabled = value;
         }
 
         public static float AutoSaveIntervalMinutes
         {
-            get => ServerConfig.Instance.AutoSaveIntervalMinutes;
-            set => ServerConfig.Instance.AutoSaveIntervalMinutes = value;
+            get => Shared.Configuration.ServerConfig.Instance.AutoSaveIntervalMinutes;
+            set => Shared.Configuration.ServerConfig.Instance.AutoSaveIntervalMinutes = value;
         }
 
         public static DateTime LastAutoSave => _persistenceManager?.LastAutoSave ?? DateTime.MinValue;

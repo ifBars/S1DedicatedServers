@@ -78,7 +78,7 @@ namespace DedicatedServerMod.Server.Game
                         tug = mp.gameObject.AddComponent<Tugboat>();
                     }
                         
-                    tug.SetPort((ushort)ServerConfig.Instance.ServerPort);
+                    tug.SetPort((ushort)DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.ServerPort);
                 }
                 catch (Exception ex)
                 {
@@ -106,14 +106,8 @@ namespace DedicatedServerMod.Server.Game
         }
 
         // ------- Player initialization postfix: ensure per-client setup if needed -------
-        [HarmonyPatch(typeof(ScheduleOne.PlayerScripts.Player), nameof(ScheduleOne.PlayerScripts.Player.MarkPlayerInitialized))]
-        private static class Player_MarkPlayerInitialized_Postfix
-        {
-            private static void Postfix(ScheduleOne.PlayerScripts.Player __instance)
-            {
-                // Currently no-op; hook kept for parity and future per-client sync
-            }
-        }
+        // NOTE: MarkPlayerInitialized method does not exist in the game code
+        // This patch is disabled - was likely removed in a game update
 
         // ------- Player disconnect -> trigger save if configured -------
         [HarmonyPatch(typeof(ScheduleOne.PlayerScripts.Player), "OnDestroy")]
@@ -123,7 +117,7 @@ namespace DedicatedServerMod.Server.Game
             {
                 try
                 {
-                    if (!InstanceFinder.IsServer || !ServerConfig.Instance.AutoSaveOnPlayerLeave) return;
+                    if (!InstanceFinder.IsServer || !DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.AutoSaveOnPlayerLeave) return;
                     if (__instance?.gameObject?.name == "[DedicatedServerHostLoopback]") return;
                     Server.Core.ServerBootstrap.Persistence?.TriggerAutoSave($"player_disconnect_{__instance?.PlayerName}");
                 }
@@ -140,7 +134,7 @@ namespace DedicatedServerMod.Server.Game
         {
             private static bool Prefix(TimeManager __instance)
             {
-                if (!InstanceFinder.IsServer || !ServerConfig.Instance.TimeNeverStops)
+                if (!InstanceFinder.IsServer || !DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.TimeNeverStops)
                     return true;
 
                 try
@@ -150,12 +144,16 @@ namespace DedicatedServerMod.Server.Game
                     if (!wouldFreeze) return true;
 
                     // Advance time alike original, condensed
-                    __instance.TimeOnCurrentMinute = 0f;
+                    // Note: TimeOnCurrentMinute was removed in game update, using reflection
+                    var timeOnMinField = typeof(TimeManager).GetField("_secondsOnCurrentMinute", BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (timeOnMinField != null)
+                        timeOnMinField.SetValue(__instance, 0f);
+                    
                     if (__instance.CurrentTime == 2359)
                     {
                         __instance.ElapsedDays++;
                         __instance.CurrentTime = 0;
-                        __instance.DailyMinTotal = 0;
+                        __instance.DailyMinSum = 0;
                         __instance.onDayPass?.Invoke();
                         __instance.onHourPass?.Invoke();
                         if (__instance.CurrentDay == EDay.Monday && __instance.onWeekPass != null)
@@ -170,7 +168,7 @@ namespace DedicatedServerMod.Server.Game
                     {
                         __instance.CurrentTime++;
                     }
-                    __instance.DailyMinTotal = TimeManager.GetMinSumFrom24HourTime(__instance.CurrentTime);
+                    __instance.DailyMinSum = TimeManager.GetMinSumFrom24HourTime(__instance.CurrentTime);
                     __instance.HasChanged = true;
                     return false; // handled
                 }
@@ -192,15 +190,9 @@ namespace DedicatedServerMod.Server.Game
                     bool isCritical = __instance.CurrentTime == 400 || __instance.CurrentTime == 700;
                     if (!isTopOfHour && !isCritical) return;
 
-                    var nm = InstanceFinder.NetworkManager;
-                    var sm = nm?.ServerManager;
-                    if (sm == null) return;
-                    foreach (var kvp in sm.Clients)
-                    {
-                        var client = kvp.Value;
-                        if (client == null || client.IsLocalClient) continue;
-                        __instance.SendTimeData(client);
-                    }
+                    // Note: SendTimeData method was removed in game update
+                    // Time data is now synced automatically by TimeManager RPCs
+                    // No manual sync needed here anymore
                 }
                 catch (Exception ex)
                 {
@@ -227,7 +219,7 @@ namespace DedicatedServerMod.Server.Game
             {
                 if (!InstanceFinder.IsServer) return true;
                 // Avoid try+yield within this method; keep simple and safe
-                if (__instance.SleepInProgress)
+                if (__instance.IsSleepInProgress)
                 {
                     var sleepEndTimeField = typeof(TimeManager).GetField("sleepEndTime", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (sleepEndTimeField != null)
@@ -249,26 +241,9 @@ namespace DedicatedServerMod.Server.Game
             }
         }
 
-        [HarmonyPatch(typeof(TimeManager), nameof(TimeManager.FastForwardToWakeTime))]
-        private static class TimeManager_FastForwardToWakeTime_Postfix
-        {
-            private static void Postfix(TimeManager __instance)
-            {
-                if (!InstanceFinder.IsServer) return;
-                try
-                {
-                    // Save after sleep if enabled
-                    if (ServerConfig.Instance.AutoSaveEnabled)
-                    {
-                        Server.Core.ServerBootstrap.Persistence?.TriggerAutoSave("post_sleep");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"TimeManager.FastForwardToWakeTime postfix error: {ex.Message}");
-                }
-            }
-        }
+        // NOTE: FastForwardToWakeTime method does not exist in TimeManager
+        // This was likely refactored or removed in a game update
+        // Auto-save after sleep is handled elsewhere in the sleep cycle
 
         // ------- Console permissions (patched dynamically to avoid overload ambiguity) -------
         public static bool ConsoleSubmitCommand_Prefix(List<string> args)
@@ -279,8 +254,8 @@ namespace DedicatedServerMod.Server.Game
             var local = ScheduleOne.PlayerScripts.Player.Local;
             if (local == null) return true; // server console
             string cmd = args[0]?.ToLower() ?? string.Empty;
-            if (!ServerConfig.CanUseConsole(local)) return false;
-            if (!ServerConfig.CanUseCommand(local, cmd)) return false;
+            if (!DedicatedServerMod.Shared.Permissions.PermissionManager.CanUseConsole(local)) return false;
+            if (!DedicatedServerMod.Shared.Permissions.PermissionManager.CanUseCommand(local, cmd)) return false;
             return true;
         }
 
@@ -292,7 +267,7 @@ namespace DedicatedServerMod.Server.Game
             {
                 try
                 {
-                    DedicatedServerMod.Shared.CustomMessaging.DailySummaryAwakePostfix(__instance);
+                    DedicatedServerMod.Shared.Networking.CustomMessaging.DailySummaryAwakePostfix(__instance);
                 }
                 catch (Exception ex)
                 {
@@ -307,7 +282,7 @@ namespace DedicatedServerMod.Server.Game
         {
             private static bool Prefix(ref bool __result)
             {
-                if (!InstanceFinder.IsServer || !ServerConfig.Instance.IgnoreGhostHostForSleep)
+                if (!InstanceFinder.IsServer || !DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep)
                     return true; // run original
 
                 try

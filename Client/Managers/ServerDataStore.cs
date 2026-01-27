@@ -1,7 +1,7 @@
 using System;
 using DedicatedServerMod.Shared;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
 	/// <summary>
 	/// Client-side storage for minimal server data shared by the server.

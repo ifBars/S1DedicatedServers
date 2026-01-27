@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DedicatedServerMod.Shared.Networking;
 using MelonLoader;
 
 namespace DedicatedServerMod.API
@@ -361,7 +362,7 @@ namespace DedicatedServerMod.API
             if (_clientMsgWired) return;
             try
             {
-                DedicatedServerMod.Shared.CustomMessaging.ClientMessageReceived += (cmd, data) =>
+                Shared.Networking.CustomMessaging.ClientMessageReceived += (cmd, data) =>
                 {
                     foreach (var mod in _clientMods.ToList())
                     {
@@ -387,7 +388,7 @@ namespace DedicatedServerMod.API
             if (_serverMsgWired) return;
             try
             {
-                DedicatedServerMod.Shared.CustomMessaging.ServerMessageReceived += (conn, cmd, data) =>
+                DedicatedServerMod.Shared.Networking.CustomMessaging.ServerMessageReceived += (conn, cmd, data) =>
                 {
                     // Best-effort sender id
                     string senderId = null;

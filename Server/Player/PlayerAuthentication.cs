@@ -1,6 +1,7 @@
 using MelonLoader;
 using System;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Player
 {

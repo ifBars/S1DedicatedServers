@@ -1,10 +1,11 @@
-using MelonLoader;
 using System;
 using System.Collections;
+using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
+using MelonLoader;
+using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using UnityEngine;
-using DedicatedServerMod;
-using ScheduleOne.DevUtilities;
 
 namespace DedicatedServerMod.Server.Game
 {
@@ -104,7 +105,7 @@ namespace DedicatedServerMod.Server.Game
                     {
                         // Advance one minute by invoking a Tick-like nudge
                         // Setting time directly to 4:01
-                        tm.SetTime(401, local: true);
+                        tm.SetTimeAndSync(401);
                     }
                 }
 
@@ -163,7 +164,7 @@ namespace DedicatedServerMod.Server.Game
                 {
                     int addMins = (int)Math.Round(amount.TotalMinutes);
                     int newTime = TimeManager.AddMinutesTo24HourTime(tm.CurrentTime, addMins);
-                    tm.SetTime(newTime, local: true);
+                    tm.SetTimeAndSync(newTime);
                     logger.Msg($"Forced time advancement: {addMins} minutes");
                 }
             }

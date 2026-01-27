@@ -1,14 +1,15 @@
-using MelonLoader;
 using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Shared.Configuration;
 using FishNet;
 using FishNet.Component.Scenes;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using MelonLoader;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
@@ -213,7 +214,7 @@ namespace DedicatedServerMod.Server.Core
             if (NetworkSingleton<TimeManager>.Instance != null && !_timeLoopsStarted)
             {
                 var tm = NetworkSingleton<TimeManager>.Instance;
-                tm.TimeProgressionMultiplier = 1f;
+                TrySetTimeProgressionMultiplier(tm, 1f);
                 TryStartTimeLoops(tm);
                 _timeLoopsStarted = true;
             }
@@ -225,6 +226,16 @@ namespace DedicatedServerMod.Server.Core
             logger.Msg($"Server running on port {ServerConfig.Instance.ServerPort}");
             logger.Msg($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             logger.Msg("Waiting for client connections...");
+
+            // Register with master server if enabled
+            if (ServerBootstrap.MasterServer != null)
+            {
+                yield return ServerBootstrap.MasterServer.RegisterWithMasterServer();
+                if (ServerBootstrap.MasterServer.IsRegistered)
+                {
+                    ServerBootstrap.MasterServer.StartHeartbeat();
+                }
+            }
 
             // Notify API mods: server started
             ModManager.NotifyServerStarted();
@@ -255,6 +266,33 @@ namespace DedicatedServerMod.Server.Core
                 return;
             }
             logger.Warning("Could not set client transport via reflection");
+        }
+
+        private static void TrySetTimeProgressionMultiplier(TimeManager timeManager, float multiplier)
+        {
+            try
+            {
+                if (timeManager == null) return;
+
+                // Game updates may rename/remove this member; use reflection to stay resilient.
+                var t = timeManager.GetType();
+                var prop = t.GetProperty("TimeProgressionMultiplier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (prop != null && prop.CanWrite && prop.PropertyType == typeof(float))
+                {
+                    prop.SetValue(timeManager, multiplier);
+                    return;
+                }
+
+                var field = t.GetField("TimeProgressionMultiplier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (field != null && field.FieldType == typeof(float))
+                {
+                    field.SetValue(timeManager, multiplier);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Failed to set TimeProgressionMultiplier: {ex.Message}");
+            }
         }
 
         private static void TryRegisterDefaultQuestsWithGuidManager()
@@ -444,7 +482,7 @@ namespace DedicatedServerMod.Server.Core
                         }
                     }
                     var firstQuest = welcomeQuest ?? questManager.DefaultQuests[0];
-                    if (firstQuest != null && firstQuest.QuestState == EQuestState.Inactive)
+                    if (firstQuest != null && firstQuest.State == EQuestState.Inactive)
                     {
                         firstQuest.Begin(network: true);
                         logger.Msg($"Initialized quest: {firstQuest.GetQuestTitle()}");
@@ -483,9 +521,9 @@ namespace DedicatedServerMod.Server.Core
                     {
                         if (quest == null) continue;
                         // Sync main quest state to the specific client
-                        if (quest.QuestState != EQuestState.Inactive)
+                        if (quest.State != EQuestState.Inactive)
                         {
-                            qm.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.QuestState);
+                            qm.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.State);
                         }
                         for (int i = 0; i < quest.Entries.Count; i++)
                         {

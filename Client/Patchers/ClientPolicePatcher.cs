@@ -6,7 +6,7 @@ using FishNet.Connection;
 using HarmonyLib;
 using MelonLoader;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Patchers
 {
 	/// <summary>
 	/// Guards RunLocally Observers RPC wrappers in police-related classes so that on clients
@@ -20,20 +20,8 @@ namespace DedicatedServerMod.Client
 		public static void Apply(HarmonyLib.Harmony harmony, MelonLogger.Instance logger)
 		{
 			_logger = logger;
-			try
-			{
-				PatchPoliceOfficer(harmony);
-				PatchRoadCheckpoint(harmony);
-				PatchCallPoliceBehaviour(harmony);
-				// Broad guard: block all RpcWriter___Observers_* sends on client; wrappers will still run their local logic
-				PatchAllObserverWritersInType(harmony, AccessTools.TypeByName("ScheduleOne.Police.PoliceOfficer"));
-				PatchAllObserverWritersInType(harmony, AccessTools.TypeByName("ScheduleOne.Police.RoadCheckpoint"));
-				PatchAllObserverWritersInType(harmony, AccessTools.TypeByName("ScheduleOne.NPCs.Behaviour.CallPoliceBehaviour"));
-			}
-			catch (Exception ex)
-			{
-				_logger?.Error($"Failed to apply client police patches: {ex}");
-			}
+			// Delegate to shared implementation to reduce duplication.
+			DedicatedServerMod.Shared.PoliceAuthorityPatches.ApplyClient(harmony, logger);
 		}
 
 		private static void PatchPoliceOfficer(HarmonyLib.Harmony harmony)
@@ -91,42 +79,7 @@ namespace DedicatedServerMod.Client
 			}
 		}
 
-		private static void PatchAllObserverWritersInType(HarmonyLib.Harmony harmony, Type type)
-		{
-			try
-			{
-				if (type == null) return;
-				var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-				var prefix = new HarmonyMethod(typeof(ClientPolicePatcher).GetMethod(nameof(Prefix_BlockObserverWriterOnClient), BindingFlags.Static | BindingFlags.NonPublic));
-				int count = 0;
-				foreach (var mi in methods)
-				{
-					if (!mi.Name.StartsWith("RpcWriter___Observers_", StringComparison.Ordinal))
-						continue;
-					try
-					{
-						harmony.Patch(mi, prefix: prefix);
-						count++;
-					}
-					catch (Exception ex)
-					{
-						_logger?.Warning($"Failed to patch observer writer {type.FullName}.{mi.Name}: {ex.Message}");
-					}
-				}
-				if (count > 0)
-					_logger?.Msg($"Client observer-writer guards applied: {type.FullName} ({count} methods)");
-			}
-			catch (Exception ex)
-			{
-				_logger?.Error($"Error patching observer writers in {type?.FullName}: {ex}");
-			}
-		}
-
-		private static bool Prefix_BlockObserverWriterOnClient(object __instance)
-		{
-			// On pure clients, skip sending Observers RPCs; server will broadcast.
-			return InstanceFinder.IsServer;
-		}
+		// Legacy per-method observer guards removed in favor of shared implementation
 
 		// Prefixes
 

@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.Shared.Networking;
 using FishNet;
 using HarmonyLib;
 using MelonLoader;
@@ -10,7 +11,7 @@ using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Handles client-side console access for admin/operator players on dedicated servers.

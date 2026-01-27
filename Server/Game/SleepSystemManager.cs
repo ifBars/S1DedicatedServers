@@ -1,6 +1,7 @@
-using MelonLoader;
 using System;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
+using MelonLoader;
 
 namespace DedicatedServerMod.Server.Game
 {

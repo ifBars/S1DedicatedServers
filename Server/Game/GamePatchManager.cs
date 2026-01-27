@@ -1,9 +1,10 @@
-using MelonLoader;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
+using HarmonyLib;
+using MelonLoader;
 using ScheduleOne.PlayerScripts;
 using FishNet.Connection;
 
@@ -66,6 +67,10 @@ namespace DedicatedServerMod.Server.Game
                     appliedPatches.Add("TimeNeverStopsEnabled");
                 if (ServerConfig.Instance.IgnoreGhostHostForSleep)
                     appliedPatches.Add("IgnoreGhostHostForSleepEnabled");
+
+                // 4) Server authority for police systems
+                DedicatedServerMod.Shared.PoliceAuthorityPatches.ApplyServer(harmony, logger);
+                appliedPatches.Add("PoliceAuthorityPatches_Server");
             }
             catch (Exception ex)
             {

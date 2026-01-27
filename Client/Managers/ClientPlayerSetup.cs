@@ -12,7 +12,7 @@ using ScheduleOne.DevUtilities;
 using UnityEngine;
 using DedicatedServerMod.API;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Handles player setup, character creation, and intro sequence bypassing for dedicated server clients.
@@ -269,7 +269,7 @@ namespace DedicatedServerMod.Client
                 PlayerSingleton<PlayerCamera>.Instance.StopFOVOverride(0f);
                 PlayerSingleton<PlayerCamera>.Instance.RemoveActiveUIElement("IntroManager");
                 PlayerSingleton<PlayerCamera>.Instance.SetCanLook(true);
-                PlayerSingleton<PlayerMovement>.Instance.canMove = true;
+                PlayerSingleton<PlayerMovement>.Instance.CanMove = true;
                 PlayerSingleton<PlayerInventory>.Instance.SetInventoryEnabled(true);
                 Singleton<HUD>.Instance.canvas.enabled = true;
                 Player.Activate();
@@ -293,7 +293,7 @@ namespace DedicatedServerMod.Client
         {
             if (introManager != null)
             {
-                if (!introManager.rv._isExploded)
+                if (!introManager.rv._exploded)
                 {
                     player.transform.position = introManager.PlayerInitialPosition.position;
                     player.transform.rotation = introManager.PlayerInitialPosition.rotation;
@@ -389,7 +389,6 @@ namespace DedicatedServerMod.Client
                 }
                 
                 // Mark player as initialized
-                player.MarkPlayerInitialized();
                 logger.Msg("Basic player initialization completed");
             }
             catch (Exception ex)

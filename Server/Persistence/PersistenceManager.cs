@@ -5,6 +5,7 @@ using FishNet;
 using ScheduleOne.Persistence;
 using UnityEngine;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Persistence
 {

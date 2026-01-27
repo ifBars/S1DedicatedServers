@@ -7,7 +7,7 @@ using FishNet.Managing;
 using ScheduleOne.PlayerScripts;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Manages admin status checking and caching for client-side console access.

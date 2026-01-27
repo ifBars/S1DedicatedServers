@@ -5,9 +5,10 @@ using System;
 using System.Collections;
 using ScheduleOne.DevUtilities;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Shared.Networking;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Manages dedicated server connections for the client mod.
@@ -176,7 +177,7 @@ namespace DedicatedServerMod.Client
                 // Request initial server data snapshot
                 try
                 {
-                    DedicatedServerMod.Shared.CustomMessaging.SendToServer("request_server_data");
+                    CustomMessaging.SendToServer("request_server_data");
                 }
                 catch (Exception ex)
                 {

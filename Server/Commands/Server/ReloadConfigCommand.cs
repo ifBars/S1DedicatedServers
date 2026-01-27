@@ -3,6 +3,7 @@ using System;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Commands.Server
 {

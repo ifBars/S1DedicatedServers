@@ -6,6 +6,7 @@ using ScheduleOne.GameTime;
 using ScheduleOne.PlayerScripts;
 using UnityEngine;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Game
 {

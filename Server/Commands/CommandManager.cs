@@ -7,6 +7,7 @@ using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands.Admin;
 using DedicatedServerMod.Server.Commands.Server;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.Shared.Networking;
 using Console = ScheduleOne.Console;
 
 namespace DedicatedServerMod.Server.Commands

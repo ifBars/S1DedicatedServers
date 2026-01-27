@@ -1,6 +1,7 @@
 using System;
 using MelonLoader;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.API
 {
@@ -67,7 +68,7 @@ namespace DedicatedServerMod.API
             /// <summary>
             /// Access to server configuration
             /// </summary>
-            public static ServerConfig Config => ServerConfig.Instance;
+            public static DedicatedServerMod.Shared.Configuration.ServerConfig Config => DedicatedServerMod.Shared.Configuration.ServerConfig.Instance;
 
             /// <summary>
             /// Checks if server config is loaded
