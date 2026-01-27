@@ -1,11 +1,11 @@
 using System;
+using DedicatedServerMod.Client.Managers;
+using FishNet.Object;
 using FishNet.Object.Delegating;
-using FishNet.Object.Hosting;
 using FishNet.Serializing;
 using FishNet.Transporting;
 using HarmonyLib;
 using MelonLoader;
-using ScheduleOne;
 using ScheduleOne.DevUtilities;
 
 namespace DedicatedServerMod.Client.Patches
@@ -30,96 +30,30 @@ namespace DedicatedServerMod.Client.Patches
         /// </summary>
         private const uint MESSAGE_ID = 105u;
 
-        #region Initialization
-
         /// <summary>
-        /// Applies messaging-related Harmony patches.
+        /// Initialize the messaging patches with a logger instance.
         /// </summary>
-        /// <param name="harmony">The Harmony instance to patch with</param>
         /// <param name="logger">The logger instance to use</param>
-        public static void ApplyPatches(Harmony harmony, MelonLogger.Instance logger)
+        public static void Initialize(MelonLogger.Instance logger)
         {
             _logger = logger;
-
-            // Patch DailySummary.Awake to register RPC handlers
-            PatchDailySummaryAwake(harmony);
-
-            _logger.Msg("Messaging patches applied successfully");
+            _logger.Msg("Messaging patches initialized (using attribute-based patching)");
         }
-
-        /// <summary>
-        /// Removes messaging-related Harmony patches.
-        /// </summary>
-        /// <param name="harmony">The Harmony instance to unpatch</param>
-        public static void RemovePatches(Harmony harmony)
-        {
-            UnpatchDailySummaryAwake(harmony);
-            _logger.Msg("Messaging patches removed");
-        }
-
-        #endregion
 
         #region DailySummary.Awake Patch
-
-        /// <summary>
-        /// Patches DailySummary.Awake to register custom RPC handlers.
-        /// </summary>
-        private static void PatchDailySummaryAwake(Harmony harmony)
-        {
-            try
-            {
-                var dailySummaryType = typeof(DailySummary);
-                var awakeMethod = dailySummaryType.GetMethod("Awake",
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
-
-                if (awakeMethod != null)
-                {
-                    var postfix = typeof(MessagingPatches).GetMethod(
-                        nameof(DailySummaryAwakePostfix),
-                        BindingFlags.Static | BindingFlags.NonPublic);
-
-                    harmony.Patch(awakeMethod, postfix: new HarmonyMethod(postfix));
-                    _logger.Msg("Patched DailySummary.Awake to register custom messaging RPCs");
-                }
-                else
-                {
-                    _logger.Warning("Could not find DailySummary.Awake method to patch");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to patch DailySummary.Awake: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Unpatches DailySummary.Awake.
-        /// </summary>
-        private static void UnpatchDailySummaryAwake(Harmony harmony)
-        {
-            try
-            {
-                var dailySummaryType = typeof(DailySummary);
-                var awakeMethod = dailySummaryType.GetMethod("Awake",
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
-
-                if (awakeMethod != null)
-                {
-                    harmony.Unpatch(awakeMethod, HarmonyPatchType.Postfix);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to unpatch DailySummary.Awake: {ex}");
-            }
-        }
 
         /// <summary>
         /// Harmony postfix patch for DailySummary.Awake.
         /// Registers custom RPC handlers for the messaging system.
         /// </summary>
+        /// <remarks>
+        /// This patch registers custom message handlers after DailySummary initializes,
+        /// allowing the mod to send and receive custom messages between client and server.
+        /// </remarks>
         /// <param name="__instance">The DailySummary instance being initialized</param>
-        private static void DailySummaryAwakePostfix(DailySummary __instance)
+        [HarmonyPatch("ScheduleOne.DevUtilities.DailySummary", "Awake")]
+        [HarmonyPostfix]
+        private static void DailySummaryAwakePostfix(object __instance)
         {
             try
             {
@@ -155,7 +89,7 @@ namespace DedicatedServerMod.Client.Patches
                 string raw = ((Reader)reader).ReadString();
                 var message = Newtonsoft.Json.JsonConvert.DeserializeObject<CustomMessage>(raw);
 
-                if (message?.command == null)
+                if (string.IsNullOrEmpty(message.command))
                 {
                     _logger.Warning("OnClientMessageReceived: Message command is null");
                     return;
@@ -188,7 +122,7 @@ namespace DedicatedServerMod.Client.Patches
                 string raw = ((Reader)reader).ReadString();
                 var message = Newtonsoft.Json.JsonConvert.DeserializeObject<CustomMessage>(raw);
 
-                if (message?.command == null)
+                if (string.IsNullOrEmpty(message.command))
                 {
                     _logger.Warning("OnServerMessageReceived: Message command is null");
                     return;
@@ -236,7 +170,7 @@ namespace DedicatedServerMod.Client.Patches
                         break;
 
                     default:
-                        _logger.Verbose($"Unhandled client message: {command}");
+                        _logger.Msg($"Unhandled client message: {command}");
                         break;
                 }
             }
@@ -266,11 +200,20 @@ namespace DedicatedServerMod.Client.Patches
                 string cmd = parts[0].ToLower();
                 parts.RemoveAt(0);
 
-                // Access the console commands registry
-                var commandsField = typeof(Console).GetField("commands",
-                    BindingFlags.NonPublic | BindingFlags.Static);
+                // Access the console commands registry using reflection
+                var consoleType = typeof(ScheduleOne.Console.ConsoleCommand).Assembly
+                    .GetType("ScheduleOne.Console.Console");
+                
+                if (consoleType == null)
+                {
+                    _logger.Error("ExecuteClientConsoleCommand: Could not find Console type");
+                    return;
+                }
 
-                var commands = commandsField?.GetValue(null) as System.Collections.Generic.Dictionary<string, Console.ConsoleCommand>;
+                var commandsField = consoleType.GetField("commands",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+                var commands = commandsField?.GetValue(null) as System.Collections.Generic.Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
 
                 if (commands == null)
                 {
@@ -281,7 +224,6 @@ namespace DedicatedServerMod.Client.Patches
                 if (!commands.ContainsKey(cmd))
                 {
                     _logger.Warning($"ExecuteClientConsoleCommand: Command '{cmd}' not found on client");
-                    Console.LogCommandError($"Command '{cmd}' not found.");
                     return;
                 }
 
@@ -301,10 +243,10 @@ namespace DedicatedServerMod.Client.Patches
         {
             try
             {
-                var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<ServerData>(data);
+                var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.ServerData>(data);
                 if (serverData != null)
                 {
-                    Client.ServerDataStore.Update(serverData);
+                    Managers.ServerDataStore.Update(serverData);
                     _logger.Msg($"Received server data: {serverData.ServerName}, AllowSleeping={serverData.AllowSleeping}");
                 }
             }
@@ -369,17 +311,6 @@ namespace DedicatedServerMod.Client.Patches
         {
             public string command;
             public string data;
-        }
-
-        /// <summary>
-        /// Represents server configuration data sent to clients.
-        /// </summary>
-        public struct ServerData
-        {
-            public string ServerName;
-            public bool AllowSleeping;
-            public bool TimeNeverStops;
-            public bool PublicServer;
         }
 
         #endregion

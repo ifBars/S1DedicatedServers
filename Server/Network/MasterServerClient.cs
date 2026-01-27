@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Net.Http;
 using System.Text;
+using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -19,7 +20,7 @@ namespace DedicatedServerMod.Server.Network
         private readonly HttpClient httpClient;
         private bool isRegistered = false;
         private bool isRunning = false;
-        private Coroutine heartbeatCoroutine;
+        private object heartbeatCoroutine;
         
         private const int HEARTBEAT_INTERVAL_SECONDS = 30;
         private const float HEARTBEAT_TIMEOUT_SECONDS = 10f;

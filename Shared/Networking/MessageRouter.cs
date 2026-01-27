@@ -9,12 +9,12 @@ using FishNet.Transporting;
 using MelonLoader;
 using Newtonsoft.Json;
 using ScheduleOne;
-using ScheduleOne.Console;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
 using ScheduleOne.Vehicles;
 using UnityEngine;
+using Console = ScheduleOne.Console;
 
 namespace DedicatedServerMod.Shared.Networking
 {
@@ -72,7 +72,7 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 default:
-                    _logger.Verbose($"Unhandled server message: {command}");
+                    _logger.Msg($"Unhandled server message: {command}");
                     break;
             }
         }
@@ -84,7 +84,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteClientMessage(string command, string data)
         {
-            _logger.Verbose($"RouteClientMessage: cmd='{command}'");
+            _logger.Msg($"RouteClientMessage: cmd='{command}'");
 
             switch (command)
             {
@@ -93,7 +93,7 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 default:
-                    _logger.Verbose($"Unhandled client message: {command}");
+                    _logger.Msg($"Unhandled client message: {command}");
                     break;
             }
         }
@@ -218,9 +218,9 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var commandsField = typeof(Console).GetField("commands",
+                var commandsField = typeof(ScheduleOne.Console).GetField("commands",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
+                var commands = commandsField?.GetValue(null) as Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
 
                 if (commands == null)
                 {
@@ -280,9 +280,9 @@ namespace DedicatedServerMod.Shared.Networking
                 string cmd = parts[0].ToLower();
                 parts.RemoveAt(0);
 
-                var commandsField = typeof(Console).GetField("commands",
+                var commandsField = typeof(ScheduleOne.Console).GetField("commands",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
+                var commands = commandsField?.GetValue(null) as Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
 
                 if (commands == null)
                 {
@@ -293,7 +293,7 @@ namespace DedicatedServerMod.Shared.Networking
                 if (!commands.ContainsKey(cmd))
                 {
                     _logger.Warning($"HandleClientConsoleCommand: Command '{cmd}' not found on client");
-                    Console.LogCommandError($"Command '{cmd}' not found.");
+                    ScheduleOne.Console.LogCommandError($"Command '{cmd}' not found.");
                     return;
                 }
 
@@ -342,95 +342,95 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// Ensures core console commands are registered (critical for dedicated servers).
         /// </summary>
-        private static void EnsureCoreCommandsExist(Dictionary<string, Console.ConsoleCommand> commands)
+        private static void EnsureCoreCommandsExist(Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
         {
             try
             {
                 // Add missing core commands
                 if (!commands.ContainsKey("freecam"))
-                    commands.Add("freecam", new FreeCamCommand());
+                    commands.Add("freecam", new Console.FreeCamCommand());
                 if (!commands.ContainsKey("save"))
-                    commands.Add("save", new Save());
+                    commands.Add("save", new Console.Save());
                 if (!commands.ContainsKey("settime"))
-                    commands.Add("settime", new SetTimeCommand());
+                    commands.Add("settime", new Console.SetTimeCommand());
                 if (!commands.ContainsKey("give"))
-                    commands.Add("give", new AddItemToInventoryCommand());
+                    commands.Add("give", new Console.AddItemToInventoryCommand());
                 if (!commands.ContainsKey("clearinventory"))
-                    commands.Add("clearinventory", new ClearInventoryCommand());
+                    commands.Add("clearinventory", new Console.ClearInventoryCommand());
                 if (!commands.ContainsKey("changecash"))
-                    commands.Add("changecash", new ChangeCashCommand());
+                    commands.Add("changecash", new Console.ChangeCashCommand());
                 if (!commands.ContainsKey("changebalance"))
-                    commands.Add("changebalance", new ChangeOnlineBalanceCommand());
+                    commands.Add("changebalance", new Console.ChangeOnlineBalanceCommand());
                 if (!commands.ContainsKey("addxp"))
-                    commands.Add("addxp", new GiveXP());
+                    commands.Add("addxp", new Console.GiveXP());
                 if (!commands.ContainsKey("spawnvehicle"))
-                    commands.Add("spawnvehicle", new SpawnVehicleCommand());
+                    commands.Add("spawnvehicle", new Console.SpawnVehicleCommand());
                 if (!commands.ContainsKey("setmovespeed"))
-                    commands.Add("setmovespeed", new SetMoveSpeedCommand());
+                    commands.Add("setmovespeed", new Console.SetMoveSpeedCommand());
                 if (!commands.ContainsKey("setjumpforce"))
-                    commands.Add("setjumpforce", new SetJumpMultiplier());
+                    commands.Add("setjumpforce", new Console.SetJumpMultiplier());
                 if (!commands.ContainsKey("teleport"))
-                    commands.Add("teleport", new Teleport());
+                    commands.Add("teleport", new Console.Teleport());
                 if (!commands.ContainsKey("setowned"))
-                    commands.Add("setowned", new SetPropertyOwned());
+                    commands.Add("setowned", new Console.SetPropertyOwned());
                 if (!commands.ContainsKey("packageproduct"))
-                    commands.Add("packageproduct", new PackageProduct());
+                    commands.Add("packageproduct", new Console.PackageProduct());
                 if (!commands.ContainsKey("setstaminareserve"))
-                    commands.Add("setstaminareserve", new SetStaminaReserve());
+                    commands.Add("setstaminareserve", new Console.SetStaminaReserve());
                 if (!commands.ContainsKey("raisewanted"))
-                    commands.Add("raisewanted", new RaisedWanted());
+                    commands.Add("raisewanted", new Console.RaisedWanted());
                 if (!commands.ContainsKey("lowerwanted"))
-                    commands.Add("lowerwanted", new LowerWanted());
+                    commands.Add("lowerwanted", new Console.LowerWanted());
                 if (!commands.ContainsKey("clearwanted"))
-                    commands.Add("clearwanted", new ClearWanted());
+                    commands.Add("clearwanted", new Console.ClearWanted());
                 if (!commands.ContainsKey("sethealth"))
-                    commands.Add("sethealth", new SetHealth());
+                    commands.Add("sethealth", new Console.SetHealth());
                 if (!commands.ContainsKey("settimescale"))
-                    commands.Add("settimescale", new SetTimeScale());
+                    commands.Add("settimescale", new Console.SetTimeScale());
                 if (!commands.ContainsKey("setvar"))
-                    commands.Add("setvar", new SetVariableValue());
+                    commands.Add("setvar", new Console.SetVariableValue());
                 if (!commands.ContainsKey("setqueststate"))
-                    commands.Add("setqueststate", new SetQuestState());
+                    commands.Add("setqueststate", new Console.SetQuestState());
                 if (!commands.ContainsKey("setquestentrystate"))
-                    commands.Add("setquestentrystate", new SetQuestEntryState());
+                    commands.Add("setquestentrystate", new Console.SetQuestEntryState());
                 if (!commands.ContainsKey("setemotion"))
-                    commands.Add("setemotion", new SetEmotion());
+                    commands.Add("setemotion", new Console.SetEmotion());
                 if (!commands.ContainsKey("setunlocked"))
-                    commands.Add("setunlocked", new SetUnlocked());
+                    commands.Add("setunlocked", new Console.SetUnlocked());
                 if (!commands.ContainsKey("setrelationship"))
-                    commands.Add("setrelationship", new SetRelationship());
+                    commands.Add("setrelationship", new Console.SetRelationship());
                 if (!commands.ContainsKey("addemployee"))
-                    commands.Add("addemployee", new AddEmployeeCommand());
+                    commands.Add("addemployee", new Console.AddEmployeeCommand());
                 if (!commands.ContainsKey("setdiscovered"))
-                    commands.Add("setdiscovered", new SetDiscovered());
+                    commands.Add("setdiscovered", new Console.SetDiscovered());
                 if (!commands.ContainsKey("growplants"))
-                    commands.Add("growplants", new GrowPlants());
+                    commands.Add("growplants", new Console.GrowPlants());
                 if (!commands.ContainsKey("setlawintensity"))
-                    commands.Add("setlawintensity", new SetLawIntensity());
+                    commands.Add("setlawintensity", new Console.SetLawIntensity());
                 if (!commands.ContainsKey("setquality"))
-                    commands.Add("setquality", new SetQuality());
+                    commands.Add("setquality", new Console.SetQuality());
                 if (!commands.ContainsKey("bind"))
-                    commands.Add("bind", new Bind());
+                    commands.Add("bind", new Console.Bind());
                 if (!commands.ContainsKey("unbind"))
-                    commands.Add("unbind", new Unbind());
+                    commands.Add("unbind", new Console.Unbind());
                 if (!commands.ContainsKey("clearbinds"))
-                    commands.Add("clearbinds", new ClearBinds());
+                    commands.Add("clearbinds", new Console.ClearBinds());
                 if (!commands.ContainsKey("hideui"))
-                    commands.Add("hideui", new HideUI());
+                    commands.Add("hideui", new Console.HideUI());
                 if (!commands.ContainsKey("disable"))
-                    commands.Add("disable", new Disable());
+                    commands.Add("disable", new Console.Disable());
                 if (!commands.ContainsKey("enable"))
-                    commands.Add("enable", new Enable());
+                    commands.Add("enable", new Console.Enable());
                 if (!commands.ContainsKey("endtutorial"))
-                    commands.Add("endtutorial", new EndTutorial());
+                    commands.Add("endtutorial", new Console.EndTutorial());
                 if (!commands.ContainsKey("disablenpcasset"))
-                    commands.Add("disablenpcasset", new DisableNPCAsset());
+                    commands.Add("disablenpcasset", new Console.DisableNPCAsset());
                 if (!commands.ContainsKey("showfps"))
-                    commands.Add("showfps", new ShowFPS());
+                    commands.Add("showfps", new Console.ShowFPS());
                 if (!commands.ContainsKey("hidefps"))
-                    commands.Add("hidefps", new HideFPS());
+                    commands.Add("hidefps", new Console.HideFPS());
                 if (!commands.ContainsKey("cleartrash"))
-                    commands.Add("cleartrash", new ClearTrash());
+                    commands.Add("cleartrash", new Console.ClearTrash());
             }
             catch (Exception ex)
             {
@@ -470,7 +470,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                Console.LogCommandError(message);
+                ScheduleOne.Console.LogCommandError(message);
             }
             catch
             {

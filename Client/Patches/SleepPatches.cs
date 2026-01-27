@@ -1,6 +1,4 @@
 using System;
-using System.Reflection;
-using FishNet.Object;
 using HarmonyLib;
 using MelonLoader;
 using ScheduleOne.PlayerScripts;
@@ -28,100 +26,43 @@ namespace DedicatedServerMod.Client.Patches
         /// </summary>
         private static bool _ignoreGhostHostForSleep = true;
 
-        #region Initialization
-
         /// <summary>
-        /// Applies all sleep-related Harmony patches.
+        /// Initialize the sleep patches with a logger instance.
         /// </summary>
-        /// <param name="harmony">The Harmony instance to patch with</param>
         /// <param name="logger">The logger instance to use</param>
-        public static void ApplyPatches(Harmony harmony, MelonLogger.Instance logger)
+        public static void Initialize(MelonLogger.Instance logger)
         {
             _logger = logger;
-
-            // Patch Player.AreAllPlayersReadyToSleep
-            PatchAreAllPlayersReadyToSleep(harmony);
-
-            // Patch SleepCanvas.SetIsOpen
-            PatchSleepCanvasSetIsOpen(harmony);
-
-            _logger.Msg("Sleep patches applied successfully");
+            _logger.Msg("Sleep patches initialized (using attribute-based patching)");
         }
 
         /// <summary>
-        /// Removes all sleep-related Harmony patches.
+        /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
         /// </summary>
-        /// <param name="harmony">The Harmony instance to unpatch</param>
-        public static void RemovePatches(Harmony harmony)
+        public static bool IgnoreGhostHostForSleep
         {
-            UnpatchAreAllPlayersReadyToSleep(harmony);
-            UnpatchSleepCanvasSetIsOpen(harmony);
-            _logger.Msg("Sleep patches removed");
+            get => _ignoreGhostHostForSleep;
+            set
+            {
+                _ignoreGhostHostForSleep = value;
+                _logger?.Msg($"SleepPatches: Ignore ghost host for sleep set to: {_ignoreGhostHostForSleep}");
+            }
         }
-
-        #endregion
 
         #region Player.AreAllPlayersReadyToSleep Patch
-
-        /// <summary>
-        /// Patches Player.AreAllPlayersReadyToSleep to filter out ghost host players.
-        /// </summary>
-        private static void PatchAreAllPlayersReadyToSleep(Harmony harmony)
-        {
-            try
-            {
-                var playerType = typeof(Player);
-                var method = playerType.GetMethod("AreAllPlayersReadyToSleep",
-                    BindingFlags.Public | BindingFlags.Static);
-
-                if (method != null)
-                {
-                    var prefixMethod = typeof(SleepPatches).GetMethod(
-                        nameof(AreAllPlayersReadyToSleepPrefix),
-                        BindingFlags.Static | BindingFlags.NonPublic);
-
-                    harmony.Patch(method, new HarmonyMethod(prefixMethod));
-                    _logger.Msg("Patched Player.AreAllPlayersReadyToSleep to ignore ghost host");
-                }
-                else
-                {
-                    _logger.Warning("Could not find Player.AreAllPlayersReadyToSleep method to patch");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to patch AreAllPlayersReadyToSleep: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Unpatches Player.AreAllPlayersReadyToSleep.
-        /// </summary>
-        private static void UnpatchAreAllPlayersReadyToSleep(Harmony harmony)
-        {
-            try
-            {
-                var playerType = typeof(Player);
-                var method = playerType.GetMethod("AreAllPlayersReadyToSleep",
-                    BindingFlags.Public | BindingFlags.Static);
-
-                if (method != null)
-                {
-                    harmony.Unpatch(method, HarmonyPatchType.Prefix);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to unpatch AreAllPlayersReadyToSleep: {ex}");
-            }
-        }
 
         /// <summary>
         /// Harmony prefix patch for Player.AreAllPlayersReadyToSleep.
         /// Filters out ghost loopback host players from the sleep readiness check.
         /// </summary>
+        /// <remarks>
+        /// This patch intercepts the sleep readiness check to exclude the server's loopback player
+        /// on dedicated servers, allowing clients to sleep without waiting for the ghost host.
+        /// </remarks>
         /// <param name="__result">The result to set if we handle the check ourselves</param>
         /// <returns>False to skip original method if we handled it, true otherwise</returns>
+        [HarmonyPatch(typeof(Player), nameof(Player.AreAllPlayersReadyToSleep))]
+        [HarmonyPrefix]
         private static bool AreAllPlayersReadyToSleepPrefix(ref bool __result)
         {
             // Only apply our custom logic if the feature is enabled and we're a client connected to server
@@ -185,65 +126,18 @@ namespace DedicatedServerMod.Client.Patches
         #region SleepCanvas.SetIsOpen Patch
 
         /// <summary>
-        /// Patches SleepCanvas.SetIsOpen to respect server's AllowSleeping setting.
-        /// </summary>
-        private static void PatchSleepCanvasSetIsOpen(Harmony harmony)
-        {
-            try
-            {
-                var sleepCanvasType = typeof(SleepCanvas);
-                var method = sleepCanvasType.GetMethod("SetIsOpen",
-                    BindingFlags.Public | BindingFlags.Instance);
-
-                if (method != null)
-                {
-                    var prefix = typeof(SleepPatches).GetMethod(
-                        nameof(SleepCanvas_SetIsOpen_Prefix),
-                        BindingFlags.Static | BindingFlags.NonPublic);
-
-                    harmony.Patch(method, new HarmonyMethod(prefix));
-                    _logger.Msg("Patched SleepCanvas.SetIsOpen to respect server AllowSleeping");
-                }
-                else
-                {
-                    _logger.Warning("Could not find SleepCanvas.SetIsOpen method to patch");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to patch SleepCanvas.SetIsOpen: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Unpatches SleepCanvas.SetIsOpen.
-        /// </summary>
-        private static void UnpatchSleepCanvasSetIsOpen(Harmony harmony)
-        {
-            try
-            {
-                var sleepCanvasType = typeof(SleepCanvas);
-                var method = sleepCanvasType.GetMethod("SetIsOpen",
-                    BindingFlags.Public | BindingFlags.Instance);
-
-                if (method != null)
-                {
-                    harmony.Unpatch(method, HarmonyPatchType.Prefix);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to unpatch SleepCanvas.SetIsOpen: {ex}");
-            }
-        }
-
-        /// <summary>
         /// Harmony prefix patch for SleepCanvas.SetIsOpen.
         /// Prevents opening the sleep UI if the server has disabled sleeping.
         /// </summary>
+        /// <remarks>
+        /// This patch enforces the server's AllowSleeping configuration on clients,
+        /// preventing players from attempting to sleep when the server has disabled it.
+        /// </remarks>
         /// <param name="__instance">The SleepCanvas instance</param>
         /// <param name="open">Whether opening or closing</param>
         /// <returns>False to skip original if we blocked it, true otherwise</returns>
+        [HarmonyPatch(typeof(SleepCanvas), nameof(SleepCanvas.SetIsOpen))]
+        [HarmonyPrefix]
         private static bool SleepCanvas_SetIsOpen_Prefix(SleepCanvas __instance, bool open)
         {
             try
@@ -255,7 +149,7 @@ namespace DedicatedServerMod.Client.Patches
                 if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsHost)
                 {
                     // Check server's AllowSleeping setting
-                    var allowSleeping = Client.ServerDataStore.AllowSleeping;
+                    var allowSleeping = Managers.ServerDataStore.AllowSleeping;
                     if (!allowSleeping)
                     {
                         _logger?.Msg("Server has disabled sleeping; suppressing SleepCanvas open");
@@ -308,23 +202,6 @@ namespace DedicatedServerMod.Client.Patches
             {
                 _logger?.Error($"Error checking for ghost loopback player: {ex}");
                 return false;
-            }
-        }
-
-        #endregion
-
-        #region Configuration
-
-        /// <summary>
-        /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
-        /// </summary>
-        public static bool IgnoreGhostHostForSleep
-        {
-            get => _ignoreGhostHostForSleep;
-            set
-            {
-                _ignoreGhostHostForSleep = value;
-                _logger?.Msg($"SleepPatches: Ignore ghost host for sleep set to: {_ignoreGhostHostForSleep}");
             }
         }
 

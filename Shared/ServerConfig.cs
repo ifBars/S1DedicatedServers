@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using DedicatedServerMod.Shared.Permissions;
 using FishNet;
 using FishNet.Connection;
 using Newtonsoft.Json;

@@ -1,14 +1,15 @@
-using MelonLoader;
 using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Shared.Configuration;
 using FishNet;
 using FishNet.Component.Scenes;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using MelonLoader;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
@@ -213,7 +214,7 @@ namespace DedicatedServerMod.Server.Core
             if (NetworkSingleton<TimeManager>.Instance != null && !_timeLoopsStarted)
             {
                 var tm = NetworkSingleton<TimeManager>.Instance;
-                tm.TimeProgressionMultiplier = 1f;
+                TrySetTimeProgressionMultiplier(tm, 1f);
                 TryStartTimeLoops(tm);
                 _timeLoopsStarted = true;
             }
@@ -265,6 +266,33 @@ namespace DedicatedServerMod.Server.Core
                 return;
             }
             logger.Warning("Could not set client transport via reflection");
+        }
+
+        private static void TrySetTimeProgressionMultiplier(TimeManager timeManager, float multiplier)
+        {
+            try
+            {
+                if (timeManager == null) return;
+
+                // Game updates may rename/remove this member; use reflection to stay resilient.
+                var t = timeManager.GetType();
+                var prop = t.GetProperty("TimeProgressionMultiplier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (prop != null && prop.CanWrite && prop.PropertyType == typeof(float))
+                {
+                    prop.SetValue(timeManager, multiplier);
+                    return;
+                }
+
+                var field = t.GetField("TimeProgressionMultiplier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (field != null && field.FieldType == typeof(float))
+                {
+                    field.SetValue(timeManager, multiplier);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Failed to set TimeProgressionMultiplier: {ex.Message}");
+            }
         }
 
         private static void TryRegisterDefaultQuestsWithGuidManager()

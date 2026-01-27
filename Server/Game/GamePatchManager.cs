@@ -1,9 +1,10 @@
-using MelonLoader;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
+using HarmonyLib;
+using MelonLoader;
 using ScheduleOne.PlayerScripts;
 using FishNet.Connection;
 

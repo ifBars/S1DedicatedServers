@@ -1,14 +1,14 @@
 using MelonLoader;
 using System;
 using System.Collections;
+using DedicatedServerMod.Assets;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
-using DedicatedServerMod.Assets;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Manages UI additions for the dedicated server client mod.

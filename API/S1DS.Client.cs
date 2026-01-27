@@ -1,5 +1,8 @@
 #if CLIENT
-using DedicatedServerMod.Client;
+using DedicatedServerMod.Client.Core;
+using DedicatedServerMod.Client.Managers;
+using DedicatedServerMod.Client.Patchers;
+using MelonLoader;
 
 namespace DedicatedServerMod.API
 {
@@ -17,42 +20,42 @@ namespace DedicatedServerMod.API
             /// <summary>
             /// Access to client core functionality
             /// </summary>
-            public static Core ClientCore => DedicatedServerMod.Client.Core.Instance;
+            public static ClientBootstrap ClientCore => ClientBootstrap.Instance;
 
             /// <summary>
             /// Access to client connection management
             /// </summary>
-            public static ClientConnectionManager Connection => DedicatedServerMod.Client.Core.ConnectionManager;
+            public static ClientConnectionManager Connection => ClientBootstrap.Instance?.ConnectionManager;
 
             /// <summary>
             /// Access to client UI management
             /// </summary>
-            public static ClientUIManager UI => DedicatedServerMod.Client.Core.Instance?.UIManager;
+            public static ClientUIManager UI => ClientBootstrap.Instance?.UIManager;
 
             /// <summary>
             /// Access to client player setup
             /// </summary>
-            public static ClientPlayerSetup PlayerSetup => DedicatedServerMod.Client.Core.Instance?.PlayerSetupManager;
+            public static ClientPlayerSetup PlayerSetup => ClientBootstrap.Instance?.PlayerSetupManager;
 
             /// <summary>
             /// Access to client console management
             /// </summary>
-            public static ClientConsoleManager Console => DedicatedServerMod.Client.Core.Instance?.ConsoleManager;
+            public static ClientConsoleManager Console => ClientBootstrap.Instance?.ConsoleManager;
 
             /// <summary>
             /// Access to client quest management
             /// </summary>
-            public static ClientQuestManager Quests => DedicatedServerMod.Client.Core.Instance?.QuestManager;
+            public static ClientQuestManager Quests => ClientBootstrap.Instance?.QuestManager;
 
             /// <summary>
             /// Access to client loopback handler
             /// </summary>
-            public static ClientLoopbackHandler Loopback => DedicatedServerMod.Client.Core.Instance?.LoopbackManager;
+            public static ClientLoopbackHandler Loopback => ClientBootstrap.Instance?.LoopbackHandler;
 
             /// <summary>
             /// Access to client transport patcher
             /// </summary>
-            public static ClientTransportPatcher Transport => DedicatedServerMod.Client.Core.Instance?.TransportPatcher;
+            public static ClientTransportPatcher Transport => ClientBootstrap.Instance?.TransportPatcher;
 
             /// <summary>
             /// Checks if the client is currently connected to a server
@@ -62,7 +65,7 @@ namespace DedicatedServerMod.API
             /// <summary>
             /// Checks if the client core is initialized
             /// </summary>
-            public static bool IsInitialized => DedicatedServerMod.Client.Core.Instance != null;
+            public static bool IsInitialized => ClientBootstrap.Instance != null;
         }
     }
 }

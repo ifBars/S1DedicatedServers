@@ -11,6 +11,7 @@ using UnityEngine;
 using DedicatedServerMod;
 using DedicatedServerMod.API;
 using FishNet.Transporting;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -149,7 +150,7 @@ namespace DedicatedServerMod.Server.Player
                         PublicServer = cfg.PublicServer
                     };
                     var json = Newtonsoft.Json.JsonConvert.SerializeObject(sd);
-                    DedicatedServerMod.Shared.CustomMessaging.SendToClient(connection, "server_data", json);
+                    DedicatedServerMod.Shared.Networking.CustomMessaging.SendToClient(connection, "server_data", json);
                 }
                 catch (Exception ex)
                 {

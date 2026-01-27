@@ -402,7 +402,7 @@ namespace DedicatedServerMod.Utils
         /// Writes a message to the admin actions log file.
         /// </summary>
         /// <param name="message">The message to write</param>
-        private static void WriteToAdminLog(string message)
+        internal static void WriteToAdminLog(string message)
         {
             try
             {

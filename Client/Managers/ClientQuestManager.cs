@@ -7,7 +7,7 @@ using System.Collections;
 using ScheduleOne.DevUtilities;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Manages quest system initialization for dedicated server clients.

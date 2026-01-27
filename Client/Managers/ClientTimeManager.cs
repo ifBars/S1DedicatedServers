@@ -10,7 +10,7 @@ using ScheduleOne.GameTime;
 using ScheduleOne.PlayerScripts;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Client-side time management patches to ensure proper synchronization with dedicated servers

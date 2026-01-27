@@ -12,7 +12,7 @@ using ScheduleOne.DevUtilities;
 using UnityEngine;
 using DedicatedServerMod.API;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
     /// Handles player setup, character creation, and intro sequence bypassing for dedicated server clients.

@@ -4,6 +4,7 @@ using System.IO;
 using Newtonsoft.Json;
 using MelonLoader;
 using MelonLoader.Utils;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Shared.Configuration
 {

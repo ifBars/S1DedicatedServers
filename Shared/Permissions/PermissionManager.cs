@@ -51,18 +51,18 @@ namespace DedicatedServerMod.Shared.Permissions
         public static event Action<string> BanRemoved;
 
         /// <summary>
-        /// Raised when permission configuration changes.
+        /// Raised when permissions have changed (operator/admin/ban added/removed).
         /// </summary>
         public static event Action PermissionsChanged;
 
         #endregion
 
-        #region Private Fields
+        #region Properties
 
         /// <summary>
-        /// Reference to the server configuration.
+        /// Gets the server configuration instance.
         /// </summary>
-        private static Configuration.ServerConfig Config => Configuration.ServerConfig.Instance;
+        internal static Configuration.ServerConfig Config => Configuration.ServerConfig.Instance;
 
         /// <summary>
         /// Reference to the logger.

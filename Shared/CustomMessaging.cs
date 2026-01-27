@@ -1,4 +1,5 @@
 using System;
+using DedicatedServerMod.Utils;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Object;
@@ -9,6 +10,7 @@ using MelonLoader;
 using Newtonsoft.Json;
 using ScheduleOne;
 using ScheduleOne.DevUtilities;
+using ScheduleOne.UI;
 
 namespace DedicatedServerMod.Shared.Networking
 {
@@ -88,7 +90,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// Harmony postfix for DailySummary.Awake. Registers custom RPC handlers.
         /// </summary>
         /// <param name="__instance">The DailySummary instance being initialized</param>
-        public static void DailySummaryAwakePostfix(DailySummary __instance)
+        public static void DailySummaryAwakePostfix(object __instance)
         {
             try
             {
@@ -121,7 +123,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var ds = NetworkSingleton<DailySummary>.Instance;
+                var ds = DailySummary.Instance;
                 if (ds == null)
                 {
                     _logger.Warning($"SendToServer skipped: DailySummary instance null for cmd='{command}'");
@@ -136,7 +138,7 @@ namespace DedicatedServerMod.Shared.Networking
                 ((NetworkBehaviour)ds).SendServerRpc(MessageId, writer, Channel.Reliable, DataOrderType.Default);
                 writer.Store();
 
-                _logger.Verbose($"SendToServer cmd='{command}' len={data?.Length ?? 0}");
+                _logger.Msg($"SendToServer cmd='{command}' len={data?.Length ?? 0}");
             }
             catch (Exception ex)
             {
@@ -154,7 +156,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var ds = NetworkSingleton<DailySummary>.Instance;
+                var ds = DailySummary.Instance;
                 if (ds == null || conn == null)
                 {
                     _logger.Warning($"SendToClient skipped: ds null? {ds==null}, conn null? {conn==null} for cmd='{command}'");
@@ -169,7 +171,7 @@ namespace DedicatedServerMod.Shared.Networking
                 ((NetworkBehaviour)ds).SendTargetRpc(MessageId, writer, Channel.Reliable, DataOrderType.Default, conn, false, true);
                 writer.Store();
 
-                _logger.Verbose($"SendToClient cmd='{command}' len={data?.Length ?? 0} to={conn.ClientId}");
+                _logger.Msg($"SendToClient cmd='{command}' len={data?.Length ?? 0} to={conn.ClientId}");
             }
             catch (Exception ex)
             {
@@ -186,7 +188,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var ds = NetworkSingleton<DailySummary>.Instance;
+                var ds = DailySummary.Instance;
                 if (ds == null || !InstanceFinder.IsServer)
                     return;
 
@@ -199,7 +201,7 @@ namespace DedicatedServerMod.Shared.Networking
                     }
                 }
 
-                _logger.Verbose($"BroadcastToClients cmd='{command}' len={data?.Length ?? 0}");
+                _logger.Msg($"BroadcastToClients cmd='{command}' len={data?.Length ?? 0}");
             }
             catch (Exception ex)
             {
@@ -227,7 +229,7 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
-                _logger.Verbose($"OnClientMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0}");
+                _logger.Msg($"OnClientMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0}");
 
                 // Raise API event for mods
                 try
@@ -270,7 +272,8 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
-                _logger.Verbose($"OnServerMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0} from={conn?.ClientId}");
+                // Log verbose messages with Msg (MelonLogger doesn't have Verbose)
+                _logger.Msg($"OnServerMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0} from={conn?.ClientId}");
 
                 // Raise API event for server mods
                 try
@@ -300,7 +303,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// Critical for dedicated servers where Console.Awake may not run.
         /// </summary>
         /// <param name="commands">The commands dictionary to populate</param>
-        public static void InitializeConsoleCommands(System.Collections.Generic.Dictionary<string, Console.ConsoleCommand> commands)
+        public static void InitializeConsoleCommands(System.Collections.Generic.Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
         {
             MessageRouter.Initialize(_logger);
         }

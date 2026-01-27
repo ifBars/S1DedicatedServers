@@ -6,7 +6,7 @@ using FishNet.Connection;
 using HarmonyLib;
 using MelonLoader;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Patchers
 {
 	/// <summary>
 	/// Guards RunLocally Observers RPC wrappers in police-related classes so that on clients

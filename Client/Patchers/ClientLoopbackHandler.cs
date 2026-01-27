@@ -4,9 +4,10 @@ using MelonLoader;
 using ScheduleOne.PlayerScripts;
 using System;
 using System.Collections;
+using DedicatedServerMod.Client.Managers;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Patchers
 {
     /// <summary>
     /// Handles hiding server loopback players on dedicated server clients.

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
-using DedicatedServerMod.Client;
+using DedicatedServerMod.Client.Core;
+using MelonLoader;
 using UnityEngine;
 
 namespace DedicatedServerMod.Assets
@@ -11,7 +12,7 @@ namespace DedicatedServerMod.Assets
 		{
 			try
 			{
-				using (var stream = typeof(Core).Assembly.GetManifestResourceStream(resourceName))
+				using (var stream = typeof(ClientBootstrap).Assembly.GetManifestResourceStream(resourceName))
 				{
 					if (stream == null)
 					{

@@ -9,9 +9,10 @@ using ScheduleOne.UI.MainMenu;
 using System;
 using System.Collections;
 using System.Reflection;
+using DedicatedServerMod.Client.Managers;
 using UnityEngine;
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Patchers
 {
     /// <summary>
     /// Handles Harmony patches for transport configuration in dedicated server mode.

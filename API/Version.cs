@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
 
-[assembly: MelonGame("TVGS", "Schedule I")]
-
 namespace DedicatedServerMod.API
 {
     /// <summary>

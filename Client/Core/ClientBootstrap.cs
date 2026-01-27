@@ -3,11 +3,13 @@ using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 using ScheduleOne.PlayerScripts;
+using DedicatedServerMod.Client.Managers;
+using DedicatedServerMod.Client.Patchers;
 
-[assembly: MelonInfo(typeof(DedicatedServerMod.Client.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Ghost")]
+[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Ghost")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
-namespace DedicatedServerMod.Client
+namespace DedicatedServerMod.Client.Core
 {
     /// <summary>
     /// Main entry point for the Dedicated Server Client mod.
@@ -32,45 +34,42 @@ namespace DedicatedServerMod.Client
         /// </summary>
         private MelonLogger.Instance _logger;
 
-        /// <summary>
-        /// The Harmony instance for this mod.
-        /// </summary>
-        private HarmonyInstance _harmony;
+
 
         /// <summary>
         /// The connection manager for server communication.
         /// </summary>
-        private Managers.ClientConnectionManager _connectionManager;
+        private ClientConnectionManager _connectionManager;
 
         /// <summary>
         /// The UI manager for client UI elements.
         /// </summary>
-        private Managers.ClientUIManager _uiManager;
+        private ClientUIManager _uiManager;
 
         /// <summary>
         /// The quest manager for quest-related functionality.
         /// </summary>
-        private Managers.ClientQuestManager _questManager;
+        private ClientQuestManager _questManager;
 
         /// <summary>
         /// The console manager for admin console access.
         /// </summary>
-        private Managers.ClientConsoleManager _consoleManager;
+        private ClientConsoleManager _consoleManager;
 
         /// <summary>
         /// The player setup handler.
         /// </summary>
-        private Managers.ClientPlayerSetup _playerSetup;
+        private ClientPlayerSetup _playerSetup;
 
         /// <summary>
         /// The loopback handler for ghost player management.
         /// </summary>
-        private Managers.ClientLoopbackHandler _loopbackHandler;
+        private ClientLoopbackHandler _loopbackHandler;
 
         /// <summary>
         /// The transport patcher for network transport modifications.
         /// </summary>
-        private Patches.ClientTransportPatcher _transportPatcher;
+        private ClientTransportPatcher _transportPatcher;
 
         /// <summary>
         /// Whether to ignore the ghost host when checking sleep readiness.
@@ -94,37 +93,37 @@ namespace DedicatedServerMod.Client
         /// <summary>
         /// Gets the connection manager.
         /// </summary>
-        public Managers.ClientConnectionManager ConnectionManager => _connectionManager;
+        public ClientConnectionManager ConnectionManager => _connectionManager;
 
         /// <summary>
         /// Gets the UI manager.
         /// </summary>
-        public Managers.ClientUIManager UIManager => _uiManager;
+        public ClientUIManager UIManager => _uiManager;
 
         /// <summary>
         /// Gets the quest manager.
         /// </summary>
-        public Managers.ClientQuestManager QuestManager => _questManager;
+        public ClientQuestManager QuestManager => _questManager;
 
         /// <summary>
         /// Gets the console manager.
         /// </summary>
-        public Managers.ClientConsoleManager ConsoleManager => _consoleManager;
+        public ClientConsoleManager ConsoleManager => _consoleManager;
 
         /// <summary>
         /// Gets the player setup handler.
         /// </summary>
-        public Managers.ClientPlayerSetup PlayerSetupManager => _playerSetup;
+        public ClientPlayerSetup PlayerSetupManager => _playerSetup;
 
         /// <summary>
         /// Gets the loopback handler.
         /// </summary>
-        public Managers.ClientLoopbackHandler LoopbackHandler => _loopbackHandler;
+        public ClientLoopbackHandler LoopbackHandler => _loopbackHandler;
 
         /// <summary>
         /// Gets the transport patcher.
         /// </summary>
-        public Patches.ClientTransportPatcher TransportPatcher => _transportPatcher;
+        public ClientTransportPatcher TransportPatcher => _transportPatcher;
 
         /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
@@ -198,30 +197,31 @@ namespace DedicatedServerMod.Client
         /// <summary>
         /// Applies all client-side Harmony patches.
         /// </summary>
+        /// <remarks>
+        /// MelonLoader automatically applies patches with [HarmonyPatch] attributes.
+        /// This method just initializes the patch classes with logger instances.
+        /// </remarks>
         private void ApplyClientPatches()
         {
             try
             {
-                _harmony = HarmonyInstance;
+                // Initialize attribute-based patches with logger
+                // MelonLoader will automatically apply patches marked with [HarmonyPatch]
+                Patches.SleepPatches.Initialize(_logger);
+                Patches.MessagingPatches.Initialize(_logger);
 
-                // Apply sleep patches (handles ghost player filtering)
-                Patches.SleepPatches.ApplyPatches(_harmony, _logger);
-
-                // Apply messaging patches (registers custom RPCs)
-                Patches.MessagingPatches.ApplyPatches(_harmony, _logger);
-
-                // Apply transport patches
-                _transportPatcher = new Patches.ClientTransportPatcher(_logger);
+                // Apply transport patches (runtime patching needed for flexibility)
+                _transportPatcher = new ClientTransportPatcher(_logger);
                 _transportPatcher.Initialize();
 
-                // Apply police observer guards
-                Shared.PoliceAuthorityPatches.ApplyClient(_harmony, _logger);
+                // Apply police observer guards (shared patches)
+                Shared.PoliceAuthorityPatches.ApplyClient(HarmonyInstance, _logger);
 
-                _logger.Msg("All client patches applied");
+                _logger.Msg("All client patches initialized");
             }
             catch (Exception ex)
             {
-                _logger.Error($"Failed to apply client patches: {ex}");
+                _logger.Error($"Failed to initialize client patches: {ex}");
             }
         }
 
@@ -238,27 +238,27 @@ namespace DedicatedServerMod.Client
             _transportPatcher?.Initialize();
 
             // Initialize connection manager
-            _connectionManager = new Managers.ClientConnectionManager(_logger);
+            _connectionManager = new ClientConnectionManager(_logger);
             _connectionManager.Initialize();
 
             // Initialize console manager (for admin console access)
-            _consoleManager = new Managers.ClientConsoleManager(_logger);
+            _consoleManager = new ClientConsoleManager(_logger);
             _consoleManager.Initialize();
 
             // Initialize player setup handler
-            _playerSetup = new Managers.ClientPlayerSetup(_logger);
+            _playerSetup = new ClientPlayerSetup(_logger);
             _playerSetup.Initialize();
 
             // Initialize quest manager
-            _questManager = new Managers.ClientQuestManager(_logger);
+            _questManager = new ClientQuestManager(_logger);
             _questManager.Initialize();
 
             // Initialize loopback handler
-            _loopbackHandler = new Managers.ClientLoopbackHandler(_logger);
+            _loopbackHandler = new ClientLoopbackHandler(_logger);
             _loopbackHandler.Initialize();
 
             // Initialize UI manager (depends on connection manager)
-            _uiManager = new Managers.ClientUIManager(_logger, _connectionManager);
+            _uiManager = new ClientUIManager(_logger, _connectionManager);
             _uiManager.Initialize();
         }
 
@@ -279,10 +279,10 @@ namespace DedicatedServerMod.Client
 
                     try
                     {
-                        var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<ServerData>(data);
+                        var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.ServerData>(data);
                         if (serverData != null)
                         {
-                            ServerDataStore.Update(serverData);
+                            Managers.ServerDataStore.Update(serverData);
                         }
                     }
                     catch (Exception ex)
@@ -360,21 +360,6 @@ namespace DedicatedServerMod.Client
         public void DebugLog(string message)
         {
             Utils.DebugLog.Debug(message);
-        }
-
-        #endregion
-
-        #region Server Data Type
-
-        /// <summary>
-        /// Represents server configuration data received from the server.
-        /// </summary>
-        public struct ServerData
-        {
-            public string ServerName;
-            public bool AllowSleeping;
-            public bool TimeNeverStops;
-            public bool PublicServer;
         }
 
         #endregion

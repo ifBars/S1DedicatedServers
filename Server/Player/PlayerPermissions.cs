@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -31,7 +32,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool IsOperator(string steamId)
         {
-            return ServerConfig.IsOperator(steamId);
+            return Shared.Permissions.PermissionManager.IsOperator(steamId);
         }
 
         /// <summary>
@@ -39,7 +40,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool IsAdministrator(string steamId)
         {
-            return ServerConfig.IsAdmin(steamId);
+            return Shared.Permissions.PermissionManager.IsAdmin(steamId);
         }
 
         /// <summary>
@@ -79,7 +80,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool AddOperator(string steamId)
         {
-            return ServerConfig.AddOperator(steamId);
+            return Shared.Permissions.PermissionManager.AddOperator(steamId);
         }
 
         /// <summary>
@@ -87,7 +88,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool RemoveOperator(string steamId)
         {
-            return ServerConfig.RemoveOperator(steamId);
+            return Shared.Permissions.PermissionManager.RemoveOperator(steamId);
         }
 
         /// <summary>
@@ -95,7 +96,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool AddAdministrator(string steamId)
         {
-            return ServerConfig.AddAdmin(steamId);
+            return Shared.Permissions.PermissionManager.AddAdmin(steamId);
         }
 
         /// <summary>
@@ -103,7 +104,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool RemoveAdministrator(string steamId)
         {
-            return ServerConfig.RemoveAdmin(steamId);
+            return Shared.Permissions.PermissionManager.RemoveAdmin(steamId);
         }
 
         /// <summary>

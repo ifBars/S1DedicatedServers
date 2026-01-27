@@ -935,6 +935,12 @@
 	
 	<!-- Utility infrastructure (shared by all builds) -->
 	<ItemGroup>
+	  <!-- Legacy files in Shared root (for backward compatibility) -->
+	  <Compile Include="Shared\CustomMessaging.cs" />
+	  <Compile Include="Shared\PoliceAuthorityPatches.cs" />
+	  <Compile Include="Shared\ServerConfig.cs" />
+	  <Compile Include="Shared\ServerData.cs" />
+	  <!-- Utils -->
 	  <Compile Include="Utils\*.cs" />
 	</ItemGroup>
 	
@@ -968,10 +974,13 @@
 		<EmbeddedResource Include="Assets\dedicatedclientui" />
 
 		<!-- Client bootstrap and entry point -->
-		<Compile Include="Client\ClientBootstrap.cs" />
+		<Compile Include="Client\Core\ClientBootstrap.cs" />
 		
 		<!-- Client managers -->
 		<Compile Include="Client\Managers\*.cs" />
+		
+		<!-- Client patchers -->
+		<Compile Include="Client\Patchers\*.cs" />
 		
 		<!-- Client patches -->
 		<Compile Include="Client\Patches\*.cs" />
@@ -994,6 +1003,8 @@
 		
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />
+		<Compile Include="Server\Network\MasterServerClient.cs" />
+		<Compile Include="Server\Network\ServerHeartbeatData.cs" />
 		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />
 		
 		<!-- Player management -->
@@ -1021,6 +1032,11 @@
 		<Compile Include="API\S1DS.Server.cs" />
 		
 		<!-- Legacy files (for backward compatibility during transition) -->
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Client\Managers\" />
+	  <Folder Include="Client\Patchers\" />
+	  <Folder Include="Client\Core\" />
 	</ItemGroup>
 
 	<PropertyGroup>

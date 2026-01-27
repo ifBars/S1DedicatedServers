@@ -2,6 +2,7 @@ using MelonLoader;
 using System.Linq;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod;
+using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Commands.Admin
 {
