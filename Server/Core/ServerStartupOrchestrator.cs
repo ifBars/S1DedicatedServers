@@ -31,15 +31,66 @@ namespace DedicatedServerMod.Server.Core
 
         public static IEnumerator StartDedicatedServer(string savePathOverride = null)
         {
+            MelonLogger.Msg("Global Logger: Starting dedicated server loading sequence (orchestrator)");
             logger.Msg("Starting dedicated server loading sequence (orchestrator)");
 
-            // Step 1: Ensure Multipass/Tugboat and configure transport
-            var networkManager = InstanceFinder.NetworkManager;
+            // Step 1: Wait for the game to finish loading initial scenes
+            logger.Msg("Waiting for game initialization...");
+            
+            // Wait a few frames for Unity to settle
+            for (int i = 0; i < 10; i++)
+                yield return null;
+            
+            logger.Msg($"Current scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+            
+            // Step 2: Ensure Multipass/Tugboat and configure transport
+            FishNet.Managing.NetworkManager networkManager = null;
+            
+            // Wait for NetworkManager to be available (it might be initializing in the first scene)
+            float waitNM = 0f;
+            logger.Msg("Checking for NetworkManager...");
+            
+            while (networkManager == null && waitNM < 30f)
+            {
+                // Try both methods to find it
+                try
+                {
+                    networkManager = InstanceFinder.NetworkManager;
+                }
+                catch (Exception ex)
+                {
+                    logger.Msg($"InstanceFinder threw: {ex.Message}");
+                }
+                
+                if (networkManager == null)
+                {
+                    try
+                    {
+                        networkManager = UnityEngine.Object.FindObjectOfType<FishNet.Managing.NetworkManager>();
+                        if (networkManager != null)
+                            logger.Msg("Found NetworkManager via FindObjectOfType");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Msg($"FindObjectOfType threw: {ex.Message}");
+                    }
+                }
+                
+                if (networkManager == null)
+                {
+                    logger.Msg($"Waiting for NetworkManager... ({waitNM}s elapsed)");
+                    yield return new WaitForSeconds(1f);
+                    waitNM += 1f;
+                }
+            }
+
             if (networkManager == null)
             {
-                logger.Error("NetworkManager not found");
+                logger.Error("NetworkManager not found in any open scenes after waiting 30 seconds.");
                 yield break;
             }
+            
+            logger.Msg($"NetworkManager found! Scene: {networkManager.gameObject.scene.name}");
 
             var transportManager = networkManager.TransportManager;
             var transport = transportManager.Transport;

@@ -652,8 +652,18 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 var target = ClientConnectionManager.GetTargetServer();
-                if (dsIpInput != null) dsIpInput.text = target.ip ?? string.Empty;
-                if (dsPortInput != null) dsPortInput.text = target.port.ToString();
+                
+                if (dsIpInput != null)
+                {
+                    dsIpInput.text = string.Empty; // Clear first to prevent concatenation
+                    dsIpInput.text = target.ip ?? "localhost";
+                }
+                
+                if (dsPortInput != null)
+                {
+                    dsPortInput.text = string.Empty; // Clear first to prevent concatenation
+                    dsPortInput.text = target.port.ToString();
+                }
             }
             catch (Exception ex)
             {

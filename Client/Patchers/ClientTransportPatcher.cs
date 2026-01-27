@@ -137,9 +137,9 @@ namespace DedicatedServerMod.Client.Patchers
 
         /// <summary>
         /// Harmony patch for ClientManager.StartConnection
-        /// Intercepts connection attempts and uses Tugboat when in dedicated server mode
+        /// Intercepts connection attempts and configures Tugboat when in dedicated server mode
         /// </summary>
-        public static bool StartConnectionPrefix(ClientManager __instance, ref bool __result)
+        public static bool StartConnectionPrefix(ClientManager __instance)
         {
             if (!ClientConnectionManager.IsTugboatMode)
             {
@@ -151,24 +151,39 @@ namespace DedicatedServerMod.Client.Patchers
                 var logger = new MelonLogger.Instance("ClientTransportPatcher");
                 var (serverIP, serverPort) = ClientConnectionManager.GetTargetServer();
                 
-                logger.Msg($"Intercepting StartConnection for Tugboat connection to {serverIP}:{serverPort}");
+                logger.Msg($"=== StartConnection Intercepted ===");
+                logger.Msg($"Target: {serverIP}:{serverPort}");
+                logger.Msg($"Tugboat Mode: {ClientConnectionManager.IsTugboatMode}");
                 
                 // Get network components
                 var networkManager = InstanceFinder.NetworkManager;
                 if (networkManager == null)
                 {
                     logger.Error("NetworkManager not found");
-                    return true;
+                    return true; // Fallback to original
                 }
+                logger.Msg($"NetworkManager found: {networkManager.name}");
 
                 var transportManager = networkManager.TransportManager;
+                logger.Msg($"TransportManager: {transportManager}");
+                
                 var transport = transportManager.Transport;
+                logger.Msg($"Current Transport: {transport?.GetType().Name ?? "NULL"}");
+                
                 var multipass = transport as Multipass;
                 
                 if (multipass == null)
                 {
                     logger.Error("Multipass transport not found");
-                    return true;
+                    return true; // Fallback to original
+                }
+
+                // Log all available transports on Multipass
+                var allTransports = multipass.gameObject.GetComponents<Transport>();
+                logger.Msg($"Available transports on Multipass ({allTransports.Length}):");
+                foreach (var t in allTransports)
+                {
+                    logger.Msg($"  - {t.GetType().Name} (enabled: {t.enabled})");
                 }
 
                 // Get or configure Tugboat component
@@ -176,25 +191,37 @@ namespace DedicatedServerMod.Client.Patchers
                 if (tugboat == null)
                 {
                     logger.Error("Tugboat component not found - should have been added in Initialize patch");
-                    return true;
+                    return true; // Fallback to original
                 }
+                
+                logger.Msg($"Tugboat found: enabled={tugboat.enabled}");
 
-                // Configure Tugboat connection
+                // Configure Tugboat connection parameters
                 tugboat.SetClientAddress(serverIP);
                 tugboat.SetPort((ushort)serverPort);
+                logger.Msg($"Tugboat configured: IP={serverIP}, Port={serverPort}");
+                
                 SetClientTransport(multipass, tugboat);
                 
-                // Start Tugboat connection
-                __result = tugboat.StartConnection(false);
+                // Verify the client transport was set
+                var clientTransportField = typeof(Multipass).GetField("_clientTransport", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (clientTransportField != null)
+                {
+                    var currentClientTransport = clientTransportField.GetValue(multipass) as Transport;
+                    logger.Msg($"Multipass._clientTransport is now: {currentClientTransport?.GetType().Name ?? "NULL"}");
+                }
                 
-                logger.Msg($"Tugboat connection started: {__result}, IP: {serverIP}, Port: {serverPort}");
+                logger.Msg("Allowing original StartConnection to proceed with Tugboat configured");
+                logger.Msg("=== End StartConnection Intercept ===");
                 
-                return false; // Skip original method
+                // Let the original StartConnection method run with tugboat configured
+                return true;
             }
             catch (Exception ex)
             {
                 var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                logger.Error($"Error in StartConnection patch: {ex}");
+                logger.Error($"Error configuring Tugboat transport: {ex}");
                 return true; // Fallback to original method
             }
         }

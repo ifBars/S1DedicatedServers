@@ -361,6 +361,24 @@ namespace DedicatedServerMod.Shared.Configuration
 
         #endregion
 
+        #region Performance Settings
+
+        /// <summary>
+        /// Target framerate for the server (limits CPU usage in headless mode).
+        /// -1 = unlimited, 30-60 recommended for dedicated servers.
+        /// </summary>
+        [JsonProperty("targetFrameRate")]
+        public int TargetFrameRate { get; set; } = 60;
+
+        /// <summary>
+        /// VSync setting (0 = off, 1 = every frame, 2 = every other frame).
+        /// Should be 0 for dedicated servers.
+        /// </summary>
+        [JsonProperty("vSyncCount")]
+        public int VSyncCount { get; set; } = 0;
+
+        #endregion
+
         #region Save Path (Server)
 
         /// <summary>
@@ -594,6 +612,22 @@ namespace DedicatedServerMod.Shared.Configuration
                             Logger.Msg("TCP console password set via CLI and requirement enabled");
                         }
                         break;
+
+                    case "--target-framerate":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int fps))
+                        {
+                            Instance.TargetFrameRate = fps;
+                            Logger.Msg($"Target framerate set to: {fps}");
+                        }
+                        break;
+
+                    case "--vsync":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int vsync))
+                        {
+                            Instance.VSyncCount = Math.Clamp(vsync, 0, 2);
+                            Logger.Msg($"VSync set to: {vsync}");
+                        }
+                        break;
                 }
             }
 
@@ -662,6 +696,20 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 Logger.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Constants.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES}");
                 AutoSaveIntervalMinutes = Constants.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES;
+            }
+
+            // Validate target framerate
+            if (TargetFrameRate < -1 || TargetFrameRate > 300)
+            {
+                Logger.Warning($"Invalid target framerate {TargetFrameRate}, using default 60");
+                TargetFrameRate = 60;
+            }
+
+            // Validate VSync
+            if (VSyncCount < 0 || VSyncCount > 2)
+            {
+                Logger.Warning($"Invalid VSync count {VSyncCount}, using default 0");
+                VSyncCount = 0;
             }
 
             // Validate names

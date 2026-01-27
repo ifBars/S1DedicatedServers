@@ -108,6 +108,10 @@ namespace DedicatedServerMod.Server.Core
         private void InitializeServer()
         {
             AudioListener.volume = 0;
+            
+            // Suppress Unity rendering/shader errors in headless mode
+            SetupLogFiltering();
+            
             logger.Msg("Initializing server subsystems...");
             
             // Step 1: Initialize existing ServerConfig system (must be first)
@@ -116,6 +120,11 @@ namespace DedicatedServerMod.Server.Core
             
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
+            
+            // Apply performance optimizations for headless server
+            Application.targetFrameRate = Shared.Configuration.ServerConfig.Instance.TargetFrameRate;
+            QualitySettings.vSyncCount = Shared.Configuration.ServerConfig.Instance.VSyncCount;
+            logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}");
             
             // Abort startup until the user configures a save path
             if (string.IsNullOrEmpty(Shared.Configuration.ServerConfig.Instance.SaveGamePath))
@@ -164,13 +173,6 @@ namespace DedicatedServerMod.Server.Core
             // Step 10: Wire up player events with persistence
             WirePlayerEvents();
             
-            // Step 11: Auto-start server if requested via command line
-            if (_autoStartServer)
-            {
-                logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
-                MelonCoroutines.Start(ServerStartupOrchestrator.StartDedicatedServer());
-            }
-            
             _isInitialized = true;
             logger.Msg("=== Dedicated Server Bootstrap Complete ===");
 
@@ -179,6 +181,44 @@ namespace DedicatedServerMod.Server.Core
 
             // Ensure server message forwarding is wired after init
             ModManager.EnsureServerMessageForwarding();
+        }
+
+        public override void OnLateInitializeMelon()
+        {
+            base.OnLateInitializeMelon();
+            
+            // Step 11: Auto-start server if requested via command line
+            // Moved here to ensure Unity's coroutine system is ready
+            if (_autoStartServer)
+            {
+                logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
+                
+                // Use a dedicated GameObject to ensure coroutines run reliably
+                var runnerGo = GameObject.Find("DedicatedServerRoutineRunner");
+                if (runnerGo == null)
+                {
+                    runnerGo = new GameObject("DedicatedServerRoutineRunner");
+                    GameObject.DontDestroyOnLoad(runnerGo);
+                }
+                
+                var runner = runnerGo.GetComponent<RoutineRunner>();
+                if (runner == null) runner = runnerGo.AddComponent<RoutineRunner>();
+                
+                runner.StartCoroutine(ServerStartupOrchestrator.StartDedicatedServer());
+            }
+        }
+
+        /// <summary>
+        /// Setup Unity log filtering to suppress headless mode rendering errors
+        /// </summary>
+        private void SetupLogFiltering()
+        {
+            // Note: Unity's Application.logMessageReceived += cannot actually *suppress* logs
+            // Log suppression is handled by command-line flags in start_server.bat:
+            //   -logFile - -stackTraceLogType None
+            // The patches in DedicatedServerPatches.cs prevent the systems from running that cause errors
+            
+            logger.Msg("Log filtering configured (via startup flags and system patches)");
         }
 
         /// <summary>
@@ -412,4 +452,9 @@ namespace DedicatedServerMod.Server.Core
                    $"Message: {Message}";
         }
     }
+
+    /// <summary>
+    /// Helper MonoBehaviour to run coroutines in the scene context
+    /// </summary>
+    public class RoutineRunner : MonoBehaviour { }
 }

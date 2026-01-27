@@ -129,77 +129,9 @@ namespace DedicatedServerMod.Server.Game
         }
 
         // ------- TimeManager patches: prevent 4AM freeze and sync time -------
-        [HarmonyPatch(typeof(TimeManager), "Tick")]
-        private static class TimeManager_Tick_PrefixPostfix
-        {
-            private static bool Prefix(TimeManager __instance)
-            {
-                if (!InstanceFinder.IsServer || !DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.TimeNeverStops)
-                    return true;
-
-                try
-                {
-                    // Skip freeze window by advancing immediately
-                    bool wouldFreeze = __instance.CurrentTime == 400 || (__instance.IsCurrentTimeWithinRange(400, 600) && !GameManager.IS_TUTORIAL);
-                    if (!wouldFreeze) return true;
-
-                    // Advance time alike original, condensed
-                    // Note: TimeOnCurrentMinute was removed in game update, using reflection
-                    var timeOnMinField = typeof(TimeManager).GetField("_secondsOnCurrentMinute", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (timeOnMinField != null)
-                        timeOnMinField.SetValue(__instance, 0f);
-                    
-                    if (__instance.CurrentTime == 2359)
-                    {
-                        __instance.ElapsedDays++;
-                        __instance.CurrentTime = 0;
-                        __instance.DailyMinSum = 0;
-                        __instance.onDayPass?.Invoke();
-                        __instance.onHourPass?.Invoke();
-                        if (__instance.CurrentDay == EDay.Monday && __instance.onWeekPass != null)
-                            __instance.onWeekPass();
-                    }
-                    else if (__instance.CurrentTime % 100 >= 59)
-                    {
-                        __instance.CurrentTime += 41;
-                        __instance.onHourPass?.Invoke();
-                    }
-                    else
-                    {
-                        __instance.CurrentTime++;
-                    }
-                    __instance.DailyMinSum = TimeManager.GetMinSumFrom24HourTime(__instance.CurrentTime);
-                    __instance.HasChanged = true;
-                    return false; // handled
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"TimeManager.Tick prefix error: {ex.Message}");
-                    return true;
-                }
-            }
-
-            private static void Postfix(TimeManager __instance)
-            {
-                if (!InstanceFinder.IsServer) return;
-                try
-                {
-                    // Broadcast hourly and critical boundaries to clients
-                    int minutes = __instance.CurrentTime % 100;
-                    bool isTopOfHour = minutes == 0;
-                    bool isCritical = __instance.CurrentTime == 400 || __instance.CurrentTime == 700;
-                    if (!isTopOfHour && !isCritical) return;
-
-                    // Note: SendTimeData method was removed in game update
-                    // Time data is now synced automatically by TimeManager RPCs
-                    // No manual sync needed here anymore
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"TimeManager.Tick postfix error: {ex.Message}");
-                }
-            }
-        }
+        // ------- TimeManager patches: prevent 4AM freeze and sync time -------
+        // REMOVED: TimeManager.Tick patch caused HarmonyException (method not found/signature mismatch).
+        // Logic should be handled in Update or via other means if 4AM freeze prevention is strictly required.
 
         // ------- Ensure server never treats itself as tutorial when saving -------
         [HarmonyPatch(typeof(GameManager), nameof(GameManager.IsTutorial), MethodType.Getter)]
@@ -240,10 +172,6 @@ namespace DedicatedServerMod.Server.Game
                 return true;
             }
         }
-
-        // NOTE: FastForwardToWakeTime method does not exist in TimeManager
-        // This was likely refactored or removed in a game update
-        // Auto-save after sleep is handled elsewhere in the sleep cycle
 
         // ------- Console permissions (patched dynamically to avoid overload ambiguity) -------
         public static bool ConsoleSubmitCommand_Prefix(List<string> args)
@@ -319,5 +247,3 @@ namespace DedicatedServerMod.Server.Game
         }
     }
 }
-
-
