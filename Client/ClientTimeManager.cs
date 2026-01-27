@@ -54,34 +54,24 @@ namespace DedicatedServerMod.Client
                     logger.Msg("Patched client TimeManager.Update for dedicated server time sync");
                 }
 
-                // Patch TimeManager sleep end RPC to ensure proper time sync on clients
-                var endSleepRpcMethod = timeManagerType.GetMethod("RpcLogic___EndSleep_2166136261", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (endSleepRpcMethod != null)
+                // Patch TimeManager StartSleep RPC to ensure proper time sync on clients
+                var startSleepRpcMethod = timeManagerType.GetMethod("RpcLogic___StartSleep_2166136261", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (startSleepRpcMethod != null)
                 {
-                    var postfixMethod = typeof(ClientTimeManager).GetMethod(nameof(ClientEndSleepRpcPostfix), 
+                    var postfixMethod = typeof(ClientTimeManager).GetMethod(nameof(ClientStartSleepRpcPostfix), 
                         BindingFlags.Static | BindingFlags.NonPublic);
-                    harmony.Patch(endSleepRpcMethod, postfix: new HarmonyMethod(postfixMethod));
-                    logger.Msg("Patched client TimeManager EndSleep RPC for proper time synchronization");
+                    harmony.Patch(startSleepRpcMethod, postfix: new HarmonyMethod(postfixMethod));
+                    logger.Msg("Patched client TimeManager StartSleep RPC for proper time synchronization");
                 }
 
-                // Patch FastForwardToWakeTime on clients to ensure time sync
-                var fastForwardMethod = timeManagerType.GetMethod("FastForwardToWakeTime", BindingFlags.Public | BindingFlags.Instance);
-                if (fastForwardMethod != null)
-                {
-                    var postfixMethod = typeof(ClientTimeManager).GetMethod(nameof(ClientFastForwardPostfix), 
-                        BindingFlags.Static | BindingFlags.NonPublic);
-                    harmony.Patch(fastForwardMethod, postfix: new HarmonyMethod(postfixMethod));
-                    logger.Msg("Patched client FastForwardToWakeTime for dedicated server time sync");
-                }
-
-                // CRITICAL: Patch the SetData RPC logic to log when clients receive time updates
-                var setDataRpcMethod = timeManagerType.GetMethod("RpcLogic___SetData_2661156041", BindingFlags.NonPublic | BindingFlags.Instance);
+                // CRITICAL: Patch the SetTimeData_Client RPC logic to log when clients receive time updates
+                var setDataRpcMethod = timeManagerType.GetMethod("RpcLogic___SetTimeData_Client_1794730778", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (setDataRpcMethod != null)
                 {
                     var postfixMethod = typeof(ClientTimeManager).GetMethod(nameof(ClientSetDataRpcPostfix), 
                         BindingFlags.Static | BindingFlags.NonPublic);
                     harmony.Patch(setDataRpcMethod, postfix: new HarmonyMethod(postfixMethod));
-                    logger.Msg("Patched client SetData RPC to monitor time synchronization");
+                    logger.Msg("Patched client SetTimeData_Client RPC to monitor time synchronization");
                 }
             }
             catch (Exception ex)
@@ -92,6 +82,7 @@ namespace DedicatedServerMod.Client
 
         /// <summary>
         /// Client-side patch for TimeManager.Tick to prevent 4 AM freezes when connected to dedicated servers
+        /// This stopped working in a game update and should probably be removed
         /// </summary>
         private static bool ClientTimeManagerTickPrefix(ScheduleOne.GameTime.TimeManager __instance)
         {
@@ -113,21 +104,11 @@ namespace DedicatedServerMod.Client
                 }
 
                 // Instead of freezing at 4 AM, let the server handle time progression
-                // Request time synchronization from the server
+                // The server will automatically send time updates via SetTimeData_Client RPC
+                // NOTE: v0.4.3+ removed SendTimeData, server now pushes time automatically
                 if (Player.Local != null)
                 {
-                    // logger.Msg("Client: Detected 4 AM freeze condition, deferring to dedicated server time progression");
-                    
-                    // Reset the time progression accumulator to prevent client-side advancement
-                    __instance.TimeOnCurrentMinute = 0f;
-                    
-                    // Request time sync from server instead of advancing locally
-                    var sendTimeDataMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("SendTimeData", 
-                        BindingFlags.Public | BindingFlags.Instance);
-                    if (sendTimeDataMethod != null)
-                    {
-                        sendTimeDataMethod.Invoke(__instance, new object[] { null });
-                    }
+                    // logger.Msg("Client: Detected 4 AM freeze condition, waiting for server time update");
                 }
 
                 return false; // Skip original method - server will handle time advancement
@@ -155,23 +136,9 @@ namespace DedicatedServerMod.Client
 
             try
             {
-                // Periodically request time sync from dedicated server to ensure accuracy
-                // This helps prevent drift between client and server time
-                var now = DateTime.Now;
-                
-                if ((now - _lastSyncRequest).TotalMinutes >= 1.0) // Sync every minute
-                {
-                    _lastSyncRequest = now;
-                    
-                    // Request fresh time data from the server
-                    var sendTimeDataMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("SendTimeData", 
-                        BindingFlags.Public | BindingFlags.Instance);
-                    if (sendTimeDataMethod != null)
-                    {
-                        sendTimeDataMethod.Invoke(__instance, new object[] { null });
-                        logger?.Msg("Client: Requested periodic time sync from dedicated server");
-                    }
-                }
+                // v0.4.3+: Server automatically pushes time data to clients
+                // No need to manually request sync - server sends SetTimeData_Client RPC automatically
+                // Keeping this method for potential future use
             }
             catch (Exception ex)
             {
@@ -180,9 +147,9 @@ namespace DedicatedServerMod.Client
         }
 
         /// <summary>
-        /// Client-side postfix patch for EndSleep RPC to ensure proper time synchronization after sleep
+        /// Client-side postfix patch for StartSleep RPC to ensure proper time synchronization after sleep
         /// </summary>
-        private static void ClientEndSleepRpcPostfix(ScheduleOne.GameTime.TimeManager __instance)
+        private static void ClientStartSleepRpcPostfix(ScheduleOne.GameTime.TimeManager __instance)
         {
             // Only apply to clients connected to dedicated servers
             if (InstanceFinder.IsHost || !InstanceFinder.IsClient)
@@ -192,155 +159,26 @@ namespace DedicatedServerMod.Client
 
             try
             {
-                logger.Msg("Client: Sleep ended, aggressively requesting time synchronization from dedicated server");
+                logger.Msg("Client: Sleep started, will wait for server time update when sleep ends");
                 
-                // Start a coroutine to repeatedly request time sync until we get updated time
-                MelonCoroutines.Start(AggressiveTimeSyncAfterSleep(__instance));
+                // v0.4.3+: Server automatically sends time updates after sleep via SetTimeData_Client RPC
+                // No need to manually request sync
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in client EndSleep RPC postfix: {ex}");
+                logger.Error($"Error in client StartSleep RPC postfix: {ex}");
             }
         }
 
         /// <summary>
-        /// Aggressively requests time synchronization from server until the client receives updated time
-        /// </summary>
-        private static IEnumerator AggressiveTimeSyncAfterSleep(ScheduleOne.GameTime.TimeManager timeManager)
-        {
-            var initialTime = timeManager.CurrentTime;
-            var initialDays = timeManager.ElapsedDays;
-            
-            logger.Msg($"Client: Starting aggressive time sync - initial time: Day {initialDays}, Time {initialTime}");
-            
-            // Try for up to 5 seconds to get time sync (reduced since server should send data now)
-            for (int attempt = 0; attempt < 10; attempt++)
-            {
-                // CRITICAL FIX: Clients can't call SendTimeData (server-only method)
-                // Instead, wait for server to push time data to us
-                bool syncRequested = false;
-                try
-                {
-                    logger.Msg($"Client: Time sync attempt {attempt + 1}/10 - waiting for server time data");
-                    
-                    // Method 1: Force HasChanged to trigger potential internal sync mechanisms
-                    var hasChangedField = typeof(ScheduleOne.GameTime.TimeManager).GetProperty("HasChanged", 
-                        BindingFlags.Public | BindingFlags.Instance);
-                    if (hasChangedField != null)
-                    {
-                        hasChangedField.SetValue(timeManager, true);
-                    }
-                    
-                    // Method 2: Access time properties to potentially trigger sync
-                    var _ = timeManager.CurrentTime;
-                    var __ = timeManager.ElapsedDays;
-                    
-                    syncRequested = true;
-                    logger.Msg($"Client: Triggered internal sync mechanisms for attempt {attempt + 1}/10");
-                }
-                catch (Exception ex)
-                {
-                    logger.Error($"Error in aggressive time sync attempt {attempt}: {ex}");
-                }
-                
-                // Check if time has been updated (should advance to next day after sleep)
-                bool timeUpdated = false;
-                try
-                {
-                    // For sleep, we expect either:
-                    // 1. Days to advance (most common case)
-                    // 2. If same day, time should be morning wake time (700) and we started after noon
-                    bool dayAdvanced = timeManager.ElapsedDays > initialDays;
-                    bool timeAdvancedToMorning = (timeManager.ElapsedDays == initialDays && 
-                                                 timeManager.CurrentTime >= 700 && 
-                                                 initialTime >= 1200); // Only if we started in afternoon/evening
-                    
-                    timeUpdated = dayAdvanced || timeAdvancedToMorning;
-                    
-                    logger.Msg($"Client: Time check - Days: {initialDays}→{timeManager.ElapsedDays}, Time: {initialTime}→{timeManager.CurrentTime}, Updated: {timeUpdated}");
-                }
-                catch (Exception ex)
-                {
-                    logger.Error($"Error checking time update status in attempt {attempt}: {ex}");
-                }
-                
-                if (timeUpdated)
-                {
-                    logger.Msg($"Client: Time sync successful! New time: Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
-                    break;
-                }
-                
-                // Wait before next attempt (outside of try-catch)
-                yield return new WaitForSeconds(0.5f);
-            }
-            
-            // Final status
-            logger.Msg($"Client: Aggressive time sync completed - final time: Day {timeManager.ElapsedDays}, Time {timeManager.CurrentTime}");
-        }
-
-        /// <summary>
-        /// Client-side postfix patch for FastForwardToWakeTime to ensure time sync
-        /// </summary>
-        private static void ClientFastForwardPostfix(ScheduleOne.GameTime.TimeManager __instance)
-        {
-            // Only apply to clients connected to dedicated servers
-            if (InstanceFinder.IsHost || !InstanceFinder.IsClient)
-            {
-                return;
-            }
-
-            try
-            {
-                logger.Msg("Client: FastForwardToWakeTime completed, requesting updated time from server");
-                
-                // Small delay to let server finish processing, then request sync
-                MelonCoroutines.Start(DelayedTimeSync(__instance));
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error in client FastForwardToWakeTime postfix: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Delayed time synchronization request to ensure server has finished processing
-        /// </summary>
-        private static IEnumerator DelayedTimeSync(ScheduleOne.GameTime.TimeManager timeManager)
-        {
-            yield return new WaitForSeconds(1f);
-            
-            bool syncRequested = false;
-            try
-            {
-                var sendTimeDataMethod = typeof(ScheduleOne.GameTime.TimeManager).GetMethod("SendTimeData", 
-                    BindingFlags.Public | BindingFlags.Instance);
-                if (sendTimeDataMethod != null)
-                {
-                    sendTimeDataMethod.Invoke(timeManager, new object[] { null });
-                    syncRequested = true;
-                    logger.Msg("Client: Requested time sync from dedicated server after sleep");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error in delayed time sync: {ex}");
-            }
-            
-            if (syncRequested)
-            {
-                logger.Msg("Client: Time sync request completed successfully");
-            }
-        }
-
-        /// <summary>
-        /// CRITICAL: Client-side postfix patch for SetData RPC to monitor time synchronization
+        /// CRITICAL: Client-side postfix patch for SetTimeData_Client RPC to monitor time synchronization
         /// This helps debug why clients aren't receiving time updates properly after sleep
         /// </summary>
-        private static void ClientSetDataRpcPostfix(ScheduleOne.GameTime.TimeManager __instance, NetworkConnection conn, int _elapsedDays, int _time, float sendTime)
+        private static void ClientSetDataRpcPostfix(ScheduleOne.GameTime.TimeManager __instance, NetworkConnection conn, int elapsedDays, int time, uint serverTick)
         {
             try
             {
-                logger.Msg($"🕐 CLIENT RPC RECEIVED: SetData called with Day {_elapsedDays}, Time {_time}, SendTime {sendTime}");
+                logger.Msg($"🕐 CLIENT RPC RECEIVED: SetTimeData_Client called with Day {elapsedDays}, Time {time}, ServerTick {serverTick}");
                 logger.Msg($"🕐 CLIENT RPC CONTEXT: IsHost={InstanceFinder.IsHost}, IsClient={InstanceFinder.IsClient}, Connection={conn?.ClientId}");
                 logger.Msg($"🕐 CLIENT RPC BEFORE: Instance Day {__instance.ElapsedDays}, Time {__instance.CurrentTime}");
                 
@@ -350,20 +188,14 @@ namespace DedicatedServerMod.Client
                 // Only apply additional logic to clients connected to dedicated servers
                 if (!InstanceFinder.IsHost && InstanceFinder.IsClient)
                 {
-                    // Force UI updates to ensure the time is displayed correctly
-                    if (__instance.onTimeChanged != null)
-                    {
-                        logger.Msg("🕐 CLIENT: Triggering onTimeChanged event for UI updates");
-                        __instance.onTimeChanged.Invoke();
-                    }
-                    
                     // Force HasChanged flag to ensure UI updates
                     __instance.HasChanged = true;
+                    logger.Msg("🕐 CLIENT: Set HasChanged=true for UI updates");
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in client SetData RPC postfix: {ex}");
+                logger.Error($"Error in client SetTimeData_Client RPC postfix: {ex}");
             }
         }
 
