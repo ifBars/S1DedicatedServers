@@ -122,7 +122,7 @@ namespace DedicatedServerMod.Server.Core
                 yield break;
             }
 
-            // Prefer explicit argument first. If none provided, require ServerConfig.SaveGamePath to be set.
+            // Prefer explicit argument first. If none provided, use ServerConfig's resolved path (default or custom).
             SaveInfo actualSaveInfo = null;
             if (!string.IsNullOrEmpty(savePathOverride))
             {
@@ -134,14 +134,10 @@ namespace DedicatedServerMod.Server.Core
             }
             else
             {
-                string configuredPath = ServerConfig.Instance.SaveGamePath;
-                if (string.IsNullOrEmpty(configuredPath))
-                {
-                    logger.Error("Server startup aborted: 'saveGamePath' is not configured in server_config.json.");
-                    logger.Msg($"Please edit the config and set 'saveGamePath' to your save folder. Make sure to use double backslashes not single, otherwise your server will not load the config.");
-                    logger.Msg($"Config file location: {ServerConfig.ConfigFilePath}");
-                    yield break;
-                }
+                // Get resolved path (either custom or default)
+                string configuredPath = ServerConfig.GetResolvedSaveGamePath();
+                
+                logger.Msg($"Preparing save folder: {configuredPath}");
 
                 // Prepare/seed the save folder similar to host flow (DefaultSave + Player_0 + metadata)
                 try

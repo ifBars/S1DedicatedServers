@@ -126,13 +126,16 @@ namespace DedicatedServerMod.Server.Core
             QualitySettings.vSyncCount = Shared.Configuration.ServerConfig.Instance.VSyncCount;
             logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}");
             
-            // Abort startup until the user configures a save path
+            // Log the save path being used
+            string resolvedSavePath = Shared.Configuration.ServerConfig.GetResolvedSaveGamePath();
             if (string.IsNullOrEmpty(Shared.Configuration.ServerConfig.Instance.SaveGamePath))
             {
-                logger.Error("Server startup aborted: 'saveGamePath' is not configured in server_config.json.");
-                logger.Msg($"Please edit the config and set 'saveGamePath' to your save folder. Make sure to use double backslashes not single, otherwise your server will not load the config.");
-                logger.Msg($"Config file location: {Shared.Configuration.ServerConfig.ConfigFilePath}");
-                return;
+                logger.Msg($"Using default save location: {resolvedSavePath}");
+                logger.Msg("Tip: You can set a custom 'saveGamePath' in server_config.json to use a different save folder.");
+            }
+            else
+            {
+                logger.Msg($"Using custom save location: {resolvedSavePath}");
             }
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)

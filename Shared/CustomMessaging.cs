@@ -129,13 +129,20 @@ namespace DedicatedServerMod.Shared.Networking
                     _logger.Warning($"SendToServer skipped: DailySummary instance null for cmd='{command}'");
                     return;
                 }
+                
+                var nb = (NetworkBehaviour)ds;
+                if (!nb.IsSpawned)
+                {
+                    _logger.Warning($"SendToServer skipped: DailySummary not spawned yet for cmd='{command}'");
+                    return;
+                }
 
                 var msg = new Message { command = command, data = data };
                 string raw = JsonConvert.SerializeObject(msg);
 
                 PooledWriter writer = WriterPool.Retrieve();
                 ((Writer)writer).WriteString(raw);
-                ((NetworkBehaviour)ds).SendServerRpc(MessageId, writer, Channel.Reliable, DataOrderType.Default);
+                nb.SendServerRpc(MessageId, writer, Channel.Reliable, DataOrderType.Default);
                 writer.Store();
 
                 _logger.Msg($"SendToServer cmd='{command}' len={data?.Length ?? 0}");

@@ -167,6 +167,9 @@ namespace DedicatedServerMod.Client.Core
                 // Initialize the debug log system
                 Utils.DebugLog.Initialize(_logger);
 
+                // Initialize MessageRouter for client-side message handling
+                Shared.Networking.MessageRouter.Initialize(_logger);
+
                 // Initialize API mod discovery
                 API.ModManager.Initialize();
 

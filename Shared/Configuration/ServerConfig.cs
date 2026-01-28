@@ -382,8 +382,15 @@ namespace DedicatedServerMod.Shared.Configuration
         #region Save Path (Server)
 
         /// <summary>
-        /// Custom path for save files. Empty = default location.
+        /// Custom path for save files. Empty = uses default "DedicatedServerSave" folder in UserData.
         /// </summary>
+        /// <remarks>
+        /// When empty, the server will create a save folder at:
+        /// UserData/DedicatedServerSave
+        /// 
+        /// The folder will be initialized with the DefaultSave template from StreamingAssets
+        /// if it doesn't exist or is missing required files.
+        /// </remarks>
         [JsonProperty("saveGamePath")]
         public string SaveGamePath { get; set; } = string.Empty;
 
@@ -637,6 +644,21 @@ namespace DedicatedServerMod.Shared.Configuration
         #endregion
 
         #region Utility Methods
+
+        /// <summary>
+        /// Gets the resolved save game path (either custom or default).
+        /// </summary>
+        /// <returns>The absolute path to the save game folder</returns>
+        public static string GetResolvedSaveGamePath()
+        {
+            if (!string.IsNullOrEmpty(Instance.SaveGamePath))
+            {
+                return Instance.SaveGamePath;
+            }
+
+            // Use default save location in UserData
+            return Path.Combine(MelonEnvironment.UserDataDirectory, "DedicatedServerSave");
+        }
 
         /// <summary>
         /// Gets a formatted server information string.

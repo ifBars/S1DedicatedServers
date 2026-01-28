@@ -4,10 +4,8 @@ using FishNet.Managing.Server;
 using MelonLoader;
 using ScheduleOne.PlayerScripts;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using DedicatedServerMod;
 using DedicatedServerMod.API;
 using FishNet.Transporting;
@@ -117,6 +115,13 @@ namespace DedicatedServerMod.Server.Player
             try
             {
                 logger.Msg($"Player connecting: ClientId {connection.ClientId}");
+                
+                // Skip if already exists (can happen with ghost host)
+                if (connectedPlayers.ContainsKey(connection))
+                {
+                    logger.Msg($"Player already tracked: ClientId {connection.ClientId}");
+                    return;
+                }
 
                 if (connectedPlayers.Count >= ServerConfig.Instance.MaxPlayers)
                 {
@@ -203,12 +208,17 @@ namespace DedicatedServerMod.Server.Player
                 if (connectedPlayers.TryGetValue(player.Owner, out var playerInfo))
                 {
                     playerInfo.PlayerInstance = player;
-                    logger.Msg($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId})");
-                    MelonCoroutines.Start(BindPlayerIdentity(player, playerInfo));
+                    // Identity binding happens via DedicatedServerPatches.BindPlayerIdentityPostfix
+                    // which calls SetPlayerIdentity when player name data is received
+                    logger.Msg($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId}) - awaiting identity");
                 }
                 else
                 {
-                    logger.Warning($"Player spawned but not found in connected players: {player.PlayerName}");
+                    // Only log warning if this is not the initial spawn with default values
+                    if (!string.IsNullOrEmpty(player.PlayerCode) || player.PlayerName != "Player")
+                    {
+                        logger.Warning($"Player spawned but not found in connected players: {player.PlayerName}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -239,44 +249,8 @@ namespace DedicatedServerMod.Server.Player
             }
         }
 
-        /// <summary>
-        /// Bind player identity (SteamID and name) once available
-        /// </summary>
-        private IEnumerator BindPlayerIdentity(ScheduleOne.PlayerScripts.Player player, ConnectedPlayerInfo playerInfo)
-        {
-            float waited = 0f;
-            const float step = 0.1f;
-            const float maxWait = 5f;
-
-            while (player != null && player.gameObject != null && waited < maxWait)
-            {
-                try
-                {
-                    string steamId = player.PlayerCode;
-                    if (!string.IsNullOrEmpty(steamId))
-                    {
-                        playerInfo.SteamId = steamId;
-                        playerInfo.PlayerName = player.PlayerName;
-                        logger.Msg($"Player identity bound: ClientId {playerInfo.ClientId} -> SteamID {steamId} ({player.PlayerName})");
-                        yield break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"Error binding player identity: {ex.Message}");
-                }
-
-                yield return new WaitForSeconds(step);
-                waited += step;
-            }
-
-            // Fallback: at least set the name
-            if (player != null && !string.IsNullOrEmpty(player.PlayerName))
-            {
-                playerInfo.PlayerName = player.PlayerName;
-                logger.Msg($"Player name bound (no SteamID): ClientId {playerInfo.ClientId} -> {player.PlayerName}");
-            }
-        }
+        // NOTE: Identity binding is now handled by DedicatedServerPatches.BindPlayerIdentityPostfix
+        // which is called when the game receives player name data and calls SetPlayerIdentity
 
         /// <summary>
         /// Get all connected players
@@ -373,19 +347,46 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Set player identity directly (for external patches)
         /// </summary>
+        /// <remarks>
+        /// This can be called before OnRemoteConnectionState fires, so it may need to create
+        /// the player entry. This happens because player name data arrives before the connection
+        /// event in some cases.
+        /// </remarks>
         public void SetPlayerIdentity(NetworkConnection connection, string steamId, string playerName)
         {
-            if (connection == null) return;
+            if (connection == null)
+            {
+                logger.Warning("SetPlayerIdentity called with null connection");
+                return;
+            }
 
             if (!connectedPlayers.TryGetValue(connection, out var playerInfo))
             {
+                // Player name data can arrive before the connection event fires
+                // Create the entry now - HandlePlayerConnected will skip if it already exists
                 playerInfo = new ConnectedPlayerInfo
                 {
                     Connection = connection,
                     ConnectTime = DateTime.Now,
-                    ClientId = connection.ClientId
+                    ClientId = connection.ClientId,
+                    IsAuthenticated = true
                 };
                 connectedPlayers[connection] = playerInfo;
+                logger.Msg($"Created player entry from identity binding: ClientId {connection.ClientId}");
+            }
+            else
+            {
+                // Check if we're trying to overwrite a valid identity with default/empty values
+                // This happens when clients spawn with temporary ClientId 0 / "Player" before getting real values
+                bool isDefaultIdentity = string.IsNullOrEmpty(steamId) && playerName == "Player";
+                bool hasValidIdentity = !string.IsNullOrEmpty(playerInfo.SteamId) || 
+                                       (!string.IsNullOrEmpty(playerInfo.PlayerName) && playerInfo.PlayerName != "Player");
+                
+                if (isDefaultIdentity && hasValidIdentity)
+                {
+                    logger.Msg($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
+                    return;
+                }
             }
 
             playerInfo.SteamId = steamId;
@@ -417,10 +418,29 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
+                logger.Msg($"Shutting down player manager - {connectedPlayers.Count} players to disconnect");
+                
+                // Create a snapshot to avoid modification during iteration
+                var playersToKick = connectedPlayers.Values.ToList();
+                
                 // Disconnect all players
-                foreach (var player in connectedPlayers.Values.ToList())
+                foreach (var player in playersToKick)
                 {
-                    KickPlayer(player, "Server shutdown");
+                    try
+                    {
+                        // Skip if already disconnected
+                        if (player.Connection == null || !player.Connection.IsActive)
+                        {
+                            logger.Msg($"Skipping already disconnected player: {player.DisplayName}");
+                            continue;
+                        }
+                        
+                        KickPlayer(player, "Server shutdown");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning($"Error kicking player {player.DisplayName} during shutdown: {ex.Message}");
+                    }
                 }
 
                 connectedPlayers.Clear();
@@ -433,7 +453,7 @@ namespace DedicatedServerMod.Server.Player
 
                 // Note: Player spawn hooks are harder to remove safely, so we leave them
 
-                logger.Msg("Player manager shutdown");
+                logger.Msg("Player manager shutdown complete");
             }
             catch (Exception ex)
             {

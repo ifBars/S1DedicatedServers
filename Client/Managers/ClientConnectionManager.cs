@@ -174,15 +174,7 @@ namespace DedicatedServerMod.Client.Managers
                 IsConnectedToDedicatedServer = true;
                 IsConnecting = false;
                 
-                // Request initial server data snapshot
-                try
-                {
-                    CustomMessaging.SendToServer("request_server_data");
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"Failed to request server data: {ex.Message}");
-                }
+                // Note: Server data request is sent from MessagingPatches after RPC registration
 
                 // Wait for player to spawn and initialize
                 yield return new WaitForSeconds(2f);
