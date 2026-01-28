@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ifBars/DedicatedServerMod)
 [![Version](https://img.shields.io/badge/version-0.2.1--beta-blue)](https://github.com/ifBars/DedicatedServerMod/releases)
-[![License](https://img.shields.io/badge/license-GPL-3.0-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL-3.0-green)](https://github.com/ifBars/S1DedicatedServers/blob/master/LICENSE)
 
 **Professional dedicated server framework for Schedule I** - Run authoritative, headless servers with full multiplayer support, admin management, and extensive modding capabilities.
 
