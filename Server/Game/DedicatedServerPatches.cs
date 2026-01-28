@@ -1,11 +1,7 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 using FishNet;
-using FishNet.Component.Scenes;
 using FishNet.Connection;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
@@ -13,7 +9,6 @@ using FishNet.Transporting.Tugboat;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
-using ScheduleOne.PlayerScripts;
 using ScheduleOne.Product;
 using ScheduleOne.UI;
 using UnityEngine;
@@ -153,25 +148,28 @@ namespace DedicatedServerMod.Server.Game
             private static bool Prefix(TimeManager __instance)
             {
                 if (!InstanceFinder.IsServer) return true;
-                // Avoid try+yield within this method; keep simple and safe
+                
+                // Fix host freezing
                 if (__instance.IsSleepInProgress)
                 {
-                    var sleepEndTimeField = typeof(TimeManager).GetField("sleepEndTime", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (sleepEndTimeField != null)
+                    // Check if it's 4AM
+                    const int FOUR_AM = 240;
+                    
+                    if (__instance.CurrentTime >= FOUR_AM && __instance.CurrentTime < FOUR_AM + 5)
                     {
-                        var sleepEndTime = (int)sleepEndTimeField.GetValue(__instance);
-                        if (__instance.IsCurrentTimeWithinRange(sleepEndTime, TimeManager.AddMinutesTo24HourTime(sleepEndTime, 60)))
-                        {
-                            var endSleep = typeof(TimeManager).GetMethod("EndSleep", BindingFlags.NonPublic | BindingFlags.Instance);
-                            endSleep?.Invoke(__instance, null);
-                        }
+                        // Force end sleep
+                        var endSleep = typeof(TimeManager).GetMethod("EndSleep", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (endSleep != null)
+                            endSleep.Invoke(__instance, null);
                     }
                 }
+                // Auto-start sleep when all real players are ready
                 else if (ScheduleOne.PlayerScripts.Player.AreAllPlayersReadyToSleep())
                 {
                     var startSleep = typeof(TimeManager).GetMethod("StartSleep", BindingFlags.NonPublic | BindingFlags.Instance);
                     startSleep?.Invoke(__instance, null);
                 }
+                
                 return true;
             }
         }
