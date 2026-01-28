@@ -1,11 +1,7 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 using FishNet;
-using FishNet.Component.Scenes;
 using FishNet.Connection;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
@@ -13,9 +9,11 @@ using FishNet.Transporting.Tugboat;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
-using ScheduleOne.PlayerScripts;
+using ScheduleOne.Product;
 using ScheduleOne.UI;
 using UnityEngine;
+using CorgiGodRays;
+using ScheduleOne.Heatmap;
 
 namespace DedicatedServerMod.Server.Game
 {
@@ -129,77 +127,9 @@ namespace DedicatedServerMod.Server.Game
         }
 
         // ------- TimeManager patches: prevent 4AM freeze and sync time -------
-        [HarmonyPatch(typeof(TimeManager), "Tick")]
-        private static class TimeManager_Tick_PrefixPostfix
-        {
-            private static bool Prefix(TimeManager __instance)
-            {
-                if (!InstanceFinder.IsServer || !DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.TimeNeverStops)
-                    return true;
-
-                try
-                {
-                    // Skip freeze window by advancing immediately
-                    bool wouldFreeze = __instance.CurrentTime == 400 || (__instance.IsCurrentTimeWithinRange(400, 600) && !GameManager.IS_TUTORIAL);
-                    if (!wouldFreeze) return true;
-
-                    // Advance time alike original, condensed
-                    // Note: TimeOnCurrentMinute was removed in game update, using reflection
-                    var timeOnMinField = typeof(TimeManager).GetField("_secondsOnCurrentMinute", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (timeOnMinField != null)
-                        timeOnMinField.SetValue(__instance, 0f);
-                    
-                    if (__instance.CurrentTime == 2359)
-                    {
-                        __instance.ElapsedDays++;
-                        __instance.CurrentTime = 0;
-                        __instance.DailyMinSum = 0;
-                        __instance.onDayPass?.Invoke();
-                        __instance.onHourPass?.Invoke();
-                        if (__instance.CurrentDay == EDay.Monday && __instance.onWeekPass != null)
-                            __instance.onWeekPass();
-                    }
-                    else if (__instance.CurrentTime % 100 >= 59)
-                    {
-                        __instance.CurrentTime += 41;
-                        __instance.onHourPass?.Invoke();
-                    }
-                    else
-                    {
-                        __instance.CurrentTime++;
-                    }
-                    __instance.DailyMinSum = TimeManager.GetMinSumFrom24HourTime(__instance.CurrentTime);
-                    __instance.HasChanged = true;
-                    return false; // handled
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"TimeManager.Tick prefix error: {ex.Message}");
-                    return true;
-                }
-            }
-
-            private static void Postfix(TimeManager __instance)
-            {
-                if (!InstanceFinder.IsServer) return;
-                try
-                {
-                    // Broadcast hourly and critical boundaries to clients
-                    int minutes = __instance.CurrentTime % 100;
-                    bool isTopOfHour = minutes == 0;
-                    bool isCritical = __instance.CurrentTime == 400 || __instance.CurrentTime == 700;
-                    if (!isTopOfHour && !isCritical) return;
-
-                    // Note: SendTimeData method was removed in game update
-                    // Time data is now synced automatically by TimeManager RPCs
-                    // No manual sync needed here anymore
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"TimeManager.Tick postfix error: {ex.Message}");
-                }
-            }
-        }
+        // ------- TimeManager patches: prevent 4AM freeze and sync time -------
+        // REMOVED: TimeManager.Tick patch caused HarmonyException (method not found/signature mismatch).
+        // Logic should be handled in Update or via other means if 4AM freeze prevention is strictly required.
 
         // ------- Ensure server never treats itself as tutorial when saving -------
         [HarmonyPatch(typeof(GameManager), nameof(GameManager.IsTutorial), MethodType.Getter)]
@@ -218,32 +148,31 @@ namespace DedicatedServerMod.Server.Game
             private static bool Prefix(TimeManager __instance)
             {
                 if (!InstanceFinder.IsServer) return true;
-                // Avoid try+yield within this method; keep simple and safe
+                
+                // Fix host freezing
                 if (__instance.IsSleepInProgress)
                 {
-                    var sleepEndTimeField = typeof(TimeManager).GetField("sleepEndTime", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (sleepEndTimeField != null)
+                    // Check if it's 4AM
+                    const int FOUR_AM = 400;
+                    
+                    if (__instance.CurrentTime >= FOUR_AM && __instance.CurrentTime < FOUR_AM + 5)
                     {
-                        var sleepEndTime = (int)sleepEndTimeField.GetValue(__instance);
-                        if (__instance.IsCurrentTimeWithinRange(sleepEndTime, TimeManager.AddMinutesTo24HourTime(sleepEndTime, 60)))
-                        {
-                            var endSleep = typeof(TimeManager).GetMethod("EndSleep", BindingFlags.NonPublic | BindingFlags.Instance);
-                            endSleep?.Invoke(__instance, null);
-                        }
+                        // Force end sleep
+                        var endSleep = typeof(TimeManager).GetMethod("EndSleep", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (endSleep != null)
+                            endSleep.Invoke(__instance, null);
                     }
                 }
+                // Auto-start sleep when all real players are ready
                 else if (ScheduleOne.PlayerScripts.Player.AreAllPlayersReadyToSleep())
                 {
                     var startSleep = typeof(TimeManager).GetMethod("StartSleep", BindingFlags.NonPublic | BindingFlags.Instance);
                     startSleep?.Invoke(__instance, null);
                 }
+                
                 return true;
             }
         }
-
-        // NOTE: FastForwardToWakeTime method does not exist in TimeManager
-        // This was likely refactored or removed in a game update
-        // Auto-save after sleep is handled elsewhere in the sleep cycle
 
         // ------- Console permissions (patched dynamically to avoid overload ambiguity) -------
         public static bool ConsoleSubmitCommand_Prefix(List<string> args)
@@ -317,7 +246,61 @@ namespace DedicatedServerMod.Server.Game
                 }
             }
         }
+
+        // ------- ProductIconManager: Prevent icon generation crashing headless server -------
+        [HarmonyPatch(typeof(ProductIconManager), "GenerateIcons")]
+        private static class ProductIconManager_GenerateIcons_Prefix
+        {
+            private static bool Prefix()
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    return false; // Skip original method
+                }
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(IconGenerator), "GeneratePackagingIcon")]
+        private static class IconGenerator_GeneratePackagingIcon_Prefix
+        {
+            private static bool Prefix(ref Texture2D __result)
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    __result = Texture2D.whiteTexture; 
+                    return false; // Skip original method
+                }
+                return true;
+            }
+        }
+
+        // ------- CorgiGodRays: Prevent compute buffer creation on server -------
+        [HarmonyPatch(typeof(GodRaysRenderPass), "Initialize")]
+        private static class GodRaysRenderPass_Initialize_Prefix
+        {
+            private static bool Prefix()
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // ------- HeatmapManager: Prevent compute shader usage on server -------
+        [HarmonyPatch(typeof(HeatmapManager), "Start")]
+        private static class HeatmapManager_Start_Prefix
+        {
+            private static bool Prefix()
+            {
+                 if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
     }
 }
-
-

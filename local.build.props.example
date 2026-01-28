@@ -18,5 +18,10 @@
 			Point this to your IL2CPP build of Schedule I (if you have one)
 		-->
 		<Il2CppGamePath>D:\SteamLibrary\steamapps\common\Schedule I_public</Il2CppGamePath>
+		
+		<!-- Optional: Custom deployment paths for client and server builds -->
+        <!-- If not specified, defaults to $(GamePath)\Mods -->
+        <!-- <ClientDeploymentPath>C:\Path\To\Client\Mods</ClientDeploymentPath> -->
+        <!-- <ServerDeploymentPath>C:\Path\To\Server\Mods</ServerDeploymentPath> -->
 	</PropertyGroup>
 </Project>

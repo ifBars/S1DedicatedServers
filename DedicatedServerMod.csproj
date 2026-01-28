@@ -51,6 +51,9 @@
 		<DefineConstants>MONO;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Client</AssemblyName>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<DeploymentPath Condition="'$(ClientDeploymentPath)' != ''">$(ClientDeploymentPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(ClientDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Mono_Server'">
@@ -61,6 +64,9 @@
 		<DefineConstants>MONO;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Server</AssemblyName>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Client'">
@@ -71,6 +77,9 @@
 		<DefineConstants>IL2CPP;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Il2cpp_Client</AssemblyName>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<DeploymentPath Condition="'$(ClientDeploymentPath)' != ''">$(ClientDeploymentPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(ClientDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Server'">
@@ -81,6 +90,9 @@
 		<DefineConstants>IL2CPP;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Il2cpp_Server</AssemblyName>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<!-- Mono references -->
@@ -1045,9 +1057,9 @@
 	</PropertyGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<!-- Client builds: copy and restart game -->
-		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(ModsPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
-		<!-- Server builds: copy only -->
-		<Exec Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(ModsPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
+		<!-- Client builds: copy to deployment path and restart game -->
+		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
+		<!-- Server builds: copy to deployment path only -->
+		<Exec Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 	</Target>
 </Project>

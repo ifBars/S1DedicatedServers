@@ -7,6 +7,7 @@ using FishNet.Transporting;
 using HarmonyLib;
 using MelonLoader;
 using ScheduleOne.DevUtilities;
+using ScheduleOne.UI;
 
 namespace DedicatedServerMod.Client.Patches
 {
@@ -49,268 +50,82 @@ namespace DedicatedServerMod.Client.Patches
         /// <remarks>
         /// This patch registers custom message handlers after DailySummary initializes,
         /// allowing the mod to send and receive custom messages between client and server.
+        /// Uses the shared CustomMessaging.DailySummaryAwakePostfix to avoid duplication.
         /// </remarks>
-        /// <param name="__instance">The DailySummary instance being initialized</param>
-        [HarmonyPatch("ScheduleOne.DevUtilities.DailySummary", "Awake")]
-        [HarmonyPostfix]
-        private static void DailySummaryAwakePostfix(object __instance)
+        [HarmonyPatch(typeof(DailySummary), "Awake")]
+        private static class DailySummary_Awake_Postfix
         {
-            try
+            private static void Postfix(DailySummary __instance)
             {
-                var nb = (NetworkBehaviour)__instance;
-
-                // Register server -> client Target RPC
-                nb.RegisterTargetRpc(MESSAGE_ID, new ClientRpcDelegate(OnClientMessageReceived));
-
-                // Register client -> server Server RPC
-                nb.RegisterServerRpc(MESSAGE_ID, new ServerRpcDelegate(OnServerMessageReceived));
-
-                _logger.Msg("Registered custom messaging RPCs on DailySummary");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to register custom RPCs: {ex}");
+                try
+                {
+                    Shared.Networking.CustomMessaging.DailySummaryAwakePostfix(__instance);
+                    _logger?.Msg("Client: DailySummary RPC registration delegated to CustomMessaging");
+                    
+                    // Now that RPCs are registered, request server data if connected
+                    RequestServerDataIfConnected();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error($"Failed to register custom RPCs: {ex}");
+                }
             }
         }
 
         #endregion
 
         #region Message Handlers
-
-        /// <summary>
-        /// Handles custom messages received from the server.
-        /// </summary>
-        /// <param name="reader">The message data reader</param>
-        /// <param name="channel">The transport channel</param>
-        private static void OnClientMessageReceived(PooledReader reader, Channel channel)
-        {
-            try
-            {
-                string raw = ((Reader)reader).ReadString();
-                var message = Newtonsoft.Json.JsonConvert.DeserializeObject<CustomMessage>(raw);
-
-                if (string.IsNullOrEmpty(message.command))
-                {
-                    _logger.Warning("OnClientMessageReceived: Message command is null");
-                    return;
-                }
-
-                _logger.Msg($"OnClientMessageReceived cmd='{message.command}' len={message.data?.Length ?? 0}");
-
-                // Raise API event for mods
-                RaiseClientMessageEvent(message.command, message.data);
-
-                // Handle built-in routing
-                HandleClientMessage(message.command, message.data);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"OnClientMessageReceived error: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Handles custom messages sent to the server.
-        /// </summary>
-        /// <param name="reader">The message data reader</param>
-        /// <param name="channel">The transport channel</param>
-        /// <param name="conn">The sending connection</param>
-        private static void OnServerMessageReceived(PooledReader reader, Channel channel, FishNet.Connection.NetworkConnection conn)
-        {
-            try
-            {
-                string raw = ((Reader)reader).ReadString();
-                var message = Newtonsoft.Json.JsonConvert.DeserializeObject<CustomMessage>(raw);
-
-                if (string.IsNullOrEmpty(message.command))
-                {
-                    _logger.Warning("OnServerMessageReceived: Message command is null");
-                    return;
-                }
-
-                _logger.Msg($"OnServerMessageReceived cmd='{message.command}' len={message.data?.Length ?? 0} from={conn?.ClientId}");
-
-                // Raise API event for server mods
-                RaiseServerMessageEvent(conn, message.command, message.data);
-
-                // Handle built-in routing (server-side)
-                // Note: Server-side routing is handled by Shared.Networking.MessageRouter
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"OnServerMessageReceived error: {ex}");
-            }
-        }
-
-        #endregion
-
-        #region Message Routing
-
-        /// <summary>
-        /// Handles built-in client-side message routing.
-        /// </summary>
-        /// <param name="command">The message command</param>
-        /// <param name="data">The message data</param>
-        private static void HandleClientMessage(string command, string data)
-        {
-            try
-            {
-                switch (command)
-                {
-                    case "exec_console":
-                        ExecuteClientConsoleCommand(data);
-                        break;
-
-                    case "server_data":
-                        HandleServerData(data);
-                        break;
-
-                    case "welcome_message":
-                        // Already logged by the message system
-                        break;
-
-                    default:
-                        _logger.Msg($"Unhandled client message: {command}");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error handling client message: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Executes a console command sent from the server.
-        /// </summary>
-        /// <param name="data">The command data (command name + arguments)</param>
-        private static void ExecuteClientConsoleCommand(string data)
-        {
-            try
-            {
-                var parts = new System.Collections.Generic.List<string>(
-                    data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
-
-                if (parts.Count == 0)
-                {
-                    _logger.Warning("ExecuteClientConsoleCommand: No command parts found");
-                    return;
-                }
-
-                string cmd = parts[0].ToLower();
-                parts.RemoveAt(0);
-
-                // Access the console commands registry using reflection
-                var consoleType = typeof(ScheduleOne.Console.ConsoleCommand).Assembly
-                    .GetType("ScheduleOne.Console.Console");
-                
-                if (consoleType == null)
-                {
-                    _logger.Error("ExecuteClientConsoleCommand: Could not find Console type");
-                    return;
-                }
-
-                var commandsField = consoleType.GetField("commands",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-
-                var commands = commandsField?.GetValue(null) as System.Collections.Generic.Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
-
-                if (commands == null)
-                {
-                    _logger.Error("ExecuteClientConsoleCommand: Could not access Console.commands on client");
-                    return;
-                }
-
-                if (!commands.ContainsKey(cmd))
-                {
-                    _logger.Warning($"ExecuteClientConsoleCommand: Command '{cmd}' not found on client");
-                    return;
-                }
-
-                commands[cmd].Execute(parts);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error executing client console command: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Handles server data received from the server.
-        /// </summary>
-        /// <param name="data">The server data JSON</param>
-        private static void HandleServerData(string data)
-        {
-            try
-            {
-                var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.ServerData>(data);
-                if (serverData != null)
-                {
-                    Managers.ServerDataStore.Update(serverData);
-                    _logger.Msg($"Received server data: {serverData.ServerName}, AllowSleeping={serverData.AllowSleeping}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error handling server data: {ex}");
-            }
-        }
-
+        
+        // Message handlers are now in Shared.Networking.CustomMessaging
+        // This patch only delegates RPC registration to the shared implementation
+        
         #endregion
 
         #region Events
 
         /// <summary>
         /// Event raised when a custom message is received from the server.
+        /// Delegates to Shared.Networking.CustomMessaging.ClientMessageReceived.
         /// </summary>
-        public static event System.Action<string, string> ClientMessageReceived;
-
-        /// <summary>
-        /// Event raised when a custom message is received from a client.
-        /// </summary>
-        public static event System.Action<FishNet.Connection.NetworkConnection, string, string> ServerMessageReceived;
-
-        /// <summary>
-        /// Raises the ClientMessageReceived event.
-        /// </summary>
-        private static void RaiseClientMessageEvent(string command, string data)
+        public static event System.Action<string, string> ClientMessageReceived
         {
-            try
-            {
-                ClientMessageReceived?.Invoke(command, data);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error in ClientMessageReceived event: {ex}");
-            }
+            add => Shared.Networking.CustomMessaging.ClientMessageReceived += value;
+            remove => Shared.Networking.CustomMessaging.ClientMessageReceived -= value;
         }
 
         /// <summary>
-        /// Raises the ServerMessageReceived event.
+        /// Event raised when a custom message is received from a client.
+        /// Delegates to Shared.Networking.CustomMessaging.ServerMessageReceived.
         /// </summary>
-        private static void RaiseServerMessageEvent(FishNet.Connection.NetworkConnection conn, string command, string data)
+        public static event System.Action<FishNet.Connection.NetworkConnection, string, string> ServerMessageReceived
         {
-            try
-            {
-                ServerMessageReceived?.Invoke(conn, command, data);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error in ServerMessageReceived event: {ex}");
-            }
+            add => Shared.Networking.CustomMessaging.ServerMessageReceived += value;
+            remove => Shared.Networking.CustomMessaging.ServerMessageReceived -= value;
         }
 
         #endregion
 
-        #region Helper Types
+        #region Helper Methods
 
         /// <summary>
-        /// Represents a custom message sent between server and client.
+        /// Requests server data if connected to a server.
+        /// Called after RPC registration to ensure DailySummary instance is ready.
         /// </summary>
-        private struct CustomMessage
+        private static void RequestServerDataIfConnected()
         {
-            public string command;
-            public string data;
+            try
+            {
+                // Check if we're connected as a client
+                if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsServer)
+                {
+                    _logger?.Msg("Client connected - requesting initial server data");
+                    Shared.Networking.CustomMessaging.SendToServer("request_server_data");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Failed to request server data after RPC registration: {ex.Message}");
+            }
         }
 
         #endregion
