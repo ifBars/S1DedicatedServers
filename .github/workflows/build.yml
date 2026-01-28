@@ -127,7 +127,7 @@ jobs:
         if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
         with:
           path: DedicatedServerMod/ScheduleOneAssemblies
-           key: game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          key: game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
 
   summary:
     runs-on: ubuntu-latest
