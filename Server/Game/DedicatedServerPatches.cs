@@ -153,7 +153,7 @@ namespace DedicatedServerMod.Server.Game
                 if (__instance.IsSleepInProgress)
                 {
                     // Check if it's 4AM
-                    const int FOUR_AM = 240;
+                    const int FOUR_AM = 400;
                     
                     if (__instance.CurrentTime >= FOUR_AM && __instance.CurrentTime < FOUR_AM + 5)
                     {
