@@ -43,25 +43,8 @@ namespace DedicatedServerMod.Client.Managers
         private TMP_InputField dsIpInput;
         private TMP_InputField dsPortInput;
 
-        // Main menu state tracking
-        private GameObject mainMenuHome;
-        private RectTransform mainMenuHomeRect;
-        private CanvasGroup mainMenuHomeCanvasGroup;
-        private Vector2 mainMenuOriginalPosition;
-        private bool isAnimating = false;
-        
-        // Socials menu tracking (bottom-right)
-        private GameObject mainMenuSocials;
-        private RectTransform mainMenuSocialsRect;
-        private CanvasGroup mainMenuSocialsCanvasGroup;
-        private Vector2 socialsOriginalPosition;
-        
-        // Animation settings
-        private const float ANIMATION_DURATION = 0.15f;
-        private const float SLIDE_X_OFFSET = -300f;
-        private const float SLIDE_Y_OFFSET = -50f;
-        private const float SOCIALS_SLIDE_X_OFFSET = 300f;  // Slide right
-        private const float SOCIALS_SLIDE_Y_OFFSET = -50f;  // Slide down
+        // Menu animation controller
+        private MenuAnimationController menuAnimationController;
 
         // Theme
         private static readonly Color ACCENT = new Color(0.10f, 0.65f, 1f, 1f);
@@ -89,6 +72,9 @@ namespace DedicatedServerMod.Client.Managers
             {
                 logger.Msg("Initializing ClientUIManager");
                 
+                // Initialize menu animation controller
+                menuAnimationController = new MenuAnimationController(logger);
+                
                 // UI will be setup when menu scene loads
                 
                 logger.Msg("ClientUIManager initialized");
@@ -110,6 +96,11 @@ namespace DedicatedServerMod.Client.Managers
                 {
                     logger.Msg("Menu scene loaded - setting up prototype UI");
                     MelonCoroutines.Start(SetupMenuUI());
+                }
+                else if (sceneName == "Menu")
+                {
+                    // Reset animation controller when returning to menu
+                    menuAnimationController?.Reset();
                 }
             }
             catch (Exception ex)
@@ -477,6 +468,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 menuUISetup = false;
+                menuAnimationController?.Reset();
                 UpdateButtonState();
             }
             catch (Exception ex)
@@ -489,8 +481,8 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                // Hide/show main menu buttons
-                ToggleMainMenuVisibility(!show);
+                // Hide/show main menu buttons using animation controller
+                menuAnimationController?.ToggleMenuVisibility(!show);
 
                 // Prefer AssetBundle-driven UI. Fall back to runtime-built panel if bundle missing.
                 if (show)
@@ -538,198 +530,6 @@ namespace DedicatedServerMod.Client.Managers
             catch (Exception ex)
             {
                 logger.Error($"Error toggling server menu: {ex}");
-            }
-        }
-
-        private void ToggleMainMenuVisibility(bool show)
-        {
-            try
-            {
-                if (mainMenuHome == null)
-                {
-                    var mainMenu = GameObject.Find("MainMenu");
-                    if (mainMenu != null)
-                    {
-                        var home = mainMenu.transform.Find("Home");
-                        if (home != null)
-                        {
-                            mainMenuHome = home.gameObject;
-                            mainMenuHomeRect = mainMenuHome.GetComponent<RectTransform>();
-                            
-                            // Get or add CanvasGroup for fade animation
-                            mainMenuHomeCanvasGroup = mainMenuHome.GetComponent<CanvasGroup>();
-                            if (mainMenuHomeCanvasGroup == null)
-                            {
-                                mainMenuHomeCanvasGroup = mainMenuHome.AddComponent<CanvasGroup>();
-                            }
-                            
-
-                            // Store original position
-                            if (mainMenuHomeRect != null)
-                            {
-                                mainMenuOriginalPosition = mainMenuHomeRect.anchoredPosition;
-                            }
-                            
-                            // Find socials menu - it's a child of Home, not MainMenu!
-                            var socials = home.Find("Socials");
-                            if (socials != null)
-                            {
-                                mainMenuSocials = socials.gameObject;
-                                mainMenuSocialsRect = mainMenuSocials.GetComponent<RectTransform>();
-                                
-
-                                // Get or add CanvasGroup for fade animation
-                                mainMenuSocialsCanvasGroup = mainMenuSocials.GetComponent<CanvasGroup>();
-                                if (mainMenuSocialsCanvasGroup == null)
-                                {
-                                    mainMenuSocialsCanvasGroup = mainMenuSocials.AddComponent<CanvasGroup>();
-                                }
-                                
-
-                                // Store original position
-                                if (mainMenuSocialsRect != null)
-                                {
-                                    socialsOriginalPosition = mainMenuSocialsRect.anchoredPosition;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (mainMenuHome != null && mainMenuHomeRect != null)
-                {
-                    // Animate menu transition
-                    MelonCoroutines.Start(AnimateMainMenu(show));
-                }
-                
-                // Animate socials separately
-                if (mainMenuSocials != null && mainMenuSocialsRect != null)
-                {
-                    MelonCoroutines.Start(AnimateSocials(show));
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error toggling main menu visibility: {ex}");
-            }
-        }
-
-        private IEnumerator AnimateMainMenu(bool show)
-        {
-            if (isAnimating)
-                yield break;
-
-            isAnimating = true;
-
-            float elapsed = 0f;
-            Vector2 startPosition = mainMenuHomeRect.anchoredPosition;
-            float startAlpha = mainMenuHomeCanvasGroup.alpha;
-
-            Vector2 targetPosition;
-            float targetAlpha;
-
-            if (show)
-            {
-                // Animating back to visible
-                targetPosition = mainMenuOriginalPosition;
-                targetAlpha = 1f;
-                
-                // Ensure it's active before animating in
-                mainMenuHome.SetActive(true);
-            }
-            else
-            {
-                // Animating away (slide left and down)
-                targetPosition = mainMenuOriginalPosition + new Vector2(SLIDE_X_OFFSET, SLIDE_Y_OFFSET);
-                targetAlpha = 0f;
-            }
-
-            // Animate position and alpha
-            while (elapsed < ANIMATION_DURATION)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / ANIMATION_DURATION;
-                
-                // Use ease-in-out curve for smooth animation
-                float smoothT = t * t * (3f - 2f * t);
-
-                // Interpolate position
-                mainMenuHomeRect.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, smoothT);
-                
-                // Interpolate alpha
-                mainMenuHomeCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
-
-                yield return null;
-            }
-
-            // Ensure final values are set
-            mainMenuHomeRect.anchoredPosition = targetPosition;
-            mainMenuHomeCanvasGroup.alpha = targetAlpha;
-
-            // Disable after animating out
-            if (!show)
-            {
-                mainMenuHome.SetActive(false);
-            }
-
-            isAnimating = false;
-        }
-
-        private IEnumerator AnimateSocials(bool show)
-        {
-            float elapsed = 0f;
-            Vector2 startPosition = mainMenuSocialsRect.anchoredPosition;
-            float startAlpha = mainMenuSocialsCanvasGroup.alpha;
-
-            Vector2 targetPosition;
-            float targetAlpha;
-
-            if (show)
-            {
-                // Animating back to visible
-                targetPosition = socialsOriginalPosition;
-                targetAlpha = 1f;
-                
-                // Ensure it's active before animating in
-                mainMenuSocials.SetActive(true);
-            }
-            else
-            {
-                // Animating away (slide RIGHT and down)
-                // Since Socials is a child of Home, we need to counteract the Home's leftward movement
-                // Home moves left by SLIDE_X_OFFSET (-300), so we need to move right by MORE than that
-                // to get an overall rightward movement
-                float rightwardOffset = SOCIALS_SLIDE_X_OFFSET - SLIDE_X_OFFSET; // 300 - (-300) = 600
-                targetPosition = socialsOriginalPosition + new Vector2(rightwardOffset, SOCIALS_SLIDE_Y_OFFSET);
-                targetAlpha = 0f;
-            }
-
-            // Animate position and alpha
-            while (elapsed < ANIMATION_DURATION)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / ANIMATION_DURATION;
-                
-                // Use ease-in-out curve for smooth animation
-                float smoothT = t * t * (3f - 2f * t);
-
-                // Interpolate position
-                mainMenuSocialsRect.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, smoothT);
-                
-                // Interpolate alpha
-                mainMenuSocialsCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
-
-                yield return null;
-            }
-
-            // Ensure final values are set
-            mainMenuSocialsRect.anchoredPosition = targetPosition;
-            mainMenuSocialsCanvasGroup.alpha = targetAlpha;
-
-            // Disable after animating out
-            if (!show)
-            {
-                mainMenuSocials.SetActive(false);
             }
         }
 
