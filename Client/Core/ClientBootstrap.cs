@@ -330,6 +330,9 @@ namespace DedicatedServerMod.Client.Core
         {
             try
             {
+                // Handle UI input
+                _uiManager?.HandleInput();
+
                 // Handle debug input
                 HandleDebugInput();
             }
