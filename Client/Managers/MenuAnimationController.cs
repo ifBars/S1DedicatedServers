@@ -28,8 +28,8 @@ namespace DedicatedServerMod.Client.Managers
         private Vector2 socialsOriginalPosition;
 
         // Coroutine handles to prevent overlapping animations
-        private Coroutine mainMenuHomeCoroutine;
-        private Coroutine mainMenuSocialsCoroutine;
+        private object mainMenuHomeCoroutine;
+        private object mainMenuSocialsCoroutine;
 
         #endregion
 
@@ -78,7 +78,7 @@ namespace DedicatedServerMod.Client.Managers
                         mainMenuHomeCoroutine = null;
                     }
                     
-                    mainMenuHomeCoroutine = MelonCoroutines.Start(AnimateMainMenu(show)) as Coroutine;
+                    mainMenuHomeCoroutine = MelonCoroutines.Start(AnimateMainMenu(show));
                 }
 
                 // Animate socials (right side)
@@ -91,7 +91,7 @@ namespace DedicatedServerMod.Client.Managers
                         mainMenuSocialsCoroutine = null;
                     }
                     
-                    mainMenuSocialsCoroutine = MelonCoroutines.Start(AnimateSocials(show)) as Coroutine;
+                    mainMenuSocialsCoroutine = MelonCoroutines.Start(AnimateSocials(show));
                 }
             }
             catch (Exception ex)
