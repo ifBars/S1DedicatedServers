@@ -25,14 +25,10 @@ What actually happened.
 ## Environment
 - DedicatedServerMod Version: 
 - MelonLoader Version: 
-- Schedule I Version: 
+- Game Version: 
 - OS: Windows 10/11 / Windows Server 2019 / Linux
 - Build Type: Mono_Server / Il2cpp_Server
 
 ## Logs
-```
+```log
 [Paste relevant log sections from MelonLoader/Latest.log]
-```
-
-## Additional Context
-Any other relevant information.
