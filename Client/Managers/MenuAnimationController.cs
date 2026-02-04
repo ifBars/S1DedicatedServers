@@ -27,8 +27,9 @@ namespace DedicatedServerMod.Client.Managers
         private CanvasGroup mainMenuSocialsCanvasGroup;
         private Vector2 socialsOriginalPosition;
 
-        // Animation state
-        private bool isAnimating;
+        // Coroutine handles to prevent overlapping animations
+        private Coroutine mainMenuHomeCoroutine;
+        private Coroutine mainMenuSocialsCoroutine;
 
         #endregion
 
@@ -70,13 +71,27 @@ namespace DedicatedServerMod.Client.Managers
                 // Animate main menu (left side)
                 if (mainMenuHome != null && mainMenuHomeRect != null)
                 {
-                    MelonCoroutines.Start(AnimateMainMenu(show));
+                    // Stop any existing main menu animation to prevent overlaps
+                    if (mainMenuHomeCoroutine != null)
+                    {
+                        MelonCoroutines.Stop(mainMenuHomeCoroutine);
+                        mainMenuHomeCoroutine = null;
+                    }
+                    
+                    mainMenuHomeCoroutine = MelonCoroutines.Start(AnimateMainMenu(show)) as Coroutine;
                 }
 
                 // Animate socials (right side)
                 if (mainMenuSocials != null && mainMenuSocialsRect != null)
                 {
-                    MelonCoroutines.Start(AnimateSocials(show));
+                    // Stop any existing socials animation to prevent overlaps
+                    if (mainMenuSocialsCoroutine != null)
+                    {
+                        MelonCoroutines.Stop(mainMenuSocialsCoroutine);
+                        mainMenuSocialsCoroutine = null;
+                    }
+                    
+                    mainMenuSocialsCoroutine = MelonCoroutines.Start(AnimateSocials(show)) as Coroutine;
                 }
             }
             catch (Exception ex)
@@ -91,13 +106,25 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         public void Reset()
         {
+            // Stop any in-flight coroutines
+            if (mainMenuHomeCoroutine != null)
+            {
+                MelonCoroutines.Stop(mainMenuHomeCoroutine);
+                mainMenuHomeCoroutine = null;
+            }
+            
+            if (mainMenuSocialsCoroutine != null)
+            {
+                MelonCoroutines.Stop(mainMenuSocialsCoroutine);
+                mainMenuSocialsCoroutine = null;
+            }
+            
             mainMenuHome = null;
             mainMenuHomeRect = null;
             mainMenuHomeCanvasGroup = null;
             mainMenuSocials = null;
             mainMenuSocialsRect = null;
             mainMenuSocialsCanvasGroup = null;
-            isAnimating = false;
         }
 
         #endregion
@@ -164,11 +191,6 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         private IEnumerator AnimateMainMenu(bool show)
         {
-            if (isAnimating)
-                yield break;
-
-            isAnimating = true;
-
             float elapsed = 0f;
             Vector2 startPosition = mainMenuHomeRect.anchoredPosition;
             float startAlpha = mainMenuHomeCanvasGroup.alpha;
@@ -220,7 +242,8 @@ namespace DedicatedServerMod.Client.Managers
                 mainMenuHome.SetActive(false);
             }
 
-            isAnimating = false;
+            // Clear the coroutine handle
+            mainMenuHomeCoroutine = null;
         }
 
         /// <summary>
@@ -282,6 +305,9 @@ namespace DedicatedServerMod.Client.Managers
             {
                 mainMenuSocials.SetActive(false);
             }
+
+            // Clear the coroutine handle
+            mainMenuSocialsCoroutine = null;
         }
 
         #endregion
