@@ -44,6 +44,7 @@ jobs:
           fi
 
       - name: Create Assembly Directory Structure
+        shell: bash
         run: |
           mkdir -p DedicatedServerMod/ScheduleOneAssemblies/Managed
           mkdir -p DedicatedServerMod/ScheduleOneAssemblies/MelonLoader
@@ -68,6 +69,7 @@ jobs:
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
       - name: Copy Game Assemblies
+        shell: bash
         run: |
           if [ -d "game-assemblies/Managed" ]; then
             cp -r game-assemblies/Managed/* DedicatedServerMod/ScheduleOneAssemblies/Managed/ || echo "Failed to copy Mono assemblies"
@@ -81,6 +83,7 @@ jobs:
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
       - name: Verify Assemblies
+        shell: bash
         run: |
           if [ -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
             echo "✓ Found Assembly-CSharp.dll"
@@ -90,6 +93,7 @@ jobs:
           fi
 
       - name: Create CI Build Properties
+        shell: bash
         run: |
           cat > ci.build.props << 'EOF'
           <Project>
