@@ -135,13 +135,28 @@ namespace DedicatedServerMod.Server.Player
                     Connection = connection,
                     ConnectTime = DateTime.Now,
                     ClientId = connection.ClientId,
-                    IsAuthenticated = !ServerConfig.Instance.RequireAuthentication // Auto-auth if not required
+                    IsAuthenticated = false // Will be set to true after authentication
                 };
 
                 connectedPlayers[connection] = playerInfo;
                 logger.Msg($"Player connected: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
                 OnPlayerJoined?.Invoke(playerInfo);
                 try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
+
+                // Send authentication challenge
+                bool requiresPassword = authentication.RequiresPassword();
+                DedicatedServerMod.Shared.Networking.MessageRouter.SendAuthenticationChallenge(
+                    connection, 
+                    requiresPassword, 
+                    ServerConfig.Instance.ServerName
+                );
+
+                // If no password required and no Steam auth required, auto-authenticate
+                if (!requiresPassword && !ServerConfig.Instance.RequireAuthentication)
+                {
+                    playerInfo.IsAuthenticated = true;
+                    logger.Msg($"Auto-authenticated ClientId {connection.ClientId} (no password or Steam auth required)");
+                }
 
                 // Proactively send initial server data snapshot
                 try

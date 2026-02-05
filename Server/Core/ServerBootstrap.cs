@@ -65,6 +65,11 @@ namespace DedicatedServerMod.Server.Core
         public static PlayerManager Players => _playerManager;
         
         /// <summary>
+        /// Gets the player manager instance (method form for compatibility).
+        /// </summary>
+        public PlayerManager GetPlayerManager() => _playerManager;
+        
+        /// <summary>
         /// Gets the command manager instance
         /// </summary>
         public static CommandManager Commands => _commandManager;

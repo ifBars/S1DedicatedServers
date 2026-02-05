@@ -101,6 +101,11 @@ namespace DedicatedServerMod.Client.Core
         public ClientUIManager UIManager => _uiManager;
 
         /// <summary>
+        /// Gets the UI manager instance (method form for compatibility).
+        /// </summary>
+        public ClientUIManager GetUIManager() => _uiManager;
+
+        /// <summary>
         /// Gets the quest manager.
         /// </summary>
         public ClientQuestManager QuestManager => _questManager;
