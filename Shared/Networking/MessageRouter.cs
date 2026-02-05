@@ -294,7 +294,7 @@ namespace DedicatedServerMod.Shared.Networking
                 _logger.Msg($"Received auth response from ClientId {conn.ClientId}");
 
                 // Get player manager instance
-                var playerManager = DedicatedServerMod.Server.Core.ServerBootstrap.Instance?.GetPlayerManager();
+                var playerManager = DedicatedServerMod.Server.Core.ServerBootstrap.Players;
                 if (playerManager == null)
                 {
                     _logger.Error("HandleAuthenticationResponse: PlayerManager not found");
@@ -411,7 +411,7 @@ namespace DedicatedServerMod.Shared.Networking
                 if (challenge.RequiresPassword)
                 {
                     // Trigger password prompt via ClientUIManager
-                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.GetUIManager();
+                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
                     if (uiManager != null)
                     {
                         uiManager.ShowPasswordPrompt(challenge.ServerName);
@@ -481,7 +481,7 @@ namespace DedicatedServerMod.Shared.Networking
                     _logger.Msg("Authentication successful - connection established");
                     
                     // Hide password prompt if shown
-                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.GetUIManager();
+                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
                     if (uiManager != null)
                     {
                         uiManager.HidePasswordPrompt();
@@ -492,7 +492,7 @@ namespace DedicatedServerMod.Shared.Networking
                     _logger.Warning($"Authentication failed: {result.ErrorMessage}");
                     
                     // Show error to user via UI manager
-                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.GetUIManager();
+                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
                     if (uiManager != null)
                     {
                         uiManager.ShowAuthenticationError(result.ErrorMessage);
