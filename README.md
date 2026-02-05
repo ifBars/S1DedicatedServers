@@ -145,33 +145,6 @@ The server configuration file is located at `UserData/server_config.json`. Here'
 }
 ```
 
-### Password Protection
-
-To protect your server with a password:
-
-1. **Set Password in Config**:
-   ```json
-   {
-     "serverPassword": "your_secure_password"
-   }
-   ```
-
-2. **Or Use Command Line**:
-   ```bash
-   "Schedule I.exe" --server-password "your_secure_password"
-   ```
-
-**How it works:**
-- When players connect to a password-protected server, they are prompted to enter the password
-- Passwords are hashed with SHA256 before transmission (never sent as plaintext)
-- Invalid password attempts result in connection rejection
-- The server's password protection status is visible in the server browser
-
-**Security Notes:**
-- Choose a strong password if your server is publicly accessible
-- Passwords are hashed during transmission to prevent eavesdropping
-- Server operators and admins must also use the password to connect
-
 ### Command Line Arguments
 
 Override configuration at startup:
