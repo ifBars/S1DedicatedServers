@@ -8,6 +8,15 @@ namespace DedicatedServerMod.Utils
     /// Utility class for secure password hashing.
     /// Uses SHA256 to create consistent hashes between client and server.
     /// </summary>
+    /// <remarks>
+    /// NOTE: This uses SHA256 for password hashing, which is suitable for this use case:
+    /// - We are NOT storing user passwords (no database)
+    /// - We are comparing a hash transmitted over network vs hash of configured password
+    /// - The server password is set by the admin, not by users
+    /// - This prevents plaintext password transmission over the network
+    /// 
+    /// For applications that store user passwords, use bcrypt, scrypt, or Argon2 instead.
+    /// </remarks>
     public static class PasswordHasher
     {
         /// <summary>

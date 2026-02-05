@@ -353,8 +353,7 @@ namespace DedicatedServerMod.Shared.Networking
                 var result = new AuthenticationResultMessage
                 {
                     Success = success,
-                    ErrorMessage = success ? null : message,
-                    FailureReason = success ? null : message
+                    ErrorMessage = success ? null : message
                 };
 
                 var json = JsonConvert.SerializeObject(result);

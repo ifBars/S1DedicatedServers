@@ -54,16 +54,10 @@ namespace DedicatedServerMod.Shared.Networking
         public bool Success { get; set; }
 
         /// <summary>
-        /// Error message if authentication failed.
+        /// Error message to display to the user if authentication failed.
         /// </summary>
         [JsonProperty("errorMessage")]
         public string ErrorMessage { get; set; }
-
-        /// <summary>
-        /// Detailed reason for failure (for logging).
-        /// </summary>
-        [JsonProperty("failureReason")]
-        public string FailureReason { get; set; }
     }
 
     /// <summary>
