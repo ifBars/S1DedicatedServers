@@ -29,6 +29,7 @@ DedicatedServerMod transforms Schedule I into a multiplayer-ready game with dedi
 - 🖥️ **True Dedicated Server**: Headless operation with minimal resource usage
 - 👥 **Multi-Player Support**: Up to 16 players (configurable)
 - 🔐 **Advanced Permissions**: Three-tier system (operators, admins, players)
+- 🔒 **Password Protection**: Secure your server with password authentication
 - 📡 **TCP Console**: Remote server management and monitoring
 - 💾 **Auto-Save System**: Configurable intervals with player event triggers
 - ⏰ **Time Management**: Never-stop time option with multiplier control
@@ -143,6 +144,33 @@ The server configuration file is located at `UserData/server_config.json`. Here'
   "tcpConsoleBindAddress": "127.0.0.1"
 }
 ```
+
+### Password Protection
+
+To protect your server with a password:
+
+1. **Set Password in Config**:
+   ```json
+   {
+     "serverPassword": "your_secure_password"
+   }
+   ```
+
+2. **Or Use Command Line**:
+   ```bash
+   "Schedule I.exe" --server-password "your_secure_password"
+   ```
+
+**How it works:**
+- When players connect to a password-protected server, they are prompted to enter the password
+- Passwords are hashed with SHA256 before transmission (never sent as plaintext)
+- Invalid password attempts result in connection rejection
+- The server's password protection status is visible in the server browser
+
+**Security Notes:**
+- Choose a strong password if your server is publicly accessible
+- Passwords are hashed during transmission to prevent eavesdropping
+- Server operators and admins must also use the password to connect
 
 ### Command Line Arguments
 
