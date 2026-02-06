@@ -235,20 +235,36 @@ namespace DedicatedServerMod.Client.Managers
             {
                 logger.Msg("Disconnecting from dedicated server");
                 
+                // Stop connection first
                 if (InstanceFinder.IsClient)
                 {
                     InstanceFinder.ClientManager?.StopConnection();
                 }
 
+                // Reset all connection state
                 IsConnectedToDedicatedServer = false;
+                IsConnecting = false; // Also reset connecting state
                 _isTugboatMode = false;
+                LastConnectionError = null; // Clear error
                 
-                logger.Msg("Disconnected from dedicated server");
+                // Reset LoadManager
+                var loadManager = Singleton<LoadManager>.Instance;
+                if (loadManager != null)
+                {
+                    loadManager.IsLoading = false;
+                    loadManager.ActiveSaveInfo = null;
+                }
+                
+                logger.Msg("Disconnected from dedicated server - all state reset");
                 try { ModManager.NotifyDisconnectedFromServer(); } catch {}
             }
             catch (Exception ex)
             {
                 logger.Error($"Error disconnecting: {ex}");
+                // Force reset state even on error
+                IsConnectedToDedicatedServer = false;
+                IsConnecting = false;
+                _isTugboatMode = false;
             }
         }
 

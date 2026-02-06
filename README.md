@@ -29,6 +29,7 @@ DedicatedServerMod transforms Schedule I into a multiplayer-ready game with dedi
 - 🖥️ **True Dedicated Server**: Headless operation with minimal resource usage
 - 👥 **Multi-Player Support**: Up to 16 players (configurable)
 - 🔐 **Advanced Permissions**: Three-tier system (operators, admins, players)
+- 🔒 **Password Protection**: Secure your server with password authentication
 - 📡 **TCP Console**: Remote server management and monitoring
 - 💾 **Auto-Save System**: Configurable intervals with player event triggers
 - ⏰ **Time Management**: Never-stop time option with multiplier control

@@ -53,18 +53,20 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteServerMessage(NetworkConnection conn, string command, string data)
         {
-            if (conn == null)
-            {
-                _logger.Warning("RouteServerMessage: Connection is null");
-                return;
-            }
-
-            _logger.Msg($"RouteServerMessage: cmd='{command}' from={conn.ClientId}");
+            _logger.Msg($"RouteServerMessage: cmd='{command}' from ClientId={conn?.ClientId}");
 
             switch (command)
             {
                 case "admin_console":
                     HandleAdminConsoleCommand(conn, data);
+                    break;
+
+                case "auth_response":
+                    HandleAuthenticationResponse(conn, data);
+                    break;
+
+                case "client_ready":
+                    HandleClientReady(conn);
                     break;
 
                 case "request_server_data":
@@ -84,12 +86,22 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteClientMessage(string command, string data)
         {
-            _logger.Msg($"RouteClientMessage: cmd='{command}'");
+            _logger.Msg($"RouteClientMessage: cmd='{command}' data_length={data?.Length ?? 0}");
 
             switch (command)
             {
                 case "exec_console":
                     HandleClientConsoleCommand(data);
+                    break;
+
+                case "auth_challenge":
+                    _logger.Msg("Routing to HandleAuthenticationChallenge");
+                    HandleAuthenticationChallenge(data);
+                    break;
+
+                case "auth_result":
+                    _logger.Msg("Routing to HandleAuthenticationResult");
+                    HandleAuthenticationResult(data);
                     break;
 
                 default:
@@ -260,6 +272,309 @@ namespace DedicatedServerMod.Shared.Networking
 
         #endregion
 
+        #region Authentication Handling
+
+        /// <summary>
+        /// Handles an authentication response from a client (server-side).
+        /// </summary>
+        /// <param name="conn">The connection that sent the response</param>
+        /// <param name="data">The authentication response data</param>
+        private static void HandleAuthenticationResponse(NetworkConnection conn, string data)
+        {
+#if SERVER
+            try
+            {
+                var response = JsonConvert.DeserializeObject<AuthenticationResponseMessage>(data);
+                if (response == null)
+                {
+                    _logger.Warning("HandleAuthenticationResponse: Failed to deserialize response");
+                    return;
+                }
+
+                _logger.Msg($"Received auth response from ClientId {conn.ClientId}");
+
+                // Get player manager instance
+                var playerManager = DedicatedServerMod.Server.Core.ServerBootstrap.Players;
+                if (playerManager == null)
+                {
+                    _logger.Error("HandleAuthenticationResponse: PlayerManager not found");
+                    SendAuthenticationResult(conn, false, "Server error");
+                    conn.Disconnect(true);
+                    return;
+                }
+
+                var playerInfo = playerManager.GetPlayer(conn);
+                if (playerInfo == null)
+                {
+                    _logger.Warning($"HandleAuthenticationResponse: No player info for ClientId {conn.ClientId}");
+                    SendAuthenticationResult(conn, false, "Player not found");
+                    conn.Disconnect(true);
+                    return;
+                }
+
+                // Authenticate player with password hash
+                var authResult = playerManager.Authentication.AuthenticatePlayer(playerInfo, response.PasswordHash);
+                
+                if (authResult.IsSuccessful)
+                {
+                    playerInfo.IsAuthenticated = true;
+                    _logger.Msg($"Player authenticated successfully: ClientId {conn.ClientId}");
+                    SendAuthenticationResult(conn, true, "Authentication successful");
+                }
+                else
+                {
+                    _logger.Warning($"Authentication failed for ClientId {conn.ClientId}: {authResult.Message}");
+                    SendAuthenticationResult(conn, false, authResult.Message);
+                    
+                    if (authResult.ShouldDisconnect)
+                    {
+                        // Delay disconnect slightly to ensure message is sent
+                        MelonCoroutines.Start(DelayedDisconnect(conn, 0.5f));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleAuthenticationResponse: Error: {ex}");
+                SendAuthenticationResult(conn, false, "Authentication error");
+                conn.Disconnect(true);
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Sends an authentication result to a client (server-side).
+        /// </summary>
+        private static void SendAuthenticationResult(NetworkConnection conn, bool success, string message)
+        {
+#if SERVER
+            try
+            {
+                var result = new AuthenticationResultMessage
+                {
+                    Success = success,
+                    ErrorMessage = success ? null : message
+                };
+
+                var json = JsonConvert.SerializeObject(result);
+                CustomMessaging.SendToClient(conn, "auth_result", json);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"SendAuthenticationResult: Error: {ex}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Sends an authentication challenge to a client (server-side).
+        /// </summary>
+        public static void SendAuthenticationChallenge(NetworkConnection conn, bool requiresPassword, string serverName)
+        {
+#if SERVER
+            try
+            {
+                var challenge = new AuthenticationChallengeMessage
+                {
+                    RequiresPassword = requiresPassword,
+                    ServerName = serverName
+                };
+
+                var json = JsonConvert.SerializeObject(challenge);
+                CustomMessaging.SendToClient(conn, "auth_challenge", json);
+                _logger.Msg($"Sent auth challenge to ClientId {conn.ClientId} (password required: {requiresPassword})");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"SendAuthenticationChallenge: Error: {ex}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Handles an authentication challenge from the server (client-side).
+        /// </summary>
+        private static void HandleAuthenticationChallenge(string data)
+        {
+#if CLIENT
+            try
+            {
+                var challenge = JsonConvert.DeserializeObject<AuthenticationChallengeMessage>(data);
+                if (challenge == null)
+                {
+                    _logger.Warning("HandleAuthenticationChallenge: Failed to deserialize challenge");
+                    return;
+                }
+
+                _logger.Msg($"Received auth challenge from server: {challenge.ServerName} (password required: {challenge.RequiresPassword})");
+
+                if (challenge.RequiresPassword)
+                {
+                    // Trigger password prompt via ClientUIManager
+                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
+                    if (uiManager != null)
+                    {
+                        uiManager.ShowPasswordPrompt(challenge.ServerName);
+                    }
+                    else
+                    {
+                        _logger.Error("HandleAuthenticationChallenge: UIManager not found");
+                    }
+                }
+                else
+                {
+                    // No password required, send empty response to continue
+                    SendAuthenticationResponse(null);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleAuthenticationChallenge: Error: {ex}");
+            }
+#else
+            _logger.Warning("HandleAuthenticationChallenge called but CLIENT directive not defined");
+#endif
+        }
+
+        /// <summary>
+        /// Sends an authentication response to the server (client-side).
+        /// </summary>
+        public static void SendAuthenticationResponse(string passwordHash)
+        {
+#if CLIENT
+            try
+            {
+                var response = new AuthenticationResponseMessage
+                {
+                    PasswordHash = passwordHash ?? string.Empty,
+                    ClientVersion = DedicatedServerMod.Utils.Constants.MOD_VERSION
+                };
+
+                var json = JsonConvert.SerializeObject(response);
+                CustomMessaging.SendToServer("auth_response", json);
+                _logger.Msg("Sent auth response to server");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"SendAuthenticationResponse: Error: {ex}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Handles an authentication result from the server (client-side).
+        /// </summary>
+        private static void HandleAuthenticationResult(string data)
+        {
+#if CLIENT
+            try
+            {
+                _logger.Msg($"HandleAuthenticationResult called with data length: {data?.Length ?? 0}");
+                _logger.Msg($"Raw data: {data}");
+                
+                var result = JsonConvert.DeserializeObject<AuthenticationResultMessage>(data);
+                if (result == null)
+                {
+                    _logger.Warning("HandleAuthenticationResult: Failed to deserialize result");
+                    return;
+                }
+
+                _logger.Msg($"Deserialized result - Success: {result.Success}, ErrorMessage: {result.ErrorMessage}");
+                _logger.Msg($"Received auth result: {(result.Success ? "SUCCESS" : "FAILED")}");
+
+                if (result.Success)
+                {
+                    _logger.Msg("? Authentication successful - connection established");
+                    
+                    // Hide password prompt if shown
+                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
+                    _logger.Msg($"UIManager found: {uiManager != null}");
+                    
+                    if (uiManager != null)
+                    {
+                        _logger.Msg("Calling OnAuthenticationSuccess()");
+                        uiManager.OnAuthenticationSuccess(); // Notify success
+                        
+                        _logger.Msg("Calling HidePasswordPrompt()");
+                        uiManager.HidePasswordPrompt();
+                        
+                        _logger.Msg("Password dialog should now be hidden");
+                    }
+                    else
+                    {
+                        _logger.Error("UIManager is null - cannot hide password dialog!");
+                    }
+                }
+                else
+                {
+                    _logger.Warning($"? Authentication failed: {result.ErrorMessage}");
+                    
+                    // Show error to user via UI manager
+                    var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
+                    if (uiManager != null)
+                    {
+                        uiManager.ShowAuthenticationError(result.ErrorMessage);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleAuthenticationResult: Error: {ex}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Handles the client_ready message from a client.
+        /// Sends authentication challenge immediately when client is ready.
+        /// </summary>
+        private static void HandleClientReady(NetworkConnection conn)
+        {
+#if SERVER
+            try
+            {
+                _logger.Msg($"Client ready message received from ClientId {conn.ClientId}");
+                
+                // Get the server's PlayerManager
+                var playerManager = DedicatedServerMod.Server.Core.ServerBootstrap.Players;
+                if (playerManager == null)
+                {
+                    _logger.Warning("PlayerManager not available, cannot send auth challenge");
+                    return;
+                }
+
+                // Check if password is required
+                bool requiresPassword = playerManager.Authentication.RequiresPassword();
+                _logger.Msg($"Sending immediate auth challenge to ClientId {conn.ClientId} (password required: {requiresPassword})");
+
+                // Send authentication challenge immediately
+                SendAuthenticationChallenge(
+                    conn,
+                    requiresPassword,
+                    DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.ServerName
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error handling client_ready: {ex}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Coroutine to delay a disconnection (allows message to be sent first).
+        /// </summary>
+        private static System.Collections.IEnumerator DelayedDisconnect(NetworkConnection conn, float delay)
+        {
+            yield return new UnityEngine.WaitForSeconds(delay);
+            if (conn != null)
+            {
+                conn.Disconnect(true);
+            }
+        }
+
+        #endregion
+
         #region Client Console Command Handling
 
         /// <summary>
@@ -418,7 +733,7 @@ namespace DedicatedServerMod.Shared.Networking
                 if (!commands.ContainsKey("hideui"))
                     commands.Add("hideui", new Console.HideUI());
                 if (!commands.ContainsKey("disable"))
-                    commands.Add("disable", new Console.Disable());
+                    commands.Add("disable", new Console.Enable());
                 if (!commands.ContainsKey("enable"))
                     commands.Add("enable", new Console.Enable());
                 if (!commands.ContainsKey("endtutorial"))
