@@ -100,7 +100,25 @@ namespace DedicatedServerMod.Client.Managers
             {
                 if (sceneName == "Menu")
                 {
-                    logger.Msg("Menu scene loaded - setting up prototype UI");
+                    logger.Msg("Menu scene loaded - setting up prototype UI and cleaning up connection state");
+                    
+                    // Ensure connection state is fully cleaned up when returning to menu
+                    if (connectionManager != null)
+                    {
+                        // Force disconnect and cleanup if somehow still connected
+                        connectionManager.DisconnectFromDedicatedServer();
+                    }
+                    
+                    // Ensure password dialog is hidden and reset
+                    passwordDialog?.HidePasswordPrompt();
+                    
+                    // Ensure cursor is properly unlocked for menu
+                    UnityEngine.Cursor.lockState = CursorLockMode.None;
+                    UnityEngine.Cursor.visible = true;
+                    
+                    // Ensure time scale is normal
+                    UnityEngine.Time.timeScale = 1f;
+                    
                     // Reset the flag so UI gets recreated when returning to menu
                     menuUISetup = false;
                     MelonCoroutines.Start(SetupMenuUI());

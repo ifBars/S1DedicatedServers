@@ -99,6 +99,13 @@ namespace DedicatedServerMod.Client.Managers
                     passwordErrorText.gameObject.SetActive(false);
                 }
                 
+                // CRITICAL: Always reset and enable submit button when showing dialog
+                if (passwordSubmitButton != null)
+                {
+                    passwordSubmitButton.interactable = true;
+                    logger.Msg("Submit button enabled for password dialog");
+                }
+                
                 // Reset retry count when showing dialog
                 authRetryCount = 0;
 
@@ -224,6 +231,27 @@ namespace DedicatedServerMod.Client.Managers
                     logger.Msg("Password overlay hidden");
                 }
 
+                // CRITICAL: Re-enable the submit button when hiding
+                if (passwordSubmitButton != null)
+                {
+                    passwordSubmitButton.interactable = true;
+                    logger.Msg("Submit button re-enabled");
+                }
+                
+                // Clear input field and error message for next time
+                if (passwordInput != null)
+                {
+                    passwordInput.text = "";
+                }
+                if (passwordErrorText != null)
+                {
+                    passwordErrorText.text = "";
+                    passwordErrorText.gameObject.SetActive(false);
+                }
+                
+                // Reset retry count
+                authRetryCount = 0;
+
                 // CRITICAL: RESUME THE GAME - Always restore timeScale!
                 UnityEngine.Time.timeScale = 1f;
                 logger.Msg("Game resumed (timeScale = 1)");
@@ -235,9 +263,9 @@ namespace DedicatedServerMod.Client.Managers
                 if (currentScene != "Menu")
                 {
                     // In-game: lock cursor
-                    UnityEngine.Cursor.lockState = CursorLockMode.Locked;
-                    UnityEngine.Cursor.visible = false;
-                    logger.Msg("Cursor locked for gameplay");
+                    UnityEngine.Cursor.lockState = CursorLockMode.None; // Keep unlocked temporarily
+                    UnityEngine.Cursor.visible = true;
+                    logger.Msg("Cursor unlocked (will be locked by game when appropriate)");
                 }
                 else
                 {
@@ -252,6 +280,12 @@ namespace DedicatedServerMod.Client.Managers
                 logger.Error($"Error hiding password prompt: {ex}");
                 // ALWAYS restore timeScale even if there's an error
                 UnityEngine.Time.timeScale = 1f;
+                
+                // ALWAYS re-enable button on error
+                if (passwordSubmitButton != null)
+                {
+                    passwordSubmitButton.interactable = true;
+                }
             }
         }
 
@@ -265,6 +299,13 @@ namespace DedicatedServerMod.Client.Managers
             {
                 authRetryCount++;
                 logger.Warning($"Authentication failed: {errorMessage}");
+                
+                // Re-enable submit button before disconnecting so it's ready for reconnect
+                if (passwordSubmitButton != null)
+                {
+                    passwordSubmitButton.interactable = true;
+                    logger.Msg("Submit button re-enabled after auth failure");
+                }
 
                 // Show error message
                 if (passwordErrorText != null)
@@ -281,6 +322,11 @@ namespace DedicatedServerMod.Client.Managers
             catch (Exception ex)
             {
                 logger.Error($"Error showing authentication error: {ex}");
+                // Ensure button is re-enabled even on error
+                if (passwordSubmitButton != null)
+                {
+                    passwordSubmitButton.interactable = true;
+                }
             }
         }
         
