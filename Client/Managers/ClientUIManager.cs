@@ -98,13 +98,12 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                if (sceneName == "Menu" && !menuUISetup)
+                if (sceneName == "Menu")
                 {
                     logger.Msg("Menu scene loaded - setting up prototype UI");
+                    // Reset the flag so UI gets recreated when returning to menu
+                    menuUISetup = false;
                     MelonCoroutines.Start(SetupMenuUI());
-                }
-                else if (sceneName == "Menu")
-                {
                     // Reset animation controller when returning to menu
                     menuAnimationController?.Reset();
                 }
@@ -390,6 +389,23 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                // Update password dialog state if active
+                passwordDialog?.Update();
+                
+                // Check if password dialog is visible and handle ESC
+                if (passwordDialog != null && passwordDialog.IsVisible)
+                {
+                    if (Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        logger.Msg("ESC pressed while password dialog visible - cancelling and disconnecting");
+                        passwordDialog.HidePasswordPrompt();
+                        connectionManager?.DisconnectFromDedicatedServer();
+                        return; // Don't process other ESC handling
+                    }
+                    // Block all other input while password dialog is visible
+                    return;
+                }
+                
                 // ESC - Close server browser panels
                 if (Input.GetKeyDown(KeyCode.Escape))
                 {
@@ -1142,12 +1158,29 @@ namespace DedicatedServerMod.Client.Managers
         }
 
         /// <summary>
+        /// Checks if the password dialog is currently visible.
+        /// </summary>
+        /// <returns>True if the password dialog is visible, false otherwise</returns>
+        public bool IsPasswordDialogVisible()
+        {
+            return passwordDialog?.IsVisible ?? false;
+        }
+
+        /// <summary>
         /// Shows an authentication error message.
         /// </summary>
         /// <param name="errorMessage">The error message to display</param>
         public void ShowAuthenticationError(string errorMessage)
         {
             passwordDialog.ShowAuthenticationError(errorMessage);
+        }
+        
+        /// <summary>
+        /// Called when authentication succeeds.
+        /// </summary>
+        public void OnAuthenticationSuccess()
+        {
+            passwordDialog.OnAuthenticationSuccess();
         }
 
         #endregion

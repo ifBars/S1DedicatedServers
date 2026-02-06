@@ -143,38 +143,14 @@ namespace DedicatedServerMod.Server.Player
                 OnPlayerJoined?.Invoke(playerInfo);
                 try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
 
-                // Send authentication challenge
-                bool requiresPassword = authentication.RequiresPassword();
-                DedicatedServerMod.Shared.Networking.MessageRouter.SendAuthenticationChallenge(
-                    connection, 
-                    requiresPassword, 
-                    ServerConfig.Instance.ServerName
-                );
+                // NOTE: Authentication challenge is now sent when client sends "client_ready" message
+                // This ensures the client's RPC handlers are registered before we send the challenge
 
                 // If no password required and no Steam auth required, auto-authenticate
-                if (!requiresPassword && !ServerConfig.Instance.RequireAuthentication)
+                if (!authentication.RequiresPassword() && !ServerConfig.Instance.RequireAuthentication)
                 {
                     playerInfo.IsAuthenticated = true;
                     logger.Msg($"Auto-authenticated ClientId {connection.ClientId} (no password or Steam auth required)");
-                }
-
-                // Proactively send initial server data snapshot
-                try
-                {
-                    var cfg = ServerConfig.Instance;
-                    var sd = new DedicatedServerMod.Shared.ServerData
-                    {
-                        ServerName = cfg.ServerName,
-                        AllowSleeping = cfg.AllowSleeping,
-                        TimeNeverStops = cfg.TimeNeverStops,
-                        PublicServer = cfg.PublicServer
-                    };
-                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(sd);
-                    DedicatedServerMod.Shared.Networking.CustomMessaging.SendToClient(connection, "server_data", json);
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
                 }
             }
             catch (Exception ex)
@@ -375,6 +351,7 @@ namespace DedicatedServerMod.Server.Player
                 return;
             }
 
+            bool isNewPlayer = false;
             if (!connectedPlayers.TryGetValue(connection, out var playerInfo))
             {
                 // Player name data can arrive before the connection event fires
@@ -384,9 +361,10 @@ namespace DedicatedServerMod.Server.Player
                     Connection = connection,
                     ConnectTime = DateTime.Now,
                     ClientId = connection.ClientId,
-                    IsAuthenticated = true
+                    IsAuthenticated = false
                 };
                 connectedPlayers[connection] = playerInfo;
+                isNewPlayer = true;
                 logger.Msg($"Created player entry from identity binding: ClientId {connection.ClientId}");
             }
             else
@@ -407,6 +385,9 @@ namespace DedicatedServerMod.Server.Player
             playerInfo.SteamId = steamId;
             playerInfo.PlayerName = playerName;
             logger.Msg($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
+            
+            // NOTE: Authentication is now handled via client_ready message, not here
+            
             OnPlayerSpawned?.Invoke(playerInfo);
         }
 

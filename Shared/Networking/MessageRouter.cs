@@ -53,13 +53,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteServerMessage(NetworkConnection conn, string command, string data)
         {
-            if (conn == null)
-            {
-                _logger.Warning("RouteServerMessage: Connection is null");
-                return;
-            }
-
-            _logger.Msg($"RouteServerMessage: cmd='{command}' from={conn.ClientId}");
+            _logger.Msg($"RouteServerMessage: cmd='{command}' from ClientId={conn?.ClientId}");
 
             switch (command)
             {
@@ -67,12 +61,16 @@ namespace DedicatedServerMod.Shared.Networking
                     HandleAdminConsoleCommand(conn, data);
                     break;
 
-                case "request_server_data":
-                    HandleServerDataRequest(conn);
-                    break;
-
                 case "auth_response":
                     HandleAuthenticationResponse(conn, data);
+                    break;
+
+                case "client_ready":
+                    HandleClientReady(conn);
+                    break;
+
+                case "request_server_data":
+                    HandleServerDataRequest(conn);
                     break;
 
                 default:
@@ -88,7 +86,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteClientMessage(string command, string data)
         {
-            _logger.Msg($"RouteClientMessage: cmd='{command}'");
+            _logger.Msg($"RouteClientMessage: cmd='{command}' data_length={data?.Length ?? 0}");
 
             switch (command)
             {
@@ -97,10 +95,12 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 case "auth_challenge":
+                    _logger.Msg("Routing to HandleAuthenticationChallenge");
                     HandleAuthenticationChallenge(data);
                     break;
 
                 case "auth_result":
+                    _logger.Msg("Routing to HandleAuthenticationResult");
                     HandleAuthenticationResult(data);
                     break;
 
@@ -431,6 +431,8 @@ namespace DedicatedServerMod.Shared.Networking
             {
                 _logger.Error($"HandleAuthenticationChallenge: Error: {ex}");
             }
+#else
+            _logger.Warning("HandleAuthenticationChallenge called but CLIENT directive not defined");
 #endif
         }
 
@@ -467,6 +469,9 @@ namespace DedicatedServerMod.Shared.Networking
 #if CLIENT
             try
             {
+                _logger.Msg($"HandleAuthenticationResult called with data length: {data?.Length ?? 0}");
+                _logger.Msg($"Raw data: {data}");
+                
                 var result = JsonConvert.DeserializeObject<AuthenticationResultMessage>(data);
                 if (result == null)
                 {
@@ -474,22 +479,35 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
+                _logger.Msg($"Deserialized result - Success: {result.Success}, ErrorMessage: {result.ErrorMessage}");
                 _logger.Msg($"Received auth result: {(result.Success ? "SUCCESS" : "FAILED")}");
 
                 if (result.Success)
                 {
-                    _logger.Msg("Authentication successful - connection established");
+                    _logger.Msg("? Authentication successful - connection established");
                     
                     // Hide password prompt if shown
                     var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
+                    _logger.Msg($"UIManager found: {uiManager != null}");
+                    
                     if (uiManager != null)
                     {
+                        _logger.Msg("Calling OnAuthenticationSuccess()");
+                        uiManager.OnAuthenticationSuccess(); // Notify success
+                        
+                        _logger.Msg("Calling HidePasswordPrompt()");
                         uiManager.HidePasswordPrompt();
+                        
+                        _logger.Msg("Password dialog should now be hidden");
+                    }
+                    else
+                    {
+                        _logger.Error("UIManager is null - cannot hide password dialog!");
                     }
                 }
                 else
                 {
-                    _logger.Warning($"Authentication failed: {result.ErrorMessage}");
+                    _logger.Warning($"? Authentication failed: {result.ErrorMessage}");
                     
                     // Show error to user via UI manager
                     var uiManager = DedicatedServerMod.Client.Core.ClientBootstrap.Instance?.UIManager;
@@ -502,6 +520,43 @@ namespace DedicatedServerMod.Shared.Networking
             catch (Exception ex)
             {
                 _logger.Error($"HandleAuthenticationResult: Error: {ex}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Handles the client_ready message from a client.
+        /// Sends authentication challenge immediately when client is ready.
+        /// </summary>
+        private static void HandleClientReady(NetworkConnection conn)
+        {
+#if SERVER
+            try
+            {
+                _logger.Msg($"Client ready message received from ClientId {conn.ClientId}");
+                
+                // Get the server's PlayerManager
+                var playerManager = DedicatedServerMod.Server.Core.ServerBootstrap.Players;
+                if (playerManager == null)
+                {
+                    _logger.Warning("PlayerManager not available, cannot send auth challenge");
+                    return;
+                }
+
+                // Check if password is required
+                bool requiresPassword = playerManager.Authentication.RequiresPassword();
+                _logger.Msg($"Sending immediate auth challenge to ClientId {conn.ClientId} (password required: {requiresPassword})");
+
+                // Send authentication challenge immediately
+                SendAuthenticationChallenge(
+                    conn,
+                    requiresPassword,
+                    DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.ServerName
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error handling client_ready: {ex}");
             }
 #endif
         }
@@ -678,7 +733,7 @@ namespace DedicatedServerMod.Shared.Networking
                 if (!commands.ContainsKey("hideui"))
                     commands.Add("hideui", new Console.HideUI());
                 if (!commands.ContainsKey("disable"))
-                    commands.Add("disable", new Console.Disable());
+                    commands.Add("disable", new Console.Enable());
                 if (!commands.ContainsKey("enable"))
                     commands.Add("enable", new Console.Enable());
                 if (!commands.ContainsKey("endtutorial"))

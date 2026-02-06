@@ -1046,7 +1046,6 @@
 		<!-- Legacy files (for backward compatibility during transition) -->
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Client\Managers\" />
 	  <Folder Include="Client\Patchers\" />
 	  <Folder Include="Client\Core\" />
 	</ItemGroup>
@@ -1057,8 +1056,8 @@
 	</PropertyGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<!-- Client builds: copy to deployment path and restart game -->
-		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
+		<!-- Client builds: copy to deployment path only (removed auto-start to allow Steam launch) -->
+		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 		<!-- Server builds: copy to deployment path only -->
 		<Exec Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 	</Target>
