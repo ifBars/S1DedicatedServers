@@ -80,7 +80,19 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         public static bool PlayerLoadedPrefix_HandleDedicatedServer(Player __instance)
         {
-            if (ClientConnectionManager.IsTugboatMode && !InstanceFinder.IsServer)
+            // Check current scene
+            var currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            
+            // NEVER allow PlayerLoaded to run in Menu scene - this prevents ghost avatars
+            if (currentScene == "Menu")
+            {
+                var logger = new MelonLogger.Instance("ClientPlayerSetup");
+                logger.Msg("Skipping PlayerLoaded in Menu scene to prevent ghost avatar");
+                return false; // Block PlayerLoaded entirely in Menu
+            }
+            
+            // Only handle dedicated server setup in the Main scene
+            if (ClientConnectionManager.IsTugboatMode && !InstanceFinder.IsServer && currentScene == "Main")
             {
                 var logger = new MelonLogger.Instance("ClientPlayerSetup");
                 logger.Msg("Dedicated server client detected - starting custom player setup");
@@ -92,7 +104,7 @@ namespace DedicatedServerMod.Client.Managers
                 return false;
             }
             
-            // Return true to allow normal execution for non-dedicated server clients
+            // Return true to allow normal execution for non-dedicated server clients in Main scene
             return true;
         }
 
@@ -103,6 +115,11 @@ namespace DedicatedServerMod.Client.Managers
         {
             var logger = new MelonLogger.Instance("ClientPlayerSetup");
             logger.Msg("Setting up dedicated server player - bypassing frozen intro sequence");
+            
+            // NOTE: If password authentication is required, the game will be frozen (timeScale=0)
+            // by the password dialog until authentication completes. This naturally prevents
+            // player setup from progressing until the user is authenticated.
+            // No explicit wait needed - the Time.timeScale=0 blocks everything!
             
             // Wait for initialization
             yield return new WaitForSeconds(1f);

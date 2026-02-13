@@ -8,6 +8,7 @@ using HarmonyLib;
 using MelonLoader;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.UI;
+using UnityEngine;
 
 namespace DedicatedServerMod.Client.Patches
 {
@@ -62,13 +63,59 @@ namespace DedicatedServerMod.Client.Patches
                     Shared.Networking.CustomMessaging.DailySummaryAwakePostfix(__instance);
                     _logger?.Msg("Client: DailySummary RPC registration delegated to CustomMessaging");
                     
-                    // Now that RPCs are registered, request server data if connected
-                    RequestServerDataIfConnected();
+                    // Delay sending messages slightly to ensure DailySummary.Instance is set
+                    MelonCoroutines.Start(SendDelayedClientMessages());
                 }
                 catch (Exception ex)
                 {
                     _logger?.Error($"Failed to register custom RPCs: {ex}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Sends client_ready and request_server_data messages after a short delay
+        /// to ensure DailySummary.Instance is properly initialized.
+        /// </summary>
+        private static System.Collections.IEnumerator SendDelayedClientMessages()
+        {
+            // Wait for DailySummary to be spawned (up to 5 seconds)
+            float timeout = 5f;
+            float elapsed = 0f;
+            
+            while (elapsed < timeout)
+            {
+                var ds = DailySummary.Instance;
+                if (ds != null)
+                {
+                    var nb = ds as NetworkBehaviour;
+                    if (nb != null && nb.IsSpawned)
+                    {
+                        _logger?.Msg("DailySummary is spawned, sending client messages");
+                        break;
+                    }
+                }
+                
+                yield return new WaitForSeconds(0.1f);
+                elapsed += 0.1f;
+            }
+            
+            if (elapsed >= timeout)
+            {
+                _logger?.Warning("Timeout waiting for DailySummary to spawn");
+            }
+            
+            try
+            {
+                // Send "client ready" message to server so it knows we can receive authentication challenges
+                SendClientReadyMessage();
+                
+                // Now that RPCs are registered, request server data if connected
+                RequestServerDataIfConnected();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"Error sending delayed client messages: {ex}");
             }
         }
 
@@ -79,6 +126,26 @@ namespace DedicatedServerMod.Client.Patches
         // Message handlers are now in Shared.Networking.CustomMessaging
         // This patch only delegates RPC registration to the shared implementation
         
+        /// <summary>
+        /// Sends a "client ready" message to the server indicating RPCs are registered
+        /// and the client is ready to receive authentication challenges.
+        /// </summary>
+        private static void SendClientReadyMessage()
+        {
+            try
+            {
+                if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsServer)
+                {
+                    _logger?.Msg("Sending client_ready message to server");
+                    Shared.Networking.CustomMessaging.SendToServer("client_ready");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Failed to send client_ready message: {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region Events

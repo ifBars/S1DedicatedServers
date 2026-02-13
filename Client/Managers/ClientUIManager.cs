@@ -43,6 +43,9 @@ namespace DedicatedServerMod.Client.Managers
         private TMP_InputField dsIpInput;
         private TMP_InputField dsPortInput;
 
+        // Password dialog
+        private PasswordDialog passwordDialog;
+
         // Menu animation controller
         private MenuAnimationController menuAnimationController;
 
@@ -64,6 +67,9 @@ namespace DedicatedServerMod.Client.Managers
         {
             this.logger = logger;
             this.connectionManager = connectionManager;
+            
+            // Initialize password dialog
+            passwordDialog = new PasswordDialog(logger, connectionManager);
         }
 
         public void Initialize()
@@ -92,13 +98,30 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                if (sceneName == "Menu" && !menuUISetup)
+                if (sceneName == "Menu")
                 {
-                    logger.Msg("Menu scene loaded - setting up prototype UI");
+                    logger.Msg("Menu scene loaded - setting up prototype UI and cleaning up connection state");
+                    
+                    // Ensure connection state is fully cleaned up when returning to menu
+                    if (connectionManager != null)
+                    {
+                        // Force disconnect and cleanup if somehow still connected
+                        connectionManager.DisconnectFromDedicatedServer();
+                    }
+                    
+                    // Ensure password dialog is hidden and reset
+                    passwordDialog?.HidePasswordPrompt();
+                    
+                    // Ensure cursor is properly unlocked for menu
+                    UnityEngine.Cursor.lockState = CursorLockMode.None;
+                    UnityEngine.Cursor.visible = true;
+                    
+                    // Ensure time scale is normal
+                    UnityEngine.Time.timeScale = 1f;
+                    
+                    // Reset the flag so UI gets recreated when returning to menu
+                    menuUISetup = false;
                     MelonCoroutines.Start(SetupMenuUI());
-                }
-                else if (sceneName == "Menu")
-                {
                     // Reset animation controller when returning to menu
                     menuAnimationController?.Reset();
                 }
@@ -384,6 +407,23 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                // Update password dialog state if active
+                passwordDialog?.Update();
+                
+                // Check if password dialog is visible and handle ESC
+                if (passwordDialog != null && passwordDialog.IsVisible)
+                {
+                    if (Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        logger.Msg("ESC pressed while password dialog visible - cancelling and disconnecting");
+                        passwordDialog.HidePasswordPrompt();
+                        connectionManager?.DisconnectFromDedicatedServer();
+                        return; // Don't process other ESC handling
+                    }
+                    // Block all other input while password dialog is visible
+                    return;
+                }
+                
                 // ESC - Close server browser panels
                 if (Input.GetKeyDown(KeyCode.Escape))
                 {
@@ -1113,5 +1153,54 @@ namespace DedicatedServerMod.Client.Managers
                 return true;
             }
         }
+
+        #region Password Prompt UI
+
+        /// <summary>
+        /// Shows the password prompt dialog.
+        /// </summary>
+        /// <param name="serverName">The name of the server requesting authentication</param>
+        public void ShowPasswordPrompt(string serverName)
+        {
+            // Set the captured font before showing the dialog
+            passwordDialog.SetCapturedFont(capturedTmpFont);
+            passwordDialog.ShowPasswordPrompt(serverName);
+        }
+
+        /// <summary>
+        /// Hides the password prompt dialog.
+        /// </summary>
+        public void HidePasswordPrompt()
+        {
+            passwordDialog.HidePasswordPrompt();
+        }
+
+        /// <summary>
+        /// Checks if the password dialog is currently visible.
+        /// </summary>
+        /// <returns>True if the password dialog is visible, false otherwise</returns>
+        public bool IsPasswordDialogVisible()
+        {
+            return passwordDialog?.IsVisible ?? false;
+        }
+
+        /// <summary>
+        /// Shows an authentication error message.
+        /// </summary>
+        /// <param name="errorMessage">The error message to display</param>
+        public void ShowAuthenticationError(string errorMessage)
+        {
+            passwordDialog.ShowAuthenticationError(errorMessage);
+        }
+        
+        /// <summary>
+        /// Called when authentication succeeds.
+        /// </summary>
+        public void OnAuthenticationSuccess()
+        {
+            passwordDialog.OnAuthenticationSuccess();
+        }
+
+        #endregion
     }
 }

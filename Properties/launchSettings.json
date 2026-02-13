@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Run Batch File": {
+      "commandName": "Executable",
+      "executablePath": "$(ProjectDir)run.bat",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    }
+  }
+}
