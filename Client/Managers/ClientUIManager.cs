@@ -43,6 +43,9 @@ namespace DedicatedServerMod.Client.Managers
         private TMP_InputField dsIpInput;
         private TMP_InputField dsPortInput;
 
+        // Menu animation controller
+        private MenuAnimationController menuAnimationController;
+
         // Theme
         private static readonly Color ACCENT = new Color(0.10f, 0.65f, 1f, 1f);
         private static readonly Color PANEL_BG = new Color(0.08f, 0.09f, 0.12f, 0.96f);
@@ -69,6 +72,9 @@ namespace DedicatedServerMod.Client.Managers
             {
                 logger.Msg("Initializing ClientUIManager");
                 
+                // Initialize menu animation controller
+                menuAnimationController = new MenuAnimationController(logger);
+                
                 // UI will be setup when menu scene loads
                 
                 logger.Msg("ClientUIManager initialized");
@@ -90,6 +96,11 @@ namespace DedicatedServerMod.Client.Managers
                 {
                     logger.Msg("Menu scene loaded - setting up prototype UI");
                     MelonCoroutines.Start(SetupMenuUI());
+                }
+                else if (sceneName == "Menu")
+                {
+                    // Reset animation controller when returning to menu
+                    menuAnimationController?.Reset();
                 }
             }
             catch (Exception ex)
@@ -369,6 +380,37 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
+        public void HandleInput()
+        {
+            try
+            {
+                // ESC - Close server browser panels
+                if (Input.GetKeyDown(KeyCode.Escape))
+                {
+                    if (IsServerBrowserOpen())
+                    {
+                        CloseServerBrowser();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error handling input: {ex}");
+            }
+        }
+
+        private bool IsServerBrowserOpen()
+        {
+            return (dsServerBrowserPanel != null && dsServerBrowserPanel.gameObject.activeSelf) ||
+                   (dsDirectConnectPanel != null && dsDirectConnectPanel.gameObject.activeSelf) ||
+                   (serverMenuPanel != null && serverMenuPanel.activeSelf);
+        }
+
+        private void CloseServerBrowser()
+        {
+            ToggleServerMenu(false);
+        }
+
         /// <summary>
         /// Remove UI elements when cleaning up
         /// </summary>
@@ -426,6 +468,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 menuUISetup = false;
+                menuAnimationController?.Reset();
                 UpdateButtonState();
             }
             catch (Exception ex)
@@ -438,6 +481,9 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                // Hide/show main menu buttons using animation controller
+                menuAnimationController?.ToggleMenuVisibility(!show);
+
                 // Prefer AssetBundle-driven UI. Fall back to runtime-built panel if bundle missing.
                 if (show)
                 {
@@ -491,6 +537,13 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                // Only create once
+                if (dsServerBrowserPanel != null && dsDirectConnectPanel != null)
+                {
+                    ShowDirectConnectPanel(false);
+                    return true;
+                }
+
                 // Load embedded AssetBundle containing the prefab
                 if (dedicatedUiBundle == null)
                 {
