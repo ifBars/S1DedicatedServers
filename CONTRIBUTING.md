@@ -9,7 +9,7 @@ Thank you for your interest in contributing to DedicatedServerMod! This document
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
-- [Coding Standards](#coding-standards)
+- [Coding Standards](CODING_STANDARDS.md)
 - [Pull Request Process](#pull-request-process)
 - [Issue Reporting](#issue-reporting)
 - [Community](#community)
