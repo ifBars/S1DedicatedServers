@@ -87,7 +87,7 @@ DedicatedServerMod/
 
 6. **Harmony Patching**
    - Patches game methods for dedicated server compatibility
-   - Examples: Sleep system, police authority, quest handling
+   - Examples: Sleep system, quest handling
    - Organized by concern (e.g., `Client.Patches.SleepPatches`)
 
 7. **Mod API**
