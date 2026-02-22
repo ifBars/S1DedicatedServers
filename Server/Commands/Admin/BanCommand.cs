@@ -51,10 +51,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 return;
             }
 
-            if (playerManager.BanPlayer(targetPlayer, reason))
+            if (PlayerManager.BanPlayer(targetPlayer, reason))
             {
                 context.Reply($"Banned {targetPlayer.DisplayName} ({targetPlayer.SteamId}): {reason}");
-                logger.Msg($"Player {targetPlayer.DisplayName} banned by {context.Executor?.DisplayName ?? "Console"}: {reason}");
+                Logger.Msg($"Player {targetPlayer.DisplayName} banned by {context.Executor?.DisplayName ?? "Console"}: {reason}");
             }
             else
             {
@@ -67,8 +67,8 @@ namespace DedicatedServerMod.Server.Commands.Admin
         /// </summary>
         private bool CanBanPlayer(ConnectedPlayerInfo executor, ConnectedPlayerInfo target)
         {
-            var executorLevel = playerManager.Permissions.GetPermissionLevel(executor);
-            var targetLevel = playerManager.Permissions.GetPermissionLevel(target);
+            var executorLevel = PlayerManager.Permissions.GetPermissionLevel(executor);
+            var targetLevel = PlayerManager.Permissions.GetPermissionLevel(target);
 
             // Can only ban players with lower permission level
             return executorLevel > targetLevel;

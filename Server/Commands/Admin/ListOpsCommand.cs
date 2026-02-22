@@ -22,7 +22,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
         public override void Execute(CommandContext context)
         {
-            var operators = playerManager.Permissions.GetOperators();
+            var operators = PlayerManager.Permissions.GetOperators();
             
             if (operators.Count == 0)
             {
@@ -34,7 +34,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
             
             foreach (var steamId in operators)
             {
-                var connectedPlayer = playerManager.GetPlayerBySteamId(steamId);
+                var connectedPlayer = PlayerManager.GetPlayerBySteamId(steamId);
                 if (connectedPlayer != null)
                 {
                     context.Reply($"  {connectedPlayer.DisplayName} ({steamId}) - Online");

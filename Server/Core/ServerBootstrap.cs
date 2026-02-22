@@ -28,7 +28,7 @@ namespace DedicatedServerMod.Server.Core
     /// </summary>
     public class ServerBootstrap : MelonMod
     {
-        private static MelonLogger.Instance logger;
+        private static MelonLogger.Instance _logger;
         private static bool _isInitialized = false;
         
         // Server subsystems
@@ -86,8 +86,8 @@ namespace DedicatedServerMod.Server.Core
 
         public override void OnInitializeMelon()
         {
-            logger = LoggerInstance;
-            logger.Msg("=== Dedicated Server Bootstrap Starting ===");
+            _logger = LoggerInstance;
+            _logger.Msg("=== Dedicated Server Bootstrap Starting ===");
             
             try
             {
@@ -97,7 +97,7 @@ namespace DedicatedServerMod.Server.Core
             }
             catch (Exception ex)
             {
-                logger.Error($"Critical error during server initialization: {ex}");
+                _logger.Error($"Critical error during server initialization: {ex}");
                 throw;
             }
         }
@@ -112,11 +112,11 @@ namespace DedicatedServerMod.Server.Core
             // Suppress Unity rendering/shader errors in headless mode
             SetupLogFiltering();
             
-            logger.Msg("Initializing server subsystems...");
+            _logger.Msg("Initializing server subsystems...");
             
             // Step 1: Initialize existing ServerConfig system (must be first)
-            Shared.Configuration.ServerConfig.Initialize(logger);
-            logger.Msg("✓ Configuration system initialized");
+            Shared.Configuration.ServerConfig.Initialize(_logger);
+            _logger.Msg("✓ Configuration system initialized");
             
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
@@ -124,51 +124,51 @@ namespace DedicatedServerMod.Server.Core
             // Apply performance optimizations for headless server
             Application.targetFrameRate = Shared.Configuration.ServerConfig.Instance.TargetFrameRate;
             QualitySettings.vSyncCount = Shared.Configuration.ServerConfig.Instance.VSyncCount;
-            logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}");
+            _logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}");
             
             // Log the save path being used
             string resolvedSavePath = Shared.Configuration.ServerConfig.GetResolvedSaveGamePath();
             if (string.IsNullOrEmpty(Shared.Configuration.ServerConfig.Instance.SaveGamePath))
             {
-                logger.Msg($"Using default save location: {resolvedSavePath}");
-                logger.Msg("Tip: You can set a custom 'saveGamePath' in server_config.json to use a different save folder.");
+                _logger.Msg($"Using default save location: {resolvedSavePath}");
+                _logger.Msg("Tip: You can set a custom 'saveGamePath' in server_config.json to use a different save folder.");
             }
             else
             {
-                logger.Msg($"Using custom save location: {resolvedSavePath}");
+                _logger.Msg($"Using custom save location: {resolvedSavePath}");
             }
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
             
             // Step 4: Network Manager
-            _networkManager = new NetworkManager(logger);
+            _networkManager = new NetworkManager(_logger);
             _networkManager.Initialize();
-            logger.Msg("✓ Network manager initialized");
+            _logger.Msg("✓ Network manager initialized");
             
             // Step 5: Player Manager  
-            _playerManager = new PlayerManager(logger);
+            _playerManager = new PlayerManager(_logger);
             _playerManager.Initialize();
-            logger.Msg("✓ Player manager initialized");
+            _logger.Msg("✓ Player manager initialized");
             
             // Step 6: Command Manager
-            _commandManager = new CommandManager(logger, _playerManager);
+            _commandManager = new CommandManager(_logger, _playerManager);
             _commandManager.Initialize();
-            logger.Msg("✓ Command manager initialized");
+            _logger.Msg("✓ Command manager initialized");
             
             // Step 7: Persistence Manager
-            _persistenceManager = new PersistenceManager(logger);
+            _persistenceManager = new PersistenceManager(_logger);
             _persistenceManager.Initialize();
-            logger.Msg("✓ Persistence manager initialized");
+            _logger.Msg("✓ Persistence manager initialized");
             
             // Step 8: Game System Manager
-            _gameSystemManager = new GameSystemManager(logger);
+            _gameSystemManager = new GameSystemManager(_logger);
             _gameSystemManager.Initialize();
-            logger.Msg("✓ Game system manager initialized");
+            _logger.Msg("✓ Game system manager initialized");
             
             // Step 9: Master Server Client
-            _masterServerClient = new MasterServerClient(logger);
+            _masterServerClient = new MasterServerClient(_logger);
             _masterServerClient.Initialize();
-            logger.Msg("✓ Master server client initialized");
+            _logger.Msg("✓ Master server client initialized");
             
             // Start TCP Console if enabled in ServerConfig
             TryStartTcpConsole();
@@ -177,7 +177,7 @@ namespace DedicatedServerMod.Server.Core
             WirePlayerEvents();
             
             _isInitialized = true;
-            logger.Msg("=== Dedicated Server Bootstrap Complete ===");
+            _logger.Msg("=== Dedicated Server Bootstrap Complete ===");
 
             // Notify API mods: server initialized and running
             ModManager.NotifyServerInitialize();
@@ -194,7 +194,7 @@ namespace DedicatedServerMod.Server.Core
             // Moved here to ensure Unity's coroutine system is ready
             if (_autoStartServer)
             {
-                logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
+                _logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
                 
                 // Use a dedicated GameObject to ensure coroutines run reliably
                 var runnerGo = GameObject.Find("DedicatedServerRoutineRunner");
@@ -221,7 +221,7 @@ namespace DedicatedServerMod.Server.Core
             //   -logFile - -stackTraceLogType None
             // The patches in DedicatedServerPatches.cs prevent the systems from running that cause errors
             
-            logger.Msg("Log filtering configured (via startup flags and system patches)");
+            _logger.Msg("Log filtering configured (via startup flags and system patches)");
         }
 
         /// <summary>
@@ -242,7 +242,7 @@ namespace DedicatedServerMod.Server.Core
                         case "--server":
                             _isServerMode = true;
                             _autoStartServer = true;
-                            logger.Msg("Dedicated server mode enabled via command line");
+                            _logger.Msg("Dedicated server mode enabled via command line");
                             break;
                     }
                 }
@@ -252,7 +252,7 @@ namespace DedicatedServerMod.Server.Core
             }
             catch (Exception ex)
             {
-                logger.Warning($"Error processing command line arguments: {ex.Message}");
+                _logger.Warning($"Error processing command line arguments: {ex.Message}");
             }
         }
 
@@ -275,12 +275,12 @@ namespace DedicatedServerMod.Server.Core
                         _persistenceManager.OnPlayerLeft(player.DisplayName);
                     };
                     
-                    logger.Msg("Player events wired to persistence system");
+                    _logger.Msg("Player events wired to persistence system");
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error wiring player events: {ex}");
+                _logger.Error($"Error wiring player events: {ex}");
             }
         }
 
@@ -293,18 +293,18 @@ namespace DedicatedServerMod.Server.Core
         {
             if (!_isInitialized)
             {
-                logger?.Warning("Server not initialized, cannot shutdown");
+                _logger?.Warning("Server not initialized, cannot shutdown");
                 return;
             }
 
-            logger.Msg($"=== Server Shutdown Initiated: {reason} ===");
+            _logger.Msg($"=== Server Shutdown Initiated: {reason} ===");
             
             try
             {
                 // Unregister from master server gracefully
                 if (_masterServerClient != null && _masterServerClient.IsRegistered)
                 {
-                    logger.Msg("Unregistering from master server...");
+                    _logger.Msg("Unregistering from master server...");
                     var unregisterCoroutine = _masterServerClient.UnregisterFromMasterServer();
                     while (unregisterCoroutine.MoveNext())
                     {
@@ -324,11 +324,11 @@ namespace DedicatedServerMod.Server.Core
                 _networkManager?.Shutdown();
                 
                 _isInitialized = false;
-                logger.Msg("=== Server Shutdown Complete ===");
+                _logger.Msg("=== Server Shutdown Complete ===");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error during server shutdown: {ex}");
+                _logger.Error($"Error during server shutdown: {ex}");
             }
         }
 
@@ -370,18 +370,18 @@ namespace DedicatedServerMod.Server.Core
                         }
                         catch (Exception ex)
                         {
-                            logger.Error($"TCP console command error: {ex}");
+                            _logger.Error($"TCP console command error: {ex}");
                             return $"Error: {ex.Message}\r\n";
                         }
                     },
-                    logger
+                    _logger
                 );
                 _tcpConsole.Start();
-                logger.Msg($"✓ TCP console listening on {cfg.TcpConsoleBindAddress}:{cfg.TcpConsolePort}");
+                _logger.Msg($"✓ TCP console listening on {cfg.TcpConsoleBindAddress}:{cfg.TcpConsolePort}");
             }
             catch (Exception ex)
             {
-                logger.Warning($"TCP console failed to start: {ex.Message}");
+                _logger.Warning($"TCP console failed to start: {ex.Message}");
             }
         }
 

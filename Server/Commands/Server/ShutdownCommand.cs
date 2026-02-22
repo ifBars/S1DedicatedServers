@@ -31,7 +31,7 @@ namespace DedicatedServerMod.Server.Commands.Server
                     : "Server shutdown";
 
                 context.Reply($"Initiating server shutdown: {reason}");
-                logger.Msg($"Server shutdown initiated by {context.Executor?.DisplayName ?? "Console"}: {reason}");
+                Logger.Msg($"Server shutdown initiated by {context.Executor?.DisplayName ?? "Console"}: {reason}");
                 
                 // Notify all players via a UI popup
                 // playerManager.BroadcastMessage($"Server shutting down: {reason}");
@@ -42,7 +42,7 @@ namespace DedicatedServerMod.Server.Commands.Server
             catch (Exception ex)
             {
                 context.ReplyError($"Failed to initiate shutdown: {ex.Message}");
-                logger.Error($"Error initiating shutdown: {ex}");
+                Logger.Error($"Error initiating shutdown: {ex}");
             }
         }
 

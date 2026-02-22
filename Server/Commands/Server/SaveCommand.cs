@@ -36,7 +36,7 @@ namespace DedicatedServerMod.Server.Commands.Server
                 {
                     ServerBootstrap.Persistence.TriggerManualSave($"manual_save_by_{context.Executor?.DisplayName ?? "console"}");
                     context.Reply("Manual save triggered successfully");
-                    logger.Msg($"Manual save triggered by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Manual save triggered by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {
@@ -46,7 +46,7 @@ namespace DedicatedServerMod.Server.Commands.Server
             catch (Exception ex)
             {
                 context.ReplyError($"Failed to trigger save: {ex.Message}");
-                logger.Error($"Error triggering manual save: {ex}");
+                Logger.Error($"Error triggering manual save: {ex}");
             }
         }
     }

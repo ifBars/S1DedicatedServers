@@ -129,13 +129,13 @@ namespace DedicatedServerMod.Server.Commands
     /// </summary>
     public abstract class BaseServerCommand : IServerCommand
     {
-        protected readonly MelonLogger.Instance logger;
-        protected readonly PlayerManager playerManager;
+        protected readonly MelonLogger.Instance Logger;
+        protected readonly PlayerManager PlayerManager;
 
         protected BaseServerCommand(MelonLogger.Instance loggerInstance, PlayerManager playerMgr)
         {
-            logger = loggerInstance;
-            playerManager = playerMgr;
+            Logger = loggerInstance;
+            PlayerManager = playerMgr;
         }
 
         public abstract string CommandWord { get; }
@@ -151,17 +151,17 @@ namespace DedicatedServerMod.Server.Commands
         protected ConnectedPlayerInfo FindPlayerByNameOrId(string identifier)
         {
             // Try exact match first
-            var player = playerManager.GetPlayerBySteamId(identifier);
+            var player = PlayerManager.GetPlayerBySteamId(identifier);
             if (player != null) return player;
 
             // Try by name
-            player = playerManager.GetPlayerByName(identifier);
+            player = PlayerManager.GetPlayerByName(identifier);
             if (player != null) return player;
 
             // Try by client ID
             if (int.TryParse(identifier, out int clientId))
             {
-                return playerManager.GetConnectedPlayers().Find(p => p.ClientId == clientId);
+                return PlayerManager.GetConnectedPlayers().Find(p => p.ClientId == clientId);
             }
 
             return null;

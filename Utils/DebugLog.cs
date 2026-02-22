@@ -30,7 +30,7 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// Logger name for MelonLoader integration.
         /// </summary>
-        private const string LOGGER_NAME = "DedicatedServerMod";
+        private const string LoggerName = "DedicatedServerMod";
 
         /// <summary>
         /// Cached reference to ServerConfig for conditional logging.
@@ -71,7 +71,7 @@ namespace DedicatedServerMod.Utils
         {
             if (!_initialized)
             {
-                _logger = new MelonLogger.Instance(LOGGER_NAME);
+                _logger = new MelonLogger.Instance(LoggerName);
                 _initialized = true;
             }
         }
@@ -406,7 +406,7 @@ namespace DedicatedServerMod.Utils
         {
             try
             {
-                var logPath = Path.Combine(MelonEnvironment.UserDataDirectory, Constants.ADMIN_LOG_FILE_NAME);
+                var logPath = Path.Combine(MelonEnvironment.UserDataDirectory, Constants.AdminLOGFileName);
                 var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n";
                 File.AppendAllText(logPath, logEntry);
             }

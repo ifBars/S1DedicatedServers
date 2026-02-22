@@ -29,10 +29,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
             if (targetPlayer != null && !string.IsNullOrEmpty(targetPlayer.SteamId))
             {
-                if (playerManager.Permissions.RemoveOperator(targetPlayer.SteamId))
+                if (PlayerManager.Permissions.RemoveOperator(targetPlayer.SteamId))
                 {
                     context.Reply($"Removed operator privileges from {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    logger.Msg($"Operator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Operator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {
@@ -42,10 +42,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
             else
             {
                 // Try removing by Steam ID directly
-                if (playerManager.Permissions.RemoveOperator(identifier))
+                if (PlayerManager.Permissions.RemoveOperator(identifier))
                 {
                     context.Reply($"Removed operator privileges from Steam ID: {identifier}");
-                    logger.Msg($"Operator removed from SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Operator removed from SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {

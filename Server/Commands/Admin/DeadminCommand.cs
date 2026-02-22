@@ -29,10 +29,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
             if (targetPlayer != null && !string.IsNullOrEmpty(targetPlayer.SteamId))
             {
-                if (playerManager.Permissions.RemoveAdministrator(targetPlayer.SteamId))
+                if (PlayerManager.Permissions.RemoveAdministrator(targetPlayer.SteamId))
                 {
                     context.Reply($"Removed administrator privileges from {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    logger.Msg($"Administrator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Administrator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {
@@ -42,10 +42,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
             else
             {
                 // Try removing by Steam ID directly
-                if (playerManager.Permissions.RemoveAdministrator(identifier))
+                if (PlayerManager.Permissions.RemoveAdministrator(identifier))
                 {
                     context.Reply($"Removed administrator privileges from Steam ID: {identifier}");
-                    logger.Msg($"Administrator removed from SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Administrator removed from SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {

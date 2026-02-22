@@ -296,7 +296,7 @@ namespace DedicatedServerMod.Shared.Permissions
         {
             try
             {
-                string logPath = Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.ADMIN_LOG_FILE_NAME);
+                string logPath = Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.AdminLOGFileName);
                 string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n";
                 File.AppendAllText(logPath, logEntry);
                 Logger.Msg($"LogAdminAction: Wrote to admin log file: {logPath}");

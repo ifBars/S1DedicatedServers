@@ -14,6 +14,7 @@ using ScheduleOne.UI;
 using UnityEngine;
 using CorgiGodRays;
 using ScheduleOne.Heatmap;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Server.Game
 {
@@ -23,11 +24,11 @@ namespace DedicatedServerMod.Server.Game
     /// </summary>
     internal static class DedicatedServerPatches
     {
-        private static readonly MelonLogger.Instance logger = new MelonLogger.Instance("DedicatedServerPatches");
+        private static readonly MelonLogger.Instance Logger = new MelonLogger.Instance("DedicatedServerPatches");
 
         // ------- Multipass.Initialize: ensure Tugboat exists and is added to transports -------
         [HarmonyPatch(typeof(Multipass), "Initialize")]
-        private static class Multipass_Initialize_Prefix
+        private static class MultipassInitializePrefix
         {
             private static void Prefix(Multipass __instance)
             {
@@ -37,7 +38,7 @@ namespace DedicatedServerMod.Server.Game
                     if (tugboat == null)
                     {
                         tugboat = __instance.gameObject.AddComponent<Tugboat>();
-                        logger.Msg("Added Tugboat component to Multipass for server");
+                        Logger.Msg("Added Tugboat component to Multipass for server");
 
                         // Add to internal transports list if present
                         var transportsField = typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -50,14 +51,14 @@ namespace DedicatedServerMod.Server.Game
                 }
                 catch (Exception ex)
                 {
-                    logger.Error($"Error in Multipass.Initialize patch: {ex}");
+                    Logger.Error($"Error in Multipass.Initialize patch: {ex}");
                 }
             }
         }
 
         // ------- LoadManager: keep original flow but ensure transport ready before load -------
         [HarmonyPatch(typeof(LoadManager), "StartGame")]
-        private static class LoadManager_StartGame_Prefix
+        private static class LoadManagerStartGamePrefix
         {
             private static void Prefix(LoadManager __instance)
             {
@@ -80,7 +81,7 @@ namespace DedicatedServerMod.Server.Game
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"LoadManager.StartGame transport prep failed: {ex.Message}");
+                    Logger.Warning($"LoadManager.StartGame transport prep failed: {ex.Message}");
                 }
             }
         }
@@ -99,7 +100,7 @@ namespace DedicatedServerMod.Server.Game
             }
             catch (Exception ex)
             {
-                logger.Error($"Error binding player identity: {ex}");
+                Logger.Error($"Error binding player identity: {ex}");
             }
         }
 
@@ -109,19 +110,19 @@ namespace DedicatedServerMod.Server.Game
 
         // ------- Player disconnect -> trigger save if configured -------
         [HarmonyPatch(typeof(ScheduleOne.PlayerScripts.Player), "OnDestroy")]
-        private static class Player_OnDestroy_Prefix
+        private static class PlayerOnDestroyPrefix
         {
             private static void Prefix(ScheduleOne.PlayerScripts.Player __instance)
             {
                 try
                 {
                     if (!InstanceFinder.IsServer || !DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.AutoSaveOnPlayerLeave) return;
-                    if (__instance?.gameObject?.name == "[DedicatedServerHostLoopback]") return;
+                    if (GhostHostIdentifier.IsGhostHost(__instance)) return;
                     Server.Core.ServerBootstrap.Persistence?.TriggerAutoSave($"player_disconnect_{__instance?.PlayerName}");
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"Player.OnDestroy save trigger error: {ex.Message}");
+                    Logger.Warning($"Player.OnDestroy save trigger error: {ex.Message}");
                 }
             }
         }
@@ -133,7 +134,7 @@ namespace DedicatedServerMod.Server.Game
 
         // ------- Ensure server never treats itself as tutorial when saving -------
         [HarmonyPatch(typeof(GameManager), nameof(GameManager.IsTutorial), MethodType.Getter)]
-        private static class GameManager_IsTutorial_Getter_Prefix
+        private static class GameManagerIsTutorialGetterPrefix
         {
             private static bool Prefix(ref bool __result)
             {
@@ -143,7 +144,7 @@ namespace DedicatedServerMod.Server.Game
         }
 
         [HarmonyPatch(typeof(TimeManager), "Update")]
-        private static class TimeManager_Update_Prefix
+        private static class TimeManagerUpdatePrefix
         {
             private static bool Prefix(TimeManager __instance)
             {
@@ -153,9 +154,9 @@ namespace DedicatedServerMod.Server.Game
                 if (__instance.IsSleepInProgress)
                 {
                     // Check if it's 4AM
-                    const int FOUR_AM = 400;
+                    const int fourAm = 400;
                     
-                    if (__instance.CurrentTime >= FOUR_AM && __instance.CurrentTime < FOUR_AM + 5)
+                    if (__instance.CurrentTime >= fourAm && __instance.CurrentTime < fourAm + 5)
                     {
                         // Force end sleep
                         var endSleep = typeof(TimeManager).GetMethod("EndSleep", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -190,7 +191,7 @@ namespace DedicatedServerMod.Server.Game
 
         // ------- DailySummary RPC registration hook -------
         [HarmonyPatch(typeof(DailySummary), "Awake")]
-        private static class DailySummary_Awake_Postfix
+        private static class DailySummaryAwakePostfix
         {
             private static void Postfix(DailySummary __instance)
             {
@@ -200,14 +201,14 @@ namespace DedicatedServerMod.Server.Game
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"DailySummary.Awake postfix error: {ex.Message}");
+                    Logger.Warning($"DailySummary.Awake postfix error: {ex.Message}");
                 }
             }
         }
 
         // ------- Sleep system: ignore loopback ghost host when checking readiness -------
         [HarmonyPatch(typeof(ScheduleOne.PlayerScripts.Player), nameof(ScheduleOne.PlayerScripts.Player.AreAllPlayersReadyToSleep))]
-        private static class Player_AreAllPlayersReadyToSleep_Prefix
+        private static class PlayerAreAllPlayersReadyToSleepPrefix
         {
             private static bool Prefix(ref bool __result)
             {
@@ -227,8 +228,8 @@ namespace DedicatedServerMod.Server.Game
                     {
                         var p = list[i];
                         if (p == null) continue;
-                        if (p.gameObject?.name == "[DedicatedServerHostLoopback]")
-                            continue; // ignore ghost host
+                        if (GhostHostIdentifier.IsGhostHost(p))
+                            continue;
                         if (!p.IsReadyToSleep)
                         {
                             __result = false;
@@ -241,7 +242,7 @@ namespace DedicatedServerMod.Server.Game
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"AreAllPlayersReadyToSleep prefix error: {ex.Message}");
+                    Logger.Warning($"AreAllPlayersReadyToSleep prefix error: {ex.Message}");
                     return true;
                 }
             }
@@ -249,7 +250,7 @@ namespace DedicatedServerMod.Server.Game
 
         // ------- ProductIconManager: Prevent icon generation crashing headless server -------
         [HarmonyPatch(typeof(ProductIconManager), "GenerateIcons")]
-        private static class ProductIconManager_GenerateIcons_Prefix
+        private static class ProductIconManagerGenerateIconsPrefix
         {
             private static bool Prefix()
             {
@@ -262,7 +263,7 @@ namespace DedicatedServerMod.Server.Game
         }
 
         [HarmonyPatch(typeof(IconGenerator), "GeneratePackagingIcon")]
-        private static class IconGenerator_GeneratePackagingIcon_Prefix
+        private static class IconGeneratorGeneratePackagingIconPrefix
         {
             private static bool Prefix(ref Texture2D __result)
             {
@@ -277,7 +278,7 @@ namespace DedicatedServerMod.Server.Game
 
         // ------- CorgiGodRays: Prevent compute buffer creation on server -------
         [HarmonyPatch(typeof(GodRaysRenderPass), "Initialize")]
-        private static class GodRaysRenderPass_Initialize_Prefix
+        private static class GodRaysRenderPassInitializePrefix
         {
             private static bool Prefix()
             {
@@ -291,7 +292,7 @@ namespace DedicatedServerMod.Server.Game
 
         // ------- HeatmapManager: Prevent compute shader usage on server -------
         [HarmonyPatch(typeof(HeatmapManager), "Start")]
-        private static class HeatmapManager_Start_Prefix
+        private static class HeatmapManagerStartPrefix
         {
             private static bool Prefix()
             {

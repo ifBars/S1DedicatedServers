@@ -28,7 +28,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
             string steamId = context.Arguments[0];
 
-            if (!playerManager.IsPlayerBanned(steamId))
+            if (!PlayerManager.IsPlayerBanned(steamId))
             {
                 context.ReplyWarning($"Steam ID {steamId} is not banned");
                 return;
@@ -39,7 +39,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
             {
                 ServerConfig.SaveConfig();
                 context.Reply($"Removed ban for Steam ID: {steamId}");
-                logger.Msg($"Ban removed for SteamID {steamId} by {context.Executor?.DisplayName ?? "Console"}");
+                Logger.Msg($"Ban removed for SteamID {steamId} by {context.Executor?.DisplayName ?? "Console"}");
             }
             else
             {

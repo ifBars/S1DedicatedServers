@@ -17,8 +17,8 @@ namespace DedicatedServerMod.Server.Persistence
     {
         private readonly MelonLogger.Instance logger;
 
-        private DateTime _lastAutoSave = DateTime.MinValue;
-        private bool _saveInProgress = false;
+        private DateTime lastAutoSave = DateTime.MinValue;
+        private bool saveInProgress = false;
 
         public PersistenceManager(MelonLogger.Instance loggerInstance)
         {
@@ -28,12 +28,12 @@ namespace DedicatedServerMod.Server.Persistence
         /// <summary>
         /// Gets the time of the last auto-save
         /// </summary>
-        public DateTime LastAutoSave => _lastAutoSave;
+        public DateTime LastAutoSave => lastAutoSave;
 
         /// <summary>
         /// Gets whether a save operation is currently in progress
         /// </summary>
-        public bool SaveInProgress => _saveInProgress;
+        public bool SaveInProgress => saveInProgress;
 
         /// <summary>
         /// Initialize the persistence manager
@@ -96,7 +96,7 @@ namespace DedicatedServerMod.Server.Persistence
                 return;
             }
 
-            if (_saveInProgress)
+            if (saveInProgress)
             {
                 logger.Warning("Save already in progress, skipping auto-save");
                 return;
@@ -116,7 +116,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         public void TriggerManualSave(string reason)
         {
-            if (_saveInProgress)
+            if (saveInProgress)
             {
                 logger.Warning("Save already in progress, queuing manual save");
                 MelonCoroutines.Start(WaitAndTriggerSave(reason, false));
@@ -137,7 +137,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         private IEnumerator WaitAndTriggerSave(string reason, bool isAutoSave)
         {
-            while (_saveInProgress)
+            while (saveInProgress)
             {
                 yield return new WaitForSeconds(1f);
             }
@@ -150,14 +150,14 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         private IEnumerator PerformSave(string reason, bool isAutoSave)
         {
-            _saveInProgress = true;
+            saveInProgress = true;
 
             logger.Msg($"Starting {(isAutoSave ? "auto" : "manual")} save: {reason}");
 
             if (SaveManager.Instance == null)
             {
                 logger.Error("SaveManager instance not available");
-                _saveInProgress = false;
+                saveInProgress = false;
                 yield break;
             }
 
@@ -171,7 +171,7 @@ namespace DedicatedServerMod.Server.Persistence
             catch (Exception ex)
             {
                 logger.Error($"Error calling SaveManager.Save(): {ex}");
-                _saveInProgress = false;
+                saveInProgress = false;
                 yield break;
             }
 
@@ -191,13 +191,13 @@ namespace DedicatedServerMod.Server.Persistence
 
                 if (isAutoSave)
                 {
-                    _lastAutoSave = DateTime.Now;
+                    lastAutoSave = DateTime.Now;
                 }
 
                 logger.Msg($"Save completed: {reason} (elapsed: {elapsed:F1}s)");
             }
 
-            _saveInProgress = false;
+            saveInProgress = false;
         }
 
         /// <summary>
@@ -230,8 +230,8 @@ namespace DedicatedServerMod.Server.Persistence
             return new PersistenceStats
             {
                 AutoSaveEnabled = ServerConfig.Instance.AutoSaveEnabled,
-                LastAutoSave = _lastAutoSave,
-                SaveInProgress = _saveInProgress,
+                LastAutoSave = lastAutoSave,
+                SaveInProgress = saveInProgress,
                 AutoSaveIntervalMinutes = ServerConfig.Instance.AutoSaveIntervalMinutes,
                 SaveOnPlayerJoin = ServerConfig.Instance.AutoSaveOnPlayerJoin,
                 SaveOnPlayerLeave = ServerConfig.Instance.AutoSaveOnPlayerLeave
@@ -246,10 +246,10 @@ namespace DedicatedServerMod.Server.Persistence
             if (!ServerConfig.Instance.AutoSaveEnabled)
                 return false;
                 
-            if (_lastAutoSave == DateTime.MinValue)
+            if (lastAutoSave == DateTime.MinValue)
                 return true; // Never saved before
                 
-            var timeSinceLastSave = DateTime.Now - _lastAutoSave;
+            var timeSinceLastSave = DateTime.Now - lastAutoSave;
             return timeSinceLastSave.TotalMinutes >= ServerConfig.Instance.AutoSaveIntervalMinutes;
         }
 
@@ -261,12 +261,12 @@ namespace DedicatedServerMod.Server.Persistence
             try
             {
                 // Trigger final save before shutdown
-                if (InstanceFinder.IsServer && !_saveInProgress)
+                if (InstanceFinder.IsServer && !saveInProgress)
                 {
                     TriggerManualSave("server_shutdown");
                     
                     var waitTime = DateTime.Now.AddSeconds(5);
-                    while (_saveInProgress && DateTime.Now < waitTime)
+                    while (saveInProgress && DateTime.Now < waitTime)
                     {
                         System.Threading.Thread.Sleep(100);
                     }

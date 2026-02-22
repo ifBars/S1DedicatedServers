@@ -217,9 +217,6 @@ namespace DedicatedServerMod.Client.Core
                 _transportPatcher = new ClientTransportPatcher(_logger);
                 _transportPatcher.Initialize();
 
-                // Apply police observer guards (shared patches)
-                Shared.PoliceAuthorityPatches.ApplyClient(HarmonyInstance, _logger);
-
                 _logger.Msg("All client patches initialized");
             }
             catch (Exception ex)

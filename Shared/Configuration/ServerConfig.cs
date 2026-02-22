@@ -25,49 +25,49 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// The public name of the server as displayed in server lists.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.SERVER_NAME)]
+        [JsonProperty(Constants.ConfigKeys.ServerName)]
         public string ServerName { get; set; } = "Schedule One Dedicated Server";
 
         /// <summary>
         /// A description of the server displayed in server lists.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.SERVER_DESCRIPTION)]
+        [JsonProperty(Constants.ConfigKeys.ServerDescription)]
         public string ServerDescription { get; set; } = "A dedicated server for Schedule One";
 
         /// <summary>
         /// Maximum number of players allowed to connect.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.MAX_PLAYERS)]
-        public int MaxPlayers { get; set; } = Constants.DEFAULT_MAX_PLAYERS;
+        [JsonProperty(Constants.ConfigKeys.MaxPlayers)]
+        public int MaxPlayers { get; set; } = Constants.DefaultMaxPlayers;
 
         /// <summary>
         /// The network port the server listens on.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.SERVER_PORT)]
-        public int ServerPort { get; set; } = Constants.DEFAULT_SERVER_PORT;
+        [JsonProperty(Constants.ConfigKeys.ServerPort)]
+        public int ServerPort { get; set; } = Constants.DefaultServerPort;
 
         /// <summary>
         /// Password required to connect. Empty string = no password.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.SERVER_PASSWORD)]
+        [JsonProperty(Constants.ConfigKeys.ServerPassword)]
         public string ServerPassword { get; set; } = string.Empty;
 
         /// <summary>
         /// Whether Steam authentication is required.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.REQUIRE_AUTHENTICATION)]
+        [JsonProperty(Constants.ConfigKeys.RequireAuthentication)]
         public bool RequireAuthentication { get; set; } = false;
 
         /// <summary>
         /// Whether the server should only accept Steam friends of the host.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.REQUIRE_FRIENDS)]
+        [JsonProperty(Constants.ConfigKeys.RequireFriends)]
         public bool RequireFriends { get; set; } = false;
 
         /// <summary>
         /// Whether to register with public server lists.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.PUBLIC_SERVER)]
+        [JsonProperty(Constants.ConfigKeys.PublicServer)]
         public bool PublicServer { get; set; } = true;
 
         #endregion
@@ -117,7 +117,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether the TCP console server is enabled.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.TCP_CONSOLE_ENABLED)]
+        [JsonProperty(Constants.ConfigKeys.TcpConsoleEnabled)]
         public bool TcpConsoleEnabled { get; set; } = false;
 
         /// <summary>
@@ -130,8 +130,8 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Port for the TCP console server.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.TCP_CONSOLE_PORT)]
-        public int TcpConsolePort { get; set; } = Constants.DEFAULT_TCP_CONSOLE_PORT;
+        [JsonProperty(Constants.ConfigKeys.TcpConsolePort)]
+        public int TcpConsolePort { get; set; } = Constants.DefaultTcpConsolePort;
 
         /// <summary>
         /// Whether authentication is required for TCP console.
@@ -158,25 +158,25 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether time progression never stops (always advances).
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.TIME_NEVER_STOPS)]
+        [JsonProperty(Constants.ConfigKeys.TimeNeverStops)]
         public bool TimeNeverStops { get; set; } = true;
 
         /// <summary>
         /// Multiplier for time progression (1.0 = real-time).
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.TIME_MULTIPLIER)]
-        public float TimeProgressionMultiplier { get; set; } = Constants.DEFAULT_TIME_MULTIPLIER;
+        [JsonProperty(Constants.ConfigKeys.TimeMultiplier)]
+        public float TimeProgressionMultiplier { get; set; } = Constants.DefaultTimeMultiplier;
 
         /// <summary>
         /// Whether players are allowed to sleep to advance time.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.ALLOW_SLEEPING)]
+        [JsonProperty(Constants.ConfigKeys.AllowSleeping)]
         public bool AllowSleeping { get; set; } = true;
 
         /// <summary>
         /// Whether to pause the game when no players are connected.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.PAUSE_EMPTY)]
+        [JsonProperty(Constants.ConfigKeys.PauseEmpty)]
         public bool PauseGameWhenEmpty { get; set; } = false;
 
         #endregion
@@ -186,14 +186,14 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether automatic saving is enabled.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.AUTO_SAVE_ENABLED)]
+        [JsonProperty(Constants.ConfigKeys.AutoSaveEnabled)]
         public bool AutoSaveEnabled { get; set; } = true;
 
         /// <summary>
         /// Interval in minutes between automatic saves.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.AUTO_SAVE_INTERVAL)]
-        public float AutoSaveIntervalMinutes { get; set; } = Constants.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES;
+        [JsonProperty(Constants.ConfigKeys.AutoSaveInterval)]
+        public float AutoSaveIntervalMinutes { get; set; } = Constants.DefaultAutoSaveIntervalMinutes;
 
         /// <summary>
         /// Whether to save when a player joins.
@@ -214,19 +214,19 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// List of Steam IDs with operator privileges.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.OPERATORS)]
+        [JsonProperty(Constants.ConfigKeys.Operators)]
         public HashSet<string> Operators { get; set; } = new HashSet<string>();
 
         /// <summary>
         /// List of Steam IDs with admin privileges.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.ADMINS)]
+        [JsonProperty(Constants.ConfigKeys.Admins)]
         public HashSet<string> Admins { get; set; } = new HashSet<string>();
 
         /// <summary>
         /// List of banned Steam IDs.
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.BANNED_PLAYERS)]
+        [JsonProperty(Constants.ConfigKeys.BannedPlayers)]
         public HashSet<string> BannedPlayers { get; set; } = new HashSet<string>();
 
         /// <summary>
@@ -311,13 +311,13 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Message of the day content.
         /// </summary>
         [JsonProperty("motdMessage")]
-        public string MotdMessage { get; set; } = Constants.DEFAULT_MOTD_MESSAGE;
+        public string MotdMessage { get; set; } = Constants.DefaultMotdMessage;
 
         /// <summary>
         /// Welcome message template. Supports {playerName} and {serverName}.
         /// </summary>
         [JsonProperty("welcomeMessage")]
-        public string WelcomeMessage { get; set; } = Constants.DEFAULT_WELCOME_MESSAGE;
+        public string WelcomeMessage { get; set; } = Constants.DefaultWelcomeMessage;
 
         /// <summary>
         /// Whether to show messages when players join.
@@ -338,13 +338,13 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether debug mode is enabled (additional logging).
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.DEBUG_MODE)]
+        [JsonProperty(Constants.ConfigKeys.DebugMode)]
         public bool DebugMode { get; set; } = false;
 
         /// <summary>
         /// Whether verbose logging is enabled (trace-level).
         /// </summary>
-        [JsonProperty(Constants.ConfigKeys.VERBOSE_LOGGING)]
+        [JsonProperty(Constants.ConfigKeys.VerboseLogging)]
         public bool VerboseLogging { get; set; } = false;
 
         /// <summary>
@@ -417,7 +417,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Gets the resolved configuration file path.
         /// </summary>
         public static string ConfigFilePath => _configPath ?? 
-            Path.Combine(MelonEnvironment.UserDataDirectory, Constants.CONFIG_FILE_NAME);
+            Path.Combine(MelonEnvironment.UserDataDirectory, Constants.ConfigFileName);
 
         /// <summary>
         /// Gets the current server configuration instance.
@@ -551,7 +551,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     case "--max-players":
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int maxPlayers))
                         {
-                            Instance.MaxPlayers = Math.Min(maxPlayers, Constants.MAX_ALLOWED_PLAYERS);
+                            Instance.MaxPlayers = Math.Min(maxPlayers, Constants.MaxAllowedPlayers);
                             Logger.Msg($"Max players set to: {Instance.MaxPlayers}");
                         }
                         break;
@@ -688,36 +688,36 @@ namespace DedicatedServerMod.Shared.Configuration
         public void Validate()
         {
             // Validate port
-            if (ServerPort < Constants.MIN_PORT || ServerPort > Constants.MAX_PORT)
+            if (ServerPort < Constants.MinPort || ServerPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid server port {ServerPort}, using default {Constants.DEFAULT_SERVER_PORT}");
-                ServerPort = Constants.DEFAULT_SERVER_PORT;
+                Logger.Warning($"Invalid server port {ServerPort}, using default {Constants.DefaultServerPort}");
+                ServerPort = Constants.DefaultServerPort;
             }
 
             // Validate max players
             if (MaxPlayers < 1)
             {
-                Logger.Warning($"Invalid max players {MaxPlayers}, using default {Constants.DEFAULT_MAX_PLAYERS}");
-                MaxPlayers = Constants.DEFAULT_MAX_PLAYERS;
+                Logger.Warning($"Invalid max players {MaxPlayers}, using default {Constants.DefaultMaxPlayers}");
+                MaxPlayers = Constants.DefaultMaxPlayers;
             }
-            else if (MaxPlayers > Constants.MAX_ALLOWED_PLAYERS)
+            else if (MaxPlayers > Constants.MaxAllowedPlayers)
             {
-                Logger.Warning($"Max players {MaxPlayers} exceeds limit {Constants.MAX_ALLOWED_PLAYERS}");
-                MaxPlayers = Constants.MAX_ALLOWED_PLAYERS;
+                Logger.Warning($"Max players {MaxPlayers} exceeds limit {Constants.MaxAllowedPlayers}");
+                MaxPlayers = Constants.MaxAllowedPlayers;
             }
 
             // Validate time multiplier
-            if (TimeProgressionMultiplier < 0 || TimeProgressionMultiplier > Constants.MAX_TIME_MULTIPLIER)
+            if (TimeProgressionMultiplier < 0 || TimeProgressionMultiplier > Constants.MaxTimeMultiplier)
             {
-                Logger.Warning($"Invalid time multiplier {TimeProgressionMultiplier}, using default {Constants.DEFAULT_TIME_MULTIPLIER}");
-                TimeProgressionMultiplier = Constants.DEFAULT_TIME_MULTIPLIER;
+                Logger.Warning($"Invalid time multiplier {TimeProgressionMultiplier}, using default {Constants.DefaultTimeMultiplier}");
+                TimeProgressionMultiplier = Constants.DefaultTimeMultiplier;
             }
 
             // Validate auto-save interval
-            if (AutoSaveIntervalMinutes < 0 || AutoSaveIntervalMinutes > Constants.MAX_AUTO_SAVE_INTERVAL_MINUTES)
+            if (AutoSaveIntervalMinutes < 0 || AutoSaveIntervalMinutes > Constants.MaxAutoSaveIntervalMinutes)
             {
-                Logger.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Constants.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES}");
-                AutoSaveIntervalMinutes = Constants.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES;
+                Logger.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Constants.DefaultAutoSaveIntervalMinutes}");
+                AutoSaveIntervalMinutes = Constants.DefaultAutoSaveIntervalMinutes;
             }
 
             // Validate target framerate
@@ -735,16 +735,16 @@ namespace DedicatedServerMod.Shared.Configuration
             }
 
             // Validate names
-            if (ServerName.Length > Constants.MAX_SERVER_NAME_LENGTH)
+            if (ServerName.Length > Constants.MaxServerNameLength)
             {
                 Logger.Warning($"Server name exceeds max length, truncating");
-                ServerName = ServerName.Substring(0, Constants.MAX_SERVER_NAME_LENGTH);
+                ServerName = ServerName.Substring(0, Constants.MaxServerNameLength);
             }
 
-            if (ServerDescription.Length > Constants.MAX_SERVER_DESCRIPTION_LENGTH)
+            if (ServerDescription.Length > Constants.MaxServerDescriptionLength)
             {
                 Logger.Warning($"Server description exceeds max length, truncating");
-                ServerDescription = ServerDescription.Substring(0, Constants.MAX_SERVER_DESCRIPTION_LENGTH);
+                ServerDescription = ServerDescription.Substring(0, Constants.MaxServerDescriptionLength);
             }
         }
 

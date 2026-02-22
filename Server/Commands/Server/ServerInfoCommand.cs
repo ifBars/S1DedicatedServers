@@ -27,8 +27,8 @@ namespace DedicatedServerMod.Server.Commands.Server
             try
             {
                 var status = ServerBootstrap.GetStatus();
-                var playerStats = playerManager.GetPlayerStats();
-                var permissionSummary = playerManager.Permissions.GetPermissionSummary();
+                var playerStats = PlayerManager.GetPlayerStats();
+                var permissionSummary = PlayerManager.Permissions.GetPermissionSummary();
 
                 context.Reply("=== Server Information ===");
                 context.Reply($"Server Name: {ServerConfig.Instance.ServerName}");
@@ -63,7 +63,7 @@ namespace DedicatedServerMod.Server.Commands.Server
             catch (Exception ex)
             {
                 context.ReplyError($"Error retrieving server information: {ex.Message}");
-                logger.Error($"Error in serverinfo command: {ex}");
+                Logger.Error($"Error in serverinfo command: {ex}");
             }
         }
     }

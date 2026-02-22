@@ -1,6 +1,25 @@
 # Coding Standards
 
-DedicatedServerMod follows strict coding standards to ensure consistency, maintainability, and professional quality. These standards are inspired by S1API, MAPI, and SteamNetworkLib.
+DedicatedServerMod follows strict coding standards to ensure consistency, maintainability, and professional quality. These standards are inspired by S1API, MAPI, and SteamNetworkLib, and align with SOLID principles.
+
+---
+
+## SOLID Principles (Design Foundation)
+
+Apply these principles when designing APIs and modules:
+
+| Principle | Definition | Applied In DedicatedServerMod |
+|-----------|------------|-------------------------------|
+| **S**ingle Responsibility | A class has one reason to change | `PlayerManager` (players only), `NetworkManager` (network only), `ServerConfig` (config only) |
+| **O**pen/Closed | Open for extension, closed for modification | `IServerMod`/`IClientMod` interfaces; mods extend via callbacks instead of modifying core |
+| **L**iskov Substitution | Subtypes are substitutable for base types | `ServerModBase` / `ClientModBase`; any implementation works where base is expected |
+| **I**nterface Segregation | Clients depend only on what they use | `IServerMod` vs `IClientMod`; small, focused interfaces |
+| **D**ependency Inversion | Depend on abstractions, not concretions | Mods depend on `S1DS.Server`, `S1DS.Client`; internals can change without breaking mods |
+
+Concrete guidelines:
+- Prefer interfaces over concrete types for cross-module boundaries
+- Keep classes focused; split when a class gains multiple unrelated responsibilities
+- Use partial classes only for build-variant surfaces (e.g. `S1DS.Server` / `S1DS.Client`), not as a substitute for SRP
 
 ---
 
@@ -133,6 +152,32 @@ public enum PermissionLevel
     Admin,
     Operator
 }
+```
+
+### Acronym and Initialism Casing
+
+**Multi-letter acronyms** in type names use PascalCase with the acronym fully uppercased when it stands alone or ends an identifier:
+
+```csharp
+// Correct - DS = Dedicated Server, full acronym uppercased
+public static class S1DS { }
+
+// Incorrect - inconsistent casing causes CS0117 (type not found)
+public static class S1Ds { }  // Don't mix; use S1DS
+```
+
+**Critical for partial classes**: All partial class declarations must use the **exact same identifier** (C# is case-sensitive). A mismatch (e.g. `S1Ds` in one file, `S1DS` in another) causes `CS0117: 'X' does not contain a definition for 'Y'` because the compiler treats them as different types.
+
+```csharp
+// Correct - identical across all partial files
+// S1DS.cs:
+public static partial class S1DS { }
+
+// S1DS.Server.cs:
+public static partial class S1DS { }
+
+// S1DS.Client.cs:
+public static partial class S1DS { }
 ```
 
 ### Naming Patterns

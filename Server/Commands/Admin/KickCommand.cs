@@ -44,10 +44,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 return;
             }
 
-            if (playerManager.KickPlayer(targetPlayer, reason))
+            if (PlayerManager.KickPlayer(targetPlayer, reason))
             {
                 context.Reply($"Kicked {targetPlayer.DisplayName}: {reason}");
-                logger.Msg($"Player {targetPlayer.DisplayName} kicked by {context.Executor?.DisplayName ?? "Console"}: {reason}");
+                Logger.Msg($"Player {targetPlayer.DisplayName} kicked by {context.Executor?.DisplayName ?? "Console"}: {reason}");
             }
             else
             {
@@ -60,8 +60,8 @@ namespace DedicatedServerMod.Server.Commands.Admin
         /// </summary>
         private bool CanKickPlayer(ConnectedPlayerInfo executor, ConnectedPlayerInfo target)
         {
-            var executorLevel = playerManager.Permissions.GetPermissionLevel(executor);
-            var targetLevel = playerManager.Permissions.GetPermissionLevel(target);
+            var executorLevel = PlayerManager.Permissions.GetPermissionLevel(executor);
+            var targetLevel = PlayerManager.Permissions.GetPermissionLevel(target);
 
             // Can only kick players with lower or equal permission level
             return executorLevel >= targetLevel;

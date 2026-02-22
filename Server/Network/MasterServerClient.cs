@@ -22,9 +22,9 @@ namespace DedicatedServerMod.Server.Network
         private bool isRunning = false;
         private object heartbeatCoroutine;
         
-        private const int HEARTBEAT_INTERVAL_SECONDS = 30;
-        private const float HEARTBEAT_TIMEOUT_SECONDS = 10f;
-        private const string MOD_VERSION = "1.0.0"; // Update this with your mod version
+        private const int HeartbeatIntervalSeconds = 30;
+        private const float HeartbeatTimeoutSeconds = 10f;
+        private const string ModVersion = "1.0.0"; // Update this with your mod version
         
         public bool IsRegistered => isRegistered;
         public bool IsRunning => isRunning;
@@ -33,7 +33,7 @@ namespace DedicatedServerMod.Server.Network
         {
             logger = loggerInstance;
             httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(HEARTBEAT_TIMEOUT_SECONDS);
+            httpClient.Timeout = TimeSpan.FromSeconds(HeartbeatTimeoutSeconds);
         }
 
         /// <summary>
@@ -228,7 +228,7 @@ namespace DedicatedServerMod.Server.Network
                 
                 // Wait for next heartbeat interval
                 float elapsed = 0f;
-                while (elapsed < HEARTBEAT_INTERVAL_SECONDS && isRunning)
+                while (elapsed < HeartbeatIntervalSeconds && isRunning)
                 {
                     yield return null;
                     elapsed += Time.deltaTime;
@@ -256,7 +256,7 @@ namespace DedicatedServerMod.Server.Network
                 PasswordProtected = !string.IsNullOrEmpty(config.ServerPassword),
                 GameVersion = Application.version,
                 MapName = GetCurrentMapName(),
-                ModVersion = MOD_VERSION
+                ModVersion = ModVersion
             };
 
             var json = JsonConvert.SerializeObject(heartbeatData);
@@ -281,7 +281,7 @@ namespace DedicatedServerMod.Server.Network
 
             // Wait for completion with timeout
             float elapsed = 0f;
-            while (!requestTask.IsCompleted && elapsed < HEARTBEAT_TIMEOUT_SECONDS)
+            while (!requestTask.IsCompleted && elapsed < HeartbeatTimeoutSeconds)
             {
                 yield return null;
                 elapsed += Time.deltaTime;
@@ -369,7 +369,7 @@ namespace DedicatedServerMod.Server.Network
 
             // Wait for completion
             float elapsed = 0f;
-            while (!requestTask.IsCompleted && elapsed < HEARTBEAT_TIMEOUT_SECONDS)
+            while (!requestTask.IsCompleted && elapsed < HeartbeatTimeoutSeconds)
             {
                 yield return null;
                 elapsed += Time.deltaTime;

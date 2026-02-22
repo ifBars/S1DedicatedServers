@@ -20,9 +20,9 @@ namespace DedicatedServerMod.Server.Network
     public class NetworkManager
     {
         private readonly MelonLogger.Instance logger;
-        private DateTime _serverStartTime;
-        private bool _isServerRunning = false;
-        private bool _hooksRegistered = false;
+        private DateTime serverStartTime;
+        private bool isServerRunning = false;
+        private bool hooksRegistered = false;
 
         public NetworkManager(MelonLogger.Instance loggerInstance)
         {
@@ -32,12 +32,12 @@ namespace DedicatedServerMod.Server.Network
         /// <summary>
         /// Gets whether the server is currently running
         /// </summary>
-        public bool IsServerRunning => _isServerRunning;
+        public bool IsServerRunning => isServerRunning;
 
         /// <summary>
         /// Gets the server uptime
         /// </summary>
-        public TimeSpan Uptime => _isServerRunning ? DateTime.Now - _serverStartTime : TimeSpan.Zero;
+        public TimeSpan Uptime => isServerRunning ? DateTime.Now - serverStartTime : TimeSpan.Zero;
 
         /// <summary>
         /// Initialize the network manager
@@ -58,12 +58,12 @@ namespace DedicatedServerMod.Server.Network
 
         private bool TryRegisterHooks()
         {
-            if (_hooksRegistered) return true;
+            if (hooksRegistered) return true;
             var serverManager = InstanceFinder.ServerManager;
             if (serverManager == null) return false;
             serverManager.OnServerConnectionState -= OnServerConnectionState;
             serverManager.OnServerConnectionState += OnServerConnectionState;
-            _hooksRegistered = true;
+            hooksRegistered = true;
             logger.Msg("Network event hooks established");
             return true;
         }
@@ -85,8 +85,8 @@ namespace DedicatedServerMod.Server.Network
             switch (args.ConnectionState)
             {
                 case LocalConnectionState.Started:
-                    _isServerRunning = true;
-                    _serverStartTime = DateTime.Now;
+                    isServerRunning = true;
+                    serverStartTime = DateTime.Now;
                     logger.Msg($"=== DEDICATED SERVER ONLINE ===");
                     logger.Msg($"Server Name: {ServerConfig.Instance.ServerName}");
                     logger.Msg($"Port: {ServerConfig.Instance.ServerPort}");
@@ -94,7 +94,7 @@ namespace DedicatedServerMod.Server.Network
                     break;
 
                 case LocalConnectionState.Stopped:
-                    _isServerRunning = false;
+                    isServerRunning = false;
                     logger.Msg($"=== DEDICATED SERVER OFFLINE ===");
                     break;
             }
@@ -363,7 +363,7 @@ namespace DedicatedServerMod.Server.Network
         {
             return new NetworkStats
             {
-                IsServerRunning = _isServerRunning,
+                IsServerRunning = isServerRunning,
                 Uptime = Uptime,
                 ServerPort = ServerConfig.Instance.ServerPort,
                 TransportInfo = GetTransportInfo()
@@ -377,7 +377,7 @@ namespace DedicatedServerMod.Server.Network
         {
             try
             {
-                if (_isServerRunning)
+                if (isServerRunning)
                 {
                     StopServer("Server shutdown");
                 }
@@ -387,7 +387,7 @@ namespace DedicatedServerMod.Server.Network
                 {
                     InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionState;
                 }
-                _hooksRegistered = false;
+                hooksRegistered = false;
 
                 logger.Msg("Network manager shutdown");
             }

@@ -37,8 +37,8 @@ namespace DedicatedServerMod.Shared.Networking
         /// </summary>
         public struct Message
         {
-            public string command;
-            public string data;
+            public string Command;
+            public string Data;
         }
 
         #endregion
@@ -53,7 +53,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// The message ID used for RPC registration.
         /// </summary>
-        public static readonly uint MessageId = Constants.CUSTOM_MESSAGE_ID;
+        public static readonly uint MessageId = Constants.CustomMessageID;
 
         #endregion
 
@@ -90,11 +90,11 @@ namespace DedicatedServerMod.Shared.Networking
         /// Harmony postfix for DailySummary.Awake. Registers custom RPC handlers.
         /// </summary>
         /// <param name="__instance">The DailySummary instance being initialized</param>
-        public static void DailySummaryAwakePostfix(object __instance)
+        public static void DailySummaryAwakePostfix(object instance)
         {
             try
             {
-                var nb = (NetworkBehaviour)__instance;
+                var nb = (NetworkBehaviour)instance;
 
                 // Register server→client Target RPC
                 nb.RegisterTargetRpc(MessageId, new ClientRpcDelegate(OnClientMessageReceived));
@@ -137,7 +137,7 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
-                var msg = new Message { command = command, data = data };
+                var msg = new Message { Command = command, Data = data };
                 string raw = JsonConvert.SerializeObject(msg);
 
                 PooledWriter writer = WriterPool.Retrieve();
@@ -170,7 +170,7 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
-                var msg = new Message { command = command, data = data };
+                var msg = new Message { Command = command, Data = data };
                 string raw = JsonConvert.SerializeObject(msg);
 
                 PooledWriter writer = WriterPool.Retrieve();
@@ -230,18 +230,18 @@ namespace DedicatedServerMod.Shared.Networking
                 string raw = ((Reader)reader).ReadString();
                 var msg = JsonConvert.DeserializeObject<Message>(raw);
 
-                if (msg.command == null)
+                if (msg.Command == null)
                 {
                     _logger.Warning("OnClientMessageReceived: Message command is null");
                     return;
                 }
 
-                _logger.Msg($"OnClientMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0}");
+                _logger.Msg($"OnClientMessageReceived cmd='{msg.Command}' len={msg.Data?.Length ?? 0}");
 
                 // Raise API event for mods
                 try
                 {
-                    ClientMessageReceived?.Invoke(msg.command, msg.data);
+                    ClientMessageReceived?.Invoke(msg.Command, msg.Data);
                 }
                 catch (Exception ex)
                 {
@@ -249,7 +249,7 @@ namespace DedicatedServerMod.Shared.Networking
                 }
 
                 // Delegate to message router for built-in handling
-                MessageRouter.RouteClientMessage(msg.command, msg.data);
+                MessageRouter.RouteClientMessage(msg.Command, msg.Data);
             }
             catch (Exception ex)
             {
@@ -273,19 +273,19 @@ namespace DedicatedServerMod.Shared.Networking
                 string raw = ((Reader)reader).ReadString();
                 var msg = JsonConvert.DeserializeObject<Message>(raw);
 
-                if (msg.command == null)
+                if (msg.Command == null)
                 {
                     _logger.Warning("OnServerMessageReceived: Message command is null");
                     return;
                 }
 
                 // Log verbose messages with Msg (MelonLogger doesn't have Verbose)
-                _logger.Msg($"OnServerMessageReceived cmd='{msg.command}' len={msg.data?.Length ?? 0} from={conn?.ClientId}");
+                _logger.Msg($"OnServerMessageReceived cmd='{msg.Command}' len={msg.Data?.Length ?? 0} from={conn?.ClientId}");
 
                 // Raise API event for server mods
                 try
                 {
-                    ServerMessageReceived?.Invoke(conn, msg.command, msg.data);
+                    ServerMessageReceived?.Invoke(conn, msg.Command, msg.Data);
                 }
                 catch (Exception ex)
                 {
@@ -293,7 +293,7 @@ namespace DedicatedServerMod.Shared.Networking
                 }
 
                 // Delegate to message router for built-in handling
-                MessageRouter.RouteServerMessage(conn, msg.command, msg.data);
+                MessageRouter.RouteServerMessage(conn, msg.Command, msg.Data);
             }
             catch (Exception ex)
             {

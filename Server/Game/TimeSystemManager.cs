@@ -16,8 +16,8 @@ namespace DedicatedServerMod.Server.Game
     {
         private readonly MelonLogger.Instance logger;
 
-        private bool _timeLoopsStarted = false;
-        private bool _isActive = false;
+        private bool timeLoopsStarted = false;
+        private bool isActive = false;
 
         public TimeSystemManager(MelonLogger.Instance loggerInstance)
         {
@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Gets whether the time system is active
         /// </summary>
-        public bool IsActive => _isActive;
+        public bool IsActive => isActive;
 
         /// <summary>
         /// Initialize the time system manager
@@ -46,7 +46,7 @@ namespace DedicatedServerMod.Server.Game
                     logger.Msg("Time system initialized with normal behavior");
                 }
 
-                _isActive = true;
+                isActive = true;
             }
             catch (Exception ex)
             {
@@ -60,7 +60,7 @@ namespace DedicatedServerMod.Server.Game
         /// </summary>
         private void StartTimeLoops()
         {
-            if (_timeLoopsStarted)
+            if (timeLoopsStarted)
             {
                 logger.Warning("Time loops already started");
                 return;
@@ -74,7 +74,7 @@ namespace DedicatedServerMod.Server.Game
                 // Start the tick loop coroutine
                 MelonCoroutines.Start(TickLoop());
                 
-                _timeLoopsStarted = true;
+                timeLoopsStarted = true;
                 logger.Msg("Time loops started for dedicated server");
             }
             catch (Exception ex)
@@ -88,7 +88,7 @@ namespace DedicatedServerMod.Server.Game
         /// </summary>
         private IEnumerator TimeLoop()
         {
-            while (ServerConfig.Instance.TimeNeverStops && _isActive)
+            while (ServerConfig.Instance.TimeNeverStops && isActive)
             {
                 // Ensure time keeps progressing even when players are asleep
                 var tm = NetworkSingleton<TimeManager>.Instance;
@@ -118,7 +118,7 @@ namespace DedicatedServerMod.Server.Game
         /// </summary>
         private IEnumerator TickLoop()
         {
-            while (_isActive)
+            while (isActive)
             {
                 // Perform periodic server maintenance tasks
                 yield return new WaitForSeconds(30f); // Every 30 seconds
@@ -216,8 +216,8 @@ namespace DedicatedServerMod.Server.Game
         /// </summary>
         public void Shutdown()
         {
-            _isActive = false;
-            _timeLoopsStarted = false;
+            isActive = false;
+            timeLoopsStarted = false;
             logger.Msg("Time system shutdown");
         }
     }

@@ -13,7 +13,7 @@ namespace DedicatedServerMod.Server.Game
     {
         private readonly MelonLogger.Instance logger;
 
-        private bool _isActive = false;
+        private bool isActive = false;
 
         public SleepSystemManager(MelonLogger.Instance loggerInstance)
         {
@@ -23,7 +23,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Gets whether the sleep system is active
         /// </summary>
-        public bool IsActive => _isActive;
+        public bool IsActive => isActive;
 
         /// <summary>
         /// Initialize the sleep system manager
@@ -41,7 +41,7 @@ namespace DedicatedServerMod.Server.Game
                     logger.Msg("Sleep system initialized with normal behavior");
                 }
 
-                _isActive = true;
+                isActive = true;
             }
             catch (Exception ex)
             {
@@ -86,7 +86,7 @@ namespace DedicatedServerMod.Server.Game
         {
             return new SleepSystemInfo
             {
-                IsActive = _isActive,
+                IsActive = isActive,
                 IgnoreGhostHost = ServerConfig.Instance.IgnoreGhostHostForSleep,
                 Message = ServerConfig.Instance.IgnoreGhostHostForSleep 
                     ? "Ghost host ignored for sleep calculations"
@@ -99,7 +99,7 @@ namespace DedicatedServerMod.Server.Game
         /// </summary>
         public void Shutdown()
         {
-            _isActive = false;
+            isActive = false;
             logger.Msg("Sleep system shutdown");
         }
     }

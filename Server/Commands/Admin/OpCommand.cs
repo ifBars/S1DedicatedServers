@@ -29,10 +29,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
             if (targetPlayer != null && !string.IsNullOrEmpty(targetPlayer.SteamId))
             {
-                if (playerManager.Permissions.AddOperator(targetPlayer.SteamId))
+                if (PlayerManager.Permissions.AddOperator(targetPlayer.SteamId))
                 {
                     context.Reply($"Granted operator privileges to {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    logger.Msg($"Operator granted to {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Operator granted to {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {
@@ -42,10 +42,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
             else
             {
                 // Try adding by Steam ID directly
-                if (playerManager.Permissions.AddOperator(identifier))
+                if (PlayerManager.Permissions.AddOperator(identifier))
                 {
                     context.Reply($"Granted operator privileges to Steam ID: {identifier}");
-                    logger.Msg($"Operator granted to SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Operator granted to SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {

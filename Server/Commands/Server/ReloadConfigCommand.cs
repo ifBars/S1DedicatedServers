@@ -30,12 +30,12 @@ namespace DedicatedServerMod.Server.Commands.Server
                 ServerConfig.ReloadConfig();
                 
                 context.Reply("Server configuration reloaded successfully");
-                logger.Msg($"Configuration reloaded by {context.Executor?.DisplayName ?? "Console"}");
+                Logger.Msg($"Configuration reloaded by {context.Executor?.DisplayName ?? "Console"}");
             }
             catch (Exception ex)
             {
                 context.ReplyError($"Failed to reload configuration: {ex.Message}");
-                logger.Error($"Error reloading configuration: {ex}");
+                Logger.Error($"Error reloading configuration: {ex}");
             }
         }
     }

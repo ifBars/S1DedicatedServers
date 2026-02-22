@@ -15,8 +15,10 @@ using DedicatedServerMod.API;
 namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
-    /// Handles player setup, character creation, and intro sequence bypassing for dedicated server clients.
-    /// Manages the complex process of initializing players who connect to dedicated servers.
+    /// Handles player setup, character creation, and intro sequence bypassing
+    /// for dedicated server clients. The primary entry point is
+    /// <see cref="HandlePostLoadPlayerSetup"/> which is called from
+    /// <see cref="ClientConnectionManager"/> after onLoadComplete fires.
     /// </summary>
     public class ClientPlayerSetup
     {
@@ -33,10 +35,10 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 logger.Msg("Initializing ClientPlayerSetup");
-                
+
                 harmony = new HarmonyLib.Harmony("DedicatedServerMod.ClientPlayerSetup");
                 ApplyPlayerPatches();
-                
+
                 logger.Msg("ClientPlayerSetup initialized");
             }
             catch (Exception ex)
@@ -45,27 +47,24 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        /// <summary>
-        /// Apply patches for player setup handling
-        /// </summary>
         private void ApplyPlayerPatches()
         {
             try
             {
-                // Patch Player.PlayerLoaded to handle intro skip for dedicated server clients
-                var playerType = typeof(Player);
-                var playerLoadedMethod = playerType.GetMethod("PlayerLoaded", BindingFlags.NonPublic | BindingFlags.Instance);
-                
+                var playerLoadedMethod = typeof(Player).GetMethod("PlayerLoaded",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
                 if (playerLoadedMethod != null)
                 {
-                    var skipIntroPrefix = typeof(ClientPlayerSetup).GetMethod(nameof(PlayerLoadedPrefix_HandleDedicatedServer), 
+                    var prefixMethod = typeof(ClientPlayerSetup).GetMethod(
+                        nameof(PlayerLoadedPrefix),
                         BindingFlags.Static | BindingFlags.Public);
-                    harmony.Patch(playerLoadedMethod, new HarmonyMethod(skipIntroPrefix));
-                    logger.Msg("Patched Player.PlayerLoaded for dedicated server setup");
+                    harmony.Patch(playerLoadedMethod, new HarmonyMethod(prefixMethod));
+                    logger.Msg("Patched Player.PlayerLoaded (safety-net prefix)");
                 }
                 else
                 {
-                    logger.Error("Could not find Player.PlayerLoaded method");
+                    logger.Warning("Could not find Player.PlayerLoaded method - patch skipped");
                 }
             }
             catch (Exception ex)
@@ -75,320 +74,83 @@ namespace DedicatedServerMod.Client.Managers
         }
 
         /// <summary>
-        /// Harmony patch for Player.PlayerLoaded
-        /// Handles special setup for dedicated server clients
+        /// Safety-net prefix for Player.PlayerLoaded. In the native flow, PlayerLoaded
+        /// is only called for host players (subscribed via onLoadComplete in OnStartClient).
+        /// For dedicated server clients, the primary setup path is
+        /// <see cref="HandlePostLoadPlayerSetup"/> called from ClientConnectionManager.
+        ///
+        /// This prefix exists only as a fallback: if PlayerLoaded is somehow invoked on a
+        /// dedicated server client, it prevents the intro from playing and runs our setup.
         /// </summary>
-        public static bool PlayerLoadedPrefix_HandleDedicatedServer(Player __instance)
+        public static bool PlayerLoadedPrefix(Player __instance)
         {
-            if (ClientConnectionManager.IsTugboatMode && !InstanceFinder.IsServer)
+            if (!ClientConnectionManager.IsTugboatMode || InstanceFinder.IsServer)
+                return true;
+
+            if (!__instance.IsOwner)
+                return true;
+
+            var logger = new MelonLogger.Instance("ClientPlayerSetup");
+            logger.Msg("PlayerLoaded prefix fallback: skipping native intro, deferring to post-load setup");
+
+            __instance.HasCompletedIntro = true;
+
+            if (__instance.PoI != null)
             {
-                var logger = new MelonLogger.Instance("ClientPlayerSetup");
-                logger.Msg("Dedicated server client detected - starting custom player setup");
-                
-                // Don't modify HasCompletedIntro here - let the setup coroutine handle it
-                MelonCoroutines.Start(HandleDedicatedServerPlayerSetup(__instance));
-                
-                // Return false to prevent the original PlayerLoaded method from running
-                return false;
+                __instance.PoI.SetMainText("You");
+                if (__instance.PoI.UI != null)
+                    __instance.PoI.UI.GetComponentInChildren<Animation>().Play();
             }
-            
-            // Return true to allow normal execution for non-dedicated server clients
-            return true;
+
+            return false;
         }
 
         /// <summary>
-        /// Main coroutine for setting up dedicated server players
+        /// Primary dedicated server player setup, called from ClientConnectionManager
+        /// after onLoadComplete fires. Handles intro bypass and character creation
+        /// for first-time players.
         /// </summary>
-        private static IEnumerator HandleDedicatedServerPlayerSetup(Player player)
+        public static IEnumerator HandlePostLoadPlayerSetup(Player player)
         {
             var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            logger.Msg("Setting up dedicated server player - bypassing frozen intro sequence");
-            
-            // Wait for initialization
-            yield return new WaitForSeconds(1f);
-            
-            // Perform initial player setup that normally happens in PlayerLoaded
-            InitializePlayerBasics(player);
-            
-            bool setupCompleted = false;
-            bool needsCharacterCreation = false;
-            CharacterCreator characterCreator = null;
-            bool hadError = false;
-            
-            // Check if player needs character creation
-            if (player.CurrentAvatarSettings == null)
+            logger.Msg("Starting post-load player setup for dedicated server");
+
+            yield return new WaitForSeconds(0.5f);
+
+            if (player == null)
             {
-                logger.Msg("No avatar settings found - triggering character creation");
-                needsCharacterCreation = true;
-                
-                // Wait for CharacterCreator to be available
-                characterCreator = Singleton<CharacterCreator>.Instance;
-                float waitTime = 0f;
-                while (characterCreator == null && waitTime < 5f)
-                {
-                    waitTime += 0.1f;
-                    yield return new WaitForSeconds(0.1f);
-                    characterCreator = Singleton<CharacterCreator>.Instance;
-                }
-                
-                if (characterCreator?.DefaultSettings != null)
-                {
-                    logger.Msg("CharacterCreator ready - will open with default settings");
-                }
-                else
-                {
-                    logger.Error("CharacterCreator or DefaultSettings not found");
-                    yield return MelonCoroutines.Start(HandleFallbackCharacterCreation(player));
-                    setupCompleted = true;
-                }
+                logger.Error("Player reference lost during post-load setup");
+                yield break;
+            }
+
+            InitializePlayerBasics(player);
+
+            if (player.CurrentAvatarSettings != null)
+            {
+                logger.Msg("Avatar settings already exist - activating player");
+                player.HasCompletedIntro = true;
+                Player.Activate();
             }
             else
             {
-                logger.Msg("Avatar settings already exist - marking intro as completed and activating player");
-                player.HasCompletedIntro = true;
-                
-                // Activate player controls since character creation is being bypassed
-                Player.Activate();
-                setupCompleted = true;
+                logger.Msg("No avatar settings - entering character creation");
+                yield return MelonCoroutines.Start(HandleCharacterCreation(player));
             }
-            
-            // Handle character creation if needed
-            if (needsCharacterCreation && characterCreator?.DefaultSettings != null)
-            {
-                yield return MelonCoroutines.Start(HandleCharacterCreation(player, characterCreator));
-                setupCompleted = true;
-            }
-            
-            // Finalize setup
-            if (setupCompleted)
-            {
-                yield return MelonCoroutines.Start(FinalizePlayerSetup(player));
-            }
+
+            yield return MelonCoroutines.Start(FinalizePlayerSetup(player));
         }
 
-        /// <summary>
-        /// Handle character creation process
-        /// </summary>
-        private static IEnumerator HandleCharacterCreation(Player player, CharacterCreator characterCreator)
-        {
-            var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            logger.Msg("Opening character creator with default settings");
-            
-            var introManager = Singleton<IntroManager>.Instance;
-            if (introManager?.Container != null)
-            {
-                // Hide intro UI
-                var canvas = introManager.Container.transform.Find("Canvas");
-                if (canvas != null)
-                {
-                    canvas.gameObject.SetActive(false);
-                }
-            }
-            
-            // Set up completion callback
-            SetupCharacterCreationCallback(player, characterCreator, introManager);
-            
-            // Open character creator
-            characterCreator.Open(characterCreator.DefaultSettings);
-            
-            yield return null; // Allow character creator to process
-        }
-
-        /// <summary>
-        /// Set up the character creation completion callback
-        /// </summary>
-        private static void SetupCharacterCreationCallback(Player player, CharacterCreator characterCreator, IntroManager introManager)
-        {
-            var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            
-            characterCreator.onCompleteWithClothing.RemoveAllListeners();
-            characterCreator.onCompleteWithClothing.AddListener((appearance, clothing) => {
-                logger.Msg("Character creation completed for dedicated server client");
-                
-                try
-                {
-                    // Apply clothing first
-                    ApplyClothingToPlayer(player, clothing);
-                    
-                    // Mark intro as completed before setting appearance
-                    player.HasCompletedIntro = true;
-                    
-                    // Send appearance via proper networking
-                    logger.Msg("Sending appearance via proper networking flow");
-                    player.SendAppearance(appearance);
-                    
-                    // Handle intro completion
-                    CompleteIntroSequence(player, introManager, characterCreator);
-                    
-                    // Request save after setup
-                    MelonCoroutines.Start(DelayedSaveRequest(player));
-                    
-                    logger.Msg("Dedicated server player setup complete");
-                }
-                catch (Exception ex)
-                {
-                    logger.Error($"Error in character creation completion: {ex}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Apply clothing items to player inventory
-        /// </summary>
-        private static void ApplyClothingToPlayer(Player player, System.Collections.Generic.List<ScheduleOne.Clothing.ClothingInstance> clothing)
-        {
-            var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            
-            if (clothing != null && player.Clothing != null)
-            {
-                logger.Msg($"Applying {clothing.Count} clothing items to inventory");
-                foreach (var clothe in clothing)
-                {
-                    player.Clothing.InsertClothing(clothe);
-                    logger.Msg($"Added clothing: {clothe.Name}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Complete the intro sequence and enable player controls
-        /// </summary>
-        private static void CompleteIntroSequence(Player player, IntroManager introManager, CharacterCreator characterCreator)
-        {
-            var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            logger.Msg("Completing intro sequence");
-            
-            try
-            {
-                // Position player correctly
-                PositionPlayer(player, introManager);
-                
-                // Enable all player controls, interaction, and punching
-                logger.Msg("Activating player controls and interactions after character creation");
-                PlayerSingleton<PlayerCamera>.Instance.StopTransformOverride(0f, reenableCameraLook: false);
-                PlayerSingleton<PlayerCamera>.Instance.StopFOVOverride(0f);
-                PlayerSingleton<PlayerCamera>.Instance.RemoveActiveUIElement("IntroManager");
-                PlayerSingleton<PlayerCamera>.Instance.SetCanLook(true);
-                PlayerSingleton<PlayerMovement>.Instance.CanMove = true;
-                PlayerSingleton<PlayerInventory>.Instance.SetInventoryEnabled(true);
-                Singleton<HUD>.Instance.canvas.enabled = true;
-                Player.Activate();
-                
-                // Clean up UI
-                CleanupIntroUI(characterCreator, introManager);
-                
-                // Invoke completion events
-                introManager?.onIntroDone?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error completing intro sequence: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Position player at the correct spawn location
-        /// </summary>
-        private static void PositionPlayer(Player player, IntroManager introManager)
-        {
-            if (introManager != null)
-            {
-                if (!introManager.rv._exploded)
-                {
-                    player.transform.position = introManager.PlayerInitialPosition.position;
-                    player.transform.rotation = introManager.PlayerInitialPosition.rotation;
-                }
-                else
-                {
-                    player.transform.position = introManager.PlayerInitialPosition_AfterRVExplosion.position;
-                    player.transform.rotation = introManager.PlayerInitialPosition_AfterRVExplosion.rotation;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Clean up intro UI elements
-        /// </summary>
-        private static void CleanupIntroUI(CharacterCreator characterCreator, IntroManager introManager)
-        {
-            try
-            {
-                characterCreator?.Close();
-                characterCreator?.DisableStuff();
-                if (introManager != null)
-                {
-                    introManager.gameObject.SetActive(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                var logger = new MelonLogger.Instance("ClientPlayerSetup");
-                logger.Error($"Error cleaning up intro UI: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Handle fallback character creation when normal flow fails
-        /// </summary>
-        private static IEnumerator HandleFallbackCharacterCreation(Player player)
-        {
-            var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            logger.Msg("Using fallback character creation");
-            
-            try
-            {
-                var defaultSettings = ScriptableObject.CreateInstance<BasicAvatarSettings>();
-                if (defaultSettings != null)
-                {
-                    player.SetAppearance(defaultSettings, false);
-                    logger.Msg("Applied fallback avatar settings");
-                }
-                
-                player.HasCompletedIntro = true;
-                
-                // Activate player controls for fallback character creation
-                Player.Activate();
-                logger.Msg("Activated player controls after fallback character creation");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error in fallback character creation: {ex}");
-                // Ensure intro is marked complete even if fallback fails
-                player.HasCompletedIntro = true;
-                // Still try to activate even if fallback fails
-                try
-                {
-                    Player.Activate();
-                }
-                catch (Exception activateEx)
-                {
-                    logger.Error($"Error activating player in fallback: {activateEx}");
-                }
-            }
-            
-            yield return null;
-        }
-
-        /// <summary>
-        /// Initialize basic player setup that normally happens in PlayerLoaded
-        /// </summary>
         private static void InitializePlayerBasics(Player player)
         {
             var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            
             try
             {
-                // Set up PoI (Point of Interest) text that normally happens in PlayerLoaded
                 if (player.PoI != null)
                 {
                     player.PoI.SetMainText("You");
                     if (player.PoI.UI != null)
-                    {
-                        player.PoI.UI.GetComponentInChildren<UnityEngine.Animation>().Play();
-                    }
+                        player.PoI.UI.GetComponentInChildren<Animation>().Play();
                 }
-                
-                // Mark player as initialized
                 logger.Msg("Basic player initialization completed");
             }
             catch (Exception ex)
@@ -397,23 +159,165 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        /// <summary>
-        /// Finalize player setup with quest system and save
-        /// </summary>
+        private static IEnumerator HandleCharacterCreation(Player player)
+        {
+            var logger = new MelonLogger.Instance("ClientPlayerSetup");
+
+            CharacterCreator characterCreator = null;
+            float waitTime = 0f;
+            while (characterCreator == null && waitTime < 5f)
+            {
+                characterCreator = Singleton<CharacterCreator>.InstanceExists
+                    ? Singleton<CharacterCreator>.Instance
+                    : null;
+                if (characterCreator != null) break;
+                yield return new WaitForSeconds(0.1f);
+                waitTime += 0.1f;
+            }
+
+            if (characterCreator?.DefaultSettings == null)
+            {
+                logger.Warning("CharacterCreator unavailable - using fallback avatar");
+                yield return MelonCoroutines.Start(HandleFallbackCharacterCreation(player));
+                yield break;
+            }
+
+            var introManager = Singleton<IntroManager>.InstanceExists
+                ? Singleton<IntroManager>.Instance
+                : null;
+
+            if (introManager?.Container != null)
+            {
+                var canvas = introManager.Container.transform.Find("Canvas");
+                if (canvas != null)
+                    canvas.gameObject.SetActive(false);
+            }
+
+            SetupCharacterCreationCallback(player, characterCreator, introManager);
+            characterCreator.Open(characterCreator.DefaultSettings);
+
+            yield return null;
+        }
+
+        private static void SetupCharacterCreationCallback(
+            Player player, CharacterCreator characterCreator, IntroManager introManager)
+        {
+            var logger = new MelonLogger.Instance("ClientPlayerSetup");
+
+            characterCreator.onCompleteWithClothing.RemoveAllListeners();
+            characterCreator.onCompleteWithClothing.AddListener((appearance, clothing) =>
+            {
+                logger.Msg("Character creation completed");
+                try
+                {
+                    ApplyClothingToPlayer(player, clothing);
+                    player.HasCompletedIntro = true;
+                    player.SendAppearance(appearance);
+                    CompleteIntroSequence(player, introManager, characterCreator);
+                    MelonCoroutines.Start(DelayedSaveRequest(player));
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Error in character creation completion: {ex}");
+                }
+            });
+        }
+
+        private static void ApplyClothingToPlayer(
+            Player player, System.Collections.Generic.List<ScheduleOne.Clothing.ClothingInstance> clothing)
+        {
+            if (clothing == null || player.Clothing == null) return;
+
+            var logger = new MelonLogger.Instance("ClientPlayerSetup");
+            foreach (var clothe in clothing)
+            {
+                player.Clothing.InsertClothing(clothe);
+                logger.Msg($"Added clothing: {clothe.Name}");
+            }
+        }
+
+        private static void CompleteIntroSequence(
+            Player player, IntroManager introManager, CharacterCreator characterCreator)
+        {
+            var logger = new MelonLogger.Instance("ClientPlayerSetup");
+            try
+            {
+                PositionPlayer(player, introManager);
+
+                PlayerSingleton<PlayerCamera>.Instance.StopTransformOverride(0f, reenableCameraLook: false);
+                PlayerSingleton<PlayerCamera>.Instance.StopFOVOverride(0f);
+                PlayerSingleton<PlayerCamera>.Instance.RemoveActiveUIElement("IntroManager");
+                PlayerSingleton<PlayerCamera>.Instance.SetCanLook(true);
+                PlayerSingleton<PlayerMovement>.Instance.CanMove = true;
+                PlayerSingleton<PlayerInventory>.Instance.SetInventoryEnabled(true);
+                Singleton<HUD>.Instance.canvas.enabled = true;
+                Player.Activate();
+
+                characterCreator?.Close();
+                characterCreator?.DisableStuff();
+                if (introManager != null)
+                    introManager.gameObject.SetActive(false);
+
+                introManager?.onIntroDone?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error completing intro sequence: {ex}");
+            }
+        }
+
+        private static void PositionPlayer(Player player, IntroManager introManager)
+        {
+            if (introManager == null) return;
+
+            if (!introManager.rv._exploded)
+            {
+                player.transform.position = introManager.PlayerInitialPosition.position;
+                player.transform.rotation = introManager.PlayerInitialPosition.rotation;
+            }
+            else
+            {
+                player.transform.position = introManager.PlayerInitialPosition_AfterRVExplosion.position;
+                player.transform.rotation = introManager.PlayerInitialPosition_AfterRVExplosion.rotation;
+            }
+        }
+
+        private static IEnumerator HandleFallbackCharacterCreation(Player player)
+        {
+            var logger = new MelonLogger.Instance("ClientPlayerSetup");
+            try
+            {
+                var defaultSettings = ScriptableObject.CreateInstance<BasicAvatarSettings>();
+                if (defaultSettings != null)
+                {
+                    player.SetAppearance(defaultSettings, false);
+                    logger.Msg("Applied fallback avatar settings");
+                }
+
+                player.HasCompletedIntro = true;
+                Player.Activate();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error in fallback character creation: {ex}");
+                player.HasCompletedIntro = true;
+                try { Player.Activate(); }
+                catch (Exception activateEx) { logger.Error($"Activate failed: {activateEx}"); }
+            }
+
+            yield return null;
+        }
+
         private static IEnumerator FinalizePlayerSetup(Player player)
         {
             var logger = new MelonLogger.Instance("ClientPlayerSetup");
-            
-            // Wait a moment for everything to settle
             yield return new WaitForSeconds(0.5f);
-            
+
             try
             {
-                // Request player save to persist everything
                 player.RequestSavePlayer();
-                logger.Msg("Player save requested to finalize setup");
+                logger.Msg("Player save requested");
 
-                // Notify API mods that the local player is ready and messaging/UI are initialized
                 try
                 {
                     ModManager.NotifyClientPlayerReady();
@@ -430,25 +334,14 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        /// <summary>
-        /// Delayed save request to ensure appearance is applied
-        /// </summary>
         private static IEnumerator DelayedSaveRequest(Player player)
         {
             yield return new WaitForSeconds(1f);
-            
             try
             {
-                var logger = new MelonLogger.Instance("ClientPlayerSetup");
-                logger.Msg("Requesting delayed player save after character creation");
                 player.RequestSavePlayer();
-                
-                // Force clothing refresh
                 if (player.Clothing != null)
-                {
-                    logger.Msg("Forcing clothing refresh for proper synchronization");
                     player.Clothing.RefreshAppearance();
-                }
             }
             catch (Exception ex)
             {

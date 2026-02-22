@@ -29,10 +29,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
             if (targetPlayer != null && !string.IsNullOrEmpty(targetPlayer.SteamId))
             {
-                if (playerManager.Permissions.AddAdministrator(targetPlayer.SteamId))
+                if (PlayerManager.Permissions.AddAdministrator(targetPlayer.SteamId))
                 {
                     context.Reply($"Granted administrator privileges to {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    logger.Msg($"Administrator granted to {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Administrator granted to {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {
@@ -42,10 +42,10 @@ namespace DedicatedServerMod.Server.Commands.Admin
             else
             {
                 // Try adding by Steam ID directly
-                if (playerManager.Permissions.AddAdministrator(identifier))
+                if (PlayerManager.Permissions.AddAdministrator(identifier))
                 {
                     context.Reply($"Granted administrator privileges to Steam ID: {identifier}");
-                    logger.Msg($"Administrator granted to SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
+                    Logger.Msg($"Administrator granted to SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
                 }
                 else
                 {

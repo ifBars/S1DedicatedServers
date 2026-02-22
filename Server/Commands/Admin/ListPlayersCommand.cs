@@ -23,7 +23,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
         public override void Execute(CommandContext context)
         {
-            var players = playerManager.GetConnectedPlayers();
+            var players = PlayerManager.GetConnectedPlayers();
             
             if (players.Count == 0)
             {
@@ -35,7 +35,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
             
             foreach (var player in players.OrderBy(p => p.ConnectTime))
             {
-                var permLevel = playerManager.Permissions.GetPermissionLevel(player);
+                var permLevel = PlayerManager.Permissions.GetPermissionLevel(player);
                 var permText = permLevel switch
                 {
                     PermissionLevel.Administrator => " [ADMIN]",

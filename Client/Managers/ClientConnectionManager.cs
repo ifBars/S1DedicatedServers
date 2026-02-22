@@ -1,29 +1,40 @@
 using FishNet;
+using FishNet.Transporting;
+using FishNet.Transporting.Multipass;
+using FishNet.Transporting.Tugboat;
 using MelonLoader;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Networking;
 using ScheduleOne.Persistence;
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.UI;
 using System;
 using System.Collections;
-using ScheduleOne.DevUtilities;
+using System.Reflection;
 using DedicatedServerMod.API;
-using DedicatedServerMod.Shared.Networking;
+using DedicatedServerMod.Client.Patchers;
+using DedicatedServerMod.Utils;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
-    /// Manages dedicated server connections for the client mod.
-    /// Handles connection establishment, state tracking, and coordination with other systems.
+    /// Manages the dedicated server client join sequence, mirroring the native
+    /// LoadManager.LoadAsClient flow step-by-step. See <see cref="NativeInvariants"/>
+    /// for the full contract this class must satisfy.
     /// </summary>
     public class ClientConnectionManager
     {
         private readonly MelonLogger.Instance logger;
-        
-        // Connection configuration
+
         private static string _targetServerIP = "localhost";
         private static int _targetServerPort = 38465;
         private static bool _isTugboatMode = false;
-        
-        // Connection state
+
+        private static readonly MethodInfo CleanUpMethod =
+            typeof(LoadManager).GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Instance);
+
         public bool IsConnecting { get; private set; }
         public bool IsConnectedToDedicatedServer { get; private set; }
         public string LastConnectionError { get; private set; }
@@ -38,10 +49,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 logger.Msg("Initializing ClientConnectionManager");
-                
-                // Parse command line arguments for server configuration
                 ParseCommandLineArguments();
-                
                 logger.Msg("ClientConnectionManager initialized");
             }
             catch (Exception ex)
@@ -50,9 +58,6 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        /// <summary>
-        /// Parse command line arguments for server IP and port
-        /// </summary>
         private void ParseCommandLineArguments()
         {
             var args = Environment.GetCommandLineArgs();
@@ -75,7 +80,8 @@ namespace DedicatedServerMod.Client.Managers
         }
 
         /// <summary>
-        /// Start connection to dedicated server
+        /// Entry point: begins the full dedicated server join sequence.
+        /// Mirrors native LoadManager.LoadAsClient steps 1-16.
         /// </summary>
         public void StartDedicatedConnection()
         {
@@ -85,119 +91,263 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
-            try
-            {
-                logger.Msg($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
-                logger.Msg("This will bypass the frozen intro sequence and handle character creation manually");
-                
-                IsConnecting = true;
-                _isTugboatMode = true;
-                LastConnectionError = null;
+            logger.Msg($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
+            IsConnecting = true;
+            _isTugboatMode = true;
+            LastConnectionError = null;
 
-                // Prepare LoadManager for join mode
-                PrepareLoadManager();
-
-                // Start connection coroutine
-                StartCoroutine(ConnectToDedicatedServerCoroutine());
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error starting dedicated connection: {ex}");
-                HandleConnectionError(ex.Message);
-            }
+            MelonCoroutines.Start(ClientLoadSequence());
         }
 
         /// <summary>
-        /// Prepare LoadManager for dedicated server join
+        /// Full client join coroutine mirroring LoadManager.LoadAsClient (lines 642-727).
+        /// Each step is annotated with the corresponding native source line.
         /// </summary>
-        private void PrepareLoadManager()
+        private IEnumerator ClientLoadSequence()
         {
+            var timeline = new JoinTimeline(logger);
+            timeline.Mark("Begin");
+
             var loadManager = Singleton<LoadManager>.Instance;
-            if (loadManager != null)
+            if (loadManager == null)
             {
-                loadManager.ActiveSaveInfo = null;
-                loadManager.IsLoading = true;
-                logger.Msg("Set LoadManager.ActiveSaveInfo = null (join mode)");
-            }
-        }
-
-        /// <summary>
-        /// Main connection coroutine
-        /// </summary>
-        private IEnumerator ConnectToDedicatedServerCoroutine()
-        {
-            logger.Msg("Starting connection coroutine");
-            
-            // Get ClientManager
-            var clientManager = InstanceFinder.ClientManager;
-            if (clientManager == null)
-            {
-                HandleConnectionError("ClientManager not found");
+                HandleConnectionError("LoadManager not found");
                 yield break;
             }
 
-            // Start connection (will be intercepted by transport patches)
-            logger.Msg("Calling ClientManager.StartConnection (will be intercepted by transport patches)");
-            bool result = clientManager.StartConnection();
-            
-            logger.Msg($"StartConnection returned: {result}");
-            
-            if (!result)
+            // --- Step 1 (native 644-656): If game already loaded, exit to menu first ---
+            if (loadManager.IsGameLoaded)
             {
-                HandleConnectionError("StartConnection failed");
+                timeline.Mark("ExitToMenu");
+                loadManager.ExitToMenu();
+                float exitTimeout = 15f;
+                float exitElapsed = 0f;
+                while (exitElapsed < exitTimeout &&
+                       (loadManager.IsLoading || SceneManager.GetActiveScene().name != "Menu"))
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    exitElapsed += 0.1f;
+                }
+            }
+
+            // --- Step 2 (native 659-664): Initialize load state ---
+            timeline.Mark("InitLoadState");
+            loadManager.ActiveSaveInfo = null;
+            loadManager.IsLoading = true;
+            loadManager.TimeSinceGameLoaded = 0f;
+            loadManager.LoadedGameFolderPath = string.Empty;
+            loadManager.LoadStatus = LoadManager.ELoadStatus.LoadingScene;
+
+            // --- Step 3 (native 665): Open loading screen ---
+            if (Singleton<LoadingScreen>.InstanceExists)
+                Singleton<LoadingScreen>.Instance.Open();
+
+            // --- Step 5 (native 667-669): Pre-scene change event ---
+            // Fires SaveManager.Clean, ProductManager.Clean, NPCManager, etc.
+            timeline.Mark("onPreSceneChange");
+            loadManager.onPreSceneChange?.Invoke();
+
+            // --- Step 6 (native 671): CleanUp ---
+            // Clears GUIDManager, Quest lists, PlayerList, staggeredReplicators, etc.
+            timeline.Mark("CleanUp");
+            CleanUpMethod?.Invoke(loadManager, null);
+
+            // --- Step 7 (native 672-680): Configure transport and set timeout ---
+            timeline.Mark("ConfigureTransport");
+            if (!ConfigureAndStartTransport())
+            {
+                HandleConnectionError("Transport configuration or connection start failed");
                 yield break;
             }
 
-            // Wait for connection establishment
-            yield return StartCoroutine(WaitForConnectionEstablishment());
-        }
+            // --- Step 9 (native 692): Register player spawn handler ---
+            // Must be AFTER CleanUp which clears Player.onLocalPlayerSpawned.
+            Player.onLocalPlayerSpawned = (Action)Delegate.Combine(
+                Player.onLocalPlayerSpawned, new Action(OnLocalPlayerSpawned));
 
-        /// <summary>
-        /// Wait for connection to be established with timeout
-        /// </summary>
-        private IEnumerator WaitForConnectionEstablishment()
-        {
-            float timeout = 15f; // Increased timeout for dedicated server connections
-            float elapsed = 0f;
-            
-            while (elapsed < timeout && !InstanceFinder.IsClient)
+            // --- Step 10 (native 693): Wait for Main scene ---
+            // FishNet syncs the scene from the server as part of connection.
+            timeline.Mark("WaitForMainScene");
+            float sceneTimeout = 30f;
+            float sceneElapsed = 0f;
+            while (SceneManager.GetActiveScene().name != "Main" && sceneElapsed < sceneTimeout)
             {
                 yield return new WaitForSeconds(0.1f);
-                elapsed += 0.1f;
+                sceneElapsed += 0.1f;
             }
-
-            if (InstanceFinder.IsClient)
+            if (SceneManager.GetActiveScene().name != "Main")
             {
-                logger.Msg("Successfully connected to dedicated server!");
-                logger.Msg($"Client connection established in {elapsed:F1}s");
-                
-                IsConnectedToDedicatedServer = true;
-                IsConnecting = false;
-                
-                // Note: Server data request is sent from MessagingPatches after RPC registration
+                timeline.MarkError("MainSceneLoad", $"timeout after {sceneTimeout}s");
+                HandleConnectionError($"Main scene load timeout ({sceneTimeout}s)");
+                yield break;
+            }
+            timeline.Mark("MainSceneLoaded", $"{sceneElapsed:F1}s");
 
-                // Wait for player to spawn and initialize
-                yield return new WaitForSeconds(2f);
-                
-                if (ScheduleOne.PlayerScripts.Player.Local != null)
-                {
-                    logger.Msg("Local player found - connection setup complete");
-                    try { ModManager.NotifyConnectedToServer(); } catch {}
-                }
-                else
-                {
-                    logger.Warning("Local player not found after connection");
-                }
+            // --- Step 11 (native 695-697): Pre-load event ---
+            timeline.Mark("onPreLoad");
+            loadManager.onPreLoad?.Invoke();
+
+            // --- Step 12 (native 699-700): Wait for Player.Local ---
+            loadManager.LoadStatus = LoadManager.ELoadStatus.SpawningPlayer;
+            timeline.Mark("WaitForPlayerLocal");
+            float playerTimeout = 30f;
+            float playerElapsed = 0f;
+            while (Player.Local == null && playerElapsed < playerTimeout)
+            {
+                yield return new WaitForSeconds(0.1f);
+                playerElapsed += 0.1f;
+            }
+            if (Player.Local == null)
+            {
+                timeline.MarkError("PlayerLocalSpawn", $"timeout after {playerTimeout}s");
+                HandleConnectionError($"Player.Local spawn timeout ({playerTimeout}s)");
+                yield break;
+            }
+            timeline.Mark("PlayerLocalSpawned", $"{playerElapsed:F1}s");
+
+            // --- Step 13 (native 702-703): Wait for player data ---
+            // Server sends ReceivePlayerData RPC which sets playerDataRetrieveReturned.
+            loadManager.LoadStatus = LoadManager.ELoadStatus.LoadingData;
+            timeline.Mark("WaitForPlayerData");
+            float dataTimeout = 30f;
+            float dataElapsed = 0f;
+            while (Player.Local != null && !Player.Local.playerDataRetrieveReturned && dataElapsed < dataTimeout)
+            {
+                yield return new WaitForSeconds(0.1f);
+                dataElapsed += 0.1f;
+            }
+            if (Player.Local == null || !Player.Local.playerDataRetrieveReturned)
+            {
+                timeline.Mark("PlayerDataTimeout", $"{dataElapsed:F1}s");
+                logger.Warning("Player data retrieve timed out - continuing");
             }
             else
             {
-                HandleConnectionError($"Connection timeout after {timeout}s");
+                timeline.Mark("PlayerDataReceived", $"{dataElapsed:F1}s");
             }
+
+            // --- Step 14 (native 705-709): Wait for replication ---
+            // ReplicationQueue.ReplicationDoneForLocalPlayer set by TargetRpc from server,
+            // or LocalPlayerReplicationTimedOut after 45s.
+            loadManager.LoadStatus = LoadManager.ELoadStatus.Initializing;
+            timeline.Mark("WaitForReplication");
+            float repTimeout = 50f;
+            float repElapsed = 0f;
+            while (repElapsed < repTimeout)
+            {
+                if (NetworkSingleton<ReplicationQueue>.InstanceExists)
+                {
+                    var repQueue = NetworkSingleton<ReplicationQueue>.Instance;
+                    if (repQueue.ReplicationDoneForLocalPlayer || repQueue.LocalPlayerReplicationTimedOut)
+                        break;
+                }
+                yield return new WaitForSeconds(0.1f);
+                repElapsed += 0.1f;
+            }
+            if (NetworkSingleton<ReplicationQueue>.InstanceExists &&
+                NetworkSingleton<ReplicationQueue>.Instance.LocalPlayerReplicationTimedOut)
+            {
+                var task = NetworkSingleton<ReplicationQueue>.Instance.CurrentReplicationTask;
+                timeline.Mark("ReplicationTimeout", task);
+                logger.Warning($"Replication timed out. Current task: {task}");
+            }
+            else
+            {
+                timeline.Mark("ReplicationComplete", $"{repElapsed:F1}s");
+            }
+
+            // --- Step 15 (native 711-713): Load complete ---
+            // Fires ~20 Persistence loaders, ConfigurationReplicator, NPC handlers, etc.
+            timeline.Mark("onLoadComplete");
+            loadManager.onLoadComplete?.Invoke();
+
+            // --- Post-load: Handle first-time player setup if intro not completed ---
+            if (Player.Local != null && !Player.Local.HasCompletedIntro)
+            {
+                timeline.Mark("FirstTimePlayerSetup");
+                yield return MelonCoroutines.Start(
+                    ClientPlayerSetup.HandlePostLoadPlayerSetup(Player.Local));
+            }
+
+            // --- Step 16 (native 715-720): Finalize ---
+            yield return new WaitForSeconds(NativeInvariants.POST_LOAD_DELAY_SECONDS);
+            loadManager.LoadStatus = LoadManager.ELoadStatus.None;
+            if (Singleton<LoadingScreen>.InstanceExists)
+                Singleton<LoadingScreen>.Instance.Close();
+            loadManager.IsLoading = false;
+            loadManager.IsGameLoaded = true;
+
+            IsConnectedToDedicatedServer = true;
+            IsConnecting = false;
+
+            timeline.Mark("ClientLoadComplete");
+            timeline.PrintSummary();
+
+            try { ModManager.NotifyConnectedToServer(); }
+            catch (Exception ex) { logger.Warning($"NotifyConnectedToServer error: {ex.Message}"); }
         }
 
         /// <summary>
-        /// Handle connection errors and cleanup
+        /// Configures Tugboat transport and starts the client connection.
+        /// Matches native LoadAsClient transport setup (lines 672-691).
         /// </summary>
+        private bool ConfigureAndStartTransport()
+        {
+            var networkManager = InstanceFinder.NetworkManager;
+            if (networkManager == null)
+            {
+                logger.Error("NetworkManager not found");
+                return false;
+            }
+
+            var multipass = networkManager.TransportManager.Transport as Multipass;
+            if (multipass == null)
+            {
+                logger.Error("Multipass transport not found");
+                return false;
+            }
+
+            var tugboat = multipass.gameObject.GetComponent<Tugboat>();
+            if (tugboat == null)
+            {
+                logger.Error("Tugboat component not found");
+                return false;
+            }
+
+            // Set Tugboat as Multipass client transport (native: SetClientTransport<Tugboat>())
+            if (!ClientTransportPatcher.SetMultipassClientTransport(multipass, tugboat))
+                logger.Warning("Could not set client transport via reflection");
+
+            // Set transport timeout (native: SetTimeout(30f, asServer: false))
+            try
+            {
+                networkManager.TransportManager.Transport.SetTimeout(
+                    NativeInvariants.TRANSPORT_TIMEOUT_SECONDS, asServer: false);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Failed to set transport timeout: {ex.Message}");
+            }
+
+            // Configure Tugboat address and port
+            tugboat.SetClientAddress(_targetServerIP);
+            tugboat.SetPort((ushort)_targetServerPort);
+
+            // Start connection directly on Tugboat (native: tugboat.StartConnection(server: false))
+            logger.Msg($"Starting Tugboat connection to {_targetServerIP}:{_targetServerPort}");
+            bool started = tugboat.StartConnection(server: false);
+            if (!started)
+                logger.Error("Tugboat.StartConnection(false) returned false");
+
+            return started;
+        }
+
+        private static void OnLocalPlayerSpawned()
+        {
+            Player.onLocalPlayerSpawned = (Action)Delegate.Remove(
+                Player.onLocalPlayerSpawned, new Action(OnLocalPlayerSpawned));
+        }
+
         private void HandleConnectionError(string errorMessage)
         {
             logger.Error($"Connection failed: {errorMessage}");
@@ -205,46 +355,43 @@ namespace DedicatedServerMod.Client.Managers
             IsConnecting = false;
             IsConnectedToDedicatedServer = false;
             _isTugboatMode = false;
-            
-            // Cleanup on failure
+
             try
             {
                 if (InstanceFinder.IsClient)
-                {
                     InstanceFinder.ClientManager?.StopConnection();
-                }
-                
+
                 var loadManager = Singleton<LoadManager>.Instance;
                 if (loadManager != null)
                 {
+                    loadManager.LoadStatus = LoadManager.ELoadStatus.None;
                     loadManager.IsLoading = false;
                 }
+
+                if (Singleton<LoadingScreen>.InstanceExists)
+                    Singleton<LoadingScreen>.Instance.Close();
             }
             catch (Exception cleanupEx)
             {
-                logger.Error($"Error during cleanup: {cleanupEx}");
+                logger.Error($"Error during connection error cleanup: {cleanupEx}");
             }
         }
 
-        /// <summary>
-        /// Disconnect from dedicated server
-        /// </summary>
         public void DisconnectFromDedicatedServer()
         {
             try
             {
                 logger.Msg("Disconnecting from dedicated server");
-                
+
                 if (InstanceFinder.IsClient)
-                {
                     InstanceFinder.ClientManager?.StopConnection();
-                }
 
                 IsConnectedToDedicatedServer = false;
                 _isTugboatMode = false;
-                
+
                 logger.Msg("Disconnected from dedicated server");
-                try { ModManager.NotifyDisconnectedFromServer(); } catch {}
+                try { ModManager.NotifyDisconnectedFromServer(); }
+                catch (Exception ex) { logger.Warning($"NotifyDisconnectedFromServer error: {ex.Message}"); }
             }
             catch (Exception ex)
             {
@@ -252,9 +399,6 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        /// <summary>
-        /// Get connection status information
-        /// </summary>
         public string GetConnectionStatus()
         {
             try
@@ -266,13 +410,11 @@ namespace DedicatedServerMod.Client.Managers
                 status += $"Target Server: {_targetServerIP}:{_targetServerPort}\n";
                 status += $"FishNet Is Client: {InstanceFinder.IsClient}\n";
                 status += $"FishNet Is Server: {InstanceFinder.IsServer}\n";
-                status += $"Current Scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}\n";
-                status += $"Player Local: {(ScheduleOne.PlayerScripts.Player.Local != null ? "Spawned" : "Not Spawned")}\n";
-                
+                status += $"Current Scene: {SceneManager.GetActiveScene().name}\n";
+                status += $"Player Local: {(Player.Local != null ? "Spawned" : "Not Spawned")}\n";
+
                 if (!string.IsNullOrEmpty(LastConnectionError))
-                {
                     status += $"Last Error: {LastConnectionError}\n";
-                }
 
                 var loadManager = Singleton<LoadManager>.Instance;
                 if (loadManager != null)
@@ -281,7 +423,7 @@ namespace DedicatedServerMod.Client.Managers
                     status += $"Is Loading: {loadManager.IsLoading}\n";
                     status += $"Is Game Loaded: {loadManager.IsGameLoaded}\n";
                 }
-                
+
                 return status;
             }
             catch (Exception ex)
@@ -290,48 +432,20 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        /// <summary>
-        /// Check if currently in Tugboat mode
-        /// </summary>
         public static bool IsTugboatMode => _isTugboatMode;
 
-        /// <summary>
-        /// Get target server configuration
-        /// </summary>
         public static (string ip, int port) GetTargetServer() => (_targetServerIP, _targetServerPort);
 
-        /// <summary>
-        /// Set the target server IP and port for the next connection
-        /// </summary>
         public void SetTargetServer(string ip, int port)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(ip))
-                {
-                    throw new ArgumentException("IP cannot be empty");
-                }
-                if (port <= 0 || port > 65535)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(port), "Port must be between 1 and 65535");
-                }
+            if (string.IsNullOrWhiteSpace(ip))
+                throw new ArgumentException("IP cannot be empty");
+            if (port <= 0 || port > 65535)
+                throw new ArgumentOutOfRangeException(nameof(port), "Port must be between 1 and 65535");
 
-                _targetServerIP = ip.Trim();
-                _targetServerPort = port;
-                logger.Msg($"Target server updated to {_targetServerIP}:{_targetServerPort}");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error setting target server: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Helper method for coroutine starting
-        /// </summary>
-        private object StartCoroutine(IEnumerator coroutine)
-        {
-            return MelonCoroutines.Start(coroutine);
+            _targetServerIP = ip.Trim();
+            _targetServerPort = port;
+            logger.Msg($"Target server updated to {_targetServerIP}:{_targetServerPort}");
         }
     }
 }
