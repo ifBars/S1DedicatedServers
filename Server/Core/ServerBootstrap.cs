@@ -145,11 +145,15 @@ namespace DedicatedServerMod.Server.Core
             _networkManager.Initialize();
             _logger.Msg("✓ Network manager initialized");
             
-            // Step 5: Player Manager  
+            // Step 5: Player Manager
             _playerManager = new PlayerManager(_logger);
             _playerManager.Initialize();
             _logger.Msg("✓ Player manager initialized");
-            
+
+            // Step 5a: Messaging Service (required for custom server-client communication)
+            Shared.Networking.CustomMessaging.Initialize();
+            _logger.Msg("✓ Messaging service initialized");
+
             // Step 6: Command Manager
             _commandManager = new CommandManager(_logger, _playerManager);
             _commandManager.Initialize();
@@ -223,6 +227,15 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Server update tick error: {ex.Message}");
+            }
+
+            try
+            {
+                Shared.Networking.CustomMessaging.Tick();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Messaging service tick error: {ex.Message}");
             }
         }
 
@@ -335,6 +348,7 @@ namespace DedicatedServerMod.Server.Core
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
+                Shared.Networking.CustomMessaging.Shutdown();
                 _playerManager?.Shutdown();
                 _networkManager?.Shutdown();
                 

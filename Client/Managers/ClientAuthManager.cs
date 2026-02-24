@@ -149,6 +149,11 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
+            if (!string.IsNullOrWhiteSpace(challenge.ServerSteamId))
+            {
+                CustomMessaging.SetServerPeerHint(challenge.ServerSteamId);
+            }
+
             if (!TryCreateAuthSessionTicket(out string steamId, out string ticketHex))
             {
                 _logger.Warning("Failed to create Steam auth ticket for challenge");

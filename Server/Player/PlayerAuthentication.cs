@@ -7,6 +7,7 @@ using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 using FishNet.Connection;
 using MelonLoader;
+using Steamworks;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -113,6 +114,7 @@ namespace DedicatedServerMod.Server.Player
                 Provider = ToWireProviderName(ActiveProvider),
                 Nonce = nonce,
                 TimeoutSeconds = ServerConfig.Instance.AuthTimeoutSeconds,
+                ServerSteamId = GetServerSteamIdHint(),
                 WebApiIdentity = ActiveProvider == AuthenticationProvider.SteamWebApi
                     ? (ServerConfig.Instance.SteamWebApiIdentity ?? string.Empty)
                     : string.Empty
@@ -504,6 +506,18 @@ namespace DedicatedServerMod.Server.Player
                 case AuthenticationProvider.SteamGameServer:
                 default:
                     return "steam_game_server";
+            }
+        }
+
+        private static string GetServerSteamIdHint()
+        {
+            try
+            {
+                return SteamGameServer.GetSteamID().m_SteamID.ToString();
+            }
+            catch
+            {
+                return string.Empty;
             }
         }
 

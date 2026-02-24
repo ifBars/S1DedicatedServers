@@ -973,6 +973,7 @@
 	  <Compile Include="Shared\Configuration\*.cs" />
 	  <!-- Networking -->
 	  <Compile Include="Shared\Networking\*.cs" />
+	  <Compile Include="Shared\Networking\Messaging\*.cs" />
 	  <!-- Permissions -->
 	  <Compile Include="Shared\Permissions\*.cs" />
 	  <!-- Patches -->

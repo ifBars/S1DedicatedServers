@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using MelonLoader;
 using MelonLoader.Utils;
+using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Shared.Configuration
@@ -108,6 +109,39 @@ namespace DedicatedServerMod.Shared.Configuration
         [JsonProperty(Constants.ConfigKeys.SteamGameServerMode)]
         [JsonConverter(typeof(StringEnumConverter))]
         public SteamGameServerAuthenticationMode SteamGameServerMode { get; set; } = SteamGameServerAuthenticationMode.Authentication;
+
+        /// <summary>
+        /// Messaging backend used for custom server-client communication.
+        /// FishNetRpc requires Mono build; SteamP2P works on both Mono and IL2CPP.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.MessagingBackend)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public MessagingBackendType MessagingBackend { get; set; } = MessagingBackendType.FishNetRpc;
+
+        /// <summary>
+        /// Whether to allow Steam relay (SDR) for P2P messaging.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamP2PAllowRelay)]
+        public bool SteamP2PAllowRelay { get; set; } = true;
+
+        /// <summary>
+        /// Steam P2P channel for messaging.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamP2PChannel)]
+        public int SteamP2PChannel { get; set; } = 0;
+
+        /// <summary>
+        /// Steam P2P max payload size in bytes.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamP2PMaxPayloadBytes)]
+        public int SteamP2PMaxPayloadBytes { get; set; } = 1200;
+
+        /// <summary>
+        /// Target server SteamID for client-side Steam P2P message routing.
+        /// Optional when server is discovered from inbound packets.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamP2PServerSteamId)]
+        public string SteamP2PServerSteamId { get; set; } = string.Empty;
 
         /// <summary>
         /// Steam Web API key for web API ticket validation mode.
@@ -664,6 +698,40 @@ namespace DedicatedServerMod.Shared.Configuration
                         }
                         break;
 
+                    case "--messaging-backend":
+                        if (i + 1 < args.Length &&
+                            TryParseMessagingBackend(args[i + 1], out MessagingBackendType messagingBackend))
+                        {
+                            Instance.MessagingBackend = messagingBackend;
+                            Logger.Msg($"Messaging backend set to: {Instance.MessagingBackend}");
+                        }
+                        break;
+
+                    case "--steam-p2p-relay":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool allowRelay))
+                        {
+                            Instance.SteamP2PAllowRelay = allowRelay;
+                            Logger.Msg($"Steam P2P relay set to: {Instance.SteamP2PAllowRelay}");
+                        }
+                        break;
+
+                    case "--steam-p2p-channel":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p2pChannel))
+                        {
+                            Instance.SteamP2PChannel = p2pChannel;
+                            Logger.Msg($"Steam P2P channel set to: {Instance.SteamP2PChannel}");
+                        }
+                        break;
+
+                    case "--server-steamid":
+                    case "--server-steam-id":
+                        if (i + 1 < args.Length)
+                        {
+                            Instance.SteamP2PServerSteamId = args[i + 1];
+                            Logger.Msg("Steam P2P target server SteamID set");
+                        }
+                        break;
+
                     case "--add-operator":
                         if (i + 1 < args.Length)
                         {
@@ -775,6 +843,7 @@ namespace DedicatedServerMod.Shared.Configuration
             info += $"Authentication Required: {Instance.RequireAuthentication}\n";
             info += $"Auth Provider: {Instance.AuthProvider}\n";
             info += $"Auth Timeout: {Instance.AuthTimeoutSeconds}s\n";
+            info += $"Messaging Backend: {Instance.MessagingBackend}\n";
             info += $"Operators: {Instance.Operators.Count}\n";
             info += $"Admins: {Instance.Admins.Count}\n";
             info += $"Auto-Save: {Instance.AutoSaveEnabled} ({Instance.AutoSaveIntervalMinutes}min)\n";
@@ -827,6 +896,18 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 Logger.Warning($"Invalid steam game server query port {SteamGameServerQueryPort}, using default {Constants.DefaultSteamGameServerQueryPort}");
                 SteamGameServerQueryPort = Constants.DefaultSteamGameServerQueryPort;
+            }
+
+            if (SteamP2PChannel < 0)
+            {
+                Logger.Warning($"Invalid Steam P2P channel {SteamP2PChannel}, using channel 0");
+                SteamP2PChannel = 0;
+            }
+
+            if (SteamP2PMaxPayloadBytes < 256 || SteamP2PMaxPayloadBytes > Constants.MaxMessageSize)
+            {
+                Logger.Warning($"Invalid Steam P2P max payload {SteamP2PMaxPayloadBytes}, using 1200");
+                SteamP2PMaxPayloadBytes = 1200;
             }
 
             // Validate auto-save interval
@@ -909,6 +990,38 @@ namespace DedicatedServerMod.Shared.Configuration
                 default:
                     value = AuthenticationProvider.SteamGameServer;
                     Logger.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_web_api, steam_game_server.");
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Parses the configured messaging backend string to an enum value.
+        /// </summary>
+        /// <param name="backend">The backend string from command line.</param>
+        /// <param name="value">The parsed backend value when parsing succeeds.</param>
+        /// <returns>True if parsing succeeded; otherwise false.</returns>
+        private static bool TryParseMessagingBackend(string backend, out MessagingBackendType value)
+        {
+            if (string.IsNullOrWhiteSpace(backend))
+            {
+                value = MessagingBackendType.FishNetRpc;
+                return false;
+            }
+
+            switch (backend.Trim().ToLowerInvariant())
+            {
+                case "fishnet":
+                case "fishnetrpc":
+                case "fishnet_rpc":
+                    value = MessagingBackendType.FishNetRpc;
+                    return true;
+                case "steamp2p":
+                case "steam_p2p":
+                    value = MessagingBackendType.SteamP2P;
+                    return true;
+                default:
+                    Logger.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p.");
+                    value = MessagingBackendType.FishNetRpc;
                     return false;
             }
         }

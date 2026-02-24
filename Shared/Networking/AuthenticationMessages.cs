@@ -39,6 +39,11 @@ namespace DedicatedServerMod.Shared.Networking
         /// Optional Steam Web API identity value used for web API ticket flow.
         /// </summary>
         public string WebApiIdentity { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional server SteamID64 hint for peer-addressed transports.
+        /// </summary>
+        public string ServerSteamId { get; set; } = string.Empty;
     }
 
     /// <summary>

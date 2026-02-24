@@ -180,6 +180,9 @@ namespace DedicatedServerMod.Client.Core
                 // Initialize MessageRouter for client-side message handling
                 Shared.Networking.MessageRouter.Initialize(_logger);
 
+                // Initialize messaging service (backend selection)
+                Shared.Networking.CustomMessaging.Initialize();
+
                 // Initialize API mod discovery
                 API.ModManager.Initialize();
 
@@ -349,6 +352,9 @@ namespace DedicatedServerMod.Client.Core
 
                 // Handle debug input
                 HandleDebugInput();
+
+                // Pump messaging backend callbacks
+                Shared.Networking.CustomMessaging.Tick();
             }
             catch (Exception ex)
             {
@@ -368,6 +374,15 @@ namespace DedicatedServerMod.Client.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Error shutting down client auth manager: {ex.Message}");
+            }
+
+            try
+            {
+                Shared.Networking.CustomMessaging.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down messaging service: {ex.Message}");
             }
         }
 

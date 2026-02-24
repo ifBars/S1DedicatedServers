@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Shared.Permissions;
 using FishNet;
 using FishNet.Connection;
@@ -127,6 +128,41 @@ namespace DedicatedServerMod.Shared
         {
             get => Configuration.ServerConfig.Instance.SteamGameServerMode;
             set => Configuration.ServerConfig.Instance.SteamGameServerMode = value;
+        }
+
+        [JsonProperty("messagingBackend")]
+        public MessagingBackendType MessagingBackend
+        {
+            get => Configuration.ServerConfig.Instance.MessagingBackend;
+            set => Configuration.ServerConfig.Instance.MessagingBackend = value;
+        }
+
+        [JsonProperty("steamP2PAllowRelay")]
+        public bool SteamP2PAllowRelay
+        {
+            get => Configuration.ServerConfig.Instance.SteamP2PAllowRelay;
+            set => Configuration.ServerConfig.Instance.SteamP2PAllowRelay = value;
+        }
+
+        [JsonProperty("steamP2PChannel")]
+        public int SteamP2PChannel
+        {
+            get => Configuration.ServerConfig.Instance.SteamP2PChannel;
+            set => Configuration.ServerConfig.Instance.SteamP2PChannel = value;
+        }
+
+        [JsonProperty("steamP2PMaxPayloadBytes")]
+        public int SteamP2PMaxPayloadBytes
+        {
+            get => Configuration.ServerConfig.Instance.SteamP2PMaxPayloadBytes;
+            set => Configuration.ServerConfig.Instance.SteamP2PMaxPayloadBytes = value;
+        }
+
+        [JsonProperty("steamP2PServerSteamId")]
+        public string SteamP2PServerSteamId
+        {
+            get => Configuration.ServerConfig.Instance.SteamP2PServerSteamId;
+            set => Configuration.ServerConfig.Instance.SteamP2PServerSteamId = value;
         }
 
         [JsonProperty("steamWebApiKey")]
