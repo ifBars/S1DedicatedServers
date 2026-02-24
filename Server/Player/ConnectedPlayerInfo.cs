@@ -46,6 +46,46 @@ namespace DedicatedServerMod.Server.Player
         public bool IsAuthenticated { get; set; }
 
         /// <summary>
+        /// Whether authentication is currently pending for this connection.
+        /// </summary>
+        public bool IsAuthenticationPending { get; set; }
+
+        /// <summary>
+        /// The most recent challenge nonce issued by the server.
+        /// </summary>
+        public string AuthenticationNonce { get; set; }
+
+        /// <summary>
+        /// UTC timestamp when the current authentication attempt started.
+        /// </summary>
+        public DateTime? AuthStartedAtUtc { get; set; }
+
+        /// <summary>
+        /// UTC timestamp of the most recent authentication completion.
+        /// </summary>
+        public DateTime? LastAuthenticationAttemptUtc { get; set; }
+
+        /// <summary>
+        /// Last authentication status message produced for this player.
+        /// </summary>
+        public string LastAuthenticationMessage { get; set; }
+
+        /// <summary>
+        /// SteamID verified by the authentication backend.
+        /// </summary>
+        public string AuthenticatedSteamId { get; set; }
+
+        /// <summary>
+        /// Whether this connection is the local loopback host connection.
+        /// </summary>
+        public bool IsLoopbackConnection { get; set; }
+
+        /// <summary>
+        /// Whether join lifecycle notifications have been emitted for this player.
+        /// </summary>
+        public bool HasCompletedJoinFlow { get; set; }
+
+        /// <summary>
         /// Whether the player is currently connected to the server
         /// </summary>
         public bool IsConnected => Connection.IsActive;
@@ -81,6 +121,15 @@ namespace DedicatedServerMod.Server.Player
         public string UniqueId => !string.IsNullOrEmpty(SteamId) ? SteamId : ClientId.ToString();
 
         /// <summary>
+        /// Trusted unique identifier for the player.
+        /// Uses backend-verified SteamID when available.
+        /// </summary>
+        public string TrustedUniqueId =>
+            !string.IsNullOrEmpty(AuthenticatedSteamId)
+                ? AuthenticatedSteamId
+                : UniqueId;
+
+        /// <summary>
         /// Whether the player has identity information (SteamId and name)
         /// </summary>
         public bool HasIdentity => !string.IsNullOrEmpty(SteamId) && !string.IsNullOrEmpty(PlayerName);
@@ -91,7 +140,7 @@ namespace DedicatedServerMod.Server.Player
         public override string ToString()
         {
             var status = IsSpawned ? "Spawned" : "Connected";
-            var auth = IsAuthenticated ? "Auth" : "NoAuth";
+            var auth = IsAuthenticated ? "Auth" : (IsAuthenticationPending ? "AuthPending" : "NoAuth");
             var duration = ConnectionDuration.ToString(@"mm\:ss");
             
             return $"{DisplayName} (ID: {ClientId}, Steam: {SteamId ?? "N/A"}, {status}, {auth}, {duration})";

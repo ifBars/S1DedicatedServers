@@ -1023,6 +1023,7 @@
 		<Compile Include="Server\Player\ConnectedPlayerInfo.cs" />
 		<Compile Include="Server\Player\PlayerAuthentication.cs" />
 		<Compile Include="Server\Player\PlayerPermissions.cs" />
+		<Compile Include="Server\Player\Auth\*.cs" />
 		
 		<!-- Command system -->
 		<Compile Include="Server\Commands\CommandManager.cs" />

@@ -1,6 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+#if SERVER
+using DedicatedServerMod.Server.Core;
+using DedicatedServerMod.Server.Player;
+using DedicatedServerMod.Shared.Configuration;
+using ServerPlayerManager = DedicatedServerMod.Server.Player.PlayerManager;
+#endif
+using DedicatedServerMod.Utils;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Object;
@@ -53,6 +60,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteServerMessage(NetworkConnection conn, string command, string data)
         {
+#if SERVER
             if (conn == null)
             {
                 _logger.Warning("RouteServerMessage: Connection is null");
@@ -61,13 +69,27 @@ namespace DedicatedServerMod.Shared.Networking
 
             _logger.Msg($"RouteServerMessage: cmd='{command}' from={conn.ClientId}");
 
+            if (!IsCommandAllowedForConnection(conn, command))
+            {
+                _logger.Warning($"RouteServerMessage: rejecting unauthenticated command '{command}' from ClientId {conn.ClientId}");
+                return;
+            }
+
             switch (command)
             {
-                case "admin_console":
+                case Constants.Messages.AuthHello:
+                    HandleAuthHello(conn);
+                    break;
+
+                case Constants.Messages.AuthTicket:
+                    HandleAuthTicket(conn, data);
+                    break;
+
+                case Constants.Messages.AdminConsole:
                     HandleAdminConsoleCommand(conn, data);
                     break;
 
-                case "request_server_data":
+                case Constants.Messages.RequestServerData:
                     HandleServerDataRequest(conn);
                     break;
 
@@ -75,6 +97,9 @@ namespace DedicatedServerMod.Shared.Networking
                     _logger.Msg($"Unhandled server message: {command}");
                     break;
             }
+#else
+            _logger.Msg($"RouteServerMessage ignored on client build: cmd='{command}'");
+#endif
         }
 
         /// <summary>
@@ -88,8 +113,14 @@ namespace DedicatedServerMod.Shared.Networking
 
             switch (command)
             {
-                case "exec_console":
+                case Constants.Messages.ExecConsole:
                     HandleClientConsoleCommand(data);
+                    break;
+
+                case Constants.Messages.AuthChallenge:
+                case Constants.Messages.AuthResult:
+                case Constants.Messages.ServerData:
+                    // Handled by dedicated client managers via CustomMessaging events.
                     break;
 
                 default:
@@ -97,6 +128,116 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
             }
         }
+
+        #endregion
+
+        #region Authentication Message Handling
+
+#if SERVER
+
+        private static void HandleAuthHello(NetworkConnection conn)
+        {
+            try
+            {
+                ServerPlayerManager playerManager = ServerBootstrap.Players;
+                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
+                if (playerInfo == null)
+                {
+                    _logger.Warning($"HandleAuthHello: no player tracked for ClientId {conn.ClientId}");
+                    return;
+                }
+
+                AuthChallengeMessage challenge = playerManager.Authentication.CreateChallenge(playerInfo);
+                if (challenge != null)
+                {
+                    string payload = JsonConvert.SerializeObject(challenge);
+                    CustomMessaging.SendToClient(conn, Constants.Messages.AuthChallenge, payload);
+                    return;
+                }
+
+                if (playerInfo.IsAuthenticated)
+                {
+                    var result = new AuthResultMessage
+                    {
+                        Success = true,
+                        Message = "Authentication already satisfied",
+                        SteamId = playerInfo.AuthenticatedSteamId ?? playerInfo.SteamId ?? string.Empty
+                    };
+
+                    CustomMessaging.SendToClient(conn, Constants.Messages.AuthResult, JsonConvert.SerializeObject(result));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleAuthHello error: {ex}");
+            }
+        }
+
+        private static void HandleAuthTicket(NetworkConnection conn, string data)
+        {
+            try
+            {
+                ServerPlayerManager playerManager = ServerBootstrap.Players;
+                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
+                if (playerInfo == null)
+                {
+                    _logger.Warning($"HandleAuthTicket: no player tracked for ClientId {conn.ClientId}");
+                    return;
+                }
+
+                AuthTicketMessage ticketMessage;
+                try
+                {
+                    ticketMessage = JsonConvert.DeserializeObject<AuthTicketMessage>(data ?? string.Empty);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.Warning($"HandleAuthTicket: invalid payload from ClientId {conn.ClientId}: {ex.Message}");
+                    conn.Disconnect(true);
+                    return;
+                }
+
+                AuthenticationResult beginResult = playerManager.Authentication.SubmitTicket(playerInfo, ticketMessage);
+                if (beginResult.IsPending)
+                {
+                    _logger.Msg($"HandleAuthTicket: pending auth validation for ClientId {conn.ClientId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleAuthTicket error: {ex}");
+            }
+        }
+
+        private static bool IsCommandAllowedForConnection(NetworkConnection conn, string command)
+        {
+            if (!DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.RequireAuthentication)
+            {
+                return true;
+            }
+
+            if (string.Equals(command, Constants.Messages.AuthHello, StringComparison.Ordinal) ||
+                string.Equals(command, Constants.Messages.AuthTicket, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            ServerPlayerManager playerManager = ServerBootstrap.Players;
+            ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
+            if (playerInfo == null)
+            {
+                return false;
+            }
+
+            if (playerManager.Authentication.ShouldBypassAuthentication(playerInfo))
+            {
+                return true;
+            }
+
+            return playerInfo.IsAuthenticated;
+        }
+
+#endif
 
         #endregion
 
@@ -327,7 +468,7 @@ namespace DedicatedServerMod.Shared.Networking
                 };
 
                 string payload = JsonConvert.SerializeObject(serverData);
-                CustomMessaging.SendToClient(conn, "server_data", payload);
+                CustomMessaging.SendToClient(conn, Constants.Messages.ServerData, payload);
             }
             catch (Exception ex)
             {

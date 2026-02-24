@@ -73,6 +73,76 @@ namespace DedicatedServerMod.Shared
             set => Configuration.ServerConfig.Instance.RequireAuthentication = value;
         }
 
+        [JsonProperty("authProvider")]
+        public Configuration.AuthenticationProvider AuthProvider
+        {
+            get => Configuration.ServerConfig.Instance.AuthProvider;
+            set => Configuration.ServerConfig.Instance.AuthProvider = value;
+        }
+
+        [JsonProperty("authTimeoutSeconds")]
+        public int AuthTimeoutSeconds
+        {
+            get => Configuration.ServerConfig.Instance.AuthTimeoutSeconds;
+            set => Configuration.ServerConfig.Instance.AuthTimeoutSeconds = value;
+        }
+
+        [JsonProperty("authAllowLoopbackBypass")]
+        public bool AuthAllowLoopbackBypass
+        {
+            get => Configuration.ServerConfig.Instance.AuthAllowLoopbackBypass;
+            set => Configuration.ServerConfig.Instance.AuthAllowLoopbackBypass = value;
+        }
+
+        [JsonProperty("steamGameServerLogOnAnonymous")]
+        public bool SteamGameServerLogOnAnonymous
+        {
+            get => Configuration.ServerConfig.Instance.SteamGameServerLogOnAnonymous;
+            set => Configuration.ServerConfig.Instance.SteamGameServerLogOnAnonymous = value;
+        }
+
+        [JsonProperty("steamGameServerToken")]
+        public string SteamGameServerToken
+        {
+            get => Configuration.ServerConfig.Instance.SteamGameServerToken;
+            set => Configuration.ServerConfig.Instance.SteamGameServerToken = value;
+        }
+
+        [JsonProperty("steamGameServerQueryPort")]
+        public int SteamGameServerQueryPort
+        {
+            get => Configuration.ServerConfig.Instance.SteamGameServerQueryPort;
+            set => Configuration.ServerConfig.Instance.SteamGameServerQueryPort = value;
+        }
+
+        [JsonProperty("steamGameServerVersion")]
+        public string SteamGameServerVersion
+        {
+            get => Configuration.ServerConfig.Instance.SteamGameServerVersion;
+            set => Configuration.ServerConfig.Instance.SteamGameServerVersion = value;
+        }
+
+        [JsonProperty("steamGameServerMode")]
+        public Configuration.SteamGameServerAuthenticationMode SteamGameServerMode
+        {
+            get => Configuration.ServerConfig.Instance.SteamGameServerMode;
+            set => Configuration.ServerConfig.Instance.SteamGameServerMode = value;
+        }
+
+        [JsonProperty("steamWebApiKey")]
+        public string SteamWebApiKey
+        {
+            get => Configuration.ServerConfig.Instance.SteamWebApiKey;
+            set => Configuration.ServerConfig.Instance.SteamWebApiKey = value;
+        }
+
+        [JsonProperty("steamWebApiIdentity")]
+        public string SteamWebApiIdentity
+        {
+            get => Configuration.ServerConfig.Instance.SteamWebApiIdentity;
+            set => Configuration.ServerConfig.Instance.SteamWebApiIdentity = value;
+        }
+
         [JsonProperty("requireFriends")]
         public bool RequireFriends
         {

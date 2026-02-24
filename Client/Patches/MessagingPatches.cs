@@ -1,4 +1,5 @@
 using System;
+using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Managers;
 using FishNet.Object;
 using FishNet.Object.Delegating;
@@ -118,8 +119,17 @@ namespace DedicatedServerMod.Client.Patches
                 // Check if we're connected as a client
                 if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsServer)
                 {
-                    _logger?.Msg("Client connected - requesting initial server data");
-                    Shared.Networking.CustomMessaging.SendToServer("request_server_data");
+                    var authManager = ClientBootstrap.Instance?.AuthManager;
+                    if (authManager != null)
+                    {
+                        _logger?.Msg("Client connected - starting auth handshake");
+                        authManager.BeginHandshake();
+                    }
+                    else
+                    {
+                        _logger?.Warning("Auth manager missing - requesting server data without auth handshake");
+                        Shared.Networking.CustomMessaging.SendToServer(Utils.Constants.Messages.RequestServerData);
+                    }
                 }
             }
             catch (Exception ex)

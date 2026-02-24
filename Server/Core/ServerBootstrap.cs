@@ -212,6 +212,21 @@ namespace DedicatedServerMod.Server.Core
         }
 
         /// <summary>
+        /// Ticks runtime server subsystems that require frame updates.
+        /// </summary>
+        public override void OnUpdate()
+        {
+            try
+            {
+                _playerManager?.Update();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Server update tick error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Setup Unity log filtering to suppress headless mode rendering errors
         /// </summary>
         private void SetupLogFiltering()

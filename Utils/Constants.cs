@@ -69,6 +69,16 @@ namespace DedicatedServerMod.Utils
         /// </summary>
         public const int AuthTimeoutMS = 5000;
 
+        /// <summary>
+        /// Default timeout for player authentication in seconds.
+        /// </summary>
+        public const int DefaultAuthTimeoutSeconds = 15;
+
+        /// <summary>
+        /// Default Steam game server query port.
+        /// </summary>
+        public const int DefaultSteamGameServerQueryPort = 27016;
+
         #endregion
 
         #region Custom Messaging
@@ -170,6 +180,26 @@ namespace DedicatedServerMod.Utils
             /// Server data response (server → client).
             /// </summary>
             public const string ServerData = "server_data";
+
+            /// <summary>
+            /// Authentication hello message (client → server).
+            /// </summary>
+            public const string AuthHello = "auth_hello";
+
+            /// <summary>
+            /// Authentication challenge message (server → client).
+            /// </summary>
+            public const string AuthChallenge = "auth_challenge";
+
+            /// <summary>
+            /// Authentication ticket submission (client → server).
+            /// </summary>
+            public const string AuthTicket = "auth_ticket";
+
+            /// <summary>
+            /// Authentication result message (server → client).
+            /// </summary>
+            public const string AuthResult = "auth_result";
 
             /// <summary>
             /// Welcome message (server → client on connect).
@@ -297,6 +327,16 @@ namespace DedicatedServerMod.Utils
             public const string ServerPort = "serverPort";
             public const string ServerPassword = "serverPassword";
             public const string RequireAuthentication = "requireAuthentication";
+            public const string AuthProvider = "authProvider";
+            public const string AuthTimeoutSeconds = "authTimeoutSeconds";
+            public const string AuthAllowLoopbackBypass = "authAllowLoopbackBypass";
+            public const string SteamGameServerLogOnAnonymous = "steamGameServerLogOnAnonymous";
+            public const string SteamGameServerToken = "steamGameServerToken";
+            public const string SteamGameServerQueryPort = "steamGameServerQueryPort";
+            public const string SteamGameServerVersion = "steamGameServerVersion";
+            public const string SteamGameServerMode = "steamGameServerMode";
+            public const string SteamWebApiKey = "steamWebApiKey";
+            public const string SteamWebApiIdentity = "steamWebApiIdentity";
             public const string RequireFriends = "requireFriends";
             public const string PublicServer = "publicServer";
             public const string RegisterWithMasterServer = "registerWithMasterServer";

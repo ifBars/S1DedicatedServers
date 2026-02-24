@@ -42,6 +42,8 @@ namespace DedicatedServerMod.Server.Commands.Server
                 }
 
                 context.Reply($"Authentication Required: {ServerConfig.Instance.RequireAuthentication}");
+                context.Reply($"Authentication Provider: {ServerConfig.Instance.AuthProvider}");
+                context.Reply($"Auth Timeout: {ServerConfig.Instance.AuthTimeoutSeconds}s");
                 context.Reply($"Friends Only: {ServerConfig.Instance.RequireFriends}");
                 context.Reply($"Auto-Save: {(ServerConfig.Instance.AutoSaveEnabled ? $"Enabled ({ServerConfig.Instance.AutoSaveIntervalMinutes}m)" : "Disabled")}");
                 

@@ -10,6 +10,9 @@ using DedicatedServerMod;
 using DedicatedServerMod.API;
 using FishNet.Transporting;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.Networking;
+using DedicatedServerMod.Utils;
+using Newtonsoft.Json;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -56,6 +59,7 @@ namespace DedicatedServerMod.Server.Player
             {
                 SetupPlayerHooks();
                 authentication.Initialize();
+                authentication.AuthenticationCompleted += OnAuthenticationCompleted;
                 permissions.Initialize();
                 logger.Msg("Player manager initialized");
             }
@@ -115,51 +119,58 @@ namespace DedicatedServerMod.Server.Player
             try
             {
                 logger.Msg($"Player connecting: ClientId {connection.ClientId}");
-                
-                // Skip if already exists (can happen with ghost host)
-                if (connectedPlayers.ContainsKey(connection))
-                {
-                    logger.Msg($"Player already tracked: ClientId {connection.ClientId}");
-                    return;
-                }
 
-                if (connectedPlayers.Count >= ServerConfig.Instance.MaxPlayers)
+                bool isExistingPlayer = connectedPlayers.TryGetValue(connection, out var playerInfo);
+                if (!isExistingPlayer && connectedPlayers.Count >= ServerConfig.Instance.MaxPlayers)
                 {
                     logger.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
                     connection.Disconnect(true);
                     return;
                 }
-                
-                var playerInfo = new ConnectedPlayerInfo
-                {
-                    Connection = connection,
-                    ConnectTime = DateTime.Now,
-                    ClientId = connection.ClientId,
-                    IsAuthenticated = !ServerConfig.Instance.RequireAuthentication // Auto-auth if not required
-                };
 
-                connectedPlayers[connection] = playerInfo;
-                logger.Msg($"Player connected: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
-                OnPlayerJoined?.Invoke(playerInfo);
-                try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
-
-                // Proactively send initial server data snapshot
-                try
+                if (!isExistingPlayer)
                 {
-                    var cfg = ServerConfig.Instance;
-                    var sd = new DedicatedServerMod.Shared.ServerData
+                    playerInfo = new ConnectedPlayerInfo
                     {
-                        ServerName = cfg.ServerName,
-                        AllowSleeping = cfg.AllowSleeping,
-                        TimeNeverStops = cfg.TimeNeverStops,
-                        PublicServer = cfg.PublicServer
+                        Connection = connection,
+                        ConnectTime = DateTime.Now,
+                        ClientId = connection.ClientId,
+                        IsLoopbackConnection = IsLoopbackConnection(connection),
+                        IsAuthenticated = false,
+                        IsAuthenticationPending = false
                     };
-                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(sd);
-                    DedicatedServerMod.Shared.Networking.CustomMessaging.SendToClient(connection, "server_data", json);
+
+                    connectedPlayers[connection] = playerInfo;
                 }
-                catch (Exception ex)
+                else
                 {
-                    logger.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
+                    playerInfo.Connection = connection;
+                    playerInfo.ClientId = connection.ClientId;
+                    playerInfo.IsLoopbackConnection = IsLoopbackConnection(connection);
+                }
+
+                logger.Msg($"Player tracked: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
+
+                bool requiresAuthentication = authentication.IsAuthenticationRequiredForPlayer(playerInfo);
+                if (!requiresAuthentication)
+                {
+                    AuthenticationResult bypassResult = new AuthenticationResult
+                    {
+                        IsSuccessful = true,
+                        Message = playerInfo.IsLoopbackConnection
+                            ? "Loopback connection bypassed authentication"
+                            : "Authentication not required"
+                    };
+
+                    playerInfo.IsAuthenticated = true;
+                    playerInfo.IsAuthenticationPending = false;
+
+                    SendAuthResultToClient(playerInfo, bypassResult);
+                    FinalizePlayerJoin(playerInfo);
+                }
+                else
+                {
+                    logger.Msg($"ClientId {connection.ClientId} awaiting authentication handshake");
                 }
             }
             catch (Exception ex)
@@ -178,7 +189,10 @@ namespace DedicatedServerMod.Server.Player
                 if (connectedPlayers.TryGetValue(connection, out var playerInfo))
                 {
                     logger.Msg($"Player disconnected: {playerInfo.DisplayName} (ClientId {connection.ClientId})");
+
+                    authentication.HandlePlayerDisconnected(playerInfo);
                     connectedPlayers.Remove(connection);
+
                     OnPlayerLeft?.Invoke(playerInfo);
                     try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
 
@@ -249,6 +263,151 @@ namespace DedicatedServerMod.Server.Player
             }
         }
 
+        /// <summary>
+        /// Ticks authentication processing for pending players.
+        /// </summary>
+        public void Update()
+        {
+            authentication.Tick();
+
+            if (!ServerConfig.Instance.RequireAuthentication)
+            {
+                return;
+            }
+
+            var pendingDisconnects = new List<ConnectedPlayerInfo>();
+            foreach (var playerInfo in connectedPlayers.Values)
+            {
+                if (playerInfo == null || playerInfo.Connection == null || !playerInfo.Connection.IsActive)
+                {
+                    continue;
+                }
+
+                if (playerInfo.IsAuthenticated || playerInfo.IsAuthenticationPending)
+                {
+                    continue;
+                }
+
+                if (authentication.ShouldBypassAuthentication(playerInfo))
+                {
+                    continue;
+                }
+
+                TimeSpan elapsed = DateTime.Now - playerInfo.ConnectTime;
+                if (elapsed.TotalSeconds > ServerConfig.Instance.AuthTimeoutSeconds)
+                {
+                    pendingDisconnects.Add(playerInfo);
+                }
+            }
+
+            foreach (var playerInfo in pendingDisconnects)
+            {
+                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId}: authentication handshake timed out");
+                playerInfo.Connection.Disconnect(true);
+            }
+        }
+
+        private void OnAuthenticationCompleted(ConnectedPlayerInfo playerInfo, AuthenticationResult result)
+        {
+            if (playerInfo == null || result == null)
+            {
+                return;
+            }
+
+            logger.Msg($"Authentication completed for ClientId {playerInfo.ClientId}: {result}");
+            SendAuthResultToClient(playerInfo, result);
+
+            if (result.IsSuccessful)
+            {
+                FinalizePlayerJoin(playerInfo);
+                return;
+            }
+
+            if (result.ShouldDisconnect && playerInfo.Connection != null && playerInfo.Connection.IsActive)
+            {
+                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to auth failure: {result.Message}");
+                playerInfo.Connection.Disconnect(true);
+            }
+        }
+
+        private void FinalizePlayerJoin(ConnectedPlayerInfo playerInfo)
+        {
+            if (playerInfo == null || playerInfo.HasCompletedJoinFlow)
+            {
+                return;
+            }
+
+            playerInfo.HasCompletedJoinFlow = true;
+
+            logger.Msg($"Player joined: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
+            OnPlayerJoined?.Invoke(playerInfo);
+            try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
+
+            SendInitialServerDataToClient(playerInfo.Connection);
+        }
+
+        private void SendAuthResultToClient(ConnectedPlayerInfo playerInfo, AuthenticationResult result)
+        {
+            if (playerInfo?.Connection == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var payload = new AuthResultMessage
+                {
+                    Success = result.IsSuccessful,
+                    Message = result.Message ?? string.Empty,
+                    SteamId = result.ExtractedSteamId ?? string.Empty
+                };
+
+                string json = JsonConvert.SerializeObject(payload);
+                CustomMessaging.SendToClient(playerInfo.Connection, Constants.Messages.AuthResult, json);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Failed to send auth result to ClientId {playerInfo.ClientId}: {ex.Message}");
+            }
+        }
+
+        private void SendInitialServerDataToClient(NetworkConnection connection)
+        {
+            if (connection == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var cfg = ServerConfig.Instance;
+                var serverData = new DedicatedServerMod.Shared.ServerData
+                {
+                    ServerName = cfg.ServerName,
+                    AllowSleeping = cfg.AllowSleeping,
+                    TimeNeverStops = cfg.TimeNeverStops,
+                    PublicServer = cfg.PublicServer
+                };
+
+                string json = JsonConvert.SerializeObject(serverData);
+                CustomMessaging.SendToClient(connection, Constants.Messages.ServerData, json);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
+            }
+        }
+
+        private static bool IsLoopbackConnection(NetworkConnection connection)
+        {
+            if (connection == null)
+            {
+                return false;
+            }
+
+            return connection.IsLocalClient || connection.ClientId == 0;
+        }
+
         // NOTE: Identity binding is now handled by DedicatedServerPatches.BindPlayerIdentityPostfix
         // which is called when the game receives player name data and calls SetPlayerIdentity
 
@@ -274,7 +433,14 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public ConnectedPlayerInfo GetPlayerBySteamId(string steamId)
         {
-            return connectedPlayers.Values.FirstOrDefault(p => p.SteamId == steamId);
+            if (string.IsNullOrWhiteSpace(steamId))
+            {
+                return null;
+            }
+
+            return connectedPlayers.Values.FirstOrDefault(p =>
+                string.Equals(p.AuthenticatedSteamId, steamId, StringComparison.Ordinal) ||
+                string.Equals(p.SteamId, steamId, StringComparison.Ordinal));
         }
 
         /// <summary>
@@ -311,21 +477,25 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                if (string.IsNullOrEmpty(player.SteamId))
+                string banIdentifier = !string.IsNullOrEmpty(player.AuthenticatedSteamId)
+                    ? player.AuthenticatedSteamId
+                    : player.SteamId;
+
+                if (string.IsNullOrEmpty(banIdentifier))
                 {
                     logger.Warning("Cannot ban player without SteamID");
                     return false;
                 }
 
-                if (!ServerConfig.Instance.BannedPlayers.Contains(player.SteamId))
+                if (!ServerConfig.Instance.BannedPlayers.Contains(banIdentifier))
                 {
-                    ServerConfig.Instance.BannedPlayers.Add(player.SteamId);
+                    ServerConfig.Instance.BannedPlayers.Add(banIdentifier);
                     ServerConfig.SaveConfig();
                 }
 
                 // Kick the player
                 KickPlayer(player, $"Banned: {reason}");
-                logger.Msg($"Player banned: {player.DisplayName} ({player.SteamId}) - {reason}");
+                logger.Msg($"Player banned: {player.DisplayName} ({banIdentifier}) - {reason}");
                 
                 return true;
             }
@@ -369,7 +539,9 @@ namespace DedicatedServerMod.Server.Player
                     Connection = connection,
                     ConnectTime = DateTime.Now,
                     ClientId = connection.ClientId,
-                    IsAuthenticated = true
+                    IsLoopbackConnection = IsLoopbackConnection(connection),
+                    IsAuthenticated = false,
+                    IsAuthenticationPending = false
                 };
                 connectedPlayers[connection] = playerInfo;
                 logger.Msg($"Created player entry from identity binding: ClientId {connection.ClientId}");
@@ -379,7 +551,8 @@ namespace DedicatedServerMod.Server.Player
                 // Check if we're trying to overwrite a valid identity with default/empty values
                 // This happens when clients spawn with temporary ClientId 0 / "Player" before getting real values
                 bool isDefaultIdentity = string.IsNullOrEmpty(steamId) && playerName == "Player";
-                bool hasValidIdentity = !string.IsNullOrEmpty(playerInfo.SteamId) || 
+                bool hasValidIdentity = !string.IsNullOrEmpty(playerInfo.SteamId) ||
+                                       !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId) ||
                                        (!string.IsNullOrEmpty(playerInfo.PlayerName) && playerInfo.PlayerName != "Player");
                 
                 if (isDefaultIdentity && hasValidIdentity)
@@ -387,6 +560,17 @@ namespace DedicatedServerMod.Server.Player
                     logger.Msg($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
                     return;
                 }
+            }
+
+            if (playerInfo.IsAuthenticated && !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId))
+            {
+                if (!string.IsNullOrEmpty(steamId) &&
+                    !string.Equals(steamId, playerInfo.AuthenticatedSteamId, StringComparison.Ordinal))
+                {
+                    logger.Warning($"Ignoring identity steamId overwrite for authenticated ClientId {connection.ClientId}: provided {steamId}, expected {playerInfo.AuthenticatedSteamId}");
+                }
+
+                steamId = playerInfo.AuthenticatedSteamId;
             }
 
             playerInfo.SteamId = steamId;
@@ -444,6 +628,9 @@ namespace DedicatedServerMod.Server.Player
                 }
 
                 connectedPlayers.Clear();
+
+                authentication.AuthenticationCompleted -= OnAuthenticationCompleted;
+                authentication.Shutdown();
 
                 // Remove hooks
                 if (InstanceFinder.ServerManager != null)

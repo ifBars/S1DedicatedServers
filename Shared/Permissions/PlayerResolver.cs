@@ -86,7 +86,25 @@ namespace DedicatedServerMod.Shared.Permissions
                                     var connectedInfo = getPlayerMethod.Invoke(players, new object[] { player.Owner });
                                     if (connectedInfo != null)
                                     {
-                                        var steamIdProperty = connectedInfo.GetType().GetProperty("SteamId");
+                                        Type connectedInfoType = connectedInfo.GetType();
+
+                                        var authenticatedSteamIdProperty = connectedInfoType.GetProperty("AuthenticatedSteamId");
+                                        if (authenticatedSteamIdProperty != null)
+                                        {
+                                            var authenticatedSteamId = authenticatedSteamIdProperty.GetValue(connectedInfo) as string;
+                                            if (!string.IsNullOrEmpty(authenticatedSteamId))
+                                                return authenticatedSteamId;
+                                        }
+
+                                        var trustedUniqueIdProperty = connectedInfoType.GetProperty("TrustedUniqueId");
+                                        if (trustedUniqueIdProperty != null)
+                                        {
+                                            var trustedUniqueId = trustedUniqueIdProperty.GetValue(connectedInfo) as string;
+                                            if (!string.IsNullOrEmpty(trustedUniqueId))
+                                                return trustedUniqueId;
+                                        }
+
+                                        var steamIdProperty = connectedInfoType.GetProperty("SteamId");
                                         if (steamIdProperty != null)
                                         {
                                             var steamId = steamIdProperty.GetValue(connectedInfo) as string;

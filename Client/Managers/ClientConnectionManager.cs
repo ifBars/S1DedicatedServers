@@ -12,6 +12,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Patchers;
 using DedicatedServerMod.Utils;
 using UnityEngine;
@@ -361,6 +362,8 @@ namespace DedicatedServerMod.Client.Managers
                 if (InstanceFinder.IsClient)
                     InstanceFinder.ClientManager?.StopConnection();
 
+                ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
+
                 var loadManager = Singleton<LoadManager>.Instance;
                 if (loadManager != null)
                 {
@@ -385,6 +388,8 @@ namespace DedicatedServerMod.Client.Managers
 
                 if (InstanceFinder.IsClient)
                     InstanceFinder.ClientManager?.StopConnection();
+
+                ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
 
                 IsConnectedToDedicatedServer = false;
                 _isTugboatMode = false;

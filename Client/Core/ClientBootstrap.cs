@@ -42,6 +42,11 @@ namespace DedicatedServerMod.Client.Core
         private ClientConnectionManager _connectionManager;
 
         /// <summary>
+        /// The auth manager for Steam ticket handshake.
+        /// </summary>
+        private ClientAuthManager _authManager;
+
+        /// <summary>
         /// The UI manager for client UI elements.
         /// </summary>
         private ClientUIManager _uiManager;
@@ -94,6 +99,11 @@ namespace DedicatedServerMod.Client.Core
         /// Gets the connection manager.
         /// </summary>
         public ClientConnectionManager ConnectionManager => _connectionManager;
+
+        /// <summary>
+        /// Gets the auth manager.
+        /// </summary>
+        public ClientAuthManager AuthManager => _authManager;
 
         /// <summary>
         /// Gets the UI manager.
@@ -241,6 +251,10 @@ namespace DedicatedServerMod.Client.Core
             _connectionManager = new ClientConnectionManager(_logger);
             _connectionManager.Initialize();
 
+            // Initialize authentication manager
+            _authManager = new ClientAuthManager(_logger);
+            _authManager.Initialize();
+
             // Initialize console manager (for admin console access)
             _consoleManager = new ClientConsoleManager(_logger);
             _consoleManager.Initialize();
@@ -330,12 +344,30 @@ namespace DedicatedServerMod.Client.Core
                 // Handle UI input
                 _uiManager?.HandleInput();
 
+                // Handle auth updates
+                _authManager?.Update();
+
                 // Handle debug input
                 HandleDebugInput();
             }
             catch (Exception ex)
             {
                 _logger.Error($"Error in OnUpdate: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Called when the application quits.
+        /// </summary>
+        public override void OnApplicationQuit()
+        {
+            try
+            {
+                _authManager?.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down client auth manager: {ex.Message}");
             }
         }
 

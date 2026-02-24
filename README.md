@@ -92,6 +92,30 @@ The server will now run without any visible windows. Use the TCP console or log 
 
 ---
 
+## 🔐 Authentication Quick Start
+
+If you host a public server, enable ticket authentication so clients must prove Steam identity before they can run server commands.
+
+```json
+{
+  "requireAuthentication": true,
+  "authProvider": "SteamGameServer",
+  "authTimeoutSeconds": 15,
+  "authAllowLoopbackBypass": true,
+  "steamGameServerLogOnAnonymous": true,
+  "steamGameServerQueryPort": 27016,
+  "steamGameServerMode": "Authentication"
+}
+```
+
+- `authProvider` supports `None`, `SteamGameServer`, and `SteamWebApi`
+- `SteamGameServer` is the recommended provider for dedicated hosting and Docker deployments
+- Keep `authAllowLoopbackBypass` enabled so the dedicated server host loopback connection is not blocked
+- Set `steamGameServerLogOnAnonymous` to `false` and provide `steamGameServerToken` when using a persistent GSLT
+- `SteamWebApi` configuration fields exist, but Web API ticket validation is not yet fully implemented
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and [Coding Standards](CODING_STANDARDS.md) before submitting PRs.
@@ -118,6 +142,7 @@ See [BUILD_SETUP.md](BUILD_SETUP.md) for detailed build instructions.
 - Check server firewall allows port 38465
 - Verify server is running (`netstat -an | findstr 38465`)
 - Ensure client and server versions match
+- If auth is enabled, verify `authProvider` and Steam server login settings in `server_config.json`
 
 ### Permission denied errors
 - Check your Steam ID is in operators/admins list

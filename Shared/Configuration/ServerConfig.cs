@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using MelonLoader;
 using MelonLoader.Utils;
 using DedicatedServerMod.Utils;
@@ -57,6 +58,68 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         [JsonProperty(Constants.ConfigKeys.RequireAuthentication)]
         public bool RequireAuthentication { get; set; } = false;
+
+        /// <summary>
+        /// Authentication provider used when RequireAuthentication is enabled.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.AuthProvider)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public AuthenticationProvider AuthProvider { get; set; } = AuthenticationProvider.SteamGameServer;
+
+        /// <summary>
+        /// Timeout in seconds for authentication handshake completion.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.AuthTimeoutSeconds)]
+        public int AuthTimeoutSeconds { get; set; } = Constants.DefaultAuthTimeoutSeconds;
+
+        /// <summary>
+        /// Whether loopback/local ghost connections bypass authentication requirements.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.AuthAllowLoopbackBypass)]
+        public bool AuthAllowLoopbackBypass { get; set; } = true;
+
+        /// <summary>
+        /// Whether to log in with Steam game server anonymous account mode.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamGameServerLogOnAnonymous)]
+        public bool SteamGameServerLogOnAnonymous { get; set; } = true;
+
+        /// <summary>
+        /// Steam game server login token. Used only when anonymous login is disabled.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamGameServerToken)]
+        public string SteamGameServerToken { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Query port used by Steam server browser and status ping.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamGameServerQueryPort)]
+        public int SteamGameServerQueryPort { get; set; } = Constants.DefaultSteamGameServerQueryPort;
+
+        /// <summary>
+        /// Game server version string announced to Steam.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamGameServerVersion)]
+        public string SteamGameServerVersion { get; set; } = Constants.ModVersion;
+
+        /// <summary>
+        /// Steam game server authentication mode.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamGameServerMode)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public SteamGameServerAuthenticationMode SteamGameServerMode { get; set; } = SteamGameServerAuthenticationMode.Authentication;
+
+        /// <summary>
+        /// Steam Web API key for web API ticket validation mode.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamWebApiKey)]
+        public string SteamWebApiKey { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Steam Web API identity string used with web API auth tickets.
+        /// </summary>
+        [JsonProperty(Constants.ConfigKeys.SteamWebApiIdentity)]
+        public string SteamWebApiIdentity { get; set; } = "DedicatedServerMod";
 
         /// <summary>
         /// Whether the server should only accept Steam friends of the host.
@@ -564,6 +627,43 @@ namespace DedicatedServerMod.Shared.Configuration
                         }
                         break;
 
+                    case "--require-authentication":
+                    case "--require-auth":
+                        Instance.RequireAuthentication = true;
+                        Logger.Msg("Authentication requirement enabled");
+                        break;
+
+                    case "--auth-provider":
+                        if (i + 1 < args.Length &&
+                            TryParseAuthenticationProvider(args[i + 1], out AuthenticationProvider authProvider))
+                        {
+                            Instance.AuthProvider = authProvider;
+                            Logger.Msg($"Authentication provider set to: {Instance.AuthProvider}");
+                        }
+                        break;
+
+                    case "--auth-timeout":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int authTimeoutSeconds))
+                        {
+                            Instance.AuthTimeoutSeconds = authTimeoutSeconds;
+                            Logger.Msg($"Authentication timeout set to: {Instance.AuthTimeoutSeconds}s");
+                        }
+                        break;
+
+                    case "--steam-gs-anonymous":
+                        Instance.SteamGameServerLogOnAnonymous = true;
+                        Logger.Msg("Steam game server anonymous login enabled");
+                        break;
+
+                    case "--steam-gs-token":
+                        if (i + 1 < args.Length)
+                        {
+                            Instance.SteamGameServerToken = args[i + 1];
+                            Instance.SteamGameServerLogOnAnonymous = false;
+                            Logger.Msg("Steam game server token set and anonymous login disabled");
+                        }
+                        break;
+
                     case "--add-operator":
                         if (i + 1 < args.Length)
                         {
@@ -672,6 +772,9 @@ namespace DedicatedServerMod.Shared.Configuration
             info += $"Server Port: {Instance.ServerPort}\n";
             info += $"Password Protected: {!string.IsNullOrEmpty(Instance.ServerPassword)}\n";
             info += $"Public Server: {Instance.PublicServer}\n";
+            info += $"Authentication Required: {Instance.RequireAuthentication}\n";
+            info += $"Auth Provider: {Instance.AuthProvider}\n";
+            info += $"Auth Timeout: {Instance.AuthTimeoutSeconds}s\n";
             info += $"Operators: {Instance.Operators.Count}\n";
             info += $"Admins: {Instance.Admins.Count}\n";
             info += $"Auto-Save: {Instance.AutoSaveEnabled} ({Instance.AutoSaveIntervalMinutes}min)\n";
@@ -713,6 +816,19 @@ namespace DedicatedServerMod.Shared.Configuration
                 TimeProgressionMultiplier = Constants.DefaultTimeMultiplier;
             }
 
+            // Validate auth timeout
+            if (AuthTimeoutSeconds < 1 || AuthTimeoutSeconds > 120)
+            {
+                Logger.Warning($"Invalid auth timeout {AuthTimeoutSeconds}, using default {Constants.DefaultAuthTimeoutSeconds}");
+                AuthTimeoutSeconds = Constants.DefaultAuthTimeoutSeconds;
+            }
+
+            if (SteamGameServerQueryPort < Constants.MinPort || SteamGameServerQueryPort > Constants.MaxPort)
+            {
+                Logger.Warning($"Invalid steam game server query port {SteamGameServerQueryPort}, using default {Constants.DefaultSteamGameServerQueryPort}");
+                SteamGameServerQueryPort = Constants.DefaultSteamGameServerQueryPort;
+            }
+
             // Validate auto-save interval
             if (AutoSaveIntervalMinutes < 0 || AutoSaveIntervalMinutes > Constants.MaxAutoSaveIntervalMinutes)
             {
@@ -745,6 +861,55 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 Logger.Warning($"Server description exceeds max length, truncating");
                 ServerDescription = ServerDescription.Substring(0, Constants.MaxServerDescriptionLength);
+            }
+
+            if (RequireAuthentication)
+            {
+                if (AuthProvider == AuthenticationProvider.SteamWebApi && string.IsNullOrWhiteSpace(SteamWebApiKey))
+                {
+                    Logger.Warning("Auth provider is SteamWebApi but steamWebApiKey is empty. Authentication will fail until configured.");
+                }
+
+                if (AuthProvider == AuthenticationProvider.SteamGameServer &&
+                    !SteamGameServerLogOnAnonymous &&
+                    string.IsNullOrWhiteSpace(SteamGameServerToken))
+                {
+                    Logger.Warning("Auth provider is SteamGameServer with anonymous login disabled, but steamGameServerToken is empty.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Parses the configured authentication provider string to an enum value.
+        /// </summary>
+        /// <param name="provider">The provider string from command line.</param>
+        /// <param name="value">The parsed provider value when parsing succeeds.</param>
+        /// <returns>True if parsing succeeded; otherwise false.</returns>
+        private static bool TryParseAuthenticationProvider(string provider, out AuthenticationProvider value)
+        {
+            if (string.IsNullOrWhiteSpace(provider))
+            {
+                value = AuthenticationProvider.SteamGameServer;
+                return false;
+            }
+
+            switch (provider.Trim().ToLowerInvariant())
+            {
+                case "none":
+                    value = AuthenticationProvider.None;
+                    return true;
+                case "steamwebapi":
+                case "steam_web_api":
+                    value = AuthenticationProvider.SteamWebApi;
+                    return true;
+                case "steamgameserver":
+                case "steam_game_server":
+                    value = AuthenticationProvider.SteamGameServer;
+                    return true;
+                default:
+                    value = AuthenticationProvider.SteamGameServer;
+                    Logger.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_web_api, steam_game_server.");
+                    return false;
             }
         }
 
