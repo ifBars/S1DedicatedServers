@@ -16,12 +16,15 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientAuthManager
     {
+        private static readonly TimeSpan HandshakeRetryDelay = TimeSpan.FromSeconds(1);
+
         private readonly MelonLogger.Instance _logger;
 
         private HAuthTicket _activeAuthTicket;
         private bool _isAuthenticated;
         private bool _isHandshakeStarted;
         private bool _isConnectionStateHooked;
+        private DateTime _nextHandshakeAttemptUtc;
 
         /// <summary>
         /// Initializes a new client auth manager.
@@ -31,6 +34,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             _logger = logger;
             _activeAuthTicket = HAuthTicket.Invalid;
+            _nextHandshakeAttemptUtc = DateTime.MinValue;
         }
 
         /// <summary>
@@ -58,13 +62,17 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
+            if (!IsClientConnectionReady())
+            {
+                return;
+            }
+
             if (_isHandshakeStarted)
             {
                 return;
             }
 
             _isAuthenticated = false;
-            _isHandshakeStarted = true;
 
             var hello = new AuthHelloMessage
             {
@@ -72,7 +80,16 @@ namespace DedicatedServerMod.Client.Managers
             };
 
             string payload = JsonConvert.SerializeObject(hello);
-            CustomMessaging.SendToServer(DSConstants.Messages.AuthHello, payload);
+            bool sent = CustomMessaging.TrySendToServer(DSConstants.Messages.AuthHello, payload);
+            if (!sent)
+            {
+                _isHandshakeStarted = false;
+                _nextHandshakeAttemptUtc = DateTime.UtcNow + HandshakeRetryDelay;
+                return;
+            }
+
+            _isHandshakeStarted = true;
+            _nextHandshakeAttemptUtc = DateTime.MinValue;
             _logger.Msg("Authentication hello sent to server");
         }
 
@@ -82,6 +99,14 @@ namespace DedicatedServerMod.Client.Managers
         public void Update()
         {
             TryHookConnectionState();
+
+            if (!_isAuthenticated &&
+                !_isHandshakeStarted &&
+                IsClientConnectionReady() &&
+                DateTime.UtcNow >= _nextHandshakeAttemptUtc)
+            {
+                BeginHandshake();
+            }
         }
 
         /// <summary>
@@ -91,6 +116,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             _isAuthenticated = false;
             _isHandshakeStarted = false;
+            _nextHandshakeAttemptUtc = DateTime.MinValue;
             CancelActiveTicket();
         }
 
@@ -169,7 +195,15 @@ namespace DedicatedServerMod.Client.Managers
             };
 
             string payload = JsonConvert.SerializeObject(ticketMessage);
-            CustomMessaging.SendToServer(DSConstants.Messages.AuthTicket, payload);
+            bool sent = CustomMessaging.TrySendToServer(DSConstants.Messages.AuthTicket, payload);
+            if (!sent)
+            {
+                _isHandshakeStarted = false;
+                _nextHandshakeAttemptUtc = DateTime.UtcNow + HandshakeRetryDelay;
+                _logger.Warning("Authentication ticket send failed; retrying handshake shortly");
+                return;
+            }
+
             _logger.Msg("Authentication ticket submitted to server");
         }
 
@@ -271,10 +305,22 @@ namespace DedicatedServerMod.Client.Managers
 
         private void OnClientConnectionState(ClientConnectionStateArgs args)
         {
+            if (args.ConnectionState == LocalConnectionState.Started)
+            {
+                BeginHandshake();
+                return;
+            }
+
             if (args.ConnectionState == LocalConnectionState.Stopped)
             {
                 OnDisconnected();
             }
+        }
+
+        private static bool IsClientConnectionReady()
+        {
+            return InstanceFinder.ClientManager?.Connection != null &&
+                   InstanceFinder.ClientManager.Connection.IsActive;
         }
 
         private static string BytesToHex(byte[] bytes, int length)

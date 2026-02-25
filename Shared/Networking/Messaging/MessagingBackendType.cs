@@ -15,6 +15,12 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         /// Steamworks P2P messaging using SteamNetworkingMessages.
         /// Works on both Mono and IL2CPP builds.
         /// </summary>
-        SteamP2P
+        SteamP2P,
+
+        /// <summary>
+        /// Steam Networking Sockets transport using Steam client APIs on clients and
+        /// Steam game-server APIs on dedicated servers.
+        /// </summary>
+        SteamNetworkingSockets
     }
 }

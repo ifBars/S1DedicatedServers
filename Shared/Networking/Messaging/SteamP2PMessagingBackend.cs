@@ -172,6 +172,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 return;
             }
 
+            if (!IsAvailable)
+            {
+                return;
+            }
+
 #if SERVER
             RefreshServerConnectionMappings();
 #endif

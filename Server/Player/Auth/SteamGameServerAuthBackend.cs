@@ -24,6 +24,7 @@ namespace DedicatedServerMod.Server.Player.Auth
         private Callback<SteamServersDisconnected_t> _serversDisconnectedCallback;
 
         private bool _isInitialized;
+        private bool _isAdvertisingActive;
 
         /// <summary>
         /// Initializes a new steam game server authentication backend.
@@ -77,14 +78,16 @@ namespace DedicatedServerMod.Server.Player.Auth
                 }
 
                 RegisterCallbacks();
-
+                
+                SteamGameServer.SetProduct(GetSteamProductString());
                 SteamGameServer.SetDedicatedServer(true);
                 SteamGameServer.SetServerName(config.ServerName);
-                SteamGameServer.SetGameDescription(config.ServerDescription);
-                SteamGameServer.SetModDir("ScheduleOne");
+                SteamGameServer.SetGameDescription("Schedule I");
+                SteamGameServer.SetModDir("Schedule I");
                 SteamGameServer.SetMapName("Main");
                 SteamGameServer.SetMaxPlayerCount(config.MaxPlayers);
                 SteamGameServer.SetPasswordProtected(!string.IsNullOrEmpty(config.ServerPassword));
+                SteamGameServer.SetGameTags($"ver:{config.SteamGameServerVersion}");
 
                 if (config.SteamGameServerLogOnAnonymous)
                 {
@@ -96,6 +99,8 @@ namespace DedicatedServerMod.Server.Player.Auth
                     SteamGameServer.LogOn(config.SteamGameServerToken ?? string.Empty);
                     _logger.Msg("Steam game server auth backend logging on using token");
                 }
+
+                TrySetAdvertiseServerActive(true);
 
                 _isInitialized = true;
 
@@ -141,8 +146,8 @@ namespace DedicatedServerMod.Server.Player.Auth
                     ImmediateResult = new AuthenticationResult
                     {
                         IsSuccessful = false,
-                        Message = "Steam game server is not logged on yet",
-                        ShouldDisconnect = true
+                        Message = "Steam game server is not logged on yet; retrying is allowed",
+                        ShouldDisconnect = false
                     }
                 };
             }
@@ -249,6 +254,10 @@ namespace DedicatedServerMod.Server.Player.Auth
             try
             {
                 GameServer.RunCallbacks();
+                if (SteamGameServer.BLoggedOn() && !_isAdvertisingActive)
+                {
+                    TrySetAdvertiseServerActive(true);
+                }
             }
             catch (Exception ex)
             {
@@ -331,6 +340,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                 _pendingBySteamId.Clear();
                 _completionBuffer.Clear();
 
+                TrySetAdvertiseServerActive(false);
                 SteamGameServer.LogOff();
                 GameServer.Shutdown();
             }
@@ -350,16 +360,40 @@ namespace DedicatedServerMod.Server.Player.Auth
 
         private void RegisterCallbacks()
         {
-            _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.Create(OnValidateAuthTicketResponse);
-            _serversConnectedCallback = Callback<SteamServersConnected_t>.Create(_ => _logger.Msg("Steam game server connected to Steam backend"));
-            _serverConnectFailureCallback = Callback<SteamServerConnectFailure_t>.Create(data =>
+            _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.CreateGameServer(OnValidateAuthTicketResponse);
+            _serversConnectedCallback = Callback<SteamServersConnected_t>.CreateGameServer(_ =>
+            {
+                _logger.Msg("Steam game server connected to Steam backend");
+                TrySetAdvertiseServerActive(true);
+            });
+            _serverConnectFailureCallback = Callback<SteamServerConnectFailure_t>.CreateGameServer(data =>
             {
                 _logger.Warning($"Steam game server connection failure: {data.m_eResult}");
             });
-            _serversDisconnectedCallback = Callback<SteamServersDisconnected_t>.Create(data =>
+            _serversDisconnectedCallback = Callback<SteamServersDisconnected_t>.CreateGameServer(data =>
             {
+                _isAdvertisingActive = false;
                 _logger.Warning($"Steam game server disconnected from Steam backend: {data.m_eResult}");
             });
+        }
+
+        private void TrySetAdvertiseServerActive(bool active)
+        {
+            try
+            {
+                SteamGameServer.SetAdvertiseServerActive(active);
+                _isAdvertisingActive = active;
+                _logger.Msg($"Steam server advertising {(active ? "enabled" : "disabled")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning($"Failed to set Steam server advertising to {active}: {ex.Message}");
+            }
+        }
+
+        private static string GetSteamProductString()
+        {
+            return "3164500";
         }
 
         private void OnValidateAuthTicketResponse(ValidateAuthTicketResponse_t callbackData)

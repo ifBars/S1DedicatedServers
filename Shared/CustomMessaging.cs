@@ -115,6 +115,17 @@ namespace DedicatedServerMod.Shared.Networking
         }
 
         /// <summary>
+        /// Sends a message from client to server and returns delivery-queue success.
+        /// </summary>
+        /// <param name="command">The message command type</param>
+        /// <param name="data">The message payload</param>
+        /// <returns>True if the active backend accepted the message.</returns>
+        public static bool TrySendToServer(string command, string data = "")
+        {
+            return MessagingService.SendToServer(command, data);
+        }
+
+        /// <summary>
         /// Sends a message from server to a specific client.
         /// </summary>
         /// <param name="conn">The target connection</param>

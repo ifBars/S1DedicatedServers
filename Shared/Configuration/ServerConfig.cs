@@ -112,7 +112,9 @@ namespace DedicatedServerMod.Shared.Configuration
 
         /// <summary>
         /// Messaging backend used for custom server-client communication.
-        /// FishNetRpc requires Mono build; SteamP2P works on both Mono and IL2CPP.
+        /// FishNetRpc uses FishNet custom RPCs.
+        /// SteamP2P uses legacy Steam P2P packets.
+        /// SteamNetworkingSockets uses modern Steam sockets and is dedicated-server compatible.
         /// </summary>
         [JsonProperty(Constants.ConfigKeys.MessagingBackend)]
         [JsonConverter(typeof(StringEnumConverter))]
@@ -1019,8 +1021,15 @@ namespace DedicatedServerMod.Shared.Configuration
                 case "steam_p2p":
                     value = MessagingBackendType.SteamP2P;
                     return true;
+                case "steamsockets":
+                case "steam_socket":
+                case "steam_sockets":
+                case "steamnetworkingsockets":
+                case "steam_networking_sockets":
+                    value = MessagingBackendType.SteamNetworkingSockets;
+                    return true;
                 default:
-                    Logger.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p.");
+                    Logger.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p, steam_networking_sockets.");
                     value = MessagingBackendType.FishNetRpc;
                     return false;
             }
