@@ -12,7 +12,6 @@ using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
 using MelonLoader;
 using ScheduleOne.DevUtilities;
-using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Quests;
@@ -27,7 +26,6 @@ namespace DedicatedServerMod.Server.Core
     public static class ServerStartupOrchestrator
     {
         private static readonly MelonLogger.Instance Logger = new MelonLogger.Instance("ServerStartup");
-        private static bool _timeLoopsStarted = false;
         private static bool _loopbackHandled = false;
 
         public static IEnumerator StartDedicatedServer(string savePathOverride = null)
@@ -200,13 +198,19 @@ namespace DedicatedServerMod.Server.Core
             loadManager.LoadedGameFolderPath = actualSaveInfo.SavePath;
             Logger.Msg($"Restored loaded save path: {loadManager.LoadedGameFolderPath}");
 
-            // Step 4: Start FishNet server via tugboat
-            Logger.Msg("Starting FishNet server (Tugboat)");
-            bool serverStarted = tugboat.StartConnection(true);
-            if (!serverStarted)
+            // Step 4: Start FishNet server via ServerManager (ensures Multipass TransportIdData registration)
+            if (InstanceFinder.IsServer)
             {
-                Logger.Error("Failed to start Tugboat server");
-                yield break;
+                Logger.Msg("Server already running, skipping ServerManager.StartConnection()");
+            }
+            else
+            {
+                Logger.Msg("Starting FishNet server (via ServerManager)");
+                bool serverStarted = networkManager.ServerManager.StartConnection();
+                if (!serverStarted)
+                {
+                    Logger.Warning("ServerManager.StartConnection() returned false, server may already be starting");
+                }
             }
             float timeout = 10f, elapsed = 0f;
             while (!InstanceFinder.IsServer && elapsed < timeout)
@@ -222,30 +226,36 @@ namespace DedicatedServerMod.Server.Core
             Logger.Msg("FishNet server started successfully");
 
             // Step 5: Start loopback client on server (mirror host flow)
-            Logger.Msg("Starting loopback client on server");
-            TrySetClientTransport(multipass, tugboat);
-            tugboat.SetClientAddress("127.0.0.1");
-            bool clientStarted = tugboat.StartConnection(false);
-            if (!clientStarted)
+            if (networkManager.IsClient)
             {
-                Logger.Warning("Failed to start loopback client");
+                Logger.Msg("Loopback client already connected, skipping ClientManager.StartConnection()");
             }
             else
             {
-                float cTimeout = 10f, cElapsed = 0f;
-                while (!networkManager.IsClient && cElapsed < cTimeout)
+                Logger.Msg("Starting loopback client on server");
+                TrySetClientTransport(multipass, tugboat);
+                tugboat.SetClientAddress("127.0.0.1");
+                bool clientStarted = networkManager.ClientManager.StartConnection();
+                if (!clientStarted)
                 {
-                    yield return new WaitForSeconds(0.1f);
-                    cElapsed += 0.1f;
+                    Logger.Warning("ClientManager.StartConnection() returned false, client may already be starting");
                 }
-                if (!networkManager.IsClient)
-                    Logger.Warning("Loopback client did not initialize within timeout");
-
-                // Hide/teleport loopback player on spawn
-                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
-                ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
-                TryHandleExistingLoopbackPlayer();
             }
+
+            // Wait for loopback client to be ready
+            float cTimeout = 10f, cElapsed = 0f;
+            while (!networkManager.IsClient && cElapsed < cTimeout)
+            {
+                yield return new WaitForSeconds(0.1f);
+                cElapsed += 0.1f;
+            }
+            if (!networkManager.IsClient)
+                Logger.Warning("Loopback client did not initialize within timeout");
+
+            // Hide/teleport loopback player on spawn
+            ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
+            ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
+            TryHandleExistingLoopbackPlayer();
 
             // Step 6: Load save data
             Logger.Msg("Loading save data");
@@ -257,15 +267,6 @@ namespace DedicatedServerMod.Server.Core
             loadManager.LoadStatus = LoadManager.ELoadStatus.None;
             loadManager.IsLoading = false;
             loadManager.IsGameLoaded = true;
-
-            // Ensure TimeManager loops are active server-side
-            if (NetworkSingleton<TimeManager>.Instance != null && !_timeLoopsStarted)
-            {
-                var tm = NetworkSingleton<TimeManager>.Instance;
-                TrySetTimeProgressionMultiplier(tm, 1f);
-                TryStartTimeLoops(tm);
-                _timeLoopsStarted = true;
-            }
 
             if (NetworkSingleton<GameManager>.Instance.IsTutorial)
                 NetworkSingleton<GameManager>.Instance.EndTutorial(true);
@@ -316,33 +317,6 @@ namespace DedicatedServerMod.Server.Core
             Logger.Warning("Could not set client transport via reflection");
         }
 
-        private static void TrySetTimeProgressionMultiplier(TimeManager timeManager, float multiplier)
-        {
-            try
-            {
-                if (timeManager == null) return;
-
-                // Game updates may rename/remove this member; use reflection to stay resilient.
-                var t = timeManager.GetType();
-                var prop = t.GetProperty("TimeProgressionMultiplier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (prop != null && prop.CanWrite && prop.PropertyType == typeof(float))
-                {
-                    prop.SetValue(timeManager, multiplier);
-                    return;
-                }
-
-                var field = t.GetField("TimeProgressionMultiplier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (field != null && field.FieldType == typeof(float))
-                {
-                    field.SetValue(timeManager, multiplier);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning($"Failed to set TimeProgressionMultiplier: {ex.Message}");
-            }
-        }
-
         private static void TryRegisterDefaultQuestsWithGuidManager()
         {
             try
@@ -377,24 +351,6 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 Logger.Warning($"Quest pre-registration failed: {ex.Message}");
-            }
-        }
-
-        private static void TryStartTimeLoops(TimeManager tm)
-        {
-            try
-            {
-                var timeLoop = typeof(TimeManager).GetMethod("TimeLoop", BindingFlags.NonPublic | BindingFlags.Instance);
-                var tickLoop = typeof(TimeManager).GetMethod("TickLoop", BindingFlags.NonPublic | BindingFlags.Instance);
-                var a = timeLoop?.Invoke(tm, null) as IEnumerator;
-                var b = tickLoop?.Invoke(tm, null) as IEnumerator;
-                if (a != null) tm.StartCoroutine(a);
-                if (b != null) tm.StartCoroutine(b);
-                Logger.Msg("Time loops started on server");
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning($"Failed to start time loops: {ex.Message}");
             }
         }
 

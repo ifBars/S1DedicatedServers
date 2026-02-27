@@ -39,6 +39,7 @@ namespace DedicatedServerMod.Server.Core
         private static GameSystemManager _gameSystemManager;
         private static TcpConsoleServer _tcpConsole;
         private static MasterServerClient _masterServerClient;
+        private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         
         // Server state
         private static bool _isServerMode = false;
@@ -83,6 +84,11 @@ namespace DedicatedServerMod.Server.Core
         /// Gets the master server client instance
         /// </summary>
         public static MasterServerClient MasterServer => _masterServerClient;
+
+        /// <summary>
+        /// Gets the SteamNetworkLib dedicated compatibility service.
+        /// </summary>
+        public static SteamNetworkLibCompatService SteamNetworkLibCompat => _steamNetworkLibCompatService;
 
         public override void OnInitializeMelon()
         {
@@ -153,6 +159,11 @@ namespace DedicatedServerMod.Server.Core
             // Step 5a: Messaging Service (required for custom server-client communication)
             Shared.Networking.CustomMessaging.Initialize();
             _logger.Msg("✓ Messaging service initialized");
+
+            // Step 5b: SteamNetworkLib dedicated compatibility layer
+            _steamNetworkLibCompatService = new SteamNetworkLibCompatService(_logger, _playerManager);
+            _steamNetworkLibCompatService.Initialize();
+            _logger.Msg("✓ SteamNetworkLib compatibility service initialized");
 
             // Step 6: Command Manager
             _commandManager = new CommandManager(_logger, _playerManager);
@@ -348,6 +359,7 @@ namespace DedicatedServerMod.Server.Core
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
+                _steamNetworkLibCompatService?.Shutdown();
                 Shared.Networking.CustomMessaging.Shutdown();
                 _playerManager?.Shutdown();
                 _networkManager?.Shutdown();

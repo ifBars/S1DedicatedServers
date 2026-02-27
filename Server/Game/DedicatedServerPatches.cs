@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
@@ -7,7 +9,6 @@ using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
 using ScheduleOne.DevUtilities;
-using ScheduleOne.GameTime;
 using ScheduleOne.Persistence;
 using ScheduleOne.Product;
 using ScheduleOne.UI;
@@ -15,6 +16,7 @@ using UnityEngine;
 using CorgiGodRays;
 using ScheduleOne.Heatmap;
 using DedicatedServerMod.Utils;
+using System.Reflection.Emit;
 
 namespace DedicatedServerMod.Server.Game
 {
@@ -104,10 +106,6 @@ namespace DedicatedServerMod.Server.Game
             }
         }
 
-        // ------- Player initialization postfix: ensure per-client setup if needed -------
-        // NOTE: MarkPlayerInitialized method does not exist in the game code
-        // This patch is disabled - was likely removed in a game update
-
         // ------- Player disconnect -> trigger save if configured -------
         [HarmonyPatch(typeof(ScheduleOne.PlayerScripts.Player), "OnDestroy")]
         private static class PlayerOnDestroyPrefix
@@ -127,11 +125,6 @@ namespace DedicatedServerMod.Server.Game
             }
         }
 
-        // ------- TimeManager patches: prevent 4AM freeze and sync time -------
-        // ------- TimeManager patches: prevent 4AM freeze and sync time -------
-        // REMOVED: TimeManager.Tick patch caused HarmonyException (method not found/signature mismatch).
-        // Logic should be handled in Update or via other means if 4AM freeze prevention is strictly required.
-
         // ------- Ensure server never treats itself as tutorial when saving -------
         [HarmonyPatch(typeof(GameManager), nameof(GameManager.IsTutorial), MethodType.Getter)]
         private static class GameManagerIsTutorialGetterPrefix
@@ -140,38 +133,6 @@ namespace DedicatedServerMod.Server.Game
             {
                 __result = false;
                 return false;
-            }
-        }
-
-        [HarmonyPatch(typeof(TimeManager), "Update")]
-        private static class TimeManagerUpdatePrefix
-        {
-            private static bool Prefix(TimeManager __instance)
-            {
-                if (!InstanceFinder.IsServer) return true;
-                
-                // Fix host freezing
-                if (__instance.IsSleepInProgress)
-                {
-                    // Check if it's 4AM
-                    const int fourAm = 400;
-                    
-                    if (__instance.CurrentTime >= fourAm && __instance.CurrentTime < fourAm + 5)
-                    {
-                        // Force end sleep
-                        var endSleep = typeof(TimeManager).GetMethod("EndSleep", BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (endSleep != null)
-                            endSleep.Invoke(__instance, null);
-                    }
-                }
-                // Auto-start sleep when all real players are ready
-                else if (ScheduleOne.PlayerScripts.Player.AreAllPlayersReadyToSleep())
-                {
-                    var startSleep = typeof(TimeManager).GetMethod("StartSleep", BindingFlags.NonPublic | BindingFlags.Instance);
-                    startSleep?.Invoke(__instance, null);
-                }
-                
-                return true;
             }
         }
 
@@ -207,6 +168,7 @@ namespace DedicatedServerMod.Server.Game
         }
 
         // ------- Sleep system: ignore loopback ghost host when checking readiness -------
+        // Experimental
         [HarmonyPatch(typeof(ScheduleOne.PlayerScripts.Player), nameof(ScheduleOne.PlayerScripts.Player.AreAllPlayersReadyToSleep))]
         private static class PlayerAreAllPlayersReadyToSleepPrefix
         {
@@ -262,6 +224,7 @@ namespace DedicatedServerMod.Server.Game
             }
         }
 
+        // ------- IconGenerator: Prevent icon generation compute on server -------
         [HarmonyPatch(typeof(IconGenerator), "GeneratePackagingIcon")]
         private static class IconGeneratorGeneratePackagingIconPrefix
         {
@@ -298,6 +261,70 @@ namespace DedicatedServerMod.Server.Game
             {
                  if (InstanceFinder.IsServer || Application.isBatchMode)
                 {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // ------- TimeManager: Fix time progression in batchmode by replacing WaitForEndOfFrame -------
+        // Experimental
+        [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), "TimeLoop")]
+        [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), "TickLoop")]
+        private static class TimeLoopWaitPatch
+        {
+            private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+                var waitForEndOfFrameCtor = typeof(WaitForEndOfFrame).GetConstructor(Type.EmptyTypes);
+                var waitForFixedUpdateCtor = typeof(WaitForFixedUpdate).GetConstructor(Type.EmptyTypes);
+                
+                bool patched = false;
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    // Replace new WaitForEndOfFrame() with new WaitForFixedUpdate() in batchmode
+                    if (codes[i].opcode == OpCodes.Newobj && 
+                        codes[i].operand is System.Reflection.ConstructorInfo ctor &&
+                        ctor == waitForEndOfFrameCtor)
+                    {
+                        codes[i].operand = waitForFixedUpdateCtor;
+                        patched = true;
+                    }
+                }
+                
+                if (patched)
+                {
+                    Logger.Msg("Patched TimeManager coroutines to use WaitForFixedUpdate for batchmode compatibility");
+                }
+                
+                return codes;
+            }
+        }
+
+        // ------- DailySummary: Disable UI canvas on dedicated server (runs after RPC registration) -------
+        [HarmonyPatch(typeof(DailySummary), "Awake")]
+        private static class DailySummaryCanvasDisablePostfix
+        {
+            private static void Postfix(DailySummary __instance)
+            {
+                if (InstanceFinder.IsServer && __instance.Canvas != null)
+                {
+                    __instance.Canvas.enabled = false;
+                    Logger.Msg("Disabled DailySummary canvas on dedicated server (RPCs still registered)");
+                }
+            }
+        }
+
+        // ------- DailySummary: Prevent opening on server -------
+        // Experimental
+        [HarmonyPatch(typeof(DailySummary), "Open")]
+        private static class DailySummaryOpenPrefix
+        {
+            private static bool Prefix(DailySummary __instance)
+            {
+                if (InstanceFinder.IsServer || Application.isBatchMode)
+                {
+                    // Skip opening the UI on server/batchmode
                     return false;
                 }
                 return true;

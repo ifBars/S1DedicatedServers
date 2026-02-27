@@ -334,11 +334,11 @@ namespace DedicatedServerMod.Client.Managers
             tugboat.SetClientAddress(_targetServerIP);
             tugboat.SetPort((ushort)_targetServerPort);
 
-            // Start connection directly on Tugboat (native: tugboat.StartConnection(server: false))
-            logger.Msg($"Starting Tugboat connection to {_targetServerIP}:{_targetServerPort}");
-            bool started = tugboat.StartConnection(server: false);
+            // Start connection via ClientManager (ensures Multipass TransportIdData registration)
+            logger.Msg($"Starting client connection to {_targetServerIP}:{_targetServerPort} via ClientManager");
+            bool started = networkManager.ClientManager.StartConnection();
             if (!started)
-                logger.Error("Tugboat.StartConnection(false) returned false");
+                logger.Error("ClientManager.StartConnection() returned false");
 
             return started;
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 #if SERVER
 using DedicatedServerMod.Server.Core;
+using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared.Configuration;
 using ServerPlayerManager = DedicatedServerMod.Server.Player.PlayerManager;
@@ -91,6 +92,22 @@ namespace DedicatedServerMod.Shared.Networking
 
                 case Constants.Messages.RequestServerData:
                     HandleServerDataRequest(conn);
+                    break;
+
+                case Constants.Messages.SnlDedicatedRegister:
+                    HandleSteamNetworkLibRegister(conn);
+                    break;
+
+                case Constants.Messages.SnlDedicatedSetLobbyData:
+                    HandleSteamNetworkLibSetLobbyData(conn, data);
+                    break;
+
+                case Constants.Messages.SnlDedicatedSetMemberData:
+                    HandleSteamNetworkLibSetMemberData(conn, data);
+                    break;
+
+                case Constants.Messages.SnlDedicatedP2PSend:
+                    HandleSteamNetworkLibP2PSend(conn, data);
                     break;
 
                 default:
@@ -242,6 +259,62 @@ namespace DedicatedServerMod.Shared.Networking
         #endregion
 
         #region Admin Console Command Handling
+
+#if SERVER
+
+        private static void HandleSteamNetworkLibRegister(NetworkConnection conn)
+        {
+            try
+            {
+                SteamNetworkLibCompatService compat = ServerBootstrap.SteamNetworkLibCompat;
+                compat?.HandleRegister(conn);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleSteamNetworkLibRegister error: {ex}");
+            }
+        }
+
+        private static void HandleSteamNetworkLibSetLobbyData(NetworkConnection conn, string data)
+        {
+            try
+            {
+                SteamNetworkLibCompatService compat = ServerBootstrap.SteamNetworkLibCompat;
+                compat?.HandleSetLobbyData(conn, data);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleSteamNetworkLibSetLobbyData error: {ex}");
+            }
+        }
+
+        private static void HandleSteamNetworkLibSetMemberData(NetworkConnection conn, string data)
+        {
+            try
+            {
+                SteamNetworkLibCompatService compat = ServerBootstrap.SteamNetworkLibCompat;
+                compat?.HandleSetMemberData(conn, data);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleSteamNetworkLibSetMemberData error: {ex}");
+            }
+        }
+
+        private static void HandleSteamNetworkLibP2PSend(NetworkConnection conn, string data)
+        {
+            try
+            {
+                SteamNetworkLibCompatService compat = ServerBootstrap.SteamNetworkLibCompat;
+                compat?.HandleP2PSend(conn, data);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleSteamNetworkLibP2PSend error: {ex}");
+            }
+        }
+
+#endif
 
         /// <summary>
         /// Handles an admin console command from a client.

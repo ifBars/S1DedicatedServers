@@ -258,7 +258,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Whether time progression never stops (always advances).
         /// </summary>
         [JsonProperty(Constants.ConfigKeys.TimeNeverStops)]
-        public bool TimeNeverStops { get; set; } = true;
+        public bool TimeNeverStops { get; set; } = false;
 
         /// <summary>
         /// Multiplier for time progression (1.0 = real-time).

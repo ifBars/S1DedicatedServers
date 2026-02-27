@@ -1,23 +1,18 @@
 using System;
-using System.Collections;
-using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
-using UnityEngine;
 
 namespace DedicatedServerMod.Server.Game
 {
     /// <summary>
-    /// Manages server time system behaviors including time loops and time progression.
+    /// Exposes server time diagnostics and admin utilities without overriding native time flow.
     /// </summary>
     public class TimeSystemManager
     {
         private readonly MelonLogger.Instance logger;
-
-        private bool timeLoopsStarted = false;
-        private bool isActive = false;
+        private bool isActive;
 
         public TimeSystemManager(MelonLogger.Instance loggerInstance)
         {
@@ -25,28 +20,25 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Gets whether the time system is active
+        /// Gets whether the time system manager is active.
         /// </summary>
         public bool IsActive => isActive;
 
         /// <summary>
-        /// Initialize the time system manager
+        /// Initializes time handling in native-game mode.
         /// </summary>
         public void Initialize()
         {
             try
             {
+                isActive = true;
+
                 if (ServerConfig.Instance.TimeNeverStops)
                 {
-                    StartTimeLoops();
-                    logger.Msg("Time system initialized with 'time never stops' enabled");
-                }
-                else
-                {
-                    logger.Msg("Time system initialized with normal behavior");
+                    logger.Warning("timeNeverStops is enabled but native time mode is active; dedicated server will use base-game time behavior.");
                 }
 
-                isActive = true;
+                logger.Msg("Time system initialized with native game behavior (4 AM freeze preserved).");
             }
             catch (Exception ex)
             {
@@ -56,110 +48,13 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Start the time loops for dedicated server
-        /// </summary>
-        private void StartTimeLoops()
-        {
-            if (timeLoopsStarted)
-            {
-                logger.Warning("Time loops already started");
-                return;
-            }
-
-            try
-            {
-                // Start the time loop coroutine
-                MelonCoroutines.Start(TimeLoop());
-                
-                // Start the tick loop coroutine
-                MelonCoroutines.Start(TickLoop());
-                
-                timeLoopsStarted = true;
-                logger.Msg("Time loops started for dedicated server");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error starting time loops: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Main time loop that keeps time progressing
-        /// </summary>
-        private IEnumerator TimeLoop()
-        {
-            while (ServerConfig.Instance.TimeNeverStops && isActive)
-            {
-                // Ensure time keeps progressing even when players are asleep
-                var tm = NetworkSingleton<TimeManager>.Instance;
-                bool canCheck = tm != null;
-
-                if (canCheck)
-                {
-                    // Small wait so we don't spam checks
-                    yield return new WaitForSeconds(1f);
-
-                    // Check if time is stuck at 4:00 and advance it slightly
-                    int current = tm.CurrentTime;
-                    if (current == 400)
-                    {
-                        // Advance one minute by invoking a Tick-like nudge
-                        // Setting time directly to 4:01
-                        tm.SetTimeAndSync(401);
-                    }
-                }
-
-                yield return new WaitForSeconds(10f); // Check every 10 seconds
-            }
-        }
-
-        /// <summary>
-        /// Tick loop for maintaining server state
-        /// </summary>
-        private IEnumerator TickLoop()
-        {
-            while (isActive)
-            {
-                // Perform periodic server maintenance tasks
-                yield return new WaitForSeconds(30f); // Every 30 seconds
-
-                try { PerformServerTick(); }
-                catch (Exception ex) { logger.Warning($"Error in tick loop: {ex.Message}"); }
-            }
-        }
-
-        /// <summary>
-        /// Perform periodic server maintenance
-        /// </summary>
-        private void PerformServerTick()
-        {
-            try
-            {
-                                    // Log current time periodically for debugging
-                var tm = NetworkSingleton<TimeManager>.Instance;
-                if (tm != null && ServerConfig.Instance.DebugMode)
-                {
-                    int hour = tm.CurrentTime / 100;
-                    int minute = tm.CurrentTime % 100;
-                    logger.Msg($"Server tick - Game time: {hour:D2}:{minute:D2}");
-                }
-
-                // Additional server maintenance tasks could go here
-            }
-            catch (Exception ex)
-            {
-                logger.Warning($"Error during server tick: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Force advance time to prevent freeze
+        /// Force advances time using the game's built-in SetTimeAndSync path.
         /// </summary>
         public void ForceAdvanceTime(TimeSpan amount)
         {
             try
             {
-                var tm = NetworkSingleton<TimeManager>.Instance;
+                TimeManager tm = NetworkSingleton<TimeManager>.Instance;
                 if (tm != null)
                 {
                     int addMins = (int)Math.Round(amount.TotalMinutes);
@@ -175,13 +70,13 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Get current game time information
+        /// Gets current game time information.
         /// </summary>
         public GameTimeInfo GetTimeInfo()
         {
             try
             {
-                var tm = NetworkSingleton<TimeManager>.Instance;
+                TimeManager tm = NetworkSingleton<TimeManager>.Instance;
                 if (tm == null)
                 {
                     return new GameTimeInfo
@@ -212,18 +107,17 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Shutdown the time system
+        /// Shuts down the time system manager.
         /// </summary>
         public void Shutdown()
         {
             isActive = false;
-            timeLoopsStarted = false;
             logger.Msg("Time system shutdown");
         }
     }
 
     /// <summary>
-    /// Game time information
+    /// Game time information.
     /// </summary>
     public class GameTimeInfo
     {

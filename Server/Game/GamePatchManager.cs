@@ -63,8 +63,6 @@ namespace DedicatedServerMod.Server.Game
                 PatchConsoleSubmitCommand();
 
                 // 3) Feature flags which may be toggled
-                if (ServerConfig.Instance.TimeNeverStops)
-                    appliedPatches.Add("TimeNeverStopsEnabled");
                 if (ServerConfig.Instance.IgnoreGhostHostForSleep)
                     appliedPatches.Add("IgnoreGhostHostForSleepEnabled");
 

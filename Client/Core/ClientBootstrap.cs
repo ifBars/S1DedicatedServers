@@ -292,19 +292,20 @@ namespace DedicatedServerMod.Client.Core
             {
                 Patches.MessagingPatches.ClientMessageReceived += (cmd, data) =>
                 {
-                    if (cmd != "server_data") return;
-
                     try
                     {
-                        var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.ServerData>(data);
-                        if (serverData != null)
+                        if (cmd == Utils.Constants.Messages.ServerData)
                         {
-                            Managers.ServerDataStore.Update(serverData);
+                            var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.ServerData>(data);
+                            if (serverData != null)
+                            {
+                                Managers.ServerDataStore.Update(serverData);
+                            }
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"Error parsing server_data: {ex}");
+                        _logger.Error($"Error handling server message '{cmd}': {ex}");
                     }
                 };
             }

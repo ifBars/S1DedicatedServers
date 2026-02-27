@@ -943,6 +943,8 @@
 	<ItemGroup>
 	  <EmbeddedResource Remove="research\**" />
 	  <None Remove="research\**" />
+	  <EmbeddedResource Remove="FishNet-Docs\**" />
+	  <None Remove="FishNet-Docs\**" />
 	</ItemGroup>
 	
 	<!-- Utility infrastructure (shared by all builds) -->
@@ -1017,6 +1019,7 @@
 		<Compile Include="Server\Network\NetworkManager.cs" />
 		<Compile Include="Server\Network\MasterServerClient.cs" />
 		<Compile Include="Server\Network\ServerHeartbeatData.cs" />
+		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
 		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />
 		
 		<!-- Player management -->

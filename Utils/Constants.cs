@@ -215,6 +215,56 @@ namespace DedicatedServerMod.Utils
             /// Chat message (bidirectional).
             /// </summary>
             public const string ChatMessage = "chat_message";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated compatibility register request (client -> server).
+            /// </summary>
+            public const string SnlDedicatedRegister = "snl_dedicated_register";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated compatibility snapshot (server -> client).
+            /// </summary>
+            public const string SnlDedicatedSnapshot = "snl_dedicated_snapshot";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated member joined notification (server -> client).
+            /// </summary>
+            public const string SnlDedicatedMemberJoined = "snl_dedicated_member_joined";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated member left notification (server -> client).
+            /// </summary>
+            public const string SnlDedicatedMemberLeft = "snl_dedicated_member_left";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated lobby data change event (server -> client).
+            /// </summary>
+            public const string SnlDedicatedLobbyDataChanged = "snl_dedicated_lobby_data_changed";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated member data change event (server -> client).
+            /// </summary>
+            public const string SnlDedicatedMemberDataChanged = "snl_dedicated_member_data_changed";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated set lobby data request (client -> server).
+            /// </summary>
+            public const string SnlDedicatedSetLobbyData = "snl_dedicated_set_lobby_data";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated set member data request (client -> server).
+            /// </summary>
+            public const string SnlDedicatedSetMemberData = "snl_dedicated_set_member_data";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated P2P send request (client -> server).
+            /// </summary>
+            public const string SnlDedicatedP2PSend = "snl_dedicated_p2p_send";
+
+            /// <summary>
+            /// SteamNetworkLib dedicated P2P message delivery (server -> client).
+            /// </summary>
+            public const string SnlDedicatedP2PMessage = "snl_dedicated_p2p_message";
         }
 
         #endregion
