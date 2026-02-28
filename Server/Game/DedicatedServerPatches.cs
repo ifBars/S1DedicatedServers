@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -47,6 +48,34 @@ namespace DedicatedServerMod.Server.Game
     internal static class DedicatedServerPatches
     {
         private static readonly MelonLogger.Instance Logger = new MelonLogger.Instance("DedicatedServerPatches");
+
+        private static int CountSleepEligiblePlayers()
+        {
+            var list = ScheduleOne.PlayerScripts.Player.PlayerList;
+            if (list == null || list.Count == 0)
+            {
+                return 0;
+            }
+
+            int eligible = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                var player = list[i];
+                if (player == null)
+                {
+                    continue;
+                }
+
+                if (GhostHostIdentifier.IsGhostHost(player))
+                {
+                    continue;
+                }
+
+                eligible++;
+            }
+
+            return eligible;
+        }
 
         // ------- Multipass.Initialize: ensure Tugboat exists and is added to transports -------
         [HarmonyPatch(typeof(Multipass), "Initialize")]
@@ -206,17 +235,28 @@ namespace DedicatedServerMod.Server.Game
                         return false; // skip original
                     }
 
+                    int eligiblePlayers = 0;
+
                     for (int i = 0; i < list.Count; i++)
                     {
                         var p = list[i];
                         if (p == null) continue;
                         if (GhostHostIdentifier.IsGhostHost(p))
                             continue;
+
+                        eligiblePlayers++;
+
                         if (!p.IsReadyToSleep)
                         {
                             __result = false;
                             return false;
                         }
+                    }
+
+                    if (eligiblePlayers == 0)
+                    {
+                        __result = false;
+                        return false;
                     }
 
                     __result = true;
@@ -287,8 +327,43 @@ namespace DedicatedServerMod.Server.Game
             }
         }
 
-        // ------- TimeManager: Fix time progression in batchmode by replacing WaitForEndOfFrame -------
-        // Experimental
+        [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), nameof(ScheduleOne.GameTime.TimeManager.SetTimeSpeedMultiplier))]
+        private static class TimeManagerSetTimeSpeedMultiplierPrefix
+        {
+            private static void Prefix(ref float multiplier)
+            {
+                if (!InstanceFinder.IsServer || !Application.isBatchMode || multiplier > 0f)
+                {
+                    return;
+                }
+
+                multiplier = 1f;
+            }
+        }
+
+        [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), "Update")]
+        private static class TimeManagerUpdatePostfix
+        {
+            private static void Postfix(ScheduleOne.GameTime.TimeManager __instance)
+            {
+                if (!InstanceFinder.IsServer || !Application.isBatchMode)
+                {
+                    return;
+                }
+
+                var loadManager = Singleton<LoadManager>.Instance;
+                if (loadManager == null || loadManager.IsLoading || !loadManager.IsGameLoaded || __instance.IsSleepInProgress)
+                {
+                    return;
+                }
+
+                if (__instance.TimeSpeedMultiplier <= 0f)
+                {
+                    __instance.SetTimeSpeedMultiplier(1f);
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), "TimeLoop")]
         [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), "TickLoop")]
         private static class TimeLoopWaitPatch
@@ -318,6 +393,53 @@ namespace DedicatedServerMod.Server.Game
                 }
                 
                 return codes;
+            }
+        }
+
+        [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), nameof(ScheduleOne.GameTime.TimeManager.StartSleep))]
+        private static class TimeManagerStartSleepPrefix
+        {
+            private static bool Prefix()
+            {
+                if (!InstanceFinder.IsServer)
+                {
+                    return true;
+                }
+
+                return CountSleepEligiblePlayers() > 0;
+            }
+        }
+
+        [HarmonyPatch(typeof(ScheduleOne.GameTime.TimeManager), nameof(ScheduleOne.GameTime.TimeManager.StartSleep))]
+        private static class TimeManagerStartSleepHeadlessPostfix
+        {
+            private static void Postfix(ScheduleOne.GameTime.TimeManager __instance)
+            {
+                if (!InstanceFinder.IsServer || !Application.isBatchMode)
+                {
+                    return;
+                }
+
+                if (!__instance.IsSleepInProgress || __instance.HostSleepDone)
+                {
+                    return;
+                }
+
+                __instance.SetHostSleepDone(done: true);
+            }
+        }
+
+        [HarmonyPatch(typeof(SleepCanvas), "SleepStart")]
+        private static class SleepCanvasSleepStartPrefix
+        {
+            private static bool Prefix()
+            {
+                if (!InstanceFinder.IsServer || !Application.isBatchMode)
+                {
+                    return true;
+                }
+
+                return false;
             }
         }
 

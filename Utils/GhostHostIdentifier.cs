@@ -6,6 +6,7 @@ using FishNet.Object;
 using ScheduleOne.PlayerScripts;
 #endif
 using System;
+using UnityEngine;
 
 namespace DedicatedServerMod.Utils
 {
@@ -27,12 +28,25 @@ namespace DedicatedServerMod.Utils
 
             try
             {
-                if (player.gameObject.name == Constants.GhostHostObjectName)
+                if (player.gameObject != null && player.gameObject.name == Constants.GhostHostObjectName)
                     return true;
+
+                // Dedicated server runs a local loopback client in batch mode.
+                // That local client player should always be treated as the ghost host.
+                if (Application.isBatchMode && FishNet.InstanceFinder.IsServer)
+                {
+                    if (player.Owner != null && player.Owner.IsLocalClient)
+                        return true;
+                }
 
                 var networkObject = player.GetComponent<NetworkObject>();
                 if (networkObject?.Owner != null)
+                {
+                    if (Application.isBatchMode && FishNet.InstanceFinder.IsServer && networkObject.Owner.IsLocalClient)
+                        return true;
+
                     return networkObject.Owner.ClientId == 0 && !networkObject.IsOwner;
+                }
             }
             catch (Exception)
             {

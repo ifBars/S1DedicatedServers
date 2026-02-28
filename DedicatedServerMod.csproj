@@ -136,9 +136,6 @@
 		<Reference Include="EasyButtons">
 			<HintPath>$(ManagedPath)\EasyButtons.dll</HintPath>
 		</Reference>
-		<Reference Include="Edgegap">
-			<HintPath>$(ManagedPath)\Edgegap.dll</HintPath>
-		</Reference>
 		<Reference Include="FbxBuildTestAssets">
 			<HintPath>$(ManagedPath)\FbxBuildTestAssets.dll</HintPath>
 		</Reference>
@@ -582,9 +579,6 @@
 		</Reference>
 		<Reference Include="Il2CppEasyButtons">
 			<HintPath>$(ManagedPath)\Il2CppEasyButtons.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppEdgegap">
-			<HintPath>$(ManagedPath)\Il2CppEdgegap.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppFishNet.Demos">
 			<HintPath>$(ManagedPath)\Il2CppFishNet.Demos.dll</HintPath>

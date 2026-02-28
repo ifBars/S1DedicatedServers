@@ -55,6 +55,8 @@ namespace DedicatedServerMod.Client.Patches
                     return false;
                 }
 
+                int eligiblePlayers = 0;
+
                 for (int i = 0; i < playerList.Count; i++)
                 {
                     var player = playerList[i];
@@ -63,11 +65,19 @@ namespace DedicatedServerMod.Client.Patches
                     if (GhostHostIdentifier.IsGhostHost(player))
                         continue;
 
+                    eligiblePlayers++;
+
                     if (!player.IsReadyToSleep)
                     {
                         __result = false;
                         return false;
                     }
+                }
+
+                if (eligiblePlayers == 0)
+                {
+                    __result = false;
+                    return false;
                 }
 
                 __result = true;
