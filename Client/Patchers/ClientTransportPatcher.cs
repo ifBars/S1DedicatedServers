@@ -1,11 +1,23 @@
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Managing.Client;
+using Il2CppFishNet.Transporting;
+using Il2CppFishNet.Transporting.Multipass;
+using Il2CppFishNet.Transporting.Tugboat;
+#else
 using FishNet;
 using FishNet.Managing.Client;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+#endif
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.UI.MainMenu;
+#else
 using ScheduleOne.UI.MainMenu;
+#endif
 using System;
 using System.Collections;
 using System.Collections.Generic;

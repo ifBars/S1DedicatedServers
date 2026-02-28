@@ -222,7 +222,11 @@ namespace DedicatedServerMod.Server.Core
                 var runner = runnerGo.GetComponent<RoutineRunner>();
                 if (runner == null) runner = runnerGo.AddComponent<RoutineRunner>();
                 
+#if IL2CPP
+                MelonCoroutines.Start(ServerStartupOrchestrator.StartDedicatedServer());
+#else
                 runner.StartCoroutine(ServerStartupOrchestrator.StartDedicatedServer());
+#endif
             }
         }
 

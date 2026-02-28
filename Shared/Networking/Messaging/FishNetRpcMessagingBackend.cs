@@ -1,16 +1,32 @@
 using System;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Il2CppFishNet.Object;
+using Il2CppFishNet.Object.Delegating;
+using Il2CppFishNet.Serializing;
+using Il2CppFishNet.Transporting;
+#else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Object;
 using FishNet.Object.Delegating;
 using FishNet.Serializing;
 using FishNet.Transporting;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Newtonsoft.Json;
+using Il2CppScheduleOne;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.UI;
+#else
 using Newtonsoft.Json;
 using ScheduleOne;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.UI;
+#endif
 
 namespace DedicatedServerMod.Shared.Networking.Messaging
 {
@@ -90,6 +106,9 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             {
                 var nb = (NetworkBehaviour)instance;
 
+#if IL2CPP
+                _logger?.Warning("FishNet RPC registration is not available on IL2CPP in this backend; using transport fallbacks.");
+#else
                 // Register server→client Target RPC
                 nb.RegisterTargetRpc(_messageId, new ClientRpcDelegate(OnClientMessageReceived));
 
@@ -97,6 +116,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 nb.RegisterServerRpc(_messageId, new ServerRpcDelegate(OnServerMessageReceived));
 
                 _logger?.Msg("Registered FishNet custom messaging RPCs on DailySummary");
+#endif
             }
             catch (Exception ex)
             {

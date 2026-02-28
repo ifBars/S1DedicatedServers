@@ -1,9 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using ScheduleOne.PlayerScripts;
+#endif
 
 namespace DedicatedServerMod.Shared.Permissions
 {

@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using DedicatedServerMod.Shared.Configuration;
+#if IL2CPP
+using Il2CppFishNet.Connection;
+#else
 using FishNet.Connection;
+#endif
 using MelonLoader;
 
 namespace DedicatedServerMod.Server.Player.Auth

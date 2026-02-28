@@ -2,8 +2,13 @@ using MelonLoader;
 using HarmonyLib;
 using System;
 using System.Reflection;
+#if IL2CPP
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using ScheduleOne.GameTime;
 using ScheduleOne.PlayerScripts;
+#endif
 using UnityEngine;
 using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;

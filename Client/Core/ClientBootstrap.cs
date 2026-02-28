@@ -2,7 +2,11 @@ using System;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using ScheduleOne.PlayerScripts;
+#endif
 using DedicatedServerMod.Client.Managers;
 using DedicatedServerMod.Client.Patchers;
 

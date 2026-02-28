@@ -1,14 +1,31 @@
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.AvatarFramework.Customization;
+using Il2CppScheduleOne.Intro;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.UI;
+#else
 using ScheduleOne.AvatarFramework.Customization;
 using ScheduleOne.Intro;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
+#endif
 using System;
 using System.Collections;
 using System.Reflection;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+using ClothingList = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Clothing.ClothingInstance>;
+#else
 using ScheduleOne.DevUtilities;
+using ClothingList = System.Collections.Generic.List<ScheduleOne.Clothing.ClothingInstance>;
+#endif
 using UnityEngine;
 using DedicatedServerMod.API;
 
@@ -205,7 +222,11 @@ namespace DedicatedServerMod.Client.Managers
             var logger = new MelonLogger.Instance("ClientPlayerSetup");
 
             characterCreator.onCompleteWithClothing.RemoveAllListeners();
+#if IL2CPP
+            characterCreator.onCompleteWithClothing.AddListener((UnityEngine.Events.UnityAction<BasicAvatarSettings, ClothingList>)delegate (BasicAvatarSettings appearance, ClothingList clothing)
+#else
             characterCreator.onCompleteWithClothing.AddListener((appearance, clothing) =>
+#endif
             {
                 logger.Msg("Character creation completed");
                 try
@@ -224,7 +245,7 @@ namespace DedicatedServerMod.Client.Managers
         }
 
         private static void ApplyClothingToPlayer(
-            Player player, System.Collections.Generic.List<ScheduleOne.Clothing.ClothingInstance> clothing)
+            Player player, ClothingList clothing)
         {
             if (clothing == null || player.Clothing == null) return;
 

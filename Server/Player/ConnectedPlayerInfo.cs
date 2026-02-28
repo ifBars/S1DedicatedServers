@@ -1,5 +1,10 @@
+#if IL2CPP
+using Il2CppFishNet.Connection;
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using FishNet.Connection;
 using ScheduleOne.PlayerScripts;
+#endif
 using System;
 
 namespace DedicatedServerMod.Server.Player

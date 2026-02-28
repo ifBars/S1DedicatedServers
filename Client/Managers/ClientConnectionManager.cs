@@ -1,13 +1,28 @@
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Transporting;
+using Il2CppFishNet.Transporting.Multipass;
+using Il2CppFishNet.Transporting.Tugboat;
+#else
 using FishNet;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Networking;
+using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.UI;
+#else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Networking;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
+#endif
 using System;
 using System.Collections;
 using System.Reflection;
@@ -35,6 +50,9 @@ namespace DedicatedServerMod.Client.Managers
 
         private static readonly MethodInfo CleanUpMethod =
             typeof(LoadManager).GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Instance);
+#if MONO
+        private static readonly Action LocalPlayerSpawnedHandler = OnLocalPlayerSpawned;
+#endif
 
         public bool IsConnecting { get; private set; }
         public bool IsConnectedToDedicatedServer { get; private set; }
@@ -163,8 +181,12 @@ namespace DedicatedServerMod.Client.Managers
 
             // --- Step 9 (native 692): Register player spawn handler ---
             // Must be AFTER CleanUp which clears Player.onLocalPlayerSpawned.
+#if MONO
             Player.onLocalPlayerSpawned = (Action)Delegate.Combine(
-                Player.onLocalPlayerSpawned, new Action(OnLocalPlayerSpawned));
+                Player.onLocalPlayerSpawned, LocalPlayerSpawnedHandler);
+#else
+            logger.Msg("Skipping local player spawned delegate hook on IL2CPP runtime");
+#endif
 
             // --- Step 10 (native 693): Wait for Main scene ---
             // FishNet syncs the scene from the server as part of connection.
@@ -345,8 +367,10 @@ namespace DedicatedServerMod.Client.Managers
 
         private static void OnLocalPlayerSpawned()
         {
+#if MONO
             Player.onLocalPlayerSpawned = (Action)Delegate.Remove(
-                Player.onLocalPlayerSpawned, new Action(OnLocalPlayerSpawned));
+                Player.onLocalPlayerSpawned, LocalPlayerSpawnedHandler);
+#endif
         }
 
         private void HandleConnectionError(string errorMessage)

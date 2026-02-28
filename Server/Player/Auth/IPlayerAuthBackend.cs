@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+#if IL2CPP
+using Il2CppFishNet.Connection;
+#else
 using FishNet.Connection;
+#endif
 using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Player.Auth

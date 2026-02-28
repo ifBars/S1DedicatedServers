@@ -5,9 +5,17 @@ using DedicatedServerMod.Server.Player.Auth;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet.Connection;
+#else
 using FishNet.Connection;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppSteamworks;
+#else
 using Steamworks;
+#endif
 
 namespace DedicatedServerMod.Server.Player
 {

@@ -9,20 +9,41 @@ using DedicatedServerMod.Shared.Configuration;
 using ServerPlayerManager = DedicatedServerMod.Server.Player.PlayerManager;
 #endif
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Il2CppFishNet.Object;
+using Il2CppFishNet.Serializing;
+using Il2CppFishNet.Transporting;
+#else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Object;
 using FishNet.Serializing;
 using FishNet.Transporting;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Newtonsoft.Json;
+using Il2CppScheduleOne;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.Vehicles;
+#else
 using Newtonsoft.Json;
 using ScheduleOne;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
 using ScheduleOne.Vehicles;
+#endif
 using UnityEngine;
+#if IL2CPP
+using Console = Il2CppScheduleOne.Console;
+#else
 using Console = ScheduleOne.Console;
+#endif
 
 namespace DedicatedServerMod.Shared.Networking
 {
@@ -511,7 +532,17 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
+#if IL2CPP
+                var il2cppArgs = new Il2CppSystem.Collections.Generic.List<string>();
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    il2cppArgs.Add(parts[i]);
+                }
+
+                commands[cmd].Execute(il2cppArgs);
+#else
                 commands[cmd].Execute(parts);
+#endif
             }
             catch (Exception ex)
             {

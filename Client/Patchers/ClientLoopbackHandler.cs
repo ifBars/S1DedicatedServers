@@ -1,6 +1,14 @@
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using ScheduleOne.PlayerScripts;
+#endif
 using System;
 using System.Collections;
 using DedicatedServerMod.Client.Managers;
@@ -43,10 +51,14 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
+#if MONO
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Combine(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
+#else
+                logger.Msg("Skipping direct player spawn hook wiring on IL2CPP runtime");
+#endif
 
                 eventHooksSetup = true;
                 logger.Msg("Client-side loopback hiding hooks active");
@@ -191,8 +203,10 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
+#if MONO
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
+#endif
                 eventHooksSetup = false;
                 logger.Msg("Loopback handler event hooks removed");
             }

@@ -5,8 +5,13 @@ using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppFishNet.Connection;
+#else
 using ScheduleOne.PlayerScripts;
 using FishNet.Connection;
+#endif
 
 namespace DedicatedServerMod.Server.Game
 {

@@ -2,13 +2,21 @@ using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+#if IL2CPP
+using Il2CppScheduleOne;
+#else
 using ScheduleOne;
+#endif
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands.Admin;
 using DedicatedServerMod.Server.Commands.Server;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Networking;
+#if IL2CPP
+using Console = Il2CppScheduleOne.Console;
+#else
 using Console = ScheduleOne.Console;
+#endif
 
 namespace DedicatedServerMod.Server.Commands
 {
@@ -295,17 +303,16 @@ namespace DedicatedServerMod.Server.Commands
         public override string CommandDescription => serverCommand.Description;
         public override string ExampleUsage => serverCommand.Usage;
 
-        public override void Execute(List<string> args)
+        private void ExecuteCore(List<string> args)
         {
             try
             {
-                // Create a context for console execution (no player executor)
                 var context = new CommandContext
                 {
-                    Executor = null, // Console execution
+                    Executor = null,
                     Arguments = args,
-                    Logger = null, // Will be handled by the command
-                    PlayerManager = null // Will be provided by command manager
+                    Logger = null,
+                    PlayerManager = null
                 };
 
                 serverCommand.Execute(context);
@@ -315,5 +322,26 @@ namespace DedicatedServerMod.Server.Commands
                 Console.LogError($"Error executing command '{CommandWord}': {ex.Message}");
             }
         }
+
+#if IL2CPP
+        public override void Execute(Il2CppSystem.Collections.Generic.List<string> args)
+        {
+            var managedArgs = new List<string>();
+            if (args != null)
+            {
+                for (var i = 0; i < args.Count; i++)
+                {
+                    managedArgs.Add(args[i]);
+                }
+            }
+
+            ExecuteCore(managedArgs);
+        }
+#else
+        public override void Execute(List<string> args)
+        {
+            ExecuteCore(args ?? new List<string>());
+        }
+#endif
     }
 }

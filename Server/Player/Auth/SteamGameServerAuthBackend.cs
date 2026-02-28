@@ -2,9 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using DedicatedServerMod.Shared.Configuration;
+#if IL2CPP
+using Il2CppFishNet.Connection;
+#else
 using FishNet.Connection;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppSteamworks;
+#else
 using Steamworks;
+#endif
 
 namespace DedicatedServerMod.Server.Player.Auth
 {
@@ -360,21 +368,31 @@ namespace DedicatedServerMod.Server.Player.Auth
 
         private void RegisterCallbacks()
         {
-            _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.CreateGameServer(OnValidateAuthTicketResponse);
-            _serversConnectedCallback = Callback<SteamServersConnected_t>.CreateGameServer(_ =>
-            {
-                _logger.Msg("Steam game server connected to Steam backend");
-                TrySetAdvertiseServerActive(true);
-            });
-            _serverConnectFailureCallback = Callback<SteamServerConnectFailure_t>.CreateGameServer(data =>
-            {
-                _logger.Warning($"Steam game server connection failure: {data.m_eResult}");
-            });
-            _serversDisconnectedCallback = Callback<SteamServersDisconnected_t>.CreateGameServer(data =>
-            {
-                _isAdvertisingActive = false;
-                _logger.Warning($"Steam game server disconnected from Steam backend: {data.m_eResult}");
-            });
+#if MONO
+            _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.CreateGameServer(new Callback<ValidateAuthTicketResponse_t>.DispatchDelegate(OnValidateAuthTicketResponse));
+            _serversConnectedCallback = Callback<SteamServersConnected_t>.CreateGameServer(new Callback<SteamServersConnected_t>.DispatchDelegate(OnSteamServersConnected));
+            _serverConnectFailureCallback = Callback<SteamServerConnectFailure_t>.CreateGameServer(new Callback<SteamServerConnectFailure_t>.DispatchDelegate(OnSteamServerConnectFailure));
+            _serversDisconnectedCallback = Callback<SteamServersDisconnected_t>.CreateGameServer(new Callback<SteamServersDisconnected_t>.DispatchDelegate(OnSteamServersDisconnected));
+#else
+            _logger.Warning("Steam game server callbacks are disabled on IL2CPP runtime.");
+#endif
+        }
+
+        private void OnSteamServersConnected(SteamServersConnected_t _)
+        {
+            _logger.Msg("Steam game server connected to Steam backend");
+            TrySetAdvertiseServerActive(true);
+        }
+
+        private void OnSteamServerConnectFailure(SteamServerConnectFailure_t data)
+        {
+            _logger.Warning($"Steam game server connection failure: {data.m_eResult}");
+        }
+
+        private void OnSteamServersDisconnected(SteamServersDisconnected_t data)
+        {
+            _isAdvertisingActive = false;
+            _logger.Warning($"Steam game server disconnected from Steam backend: {data.m_eResult}");
         }
 
         private void TrySetAdvertiseServerActive(bool active)

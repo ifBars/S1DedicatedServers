@@ -5,16 +5,31 @@ using System.Reflection;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Component.Scenes;
+using Il2CppFishNet.Transporting;
+using Il2CppFishNet.Transporting.Multipass;
+using Il2CppFishNet.Transporting.Tugboat;
+#else
 using FishNet;
 using FishNet.Component.Scenes;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Quests;
+#else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Quests;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -253,8 +268,12 @@ namespace DedicatedServerMod.Server.Core
                 Logger.Warning("Loopback client did not initialize within timeout");
 
             // Hide/teleport loopback player on spawn
+#if MONO
             ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
             ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
+#else
+            Logger.Msg("Skipping loopback spawn hook wiring on IL2CPP runtime");
+#endif
             TryHandleExistingLoopbackPlayer();
 
             // Step 6: Load save data
@@ -319,6 +338,10 @@ namespace DedicatedServerMod.Server.Core
 
         private static void TryRegisterDefaultQuestsWithGuidManager()
         {
+#if IL2CPP
+            Logger.Msg("Skipping GUIDManager quest registration on IL2CPP runtime");
+            return;
+#else
             try
             {
                 var questManager = NetworkSingleton<QuestManager>.Instance ?? UnityEngine.Object.FindObjectOfType<QuestManager>();
@@ -352,6 +375,7 @@ namespace DedicatedServerMod.Server.Core
             {
                 Logger.Warning($"Quest pre-registration failed: {ex.Message}");
             }
+#endif
         }
 
         private static string FindMostRecentSave()
@@ -386,12 +410,16 @@ namespace DedicatedServerMod.Server.Core
             loadManager.onPreLoad?.Invoke();
 
             Logger.Msg("Creating load requests for save data");
+#if MONO
             foreach (var baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
             {
                 // The game's loaders expect per saveable subfolders; preserve per-loader path
                 string loadPath = Path.Combine(loadManager.LoadedGameFolderPath, baseSaveable.SaveFolderName);
                 new LoadRequest(loadPath, baseSaveable.Loader);
             }
+#else
+            Logger.Msg("Skipping manual load request queue creation on IL2CPP runtime");
+#endif
 
             var loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
             var loadRequests = loadRequestsField?.GetValue(loadManager) as System.Collections.Generic.List<LoadRequest>;
@@ -432,7 +460,9 @@ namespace DedicatedServerMod.Server.Core
                     // Ensure server-side quests are initialized once the ghost exists
                     MelonCoroutines.Start(InitializeServerQuests());
                     _loopbackHandled = true;
+#if MONO
                     ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
+#endif
                     Logger.Msg("Loopback player hidden/teleported");
                 }
             }

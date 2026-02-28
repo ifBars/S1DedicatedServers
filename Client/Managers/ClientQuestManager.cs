@@ -1,10 +1,23 @@
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Quests;
+#else
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Quests;
+#endif
 using System;
 using System.Collections;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+#else
 using ScheduleOne.DevUtilities;
+#endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Managers

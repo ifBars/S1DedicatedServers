@@ -1,8 +1,16 @@
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Managing;
+using Il2CppFishNet.Transporting;
+using Il2CppFishNet.Transporting.Multipass;
+using Il2CppFishNet.Transporting.Tugboat;
+#else
 using FishNet;
 using FishNet.Managing;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+#endif
 using MelonLoader;
 using System;
 using System.Collections;
@@ -61,8 +69,12 @@ namespace DedicatedServerMod.Server.Network
             if (hooksRegistered) return true;
             var serverManager = InstanceFinder.ServerManager;
             if (serverManager == null) return false;
+#if MONO
             serverManager.OnServerConnectionState -= OnServerConnectionState;
             serverManager.OnServerConnectionState += OnServerConnectionState;
+#else
+            logger.Msg("Skipping direct OnServerConnectionState hook on IL2CPP runtime");
+#endif
             hooksRegistered = true;
             logger.Msg("Network event hooks established");
             return true;
@@ -318,6 +330,10 @@ namespace DedicatedServerMod.Server.Network
         /// </summary>
         public bool RestoreDefaultTransport()
         {
+#if IL2CPP
+            logger.Warning("RestoreDefaultTransport is not supported on IL2CPP runtime");
+            return false;
+#else
             try
             {
                 var networkManager = InstanceFinder.NetworkManager;
@@ -354,6 +370,7 @@ namespace DedicatedServerMod.Server.Network
                 logger.Error($"Error restoring default transport: {ex}");
                 return false;
             }
+#endif
         }
 
         /// <summary>
@@ -385,7 +402,9 @@ namespace DedicatedServerMod.Server.Network
                 // Remove event hooks
                 if (InstanceFinder.ServerManager != null)
                 {
+#if MONO
                     InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionState;
+#endif
                 }
                 hooksRegistered = false;
 

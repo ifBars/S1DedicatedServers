@@ -1,8 +1,13 @@
 using MelonLoader;
 using System;
 using System.Collections;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppScheduleOne.Persistence;
+#else
 using FishNet;
 using ScheduleOne.Persistence;
+#endif
 using UnityEngine;
 using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;

@@ -3,6 +3,17 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Il2CppFishNet.Transporting;
+using Il2CppFishNet.Transporting.Multipass;
+using Il2CppFishNet.Transporting.Tugboat;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.Product;
+using Il2CppScheduleOne.UI;
+#else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Transporting;
@@ -12,9 +23,18 @@ using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence;
 using ScheduleOne.Product;
 using ScheduleOne.UI;
+#endif
 using UnityEngine;
+#if IL2CPP
+using Il2CppCorgiGodRays;
+#else
 using CorgiGodRays;
+#endif
+#if IL2CPP
+using Il2CppScheduleOne.Heatmap;
+#else
 using ScheduleOne.Heatmap;
+#endif
 using DedicatedServerMod.Utils;
 using System.Reflection.Emit;
 

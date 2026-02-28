@@ -1,14 +1,26 @@
 using System;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Managers;
+#if IL2CPP
+using Il2CppFishNet.Object;
+using Il2CppFishNet.Object.Delegating;
+using Il2CppFishNet.Serializing;
+using Il2CppFishNet.Transporting;
+#else
 using FishNet.Object;
 using FishNet.Object.Delegating;
 using FishNet.Serializing;
 using FishNet.Transporting;
+#endif
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.UI;
+#else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.UI;
+#endif
 
 namespace DedicatedServerMod.Client.Patches
 {

@@ -3,8 +3,13 @@ using System.IO;
 using DedicatedServerMod.Utils;
 using MelonLoader;
 using MelonLoader.Utils;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppSteamworks;
+#else
 using ScheduleOne.PlayerScripts;
 using Steamworks;
+#endif
 
 namespace DedicatedServerMod.Shared.Permissions
 {
@@ -234,7 +239,7 @@ namespace DedicatedServerMod.Shared.Permissions
         {
             try
             {
-                if (SteamManager.Initialized)
+                if (SteamAPI.IsSteamRunning())
                 {
                     CSteamID steamId = SteamUser.GetSteamID();
                     return steamId.m_SteamID.ToString();

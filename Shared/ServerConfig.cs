@@ -4,13 +4,24 @@ using System.IO;
 using System.Reflection;
 using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Shared.Permissions;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Newtonsoft.Json;
+#else
 using FishNet;
 using FishNet.Connection;
 using Newtonsoft.Json;
+#endif
 using MelonLoader;
 using MelonLoader.Utils;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppSteamworks;
+#else
 using ScheduleOne.PlayerScripts;
 using Steamworks;
+#endif
 
 namespace DedicatedServerMod.Shared
 {

@@ -1,8 +1,13 @@
 using System;
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.UI;
+#else
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
+#endif
 using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Client.Patches

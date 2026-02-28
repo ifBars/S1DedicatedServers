@@ -1,10 +1,17 @@
 using System;
 using System.Collections.Generic;
 using MelonLoader;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Il2CppFishNet.Managing;
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing;
 using ScheduleOne.PlayerScripts;
+#endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Managers

@@ -5,11 +5,21 @@ using System.Runtime.InteropServices;
 using System.Text;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+#else
 using FishNet;
 using FishNet.Connection;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Newtonsoft.Json;
+using Il2CppSteamworks;
+#else
 using Newtonsoft.Json;
 using Steamworks;
+#endif
 using DSConstants = DedicatedServerMod.Utils.Constants;
 
 #if SERVER
@@ -71,7 +81,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                     SteamGameServer.GetSteamID();
                     return true;
 #else
-                    return SteamManager.Initialized || SteamAPI.IsSteamRunning();
+                    return SteamAPI.IsSteamRunning();
 #endif
                 }
                 catch
@@ -108,7 +118,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 _virtualPort = Math.Max(0, config.SteamP2PChannel);
                 _maxPayloadBytes = Math.Max(256, config.SteamP2PMaxPayloadBytes);
 
-                _connectionStatusCallback = Callback<SteamNetConnectionStatusChangedCallback_t>.Create(OnConnectionStatusChanged);
+#if MONO
+                _connectionStatusCallback = Callback<SteamNetConnectionStatusChangedCallback_t>.Create(new Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate(OnConnectionStatusChanged));
+#else
+                _logger.Warning("Steam sockets status callback is disabled on IL2CPP runtime.");
+#endif
 
                 _pollGroup = CreatePollGroup();
                 if (IsInvalid(_pollGroup))
@@ -759,7 +773,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 return;
             }
 
-            foreach (KeyValuePair<int, NetworkConnection> kvp in InstanceFinder.ServerManager.Clients)
+            foreach (var kvp in InstanceFinder.ServerManager.Clients)
             {
                 NetworkConnection conn = kvp.Value;
                 if (conn == null)

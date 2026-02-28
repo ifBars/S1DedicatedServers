@@ -5,10 +5,19 @@ using System.Linq;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet.Connection;
+#else
 using FishNet.Connection;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Newtonsoft.Json;
+using Il2CppSteamworks;
+#else
 using Newtonsoft.Json;
 using Steamworks;
+#endif
 using DSConstants = DedicatedServerMod.Utils.Constants;
 
 #nullable enable

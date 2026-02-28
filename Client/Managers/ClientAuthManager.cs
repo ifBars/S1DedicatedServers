@@ -2,11 +2,21 @@ using System;
 using System.Globalization;
 using System.Text;
 using DedicatedServerMod.Shared.Networking;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Transporting;
+#else
 using FishNet;
 using FishNet.Transporting;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Newtonsoft.Json;
+using Il2CppSteamworks;
+#else
 using Newtonsoft.Json;
 using Steamworks;
+#endif
 using DSConstants = DedicatedServerMod.Utils.Constants;
 
 namespace DedicatedServerMod.Client.Managers
@@ -25,6 +35,9 @@ namespace DedicatedServerMod.Client.Managers
         private bool _isHandshakeStarted;
         private bool _isConnectionStateHooked;
         private DateTime _nextHandshakeAttemptUtc;
+#if MONO
+        private readonly Action<ClientConnectionStateArgs> _connectionStateHandler;
+#endif
 
         /// <summary>
         /// Initializes a new client auth manager.
@@ -35,6 +48,9 @@ namespace DedicatedServerMod.Client.Managers
             _logger = logger;
             _activeAuthTicket = HAuthTicket.Invalid;
             _nextHandshakeAttemptUtc = DateTime.MinValue;
+#if MONO
+            _connectionStateHandler = OnClientConnectionState;
+#endif
         }
 
         /// <summary>
@@ -129,7 +145,9 @@ namespace DedicatedServerMod.Client.Managers
 
             if (_isConnectionStateHooked && InstanceFinder.ClientManager != null)
             {
-                InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionState;
+#if MONO
+                InstanceFinder.ClientManager.OnClientConnectionState -= _connectionStateHandler;
+#endif
                 _isConnectionStateHooked = false;
             }
 
@@ -299,8 +317,13 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
-            InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionState;
+#if IL2CPP
             _isConnectionStateHooked = true;
+            _logger.Msg("Skipping direct client connection state hook on IL2CPP runtime");
+#else
+            InstanceFinder.ClientManager.OnClientConnectionState += _connectionStateHandler;
+            _isConnectionStateHooked = true;
+#endif
         }
 
         private void OnClientConnectionState(ClientConnectionStateArgs args)

@@ -1,6 +1,10 @@
 using System;
 using DedicatedServerMod.Shared.Networking.Messaging;
+#if IL2CPP
+using Il2CppFishNet.Connection;
+#else
 using FishNet.Connection;
+#endif
 using MelonLoader;
 
 namespace DedicatedServerMod.Shared.Networking

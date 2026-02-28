@@ -105,6 +105,159 @@ namespace DedicatedServerMod.API
 }
 ```
 
+### Mono/IL2CPP Runtime Compatibility
+
+This codebase supports both Mono and IL2CPP runtimes. Follow these patterns to maintain compatibility:
+
+#### 1. Using Aliases for Game Types
+
+When referencing Schedule One game types, use runtime-conditional using aliases:
+
+```csharp
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.UI;
+#else
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.UI;
+#endif
+```
+
+#### 2. Using Aliases for Steamworks Types
+
+Steamworks types have different namespaces in Mono vs IL2CPP:
+
+```csharp
+#if IL2CPP
+using Il2CppSteamworks;
+#else
+using Steamworks;
+#endif
+```
+
+#### 3. Using Aliases for FishNet Types
+
+FishNet types are prefixed with `Il2Cpp` in IL2CPP builds:
+
+```csharp
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Il2CppFishNet.Object;
+using Il2CppFishNet.Serializing;
+using Il2CppFishNet.Transporting;
+#else
+using FishNet;
+using FishNet.Connection;
+using FishNet.Object;
+using FishNet.Serializing;
+using FishNet.Transporting;
+#endif
+```
+
+#### 4. Preferred Patterns
+
+**Pattern A: File-level using aliases (Recommended for files with many game type references)**
+
+Place at the top of the file, after system usings but before namespace:
+
+```csharp
+using System;
+using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppFishNet.Connection;
+#else
+using ScheduleOne.PlayerScripts;
+using FishNet.Connection;
+#endif
+
+namespace DedicatedServerMod.Server.Player
+{
+    public class PlayerManager { }
+}
+```
+
+**Pattern B: Conditional blocks within method bodies (for isolated runtime differences)**
+
+```csharp
+public void ProcessSteamId(ulong steamId)
+{
+#if IL2CPP
+    var cSteamId = new Il2CppSteamworks.CSteamID(steamId);
+#else
+    var cSteamId = new Steamworks.CSteamID(steamId);
+#endif
+    // Common logic here
+}
+```
+
+#### 5. Shared/Internal Compatibility Layer
+
+For complex cross-cutting concerns, create internal compatibility helpers in `Utils/Compat/`:
+
+```csharp
+// Utils/Compat/SteamworksCompat.cs
+internal static class SteamworksCompat
+{
+#if IL2CPP
+    public static Il2CppSteamworks.CSteamID CreateCSteamID(ulong id) => new(id);
+#else
+    public static Steamworks.CSteamID CreateCSteamID(ulong id) => new(id);
+#endif
+}
+```
+
+#### 6. What NOT to Do
+
+**❌ Don't scatter inline conditionals for type references:**
+
+```csharp
+// Bad - hard to read and maintain
+public void DoSomething(Player player)  // Which Player? Mono or Il2Cpp?
+{
+    // Runtime error waiting to happen
+}
+```
+
+**❌ Don't duplicate entire classes for each runtime:**
+
+```csharp
+// Bad - maintenance nightmare
+#if MONO
+public class PlayerManager { /* 200 lines */ }
+#elif IL2CPP
+public class PlayerManager { /* same 200 lines with different usings */ }
+#endif
+```
+
+**✅ Do use consistent naming and aliases:**
+
+```csharp
+// Good - one implementation, runtime-agnostic
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+#else
+using ScheduleOne.PlayerScripts;
+#endif
+
+public class PlayerManager
+{
+    public void ProcessPlayer(Player player) { }
+}
+```
+
+#### 7. Build Configuration Reference
+
+| Configuration | Runtime | Side | Define Constants |
+|---------------|---------|------|------------------|
+| Mono_Server | Mono | Server | `MONO;SERVER` |
+| Mono_Client | Mono | Client | `MONO;CLIENT` |
+| Il2cpp_Server | IL2CPP | Server | `IL2CPP;SERVER` |
+| Il2cpp_Client | IL2CPP | Client | `IL2CPP;CLIENT` |
+
 ---
 
 ## Naming Conventions

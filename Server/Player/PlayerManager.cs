@@ -1,14 +1,28 @@
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+using Il2CppFishNet.Managing.Server;
+#else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing.Server;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using ScheduleOne.PlayerScripts;
+#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using DedicatedServerMod;
 using DedicatedServerMod.API;
+#if IL2CPP
+using Il2CppFishNet.Transporting;
+#else
 using FishNet.Transporting;
+#endif
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
@@ -77,17 +91,25 @@ namespace DedicatedServerMod.Server.Player
         {
             if (InstanceFinder.ServerManager != null)
             {
+#if MONO
                 InstanceFinder.ServerManager.OnRemoteConnectionState += OnClientConnectionState;
+#else
+                logger.Msg("Skipping direct remote connection hook on IL2CPP runtime");
+#endif
                 logger.Msg("Player connection hooks established");
             }
 
             try
             {
+#if MONO
                 ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 logger.Msg("Player spawn hooks established");
+#else
+                logger.Msg("Skipping player spawn hook wiring on IL2CPP runtime");
+#endif
             }
             catch (Exception ex)
             {
@@ -635,7 +657,9 @@ namespace DedicatedServerMod.Server.Player
                 // Remove hooks
                 if (InstanceFinder.ServerManager != null)
                 {
+#if MONO
                     InstanceFinder.ServerManager.OnRemoteConnectionState -= OnClientConnectionState;
+#endif
                 }
 
                 // Note: Player spawn hooks are harder to remove safely, so we leave them

@@ -17,6 +17,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 	
 	<!-- MelonLoader references (common to all configurations) -->
@@ -122,9 +123,6 @@
 		</Reference>
 		<Reference Include="Autodesk.Fbx">
 			<HintPath>$(ManagedPath)\Autodesk.Fbx.dll</HintPath>
-		</Reference>
-		<Reference Include="Boxophobic.Utils.Scripts">
-			<HintPath>$(ManagedPath)\Boxophobic.Utils.Scripts.dll</HintPath>
 		</Reference>
 		<Reference Include="Cinemachine">
 			<HintPath>$(ManagedPath)\Cinemachine.dll</HintPath>
@@ -245,9 +243,6 @@
 		</Reference>
 		<Reference Include="Unity.InputSystem.ForUI">
 			<HintPath>$(ManagedPath)\Unity.InputSystem.ForUI.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.InputSystem.RebindingUI">
-			<HintPath>$(ManagedPath)\Unity.InputSystem.RebindingUI.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.Mathematics">
 			<HintPath>$(ManagedPath)\Unity.Mathematics.dll</HintPath>
@@ -576,12 +571,6 @@
 		<Reference Include="Il2CppAstarPathfindingProject">
 			<HintPath>$(ManagedPath)\Il2CppAstarPathfindingProject.dll</HintPath>
 		</Reference>
-		<Reference Include="Il2CppBoxophobic.AtmosphericHeightFog.Runtime">
-			<HintPath>$(ManagedPath)\Il2CppBoxophobic.AtmosphericHeightFog.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppBoxophobic.Utils.Scripts">
-			<HintPath>$(ManagedPath)\Il2CppBoxophobic.Utils.Scripts.dll</HintPath>
-		</Reference>
 		<Reference Include="Il2CppCinemachine">
 			<HintPath>$(ManagedPath)\Il2CppCinemachine.dll</HintPath>
 		</Reference>
@@ -626,9 +615,6 @@
 		</Reference>
 		<Reference Include="Il2CppLokoSolo.PinchableScrollRect">
 			<HintPath>$(ManagedPath)\Il2CppLokoSolo.PinchableScrollRect.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppNewtonsoft.Json">
-			<HintPath>$(ManagedPath)\Il2CppNewtonsoft.Json.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppOokii.Dialogs">
 			<HintPath>$(ManagedPath)\Il2CppOokii.Dialogs.dll</HintPath>
@@ -680,9 +666,6 @@
 		</Reference>
 		<Reference Include="Unity.InputSystem.ForUI">
 			<HintPath>$(ManagedPath)\Unity.InputSystem.ForUI.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.InputSystem.RebindingUI">
-			<HintPath>$(ManagedPath)\Unity.InputSystem.RebindingUI.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.Mathematics">
 			<HintPath>$(ManagedPath)\Unity.Mathematics.dll</HintPath>
@@ -945,6 +928,8 @@
 	  <None Remove="research\**" />
 	  <EmbeddedResource Remove="FishNet-Docs\**" />
 	  <None Remove="FishNet-Docs\**" />
+	  <EmbeddedResource Remove="Docker\**" />
+	  <None Remove="Docker\**" />
 	</ItemGroup>
 	
 	<!-- Utility infrastructure (shared by all builds) -->

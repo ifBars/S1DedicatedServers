@@ -6,7 +6,11 @@ using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 using Newtonsoft.Json;
 using UnityEngine;
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 
 namespace DedicatedServerMod.Server.Network
 {

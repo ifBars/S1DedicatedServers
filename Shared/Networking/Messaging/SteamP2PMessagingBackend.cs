@@ -4,18 +4,32 @@ using System.Globalization;
 using System.Text;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppFishNet;
+using Il2CppFishNet.Connection;
+#else
 using FishNet;
 using FishNet.Connection;
+#endif
 using MelonLoader;
+#if IL2CPP
+using Newtonsoft.Json;
+using Il2CppSteamworks;
+#else
 using Newtonsoft.Json;
 using Steamworks;
+#endif
 using DSConstants = DedicatedServerMod.Utils.Constants;
 
 #if SERVER
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared.Permissions;
+#if IL2CPP
+using Il2CppScheduleOne.PlayerScripts;
+#else
 using ScheduleOne.PlayerScripts;
+#endif
 #endif
 
 namespace DedicatedServerMod.Shared.Networking.Messaging
@@ -62,7 +76,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             {
                 try
                 {
-                    return SteamManager.Initialized || SteamAPI.IsSteamRunning();
+                    return SteamAPI.IsSteamRunning();
                 }
                 catch
                 {
@@ -100,8 +114,12 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 _maxPayloadBytes = Math.Max(256, config.SteamP2PMaxPayloadBytes);
 
                 SteamNetworking.AllowP2PPacketRelay(_allowRelay);
-                _p2pSessionRequestCallback = Callback<P2PSessionRequest_t>.Create(OnP2PSessionRequest);
-                _p2pSessionConnectFailCallback = Callback<P2PSessionConnectFail_t>.Create(OnP2PSessionConnectFail);
+#if MONO
+                _p2pSessionRequestCallback = Callback<P2PSessionRequest_t>.Create(new Callback<P2PSessionRequest_t>.DispatchDelegate(OnP2PSessionRequest));
+                _p2pSessionConnectFailCallback = Callback<P2PSessionConnectFail_t>.Create(new Callback<P2PSessionConnectFail_t>.DispatchDelegate(OnP2PSessionConnectFail));
+#else
+                _logger.Warning("Steam P2P session callbacks are disabled on IL2CPP runtime.");
+#endif
 
                 _bootstrapBackend = new FishNetRpcMessagingBackend();
                 if (!_bootstrapBackend.Initialize(_logger))
@@ -539,7 +557,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 return;
             }
 
-            foreach (KeyValuePair<int, NetworkConnection> kvp in InstanceFinder.ServerManager.Clients)
+            foreach (var kvp in InstanceFinder.ServerManager.Clients)
             {
                 NetworkConnection conn = kvp.Value;
                 if (conn == null)

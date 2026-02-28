@@ -1,8 +1,13 @@
 using System;
 using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.GameTime;
+#else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
+#endif
 
 namespace DedicatedServerMod.Server.Game
 {

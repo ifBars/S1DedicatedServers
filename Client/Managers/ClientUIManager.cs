@@ -2,7 +2,11 @@ using MelonLoader;
 using System;
 using System.Collections;
 using DedicatedServerMod.Assets;
+#if IL2CPP
+using Il2CppTMPro;
+#else
 using TMPro;
+#endif
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
@@ -272,7 +276,7 @@ namespace DedicatedServerMod.Client.Managers
             if (buttonComponent != null)
             {
                 buttonComponent.onClick.RemoveAllListeners();
-                buttonComponent.onClick.AddListener(OnServersButtonClicked);
+                buttonComponent.onClick.AddListener((UnityAction)OnServersButtonClicked);
             }
             else
             {
@@ -622,17 +626,17 @@ namespace DedicatedServerMod.Client.Managers
                 if (dsOpenDirectConnectButton != null)
                 {
                     dsOpenDirectConnectButton.onClick.RemoveAllListeners();
-                    dsOpenDirectConnectButton.onClick.AddListener(() => ShowDirectConnectPanel(true));
+                    dsOpenDirectConnectButton.onClick.AddListener((UnityAction)delegate { ShowDirectConnectPanel(true); });
                 }
                 if (dsCancelButton != null)
                 {
                     dsCancelButton.onClick.RemoveAllListeners();
-                    dsCancelButton.onClick.AddListener(() => ShowDirectConnectPanel(false));
+                    dsCancelButton.onClick.AddListener((UnityAction)delegate { ShowDirectConnectPanel(false); });
                 }
                 if (dsConnectButton != null)
                 {
                     dsConnectButton.onClick.RemoveAllListeners();
-                    dsConnectButton.onClick.AddListener(OnDirectConnectConfirm);
+                    dsConnectButton.onClick.AddListener((UnityAction)OnDirectConnectConfirm);
                 }
 
                 // Apply captured fonts/colors so text is visible in game
@@ -794,7 +798,9 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             // Overlay dim
-            serverMenuOverlay = new GameObject("ServerMenuOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            serverMenuOverlay = CreateUiObject("ServerMenuOverlay", mainMenu.transform);
+            EnsureComponent<CanvasRenderer>(serverMenuOverlay);
+            EnsureComponent<Image>(serverMenuOverlay);
             serverMenuOverlay.transform.SetParent(mainMenu.transform, false);
             var overlayRect = serverMenuOverlay.GetComponent<RectTransform>();
             overlayRect.anchorMin = new Vector2(0f, 0f);
@@ -805,7 +811,10 @@ namespace DedicatedServerMod.Client.Managers
             overlayImage.color = OVERLAY_DIM;
 
             // Panel
-            serverMenuPanel = new GameObject("ServerMenuPanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+            serverMenuPanel = CreateUiObject("ServerMenuPanel", serverMenuOverlay.transform);
+            EnsureComponent<CanvasRenderer>(serverMenuPanel);
+            EnsureComponent<Image>(serverMenuPanel);
+            EnsureComponent<CanvasGroup>(serverMenuPanel);
             serverMenuPanel.transform.SetParent(serverMenuOverlay.transform, false);
 
             serverMenuCanvasGroup = serverMenuPanel.GetComponent<CanvasGroup>();
@@ -823,7 +832,8 @@ namespace DedicatedServerMod.Client.Managers
             panelImage.raycastTarget = true;
 
             // Panel decorative border
-            var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
+            var border = CreateUiObject("Border", serverMenuPanel.transform);
+            EnsureComponent<Image>(border);
             border.transform.SetParent(serverMenuPanel.transform, false);
             var borderRect = border.GetComponent<RectTransform>();
             borderRect.anchorMin = new Vector2(0f, 0f);
@@ -834,7 +844,7 @@ namespace DedicatedServerMod.Client.Managers
             borderImage.color = new Color(1f, 1f, 1f, 0.03f);
 
             // Title
-            var titleGO = new GameObject("Title", typeof(RectTransform));
+            var titleGO = CreateUiObject("Title", serverMenuPanel.transform);
             titleGO.transform.SetParent(serverMenuPanel.transform, false);
             var titleRect = titleGO.GetComponent<RectTransform>();
             titleRect.anchorMin = new Vector2(0.5f, 1f);
@@ -850,7 +860,7 @@ namespace DedicatedServerMod.Client.Managers
             titleText.fontStyle = FontStyles.Bold;
 
             // Address label
-            var addrLabelGO = new GameObject("AddressLabel", typeof(RectTransform));
+            var addrLabelGO = CreateUiObject("AddressLabel", serverMenuPanel.transform);
             addrLabelGO.transform.SetParent(serverMenuPanel.transform, false);
             var addrLabelRect = addrLabelGO.GetComponent<RectTransform>();
             addrLabelRect.anchorMin = new Vector2(0f, 1f);
@@ -865,7 +875,8 @@ namespace DedicatedServerMod.Client.Managers
             addrLabelText.color = new Color(1f, 1f, 1f, 0.9f);
 
             // Address input background
-            var addrBG = new GameObject("AddressInputBG", typeof(RectTransform), typeof(Image));
+            var addrBG = CreateUiObject("AddressInputBG", serverMenuPanel.transform);
+            EnsureComponent<Image>(addrBG);
             addrBG.transform.SetParent(serverMenuPanel.transform, false);
             var addrBGRect = addrBG.GetComponent<RectTransform>();
             addrBGRect.anchorMin = new Vector2(0f, 1f);
@@ -878,7 +889,8 @@ namespace DedicatedServerMod.Client.Managers
             addrBGImage.raycastTarget = true;
 
             // Input border accent
-            var addrBorder = new GameObject("AddressBorder", typeof(RectTransform), typeof(Image));
+            var addrBorder = CreateUiObject("AddressBorder", addrBG.transform);
+            EnsureComponent<Image>(addrBorder);
             addrBorder.transform.SetParent(addrBG.transform, false);
             var addrBorderRect = addrBorder.GetComponent<RectTransform>();
             addrBorderRect.anchorMin = new Vector2(0f, 0f);
@@ -890,7 +902,7 @@ namespace DedicatedServerMod.Client.Managers
             addrBorderImage.color = ACCENT;
 
             // Address input
-            var addrInputGO = new GameObject("AddressInput", typeof(RectTransform));
+            var addrInputGO = CreateUiObject("AddressInput", addrBG.transform);
             addrInputGO.transform.SetParent(addrBG.transform, false);
             var addrInputRect = addrInputGO.GetComponent<RectTransform>();
             addrInputRect.anchorMin = new Vector2(0f, 0f);
@@ -905,7 +917,7 @@ namespace DedicatedServerMod.Client.Managers
             addrText.enableWordWrapping = false;
             addrText.alignment = TextAlignmentOptions.MidlineLeft;
             serverAddressInput.textComponent = addrText;
-            var placeholder = new GameObject("Placeholder", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+            var placeholder = CreateUiObject("Placeholder", addrInputGO.transform).AddComponent<TextMeshProUGUI>();
             placeholder.transform.SetParent(addrInputGO.transform, false);
             var phRect = placeholder.GetComponent<RectTransform>();
             phRect.anchorMin = new Vector2(0f, 0f);
@@ -920,14 +932,14 @@ namespace DedicatedServerMod.Client.Managers
 
             // Connect button
             serverMenuConnectButton = CreateStyledButton(serverMenuPanel.transform, new Vector2(488f, -118f), new Vector2(152f, 44f), "Connect");
-            serverMenuConnectButton.onClick.AddListener(OnConnectClicked);
+            serverMenuConnectButton.onClick.AddListener((UnityAction)OnConnectClicked);
 
             // Server list button
             serverMenuListButton = CreateStyledButton(serverMenuPanel.transform, new Vector2(28f, -178f), new Vector2(180f, 40f), "Server List");
-            serverMenuListButton.onClick.AddListener(OnServerListClicked);
+            serverMenuListButton.onClick.AddListener((UnityAction)OnServerListClicked);
 
             // Status text
-            var statusGO = new GameObject("StatusText", typeof(RectTransform));
+            var statusGO = CreateUiObject("StatusText", serverMenuPanel.transform);
             statusGO.transform.SetParent(serverMenuPanel.transform, false);
             var statusRect = statusGO.GetComponent<RectTransform>();
             statusRect.anchorMin = new Vector2(0f, 0f);
@@ -948,7 +960,7 @@ namespace DedicatedServerMod.Client.Managers
             closeRect.anchorMax = new Vector2(1f, 1f);
             closeRect.pivot = new Vector2(1f, 1f);
             closeRect.anchoredPosition = new Vector2(-24f, -24f);
-            serverMenuCloseButton.onClick.AddListener(() => ToggleServerMenu(false));
+            serverMenuCloseButton.onClick.AddListener((UnityAction)delegate { ToggleServerMenu(false); });
 
             // Hide initially
             serverMenuOverlay.SetActive(false);
@@ -957,7 +969,10 @@ namespace DedicatedServerMod.Client.Managers
 
         private Button CreateStyledButton(Transform parent, Vector2 anchoredPosition, Vector2 size, string label)
         {
-            var buttonGO = new GameObject($"Button_{label}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            var buttonGO = CreateUiObject($"Button_{label}", parent);
+            EnsureComponent<CanvasRenderer>(buttonGO);
+            EnsureComponent<Image>(buttonGO);
+            EnsureComponent<Button>(buttonGO);
             buttonGO.transform.SetParent(parent, false);
             var rect = buttonGO.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0f, 1f);
@@ -981,7 +996,7 @@ namespace DedicatedServerMod.Client.Managers
             var btn = buttonGO.GetComponent<Button>();
             btn.colors = colors;
 
-            var textGO = new GameObject("Text", typeof(RectTransform));
+            var textGO = CreateUiObject("Text", buttonGO.transform);
             textGO.transform.SetParent(buttonGO.transform, false);
             var textRect = textGO.GetComponent<RectTransform>();
             textRect.anchorMin = new Vector2(0f, 0f);
@@ -1112,6 +1127,24 @@ namespace DedicatedServerMod.Client.Managers
                 port = target.port;
                 return true;
             }
+        }
+
+        private static GameObject CreateUiObject(string name, Transform parent)
+        {
+            var gameObject = new GameObject(name);
+            gameObject.AddComponent<RectTransform>();
+            if (parent != null)
+            {
+                gameObject.transform.SetParent(parent, false);
+            }
+
+            return gameObject;
+        }
+
+        private static T EnsureComponent<T>(GameObject gameObject) where T : Component
+        {
+            var component = gameObject.GetComponent<T>();
+            return component != null ? component : gameObject.AddComponent<T>();
         }
     }
 }

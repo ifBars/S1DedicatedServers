@@ -2,13 +2,26 @@ using System;
 using System.Reflection;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Networking;
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 using HarmonyLib;
 using MelonLoader;
+#if IL2CPP
+using Il2CppScheduleOne;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.UI;
+using TMPInputField = Il2CppTMPro.TMP_InputField;
+#else
 using ScheduleOne;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
+using TMPInputField = TMPro.TMP_InputField;
+#endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Managers
@@ -255,7 +268,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Coroutine to focus the input field after a frame delay
         /// </summary>
-        private static System.Collections.IEnumerator FocusInputField(TMPro.TMP_InputField inputField)
+        private static System.Collections.IEnumerator FocusInputField(TMPInputField inputField)
         {
             yield return null;
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);

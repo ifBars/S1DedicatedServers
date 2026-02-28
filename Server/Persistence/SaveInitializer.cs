@@ -4,9 +4,15 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+#if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.Persistence.Datas;
+#else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence;
 using ScheduleOne.Persistence.Datas;
+#endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Server.Persistence
@@ -67,7 +73,14 @@ namespace DedicatedServerMod.Server.Persistence
 			var metaJsonPath = Path.Combine(saveFolderPath, "Metadata.json");
 			if (!File.Exists(metaJsonPath))
 			{
-				var metadata = new MetaData(new(DateTime.Now), new(DateTime.Now), Application.version, Application.version, false);
+				MetaData metadata;
+#if IL2CPP
+				var now = Il2CppSystem.DateTime.Now;
+				metadata = new MetaData(new(now), new(now), Application.version, Application.version, false);
+#else
+				var now = DateTime.Now;
+				metadata = new MetaData(new(now), new(now), Application.version, Application.version, false);
+#endif
 				File.WriteAllText(metaJsonPath, metadata.GetJson());
 				logger?.Msg($"Wrote default Metadata.json to {metaJsonPath}");
 			}
@@ -76,7 +89,17 @@ namespace DedicatedServerMod.Server.Persistence
 				// Force tutorial off for dedicated servers
 				try
 				{
-					var metadata = ReadJsonData<MetaData>(metaJsonPath) ?? new MetaData(new(DateTime.Now), new(DateTime.Now), Application.version, Application.version, false);
+					MetaData metadata = ReadJsonData<MetaData>(metaJsonPath);
+					if (metadata == null)
+					{
+#if IL2CPP
+						var now = Il2CppSystem.DateTime.Now;
+						metadata = new MetaData(new(now), new(now), Application.version, Application.version, false);
+#else
+						var now = DateTime.Now;
+						metadata = new MetaData(new(now), new(now), Application.version, Application.version, false);
+#endif
+					}
 					metadata.PlayTutorial = false;
 					File.WriteAllText(metaJsonPath, metadata.GetJson());
 				}
