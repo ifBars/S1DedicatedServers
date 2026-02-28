@@ -33,11 +33,6 @@ namespace DedicatedServerMod.API
             public static ClientUIManager UI => ClientBootstrap.Instance?.UIManager;
 
             /// <summary>
-            /// Access to client player setup
-            /// </summary>
-            public static ClientPlayerSetup PlayerSetup => ClientBootstrap.Instance?.PlayerSetupManager;
-
-            /// <summary>
             /// Access to client console management
             /// </summary>
             public static ClientConsoleManager Console => ClientBootstrap.Instance?.ConsoleManager;

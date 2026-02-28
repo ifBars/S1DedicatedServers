@@ -284,14 +284,6 @@ namespace DedicatedServerMod.Client.Managers
             timeline.Mark("onLoadComplete");
             loadManager.onLoadComplete?.Invoke();
 
-            // --- Post-load: Handle first-time player setup if intro not completed ---
-            if (Player.Local != null && !Player.Local.HasCompletedIntro)
-            {
-                timeline.Mark("FirstTimePlayerSetup");
-                yield return MelonCoroutines.Start(
-                    ClientPlayerSetup.HandlePostLoadPlayerSetup(Player.Local));
-            }
-
             // --- Step 16 (native 715-720): Finalize ---
             yield return new WaitForSeconds(NativeInvariants.POST_LOAD_DELAY_SECONDS);
             loadManager.LoadStatus = LoadManager.ELoadStatus.None;

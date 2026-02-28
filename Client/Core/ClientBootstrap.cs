@@ -66,11 +66,6 @@ namespace DedicatedServerMod.Client.Core
         private ClientConsoleManager _consoleManager;
 
         /// <summary>
-        /// The player setup handler.
-        /// </summary>
-        private ClientPlayerSetup _playerSetup;
-
-        /// <summary>
         /// The loopback handler for ghost player management.
         /// </summary>
         private ClientLoopbackHandler _loopbackHandler;
@@ -123,11 +118,6 @@ namespace DedicatedServerMod.Client.Core
         /// Gets the console manager.
         /// </summary>
         public ClientConsoleManager ConsoleManager => _consoleManager;
-
-        /// <summary>
-        /// Gets the player setup handler.
-        /// </summary>
-        public ClientPlayerSetup PlayerSetupManager => _playerSetup;
 
         /// <summary>
         /// Gets the loopback handler.
@@ -265,10 +255,6 @@ namespace DedicatedServerMod.Client.Core
             // Initialize console manager (for admin console access)
             _consoleManager = new ClientConsoleManager(_logger);
             _consoleManager.Initialize();
-
-            // Initialize player setup handler
-            _playerSetup = new ClientPlayerSetup(_logger);
-            _playerSetup.Initialize();
 
             // Initialize quest manager
             _questManager = new ClientQuestManager(_logger);

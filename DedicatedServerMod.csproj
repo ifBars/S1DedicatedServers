@@ -1031,13 +1031,6 @@
 		<Compile Include="Server\Game\SleepSystemManager.cs" />
 		<Compile Include="Server\Game\GamePatchManager.cs" />
 		<Compile Include="API\S1DS.Server.cs" />
-		
-		<!-- Legacy files (for backward compatibility during transition) -->
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Client\Managers\" />
-	  <Folder Include="Client\Patchers\" />
-	  <Folder Include="Client\Core\" />
 	</ItemGroup>
 
 	<PropertyGroup>
