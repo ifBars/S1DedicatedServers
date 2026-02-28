@@ -930,7 +930,6 @@
 	<ItemGroup>
 	  <!-- Legacy files in Shared root (for backward compatibility) -->
 	  <Compile Include="Shared\CustomMessaging.cs" />
-	  <Compile Include="Shared\ServerConfig.cs" />
 	  <Compile Include="Shared\ServerData.cs" />
 	  <!-- Utils -->
 	  <Compile Include="Utils\*.cs" />

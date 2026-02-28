@@ -161,12 +161,6 @@ namespace DedicatedServerMod.Shared.Configuration
         public string SteamWebApiIdentity { get; set; } = "DedicatedServerMod";
 
         /// <summary>
-        /// Whether the server should only accept Steam friends of the host.
-        /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.RequireFriends)]
-        public bool RequireFriends { get; set; } = false;
-
-        /// <summary>
         /// Whether to register with public server lists.
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.PublicServer)]

@@ -392,7 +392,6 @@ namespace DedicatedServerMod.Utils
             public const string SteamP2PServerSteamId = "steamP2PServerSteamId";
             public const string SteamWebApiKey = "steamWebApiKey";
             public const string SteamWebApiIdentity = "steamWebApiIdentity";
-            public const string RequireFriends = "requireFriends";
             public const string PublicServer = "publicServer";
             public const string RegisterWithMasterServer = "registerWithMasterServer";
             public const string MasterServerURL = "masterServerUrl";
