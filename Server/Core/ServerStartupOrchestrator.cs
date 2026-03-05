@@ -265,7 +265,10 @@ namespace DedicatedServerMod.Server.Core
                 cElapsed += 0.1f;
             }
             if (!networkManager.IsClient)
-                Logger.Warning("Loopback client did not initialize within timeout");
+            {
+                Logger.Error("Loopback client did not initialize within timeout");
+                yield break;
+            }
 
             // Hide/teleport loopback player on spawn
 #if MONO
@@ -274,6 +277,27 @@ namespace DedicatedServerMod.Server.Core
 #else
             Logger.Msg("Skipping loopback spawn hook wiring on IL2CPP runtime");
 #endif
+            TryHandleExistingLoopbackPlayer();
+
+            // Native host flow guarantees Player.Local before loading persistence data.
+            loadManager.LoadStatus = LoadManager.ELoadStatus.SpawningPlayer;
+            Logger.Msg("Waiting for loopback local player spawn");
+            float localPlayerTimeout = 30f;
+            float localPlayerElapsed = 0f;
+            while (ScheduleOne.PlayerScripts.Player.Local == null && localPlayerElapsed < localPlayerTimeout)
+            {
+                TryHandleExistingLoopbackPlayer();
+                yield return new WaitForSeconds(0.1f);
+                localPlayerElapsed += 0.1f;
+            }
+
+            if (ScheduleOne.PlayerScripts.Player.Local == null)
+            {
+                Logger.Error($"Loopback Player.Local did not spawn within {localPlayerTimeout:F1}s");
+                yield break;
+            }
+
+            Logger.Msg($"Loopback local player ready after {localPlayerElapsed:F1}s");
             TryHandleExistingLoopbackPlayer();
 
             // Step 6: Load save data

@@ -78,7 +78,6 @@ namespace DedicatedServerMod.Server.Game
         {
             return new GameSystemStats
             {
-                TimeNeverStops = ServerConfig.Instance.TimeNeverStops,
                 IgnoreGhostHostForSleep = ServerConfig.Instance.IgnoreGhostHostForSleep,
                 PatchesApplied = patchManager.GetAppliedPatchCount(),
                 TimeSystemActive = timeManager.IsActive,
@@ -111,7 +110,6 @@ namespace DedicatedServerMod.Server.Game
     /// </summary>
     public class GameSystemStats
     {
-        public bool TimeNeverStops { get; set; }
         public bool IgnoreGhostHostForSleep { get; set; }
         public int PatchesApplied { get; set; }
         public bool TimeSystemActive { get; set; }
@@ -119,10 +117,12 @@ namespace DedicatedServerMod.Server.Game
 
         public override string ToString()
         {
-            return $"Time: {(TimeNeverStops ? "Never Stops" : "Normal")} | " +
-                   $"Sleep: {(IgnoreGhostHostForSleep ? "Ignore Ghost Host" : "Normal")} | " +
+            return $"Sleep: {(IgnoreGhostHostForSleep ? "Ignore Ghost Host" : "Normal")} | " +
                    $"Patches: {PatchesApplied} | " +
                    $"Systems: Time({(TimeSystemActive ? "Active" : "Inactive")}), Sleep({(SleepSystemActive ? "Active" : "Inactive")})";
         }
     }
 }
+
+
+

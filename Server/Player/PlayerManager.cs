@@ -407,7 +407,6 @@ namespace DedicatedServerMod.Server.Player
                 {
                     ServerName = cfg.ServerName,
                     AllowSleeping = cfg.AllowSleeping,
-                    TimeNeverStops = cfg.TimeNeverStops,
                     PublicServer = cfg.PublicServer
                 };
 
@@ -694,3 +693,4 @@ namespace DedicatedServerMod.Server.Player
         }
     }
 }
+

@@ -252,12 +252,6 @@ namespace DedicatedServerMod.Shared.Configuration
         public bool IgnoreGhostHostForSleep { get; set; } = true;
 
         /// <summary>
-        /// Whether time progression never stops (always advances).
-        /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.TimeNeverStops)]
-        public bool TimeNeverStops { get; set; } = false;
-
-        /// <summary>
         /// Multiplier for time progression (1.0 = real-time).
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.TimeMultiplier)]
@@ -846,7 +840,6 @@ namespace DedicatedServerMod.Shared.Configuration
             info += $"Operators: {Instance.Operators.Count}\n";
             info += $"Admins: {Instance.Admins.Count}\n";
             info += $"Auto-Save: {Instance.AutoSaveEnabled} ({Instance.AutoSaveIntervalMinutes}min)\n";
-            info += $"Time Never Stops: {Instance.TimeNeverStops}\n";
             info += $"Debug Mode: {Instance.DebugMode}\n";
 
             return info;
@@ -1035,3 +1028,4 @@ namespace DedicatedServerMod.Shared.Configuration
         #endregion
     }
 }
+

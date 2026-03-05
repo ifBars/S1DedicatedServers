@@ -567,7 +567,6 @@ namespace DedicatedServerMod.Shared.Networking
                 {
                     ServerName = config.ServerName,
                     AllowSleeping = config.AllowSleeping,
-                    TimeNeverStops = config.TimeNeverStops,
                     PublicServer = config.PublicServer
                 };
 
@@ -734,10 +733,10 @@ namespace DedicatedServerMod.Shared.Networking
         {
             public string ServerName;
             public bool AllowSleeping;
-            public bool TimeNeverStops;
             public bool PublicServer;
         }
 
         #endregion
     }
 }
+

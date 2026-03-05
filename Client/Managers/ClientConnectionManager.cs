@@ -232,51 +232,37 @@ namespace DedicatedServerMod.Client.Managers
             // Server sends ReceivePlayerData RPC which sets playerDataRetrieveReturned.
             loadManager.LoadStatus = LoadManager.ELoadStatus.LoadingData;
             timeline.Mark("WaitForPlayerData");
-            float dataTimeout = 30f;
-            float dataElapsed = 0f;
-            while (Player.Local != null && !Player.Local.playerDataRetrieveReturned && dataElapsed < dataTimeout)
+            float dataWaitStart = Time.realtimeSinceStartup;
+            yield return new WaitUntil(() => Player.Local == null || Player.Local.playerDataRetrieveReturned);
+            if (Player.Local == null)
             {
-                yield return new WaitForSeconds(0.1f);
-                dataElapsed += 0.1f;
+                timeline.MarkError("PlayerDataReceive", "Player.Local was lost before data retrieval completed");
+                HandleConnectionError("Local player was destroyed while waiting for player data");
+                yield break;
             }
-            if (Player.Local == null || !Player.Local.playerDataRetrieveReturned)
-            {
-                timeline.Mark("PlayerDataTimeout", $"{dataElapsed:F1}s");
-                logger.Warning("Player data retrieve timed out - continuing");
-            }
-            else
-            {
-                timeline.Mark("PlayerDataReceived", $"{dataElapsed:F1}s");
-            }
+            timeline.Mark("PlayerDataReceived", $"{(Time.realtimeSinceStartup - dataWaitStart):F1}s");
 
             // --- Step 14 (native 705-709): Wait for replication ---
             // ReplicationQueue.ReplicationDoneForLocalPlayer set by TargetRpc from server,
             // or LocalPlayerReplicationTimedOut after 45s.
             loadManager.LoadStatus = LoadManager.ELoadStatus.Initializing;
             timeline.Mark("WaitForReplication");
-            float repTimeout = 50f;
-            float repElapsed = 0f;
-            while (repElapsed < repTimeout)
+            float replicationWaitStart = Time.realtimeSinceStartup;
+            yield return new WaitUntil(() =>
+                NetworkSingleton<ReplicationQueue>.InstanceExists &&
+                (NetworkSingleton<ReplicationQueue>.Instance.ReplicationDoneForLocalPlayer ||
+                 NetworkSingleton<ReplicationQueue>.Instance.LocalPlayerReplicationTimedOut));
+
+            var replicationQueue = NetworkSingleton<ReplicationQueue>.Instance;
+            if (replicationQueue.LocalPlayerReplicationTimedOut)
             {
-                if (NetworkSingleton<ReplicationQueue>.InstanceExists)
-                {
-                    var repQueue = NetworkSingleton<ReplicationQueue>.Instance;
-                    if (repQueue.ReplicationDoneForLocalPlayer || repQueue.LocalPlayerReplicationTimedOut)
-                        break;
-                }
-                yield return new WaitForSeconds(0.1f);
-                repElapsed += 0.1f;
-            }
-            if (NetworkSingleton<ReplicationQueue>.InstanceExists &&
-                NetworkSingleton<ReplicationQueue>.Instance.LocalPlayerReplicationTimedOut)
-            {
-                var task = NetworkSingleton<ReplicationQueue>.Instance.CurrentReplicationTask;
+                var task = replicationQueue.CurrentReplicationTask;
                 timeline.Mark("ReplicationTimeout", task);
                 logger.Warning($"Replication timed out. Current task: {task}");
             }
             else
             {
-                timeline.Mark("ReplicationComplete", $"{repElapsed:F1}s");
+                timeline.Mark("ReplicationComplete", $"{(Time.realtimeSinceStartup - replicationWaitStart):F1}s");
             }
 
             // --- Step 15 (native 711-713): Load complete ---

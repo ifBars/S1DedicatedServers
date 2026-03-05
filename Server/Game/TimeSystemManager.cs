@@ -1,5 +1,4 @@
 using System;
-using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
@@ -38,12 +37,7 @@ namespace DedicatedServerMod.Server.Game
             {
                 isActive = true;
 
-                if (ServerConfig.Instance.TimeNeverStops)
-                {
-                    logger.Warning("timeNeverStops is enabled but native time mode is active; dedicated server will use base-game time behavior.");
-                }
-
-                logger.Msg("Time system initialized with native game behavior (4 AM freeze preserved).");
+                logger.Msg("Time system initialized with native game behavior.");
             }
             catch (Exception ex)
             {
@@ -97,7 +91,6 @@ namespace DedicatedServerMod.Server.Game
                     Hour = tm.CurrentTime / 100,
                     Minute = tm.CurrentTime % 100,
                     Day = tm.ElapsedDays,
-                    TimeNeverStops = ServerConfig.Instance.TimeNeverStops,
                     Message = $"{tm.CurrentTime / 100:D2}:{tm.CurrentTime % 100:D2} Day {tm.ElapsedDays}"
                 };
             }
@@ -130,7 +123,6 @@ namespace DedicatedServerMod.Server.Game
         public int Hour { get; set; }
         public int Minute { get; set; }
         public int Day { get; set; }
-        public bool TimeNeverStops { get; set; }
         public string Message { get; set; }
 
         public override string ToString()
@@ -139,3 +131,5 @@ namespace DedicatedServerMod.Server.Game
         }
     }
 }
+
+

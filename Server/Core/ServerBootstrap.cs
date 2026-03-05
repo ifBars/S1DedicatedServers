@@ -458,12 +458,6 @@ namespace DedicatedServerMod.Server.Core
             set => Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep = value;
         }
 
-        public static bool TimeNeverStops
-        {
-            get => Shared.Configuration.ServerConfig.Instance.TimeNeverStops;
-            set => Shared.Configuration.ServerConfig.Instance.TimeNeverStops = value;
-        }
-
         public static bool AutoSaveEnabled
         {
             get => Shared.Configuration.ServerConfig.Instance.AutoSaveEnabled;
@@ -506,3 +500,4 @@ namespace DedicatedServerMod.Server.Core
     /// </summary>
     public class RoutineRunner : MonoBehaviour { }
 }
+
