@@ -18,11 +18,17 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         private static MelonLogger.Instance _logger;
         private static IMessagingBackend _backend;
         private static bool _isInitialized;
+        private static bool _isEndpointReady;
 
         /// <summary>
         /// Gets whether the messaging service is initialized.
         /// </summary>
         public static bool IsInitialized => _isInitialized && _backend?.IsInitialized == true;
+
+        /// <summary>
+        /// Gets whether the active messaging endpoint is ready for traffic.
+        /// </summary>
+        public static bool IsEndpointReady => _isInitialized && _isEndpointReady;
 
         /// <summary>
         /// Gets the currently active backend type.
@@ -38,6 +44,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         /// Raised when a message is received from a client (server-side).
         /// </summary>
         public static event Action<NetworkConnection, string, string> ServerMessageReceived;
+
+        /// <summary>
+        /// Raised when the active messaging endpoint becomes ready.
+        /// </summary>
+        public static event Action EndpointReady;
 
         /// <summary>
         /// Initializes the messaging service with the configured backend.
@@ -84,6 +95,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 }
 
                 _isInitialized = true;
+                _isEndpointReady = false;
                 _logger.Msg($"Messaging service initialized with backend: {backendType}");
                 return true;
             }
@@ -119,6 +131,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             {
                 _backend = null;
                 _isInitialized = false;
+                _isEndpointReady = false;
             }
         }
 
@@ -158,10 +171,30 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             try
             {
                 _backend.OnDailySummaryAwake(instance);
+                MarkEndpointReady();
             }
             catch (Exception ex)
             {
                 _logger?.Error($"Error in DailySummaryAwake: {ex}");
+            }
+        }
+
+        private static void MarkEndpointReady()
+        {
+            if (_isEndpointReady)
+            {
+                return;
+            }
+
+            _isEndpointReady = true;
+
+            try
+            {
+                EndpointReady?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"Error in EndpointReady event: {ex}");
             }
         }
 

@@ -202,6 +202,11 @@ namespace DedicatedServerMod.Utils
             public const string AuthResult = "auth_result";
 
             /// <summary>
+            /// Disconnect notice message (server -> client) sent before an intentional kick/disconnect.
+            /// </summary>
+            public const string DisconnectNotice = "disconnect_notice";
+
+            /// <summary>
             /// Welcome message (server → client on connect).
             /// </summary>
             public const string WelcomeMessage = "welcome_message";
@@ -330,6 +335,18 @@ namespace DedicatedServerMod.Utils
         /// This player represents the server's local player on dedicated servers.
         /// </summary>
         public const string GhostHostObjectName = "[DedicatedServerHostLoopback]";
+
+        /// <summary>
+        /// Synthetic display name used for the dedicated server loopback player.
+        /// This avoids presenting the host ghost as a normal player named "Player".
+        /// </summary>
+        public const string GhostHostDisplayName = "Dedicated Server Loopback";
+
+        /// <summary>
+        /// Synthetic Steam-style identifier used by the dedicated server loopback player.
+        /// This is not a real Steam identity and should only be used for the host ghost path.
+        /// </summary>
+        public const string GhostHostSyntheticSteamId = "0";
 
         #endregion
 

@@ -138,7 +138,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 var ds = DailySummary.Instance;
                 if (ds == null)
                 {
-                    _logger?.Warning($"SendToServer skipped: DailySummary instance null for cmd='{command}'");
+                    _logger?.Msg($"SendToServer deferred: DailySummary instance not ready for cmd='{command}'");
                     return false;
                 }
 
@@ -187,7 +187,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 var ds = DailySummary.Instance;
                 if (ds == null)
                 {
-                    _logger?.Warning($"SendToClient skipped: DailySummary instance null for cmd='{command}'");
+                    _logger?.Msg($"SendToClient deferred: DailySummary instance not ready for cmd='{command}'");
                     return false;
                 }
 

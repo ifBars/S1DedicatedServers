@@ -1018,7 +1018,19 @@
 		<Compile Include="Server\Persistence\SaveInitializer.cs" />
 		
 		<!-- Game systems -->
-		<Compile Include="Server\Game\DedicatedServerPatches.cs" />
+		<Compile Include="Server\Game\ConsolePatches.cs" />
+		<Compile Include="Server\Game\DailySummaryPatches.cs" />
+		<Compile Include="Server\Game\DedicatedServerPatchCommon.cs" />
+		<Compile Include="Server\Game\GameManagerPatches.cs" />
+		<Compile Include="Server\Game\GodRaysRenderPassPatches.cs" />
+		<Compile Include="Server\Game\HeatmapManagerPatches.cs" />
+		<Compile Include="Server\Game\IconGeneratorPatches.cs" />
+		<Compile Include="Server\Game\LoadManagerPatches.cs" />
+		<Compile Include="Server\Game\MultipassPatches.cs" />
+		<Compile Include="Server\Game\PlayerPatches.cs" />
+		<Compile Include="Server\Game\ProductIconManagerPatches.cs" />
+		<Compile Include="Server\Game\SleepCanvasPatches.cs" />
+		<Compile Include="Server\Game\TimeManagerPatches.cs" />
 		<Compile Include="Server\Game\GameSystemManager.cs" />
 		<Compile Include="Server\Game\TimeSystemManager.cs" />
 		<Compile Include="Server\Game\SleepSystemManager.cs" />

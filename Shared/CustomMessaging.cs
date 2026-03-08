@@ -24,6 +24,16 @@ namespace DedicatedServerMod.Shared.Networking
     {
         private static MelonLogger.Instance _logger = new MelonLogger.Instance("CustomMessaging");
         private static bool _eventsWired;
+        private static readonly System.Collections.Generic.List<DeferredClientMessage> DeferredClientMessages = new System.Collections.Generic.List<DeferredClientMessage>();
+
+        private sealed class DeferredClientMessage
+        {
+            public NetworkConnection Connection { get; set; }
+
+            public string Command { get; set; }
+
+            public string Data { get; set; }
+        }
 
         #region API Events
 
@@ -59,6 +69,20 @@ namespace DedicatedServerMod.Shared.Networking
             }
         }
 
+        /// <summary>
+        /// Raised when the active messaging endpoint becomes ready.
+        /// </summary>
+        public static event Action EndpointReady
+        {
+            add => MessagingService.EndpointReady += value;
+            remove => MessagingService.EndpointReady -= value;
+        }
+
+        /// <summary>
+        /// Gets whether the active messaging endpoint is ready.
+        /// </summary>
+        public static bool IsEndpointReady => MessagingService.IsEndpointReady;
+
         #endregion
 
         #region Initialization
@@ -80,6 +104,7 @@ namespace DedicatedServerMod.Shared.Networking
         public static void Shutdown()
         {
             _logger.Msg("CustomMessaging shutting down");
+            DeferredClientMessages.Clear();
             MessagingService.Shutdown();
         }
 
@@ -138,6 +163,37 @@ namespace DedicatedServerMod.Shared.Networking
         public static void SendToClient(NetworkConnection conn, string command, string data = "")
         {
             MessagingService.SendToClient(conn, command, data);
+        }
+
+        /// <summary>
+        /// Sends a server-to-client message immediately when possible, or defers it until the
+        /// shared messaging endpoint is ready.
+        /// </summary>
+        /// <param name="conn">The target connection.</param>
+        /// <param name="command">The message command type.</param>
+        /// <param name="data">The message payload.</param>
+        /// <returns>True when the message was sent or queued successfully.</returns>
+        public static bool SendToClientOrDeferUntilReady(NetworkConnection conn, string command, string data = "")
+        {
+            if (conn == null)
+            {
+                return false;
+            }
+
+            if (MessagingService.IsEndpointReady)
+            {
+                return MessagingService.SendToClient(conn, command, data);
+            }
+
+            DeferredClientMessages.Add(new DeferredClientMessage
+            {
+                Connection = conn,
+                Command = command,
+                Data = data ?? string.Empty
+            });
+
+            _logger.Msg($"Deferred server message until messaging endpoint ready: cmd='{command}' to={conn.ClientId}");
+            return true;
         }
 
         /// <summary>
@@ -209,7 +265,32 @@ namespace DedicatedServerMod.Shared.Networking
                 }
             };
 
+            MessagingService.EndpointReady += FlushDeferredClientMessages;
+
             _eventsWired = true;
+        }
+
+        private static void FlushDeferredClientMessages()
+        {
+            if (DeferredClientMessages.Count == 0)
+            {
+                return;
+            }
+
+            var pending = new System.Collections.Generic.List<DeferredClientMessage>(DeferredClientMessages);
+            DeferredClientMessages.Clear();
+
+            for (int i = 0; i < pending.Count; i++)
+            {
+                DeferredClientMessage deferred = pending[i];
+
+                if (deferred.Connection == null || !deferred.Connection.IsActive)
+                {
+                    continue;
+                }
+
+                MessagingService.SendToClient(deferred.Connection, deferred.Command, deferred.Data ?? string.Empty);
+            }
         }
 
         #endregion

@@ -96,15 +96,16 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                if (sceneName == "Menu" && !menuUISetup)
+                if (sceneName == "Menu")
                 {
-                    logger.Msg("Menu scene loaded - setting up prototype UI");
-                    MelonCoroutines.Start(SetupMenuUI());
-                }
-                else if (sceneName == "Menu")
-                {
-                    // Reset animation controller when returning to menu
+                    RefreshMenuUiReferences();
                     menuAnimationController?.Reset();
+
+                    if (!menuUISetup || !HasLiveMenuUi())
+                    {
+                        logger.Msg("Menu scene loaded - setting up prototype UI");
+                        MelonCoroutines.Start(SetupMenuUI());
+                    }
                 }
             }
             catch (Exception ex)
@@ -123,6 +124,8 @@ namespace DedicatedServerMod.Client.Managers
             
             try
             {
+                RefreshMenuUiReferences();
+
                 if (AddServersButton())
                 {
                     menuUISetup = true;
@@ -148,6 +151,12 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                if (serversButton != null)
+                {
+                    logger.Msg("Servers button already exists in current menu scene");
+                    return true;
+                }
+
                 // Find main menu structure
                 var mainMenu = GameObject.Find("MainMenu");
                 if (mainMenu == null)
@@ -471,6 +480,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                RefreshMenuUiReferences();
                 menuUISetup = false;
                 menuAnimationController?.Reset();
                 UpdateButtonState();
@@ -535,6 +545,50 @@ namespace DedicatedServerMod.Client.Managers
             {
                 logger.Error($"Error toggling server menu: {ex}");
             }
+        }
+
+        private void RefreshMenuUiReferences()
+        {
+            if (serversButton != null && serversButton.Equals(null))
+            {
+                serversButton = null;
+            }
+
+            if (serverMenuOverlay != null && serverMenuOverlay.Equals(null))
+            {
+                serverMenuOverlay = null;
+            }
+
+            if (serverMenuPanel != null && serverMenuPanel.Equals(null))
+            {
+                serverMenuPanel = null;
+                serverMenuCanvasGroup = null;
+                serverAddressInput = null;
+                serverMenuStatusText = null;
+                serverMenuConnectButton = null;
+                serverMenuListButton = null;
+                serverMenuCloseButton = null;
+            }
+
+            if (dsServerBrowserPanel != null && dsServerBrowserPanel.Equals(null))
+            {
+                dsServerBrowserPanel = null;
+                dsOpenDirectConnectButton = null;
+            }
+
+            if (dsDirectConnectPanel != null && dsDirectConnectPanel.Equals(null))
+            {
+                dsDirectConnectPanel = null;
+                dsConnectButton = null;
+                dsCancelButton = null;
+                dsIpInput = null;
+                dsPortInput = null;
+            }
+        }
+
+        private bool HasLiveMenuUi()
+        {
+            return serversButton != null || dsServerBrowserPanel != null || serverMenuPanel != null;
         }
 
         private bool EnsureDedicatedClientUi()

@@ -92,11 +92,24 @@ namespace DedicatedServerMod.Server.Network
         /// </summary>
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
-            logger.Msg($"Server connection state: {args.ConnectionState}");
+            logger.Msg($"Server connection state: {args.ConnectionState} (transport index {args.TransportIndex})");
 
             switch (args.ConnectionState)
             {
+                case LocalConnectionState.Starting:
+                    if (isServerRunning)
+                    {
+                        logger.Msg($"Additional server transport entered Starting after server was already online (transport index {args.TransportIndex})");
+                    }
+                    break;
+
                 case LocalConnectionState.Started:
+                    if (isServerRunning)
+                    {
+                        logger.Msg($"Additional server transport reported Started after server was already online (transport index {args.TransportIndex})");
+                        break;
+                    }
+
                     isServerRunning = true;
                     serverStartTime = DateTime.Now;
                     logger.Msg($"=== DEDICATED SERVER ONLINE ===");
@@ -106,98 +119,15 @@ namespace DedicatedServerMod.Server.Network
                     break;
 
                 case LocalConnectionState.Stopped:
+                    if (!isServerRunning)
+                    {
+                        logger.Msg($"Server transport reported Stopped while server was already offline (transport index {args.TransportIndex})");
+                        break;
+                    }
+
                     isServerRunning = false;
                     logger.Msg($"=== DEDICATED SERVER OFFLINE ===");
                     break;
-            }
-        }
-
-        /// <summary>
-        /// Start the dedicated server asynchronously
-        /// </summary>
-        public IEnumerator StartServerAsync()
-        {
-            logger.Msg("Starting dedicated server...");
-
-            try
-            {
-                if (!SetupTugboatTransport())
-                {
-                    logger.Error("Failed to setup Tugboat transport");
-                    yield break;
-                }
-
-                var networkManager = InstanceFinder.NetworkManager;
-                if (networkManager != null && networkManager.ServerManager != null)
-                {
-                    networkManager.ServerManager.StartConnection();
-                    logger.Msg("Server start initiated");
-                }
-                else
-                {
-                    logger.Error("NetworkManager or ServerManager not available");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error starting server: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Setup Tugboat transport for dedicated server
-        /// </summary>
-        private bool SetupTugboatTransport()
-        {
-            try
-            {
-                var networkManager = InstanceFinder.NetworkManager;
-                if (networkManager == null)
-                {
-                    logger.Error("NetworkManager not available");
-                    return false;
-                }
-
-                var transportManager = networkManager.TransportManager;
-                var transport = transportManager.Transport;
-                var multipass = transport as Multipass;
-
-                if (multipass == null)
-                {
-                    logger.Error("Multipass transport not found");
-                    return false;
-                }
-
-                var tugboat = multipass.gameObject.GetComponent<Tugboat>();
-                if (tugboat == null)
-                {
-                    tugboat = multipass.gameObject.AddComponent<Tugboat>();
-                    if (tugboat == null)
-                    {
-                        logger.Error("Failed to add Tugboat component");
-                        return false;
-                    }
-                    logger.Msg("Added Tugboat transport component");
-                }
-
-                tugboat.SetPort((ushort)ServerConfig.Instance.ServerPort);
-
-                // Ensure Tugboat is registered in Multipass transports list
-                TryAddTransportToMultipassList(multipass, tugboat);
-
-                if (!SetServerTransport(multipass, tugboat))
-                {
-                    logger.Error("Failed to set Tugboat as server transport");
-                    return false;
-                }
-
-                logger.Msg($"Tugboat transport configured for server on port {ServerConfig.Instance.ServerPort}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error setting up Tugboat transport: {ex}");
-                return false;
             }
         }
 
@@ -242,26 +172,6 @@ namespace DedicatedServerMod.Server.Network
             {
                 logger.Error($"Error setting server transport: {ex}");
                 return false;
-            }
-        }
-
-        private void TryAddTransportToMultipassList(Multipass multipass, Transport transport)
-        {
-            try
-            {
-                var transportsField = typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (transportsField == null) return;
-                var list = transportsField.GetValue(multipass) as System.Collections.Generic.List<Transport>;
-                if (list == null) return;
-                if (!list.Contains(transport))
-                {
-                    list.Add(transport);
-                    logger.Msg($"Registered {transport.GetType().Name} in Multipass transports list");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning($"Unable to register transport in Multipass list: {ex.Message}");
             }
         }
 
@@ -323,54 +233,6 @@ namespace DedicatedServerMod.Server.Network
             {
                 return $"Error getting transport info: {ex.Message}";
             }
-        }
-
-        /// <summary>
-        /// Restore default Steam transport for normal multiplayer
-        /// </summary>
-        public bool RestoreDefaultTransport()
-        {
-#if IL2CPP
-            logger.Warning("RestoreDefaultTransport is not supported on IL2CPP runtime");
-            return false;
-#else
-            try
-            {
-                var networkManager = InstanceFinder.NetworkManager;
-                if (networkManager == null)
-                {
-                    logger.Warning("NetworkManager not available");
-                    return false;
-                }
-
-                var transportManager = networkManager.TransportManager;
-                var transport = transportManager.Transport;
-                var multipass = transport as Multipass;
-
-                if (multipass == null)
-                {
-                    logger.Warning("Multipass transport not found");
-                    return false;
-                }
-
-                // Look for FishySteamworks transport
-                var steamTransport = multipass.gameObject.GetComponent<FishySteamworks.FishySteamworks>();
-                if (steamTransport != null)
-                {
-                    SetServerTransport(multipass, steamTransport);
-                    logger.Msg("Restored default Steam transport");
-                    return true;
-                }
-
-                logger.Warning("Steam transport not found");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error restoring default transport: {ex}");
-                return false;
-            }
-#endif
         }
 
         /// <summary>

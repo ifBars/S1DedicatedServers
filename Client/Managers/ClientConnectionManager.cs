@@ -16,12 +16,14 @@ using Il2CppScheduleOne.Networking;
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.UI.MainMenu;
 #else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Networking;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.UI;
+using ScheduleOne.UI.MainMenu;
 #endif
 using System;
 using System.Collections;
@@ -29,7 +31,9 @@ using System.Reflection;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Patchers;
+using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -52,15 +56,28 @@ namespace DedicatedServerMod.Client.Managers
             typeof(LoadManager).GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Instance);
 #if MONO
         private static readonly Action LocalPlayerSpawnedHandler = OnLocalPlayerSpawned;
+        private readonly Action<ClientConnectionStateArgs> _clientConnectionStateHandler;
 #endif
+
+        private bool _worldLoadCompleted;
+        private bool _authSucceeded;
+        private bool _joinCompletionNotified;
+        private bool _isReturningToMenu;
+        private bool _isConnectionStateHooked;
+        private string _pendingDisconnectTitle;
+        private string _pendingDisconnectReason;
 
         public bool IsConnecting { get; private set; }
         public bool IsConnectedToDedicatedServer { get; private set; }
         public string LastConnectionError { get; private set; }
+        public bool ShouldBlockLoadingScreenClose => IsConnecting && !_isReturningToMenu && _worldLoadCompleted && !_authSucceeded;
 
         public ClientConnectionManager(MelonLogger.Instance logger)
         {
             this.logger = logger;
+#if MONO
+            _clientConnectionStateHandler = OnClientConnectionState;
+#endif
         }
 
         public void Initialize()
@@ -69,6 +86,8 @@ namespace DedicatedServerMod.Client.Managers
             {
                 logger.Msg("Initializing ClientConnectionManager");
                 ParseCommandLineArguments();
+                CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
+                TryHookConnectionState();
                 logger.Msg("ClientConnectionManager initialized");
             }
             catch (Exception ex)
@@ -110,8 +129,14 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
+            TryHookConnectionState();
             logger.Msg($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
+            _worldLoadCompleted = false;
+            _authSucceeded = false;
+            _joinCompletionNotified = false;
+            _isReturningToMenu = false;
             IsConnecting = true;
+            IsConnectedToDedicatedServer = false;
             _isTugboatMode = true;
             LastConnectionError = null;
 
@@ -273,19 +298,21 @@ namespace DedicatedServerMod.Client.Managers
             // --- Step 16 (native 715-720): Finalize ---
             yield return new WaitForSeconds(NativeInvariants.POST_LOAD_DELAY_SECONDS);
             loadManager.LoadStatus = LoadManager.ELoadStatus.None;
-            if (Singleton<LoadingScreen>.InstanceExists)
-                Singleton<LoadingScreen>.Instance.Close();
             loadManager.IsLoading = false;
             loadManager.IsGameLoaded = true;
-
-            IsConnectedToDedicatedServer = true;
-            IsConnecting = false;
+            _worldLoadCompleted = true;
 
             timeline.Mark("ClientLoadComplete");
             timeline.PrintSummary();
 
-            try { ModManager.NotifyConnectedToServer(); }
-            catch (Exception ex) { logger.Warning($"NotifyConnectedToServer error: {ex.Message}"); }
+            if (_authSucceeded)
+            {
+                CompleteJoinAfterAuthentication();
+            }
+            else
+            {
+                logger.Msg("World load complete; waiting for authentication before closing loading screen");
+            }
         }
 
         /// <summary>
@@ -355,31 +382,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             logger.Error($"Connection failed: {errorMessage}");
             LastConnectionError = errorMessage;
-            IsConnecting = false;
-            IsConnectedToDedicatedServer = false;
-            _isTugboatMode = false;
-
-            try
-            {
-                if (InstanceFinder.IsClient)
-                    InstanceFinder.ClientManager?.StopConnection();
-
-                ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
-
-                var loadManager = Singleton<LoadManager>.Instance;
-                if (loadManager != null)
-                {
-                    loadManager.LoadStatus = LoadManager.ELoadStatus.None;
-                    loadManager.IsLoading = false;
-                }
-
-                if (Singleton<LoadingScreen>.InstanceExists)
-                    Singleton<LoadingScreen>.Instance.Close();
-            }
-            catch (Exception cleanupEx)
-            {
-                logger.Error($"Error during connection error cleanup: {cleanupEx}");
-            }
+            ReturnToMenu(errorMessage, isFailure: true, requestPlayerSave: false);
         }
 
         public void DisconnectFromDedicatedServer()
@@ -387,22 +390,278 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 logger.Msg("Disconnecting from dedicated server");
-
-                if (InstanceFinder.IsClient)
-                    InstanceFinder.ClientManager?.StopConnection();
-
-                ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
-
-                IsConnectedToDedicatedServer = false;
-                _isTugboatMode = false;
-
-                logger.Msg("Disconnected from dedicated server");
-                try { ModManager.NotifyDisconnectedFromServer(); }
-                catch (Exception ex) { logger.Warning($"NotifyDisconnectedFromServer error: {ex.Message}"); }
+                ReturnToMenu("Disconnected from dedicated server", isFailure: false, requestPlayerSave: false);
             }
             catch (Exception ex)
             {
                 logger.Error($"Error disconnecting: {ex}");
+            }
+        }
+
+        public void OnAuthenticationSucceeded(string message)
+        {
+            _authSucceeded = true;
+
+            if (_worldLoadCompleted)
+            {
+                CompleteJoinAfterAuthentication();
+            }
+            else
+            {
+                logger.Msg("Authentication succeeded before world load finalized; waiting to complete join");
+            }
+        }
+
+        public void OnAuthenticationFailed(string reason)
+        {
+            ReturnToMenu(reason, isFailure: true, requestPlayerSave: false);
+        }
+
+        public void Shutdown()
+        {
+            CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
+        }
+
+        private void CompleteJoinAfterAuthentication()
+        {
+            if (_joinCompletionNotified || !_worldLoadCompleted || !_authSucceeded)
+            {
+                return;
+            }
+
+            _joinCompletionNotified = true;
+            IsConnectedToDedicatedServer = true;
+            IsConnecting = false;
+
+            if (Singleton<LoadingScreen>.InstanceExists)
+            {
+                Singleton<LoadingScreen>.Instance.Close();
+            }
+
+            logger.Msg("Dedicated server join fully completed after authentication");
+
+            try
+            {
+                ModManager.NotifyConnectedToServer();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"NotifyConnectedToServer error: {ex.Message}");
+            }
+        }
+
+        private void ReturnToMenu(string reason, bool isFailure, bool requestPlayerSave)
+        {
+            if (_isReturningToMenu)
+            {
+                return;
+            }
+
+            MelonCoroutines.Start(ReturnToMenuCoroutine(reason, isFailure, requestPlayerSave));
+        }
+
+        private IEnumerator ReturnToMenuCoroutine(string reason, bool isFailure, bool requestPlayerSave)
+        {
+            _isReturningToMenu = true;
+            bool wasConnected = IsConnectedToDedicatedServer;
+            string popupTitle = isFailure ? "Disconnected" : string.Empty;
+            string popupReason = reason ?? string.Empty;
+
+            if (isFailure && !string.IsNullOrWhiteSpace(_pendingDisconnectReason))
+            {
+                popupTitle = string.IsNullOrWhiteSpace(_pendingDisconnectTitle) ? "Disconnected" : _pendingDisconnectTitle;
+                popupReason = _pendingDisconnectReason;
+            }
+
+            if (isFailure && !string.IsNullOrWhiteSpace(popupReason))
+            {
+                LastConnectionError = popupReason;
+            }
+
+            if (Singleton<LoadingScreen>.InstanceExists)
+            {
+                Singleton<LoadingScreen>.Instance.Open();
+            }
+
+            if (requestPlayerSave && Player.Local != null)
+            {
+                bool waitForSave = false;
+                float saveWaitStart = 0f;
+
+                try
+                {
+                    Player.Local.RequestSavePlayer();
+                    saveWaitStart = Time.realtimeSinceStartup;
+                    waitForSave = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Failed to request player save before returning to menu: {ex.Message}");
+                }
+
+                if (waitForSave)
+                {
+                    yield return new WaitUntil(() => Player.Local == null || Player.Local.playerSaveRequestReturned || Time.realtimeSinceStartup - saveWaitStart > 2f);
+                }
+            }
+
+            try
+            {
+                var loadManager = Singleton<LoadManager>.Instance;
+                if (loadManager != null)
+                {
+                    loadManager.LoadStatus = LoadManager.ELoadStatus.None;
+                    loadManager.IsLoading = true;
+                    loadManager.IsGameLoaded = false;
+                    loadManager.ActiveSaveInfo = null;
+                    loadManager.onPreSceneChange?.Invoke();
+                }
+
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+
+                if (Singleton<CursorManager>.InstanceExists)
+                {
+                    Singleton<CursorManager>.Instance.SetCursorAppearance(CursorManager.ECursorType.Default);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Error invoking pre-scene change during return to menu: {ex.Message}");
+            }
+
+            try
+            {
+                if (InstanceFinder.IsClient)
+                {
+                    InstanceFinder.ClientManager?.StopConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Error stopping client connection during return to menu: {ex.Message}");
+            }
+
+            ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
+
+            IsConnecting = false;
+            IsConnectedToDedicatedServer = false;
+            _worldLoadCompleted = false;
+            _authSucceeded = false;
+            _joinCompletionNotified = false;
+            _isTugboatMode = false;
+
+            if (SceneManager.GetActiveScene().name != "Menu")
+            {
+                AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Menu");
+                while (asyncLoad != null && !asyncLoad.isDone)
+                {
+                    yield return null;
+                }
+            }
+
+            yield return null;
+
+            try
+            {
+                var loadManager = Singleton<LoadManager>.Instance;
+                loadManager?.RefreshSaveInfo();
+
+                if (Singleton<LoadingScreen>.InstanceExists)
+                {
+                    Singleton<LoadingScreen>.Instance.Close();
+                }
+
+                if (loadManager != null)
+                {
+                    loadManager.IsLoading = false;
+                    loadManager.LoadStatus = LoadManager.ELoadStatus.None;
+                }
+
+                if (isFailure && !string.IsNullOrWhiteSpace(popupReason) && Singleton<MainMenuPopup>.InstanceExists)
+                {
+                    Singleton<MainMenuPopup>.Instance.Open(new MainMenuPopup.Data(string.IsNullOrWhiteSpace(popupTitle) ? "Disconnected" : popupTitle, popupReason, true));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Error finalizing return to menu: {ex.Message}");
+            }
+
+            if (wasConnected)
+            {
+                try
+                {
+                    ModManager.NotifyDisconnectedFromServer();
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"NotifyDisconnectedFromServer error: {ex.Message}");
+                }
+            }
+
+            ClearPendingDisconnectNotice();
+            _isReturningToMenu = false;
+        }
+
+        private void OnClientMessageReceived(string command, string data)
+        {
+            if (!string.Equals(command, Constants.Messages.DisconnectNotice, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            try
+            {
+                DisconnectNoticeMessage notice = JsonConvert.DeserializeObject<DisconnectNoticeMessage>(data ?? string.Empty);
+                if (notice == null || string.IsNullOrWhiteSpace(notice.Message))
+                {
+                    return;
+                }
+
+                _pendingDisconnectTitle = string.IsNullOrWhiteSpace(notice.Title) ? "Disconnected" : notice.Title;
+                _pendingDisconnectReason = notice.Message;
+                logger.Msg($"Received disconnect notice: {_pendingDisconnectTitle} - {_pendingDisconnectReason}");
+            }
+            catch (JsonException ex)
+            {
+                logger.Warning($"Failed to parse disconnect notice: {ex.Message}");
+            }
+        }
+
+        private void ClearPendingDisconnectNotice()
+        {
+            _pendingDisconnectTitle = null;
+            _pendingDisconnectReason = null;
+        }
+
+        private void TryHookConnectionState()
+        {
+            if (_isConnectionStateHooked || InstanceFinder.ClientManager == null)
+            {
+                return;
+            }
+
+#if IL2CPP
+            logger.Msg("Skipping direct client connection state hook on IL2CPP runtime");
+            _isConnectionStateHooked = true;
+#else
+            InstanceFinder.ClientManager.OnClientConnectionState += _clientConnectionStateHandler;
+            _isConnectionStateHooked = true;
+#endif
+        }
+
+        private void OnClientConnectionState(ClientConnectionStateArgs args)
+        {
+            if (args.ConnectionState != LocalConnectionState.Stopped || _isReturningToMenu)
+            {
+                return;
+            }
+
+            if (IsConnecting || IsConnectedToDedicatedServer)
+            {
+                logger.Warning("Dedicated server connection stopped unexpectedly; returning to menu");
+                ReturnToMenu("Disconnected from dedicated server", isFailure: true, requestPlayerSave: false);
             }
         }
 

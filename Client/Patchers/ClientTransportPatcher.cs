@@ -34,7 +34,6 @@ namespace DedicatedServerMod.Client.Patchers
     public class ClientTransportPatcher
     {
         private readonly MelonLogger.Instance logger;
-        private HarmonyLib.Harmony harmony;
         private static bool isExiting = false;
 
         private static readonly FieldInfo ClientTransportField =
@@ -53,11 +52,7 @@ namespace DedicatedServerMod.Client.Patchers
             try
             {
                 logger.Msg("Initializing ClientTransportPatcher");
-
-                harmony = new HarmonyLib.Harmony("DedicatedServerMod.ClientTransportPatcher");
-                ApplyPatches();
-
-                logger.Msg("ClientTransportPatcher initialized");
+                logger.Msg("ClientTransportPatcher initialized (using attribute-based patching)");
             }
             catch (Exception ex)
             {
@@ -65,152 +60,110 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
-        private void ApplyPatches()
+        [HarmonyPatch]
+        private static class StartConnectionPatch
         {
-            try
+            private static MethodBase TargetMethod()
             {
-                PatchStartConnection();
-                PatchMultipassInitialize();
-                PatchConfirmExit();
-                logger.Msg("Transport patches applied successfully");
+                return typeof(ClientManager).GetMethod(
+                    "StartConnection",
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null,
+                    Type.EmptyTypes,
+                    null);
             }
-            catch (Exception ex)
+
+            /// <summary>
+            /// Safety-net prefix: if ClientManager.StartConnection() is called while in Tugboat mode,
+            /// ensure the transport is configured. The primary path now uses
+            /// <see cref="SetMultipassClientTransport"/> + direct Tugboat.StartConnection
+            /// from ClientConnectionManager, so this prefix is a fallback only.
+            /// </summary>
+            [HarmonyPrefix]
+            private static bool Prefix(ClientManager __instance)
             {
-                logger.Error($"Failed to apply transport patches: {ex}");
-            }
-        }
-
-        private void PatchStartConnection()
-        {
-            var startConnectionMethod = typeof(ClientManager).GetMethod("StartConnection",
-                BindingFlags.Public | BindingFlags.Instance, null, new Type[0], null);
-
-            if (startConnectionMethod != null)
-            {
-                var prefixMethod = typeof(ClientTransportPatcher).GetMethod(nameof(StartConnectionPrefix),
-                    BindingFlags.Static | BindingFlags.Public);
-                harmony.Patch(startConnectionMethod, new HarmonyMethod(prefixMethod));
-                logger.Msg("Patched ClientManager.StartConnection");
-            }
-            else
-            {
-                logger.Error("Could not find ClientManager.StartConnection method");
-            }
-        }
-
-        private void PatchMultipassInitialize()
-        {
-            var initializeMethod = typeof(Multipass).GetMethod("Initialize");
-
-            if (initializeMethod != null)
-            {
-                var prefixMethod = typeof(ClientTransportPatcher).GetMethod(nameof(MultipassInitializePrefix),
-                    BindingFlags.Static | BindingFlags.Public);
-                harmony.Patch(initializeMethod, new HarmonyMethod(prefixMethod));
-                logger.Msg("Patched Multipass.Initialize");
-            }
-            else
-            {
-                logger.Error("Could not find Multipass.Initialize method");
-            }
-        }
-
-        private void PatchConfirmExit()
-        {
-            var confirmExitMethod = typeof(ConfirmExitScreen).GetMethod("ConfirmExit",
-                BindingFlags.Public | BindingFlags.Instance);
-
-            if (confirmExitMethod != null)
-            {
-                var prefixMethod = typeof(ClientTransportPatcher).GetMethod(nameof(ConfirmExitPrefix),
-                    BindingFlags.Static | BindingFlags.Public);
-                harmony.Patch(confirmExitMethod, new HarmonyMethod(prefixMethod));
-                logger.Msg("Patched ConfirmExitScreen.ConfirmExit");
-            }
-            else
-            {
-                logger.Error("Could not find ConfirmExitScreen.ConfirmExit method");
-            }
-        }
-
-        /// <summary>
-        /// Safety-net prefix: if ClientManager.StartConnection() is called while in Tugboat mode,
-        /// ensure the transport is configured. The primary path now uses
-        /// <see cref="SetMultipassClientTransport"/> + direct Tugboat.StartConnection
-        /// from ClientConnectionManager, so this prefix is a fallback only.
-        /// </summary>
-        public static bool StartConnectionPrefix(ClientManager __instance)
-        {
-            if (!ClientConnectionManager.IsTugboatMode)
-                return true;
-
-            try
-            {
-                var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                var (serverIP, serverPort) = ClientConnectionManager.GetTargetServer();
-
-                var multipass = InstanceFinder.NetworkManager?.TransportManager?.Transport as Multipass;
-                if (multipass == null)
+                if (!ClientConnectionManager.IsTugboatMode)
                     return true;
 
-                var tugboat = multipass.gameObject.GetComponent<Tugboat>();
-                if (tugboat == null)
+                try
+                {
+                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
+                    var (serverIP, serverPort) = ClientConnectionManager.GetTargetServer();
+
+                    var multipass = InstanceFinder.NetworkManager?.TransportManager?.Transport as Multipass;
+                    if (multipass == null)
+                        return true;
+
+                    var tugboat = multipass.gameObject.GetComponent<Tugboat>();
+                    if (tugboat == null)
+                        return true;
+
+                    tugboat.SetClientAddress(serverIP);
+                    tugboat.SetPort((ushort)serverPort);
+                    SetMultipassClientTransport(multipass, tugboat);
+
+                    logger.Msg($"StartConnectionPrefix: configured Tugboat fallback to {serverIP}:{serverPort}");
                     return true;
-
-                tugboat.SetClientAddress(serverIP);
-                tugboat.SetPort((ushort)serverPort);
-                SetMultipassClientTransport(multipass, tugboat);
-
-                logger.Msg($"StartConnectionPrefix: configured Tugboat fallback to {serverIP}:{serverPort}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                logger.Error($"Error in StartConnectionPrefix: {ex}");
-                return true;
+                }
+                catch (Exception ex)
+                {
+                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
+                    logger.Error($"Error in StartConnectionPrefix: {ex}");
+                    return true;
+                }
             }
         }
 
-        public static void MultipassInitializePrefix(Multipass __instance)
+        [HarmonyPatch(typeof(Multipass), "Initialize")]
+        private static class MultipassInitializePatch
         {
-            try
+            [HarmonyPrefix]
+            private static void Prefix(Multipass __instance)
             {
-                var tugboat = __instance.gameObject.GetComponent<Tugboat>();
-                if (tugboat == null)
+                try
                 {
-                    tugboat = __instance.gameObject.AddComponent<Tugboat>();
-                    AddTugboatToTransportsList(__instance, tugboat);
-                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                    logger.Msg("Added Tugboat component to Multipass");
+                    var tugboat = __instance.gameObject.GetComponent<Tugboat>();
+                    if (tugboat == null)
+                    {
+                        tugboat = __instance.gameObject.AddComponent<Tugboat>();
+                        AddTugboatToTransportsList(__instance, tugboat);
+                        var logger = new MelonLogger.Instance("ClientTransportPatcher");
+                        logger.Msg("Added Tugboat component to Multipass");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                logger.Error($"Error in Multipass Initialize patch: {ex}");
+                catch (Exception ex)
+                {
+                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
+                    logger.Error($"Error in Multipass Initialize patch: {ex}");
+                }
             }
         }
 
-        public static bool ConfirmExitPrefix()
+        [HarmonyPatch(typeof(ConfirmExitScreen), nameof(ConfirmExitScreen.ConfirmExit))]
+        private static class ConfirmExitPatch
         {
-            try
+            [HarmonyPrefix]
+            private static bool Prefix()
             {
-                if (ClientConnectionManager.IsTugboatMode && !isExiting)
+                try
+                {
+                    if (ClientConnectionManager.IsTugboatMode && !isExiting)
+                    {
+                        var logger = new MelonLogger.Instance("ClientTransportPatcher");
+                        logger.Msg("ConfirmExit in Tugboat mode - initiating save and disconnect");
+                        isExiting = true;
+                        MelonCoroutines.Start(SaveAndDisconnectCoroutine());
+                        return false;
+                    }
+
+                    return true;
+                }
+                catch (Exception ex)
                 {
                     var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                    logger.Msg("ConfirmExit in Tugboat mode - initiating save and disconnect");
-                    isExiting = true;
-                    MelonCoroutines.Start(SaveAndDisconnectCoroutine());
-                    return false;
+                    logger.Error($"Error in ConfirmExit patch: {ex}");
+                    return true;
                 }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                logger.Error($"Error in ConfirmExit patch: {ex}");
-                return true;
             }
         }
 
@@ -241,15 +194,16 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
-                if (InstanceFinder.IsClient)
-                    InstanceFinder.ClientManager?.StopConnection();
-
-                logger.Msg("Dedicated server disconnection completed");
-                Application.Quit();
+                Core.ClientBootstrap.Instance?.ConnectionManager?.DisconnectFromDedicatedServer();
+                logger.Msg("Dedicated server disconnection redirected to menu flow");
             }
             catch (Exception ex)
             {
                 logger.Error($"Error during disconnection: {ex}");
+            }
+            finally
+            {
+                isExiting = false;
             }
         }
 

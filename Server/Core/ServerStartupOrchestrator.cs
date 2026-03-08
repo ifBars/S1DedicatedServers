@@ -213,6 +213,8 @@ namespace DedicatedServerMod.Server.Core
             loadManager.LoadedGameFolderPath = actualSaveInfo.SavePath;
             Logger.Msg($"Restored loaded save path: {loadManager.LoadedGameFolderPath}");
 
+            TryDisableHeadlessAutoStart(networkManager.ServerManager);
+
             // Step 4: Start FishNet server via ServerManager (ensures Multipass TransportIdData registration)
             if (InstanceFinder.IsServer)
             {
@@ -221,11 +223,7 @@ namespace DedicatedServerMod.Server.Core
             else
             {
                 Logger.Msg("Starting FishNet server (via ServerManager)");
-                bool serverStarted = networkManager.ServerManager.StartConnection();
-                if (!serverStarted)
-                {
-                    Logger.Warning("ServerManager.StartConnection() returned false, server may already be starting");
-                }
+                networkManager.ServerManager.StartConnection();
             }
             float timeout = 10f, elapsed = 0f;
             while (!InstanceFinder.IsServer && elapsed < timeout)
@@ -358,6 +356,29 @@ namespace DedicatedServerMod.Server.Core
                 return;
             }
             Logger.Warning("Could not set client transport via reflection");
+        }
+
+        private static void TryDisableHeadlessAutoStart(FishNet.Managing.Server.ServerManager serverManager)
+        {
+            if (serverManager == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!serverManager.GetStartOnHeadless())
+                {
+                    return;
+                }
+
+                serverManager.SetStartOnHeadless(false);
+                Logger.Msg("Disabled FishNet StartOnHeadless; orchestrator is the single server startup authority");
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Failed to disable FishNet StartOnHeadless: {ex.Message}");
+            }
         }
 
         private static void TryRegisterDefaultQuestsWithGuidManager()

@@ -44,7 +44,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 return;
             }
 
-            if (PlayerManager.KickPlayer(targetPlayer, reason))
+            if (PlayerManager.NotifyAndDisconnectPlayer(targetPlayer, "Kicked", reason))
             {
                 context.Reply($"Kicked {targetPlayer.DisplayName}: {reason}");
                 Logger.Msg($"Player {targetPlayer.DisplayName} kicked by {context.Executor?.DisplayName ?? "Console"}: {reason}");

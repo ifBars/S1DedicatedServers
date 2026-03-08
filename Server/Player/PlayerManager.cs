@@ -14,6 +14,7 @@ using Il2CppScheduleOne.PlayerScripts;
 using ScheduleOne.PlayerScripts;
 #endif
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DedicatedServerMod;
@@ -27,6 +28,7 @@ using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -244,6 +246,14 @@ namespace DedicatedServerMod.Server.Player
                 if (connectedPlayers.TryGetValue(player.Owner, out var playerInfo))
                 {
                     playerInfo.PlayerInstance = player;
+
+                    if (playerInfo.IsLoopbackConnection || GhostHostIdentifier.IsGhostHost(player))
+                    {
+                        ApplyLoopbackIdentity(playerInfo, player.PlayerCode, player.PlayerName);
+                        logger.Msg($"Loopback player spawned and correlated: {playerInfo.DisplayName} (ClientId {player.Owner.ClientId})");
+                        return;
+                    }
+
                     // Identity binding happens via DedicatedServerPatches.BindPlayerIdentityPostfix
                     // which calls SetPlayerIdentity when player name data is received
                     logger.Msg($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId}) - awaiting identity");
@@ -385,7 +395,7 @@ namespace DedicatedServerMod.Server.Player
                 };
 
                 string json = JsonConvert.SerializeObject(payload);
-                CustomMessaging.SendToClient(playerInfo.Connection, Constants.Messages.AuthResult, json);
+                CustomMessaging.SendToClientOrDeferUntilReady(playerInfo.Connection, Constants.Messages.AuthResult, json);
             }
             catch (Exception ex)
             {
@@ -481,7 +491,7 @@ namespace DedicatedServerMod.Server.Player
             try
             {
                 logger.Msg($"Kicking player {player.DisplayName}: {reason}");
-                player.Connection.Disconnect(true);
+                NotifyAndDisconnectPlayer(player, "Kicked", reason);
                 return true;
             }
             catch (Exception ex)
@@ -515,7 +525,7 @@ namespace DedicatedServerMod.Server.Player
                 }
 
                 // Kick the player
-                KickPlayer(player, $"Banned: {reason}");
+                NotifyAndDisconnectPlayer(player, "Banned", $"Banned: {reason}");
                 logger.Msg($"Player banned: {player.DisplayName} ({banIdentifier}) - {reason}");
                 
                 return true;
@@ -567,20 +577,26 @@ namespace DedicatedServerMod.Server.Player
                 connectedPlayers[connection] = playerInfo;
                 logger.Msg($"Created player entry from identity binding: ClientId {connection.ClientId}");
             }
-            else
+
+            if (playerInfo.IsLoopbackConnection)
             {
-                // Check if we're trying to overwrite a valid identity with default/empty values
-                // This happens when clients spawn with temporary ClientId 0 / "Player" before getting real values
-                bool isDefaultIdentity = string.IsNullOrEmpty(steamId) && playerName == "Player";
-                bool hasValidIdentity = !string.IsNullOrEmpty(playerInfo.SteamId) ||
-                                       !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId) ||
-                                       (!string.IsNullOrEmpty(playerInfo.PlayerName) && playerInfo.PlayerName != "Player");
-                
-                if (isDefaultIdentity && hasValidIdentity)
-                {
-                    logger.Msg($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
-                    return;
-                }
+                ApplyLoopbackIdentity(playerInfo, steamId, playerName);
+                logger.Msg($"Loopback identity correlated: ClientId {connection.ClientId} -> SteamID {playerInfo.SteamId} ({playerInfo.PlayerName})");
+                OnPlayerSpawned?.Invoke(playerInfo);
+                return;
+            }
+
+            // Check if we're trying to overwrite a valid identity with default/empty values.
+            // This happens when clients spawn with temporary placeholder values before getting real identity data.
+            bool isDefaultIdentity = string.IsNullOrEmpty(steamId) && playerName == "Player";
+            bool hasValidIdentity = !string.IsNullOrEmpty(playerInfo.SteamId) ||
+                                   !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId) ||
+                                   (!string.IsNullOrEmpty(playerInfo.PlayerName) && playerInfo.PlayerName != "Player");
+
+            if (isDefaultIdentity && hasValidIdentity)
+            {
+                logger.Msg($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
+                return;
             }
 
             if (playerInfo.IsAuthenticated && !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId))
@@ -600,6 +616,31 @@ namespace DedicatedServerMod.Server.Player
             OnPlayerSpawned?.Invoke(playerInfo);
         }
 
+        private static void ApplyLoopbackIdentity(ConnectedPlayerInfo playerInfo, string steamId, string playerName)
+        {
+            if (playerInfo == null)
+            {
+                return;
+            }
+
+            playerInfo.SteamId = NormalizeLoopbackSteamId(steamId);
+            playerInfo.PlayerName = NormalizeLoopbackPlayerName(playerName);
+        }
+
+        private static string NormalizeLoopbackSteamId(string steamId)
+        {
+            return string.IsNullOrWhiteSpace(steamId)
+                ? Constants.GhostHostSyntheticSteamId
+                : steamId;
+        }
+
+        private static string NormalizeLoopbackPlayerName(string playerName)
+        {
+            return string.IsNullOrWhiteSpace(playerName) || string.Equals(playerName, "Player", StringComparison.Ordinal)
+                ? Constants.GhostHostDisplayName
+                : playerName;
+        }
+
         /// <summary>
         /// Get player statistics
         /// </summary>
@@ -614,6 +655,75 @@ namespace DedicatedServerMod.Server.Player
             };
 
             return stats;
+        }
+
+        public bool NotifyAndDisconnectPlayer(ConnectedPlayerInfo player, string title, string reason, float disconnectDelaySeconds = 0.25f)
+        {
+            if (player == null || player.Connection == null || !player.Connection.IsActive)
+            {
+                return false;
+            }
+
+            try
+            {
+                SendDisconnectNotice(player, title, reason);
+                MelonCoroutines.Start(DisconnectPlayerAfterDelay(player, disconnectDelaySeconds));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error notifying/disconnecting player {player.DisplayName}: {ex}");
+                return false;
+            }
+        }
+
+        public void NotifyShutdownAndDisconnectAll(string reason, int noticeDelayMilliseconds = 500)
+        {
+            var playersToKick = connectedPlayers.Values.ToList();
+            if (playersToKick.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var player in playersToKick)
+            {
+                try
+                {
+                    if (player.Connection == null || !player.Connection.IsActive)
+                    {
+                        continue;
+                    }
+
+                    SendDisconnectNotice(player, "Server Shutdown", reason);
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Error sending shutdown notice to {player.DisplayName}: {ex.Message}");
+                }
+            }
+
+            if (noticeDelayMilliseconds > 0)
+            {
+                System.Threading.Thread.Sleep(noticeDelayMilliseconds);
+            }
+
+            foreach (var player in playersToKick)
+            {
+                try
+                {
+                    if (player.Connection == null || !player.Connection.IsActive)
+                    {
+                        continue;
+                    }
+
+                    logger.Msg($"Disconnecting player {player.DisplayName}: {reason}");
+                    player.Connection.Disconnect(true);
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"Error disconnecting player {player.DisplayName} during shutdown: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>
@@ -640,7 +750,8 @@ namespace DedicatedServerMod.Server.Player
                             continue;
                         }
                         
-                        KickPlayer(player, "Server shutdown");
+                        logger.Msg($"Final disconnect cleanup for player: {player.DisplayName}");
+                        player.Connection.Disconnect(true);
                     }
                     catch (Exception ex)
                     {
@@ -675,6 +786,29 @@ namespace DedicatedServerMod.Server.Player
         public event Action<ConnectedPlayerInfo> OnPlayerJoined;
         public event Action<ConnectedPlayerInfo> OnPlayerLeft;
         public event Action<ConnectedPlayerInfo> OnPlayerSpawned;
+
+        private void SendDisconnectNotice(ConnectedPlayerInfo player, string title, string reason)
+        {
+            var payload = new DisconnectNoticeMessage
+            {
+                Title = title ?? string.Empty,
+                Message = reason ?? string.Empty
+            };
+
+            CustomMessaging.SendToClientOrDeferUntilReady(player.Connection, Constants.Messages.DisconnectNotice, JsonConvert.SerializeObject(payload));
+        }
+
+        private IEnumerator DisconnectPlayerAfterDelay(ConnectedPlayerInfo player, float delaySeconds)
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, delaySeconds));
+
+            if (player?.Connection == null || !player.Connection.IsActive)
+            {
+                yield break;
+            }
+
+            player.Connection.Disconnect(true);
+        }
     }
 
     /// <summary>
@@ -693,4 +827,3 @@ namespace DedicatedServerMod.Server.Player
         }
     }
 }
-

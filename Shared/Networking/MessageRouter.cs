@@ -157,6 +157,7 @@ namespace DedicatedServerMod.Shared.Networking
 
                 case Constants.Messages.AuthChallenge:
                 case Constants.Messages.AuthResult:
+                case Constants.Messages.DisconnectNotice:
                 case Constants.Messages.ServerData:
                     // Handled by dedicated client managers via CustomMessaging events.
                     break;
@@ -189,7 +190,7 @@ namespace DedicatedServerMod.Shared.Networking
                 if (challenge != null)
                 {
                     string payload = JsonConvert.SerializeObject(challenge);
-                    CustomMessaging.SendToClient(conn, Constants.Messages.AuthChallenge, payload);
+                    CustomMessaging.SendToClientOrDeferUntilReady(conn, Constants.Messages.AuthChallenge, payload);
                     return;
                 }
 
@@ -202,7 +203,7 @@ namespace DedicatedServerMod.Shared.Networking
                         SteamId = playerInfo.AuthenticatedSteamId ?? playerInfo.SteamId ?? string.Empty
                     };
 
-                    CustomMessaging.SendToClient(conn, Constants.Messages.AuthResult, JsonConvert.SerializeObject(result));
+                    CustomMessaging.SendToClientOrDeferUntilReady(conn, Constants.Messages.AuthResult, JsonConvert.SerializeObject(result));
                 }
             }
             catch (Exception ex)

@@ -309,3 +309,5 @@ Docker/MelonLoader.x64/
 Docker/Server/
 FishNet-Docs/
 Docker/test.bat
+Docker/
+FishNet.Runtime.xml

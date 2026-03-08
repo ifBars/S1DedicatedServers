@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Shared.Networking;
 #if IL2CPP
 using Il2CppFishNet;
@@ -64,6 +65,7 @@ namespace DedicatedServerMod.Client.Managers
         public void Initialize()
         {
             CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
+            CustomMessaging.EndpointReady += OnMessagingEndpointReady;
             TryHookConnectionState();
             _logger.Msg("Client auth manager initialized");
         }
@@ -79,6 +81,11 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             if (!IsClientConnectionReady())
+            {
+                return;
+            }
+
+            if (!CustomMessaging.IsEndpointReady)
             {
                 return;
             }
@@ -119,6 +126,7 @@ namespace DedicatedServerMod.Client.Managers
             if (!_isAuthenticated &&
                 !_isHandshakeStarted &&
                 IsClientConnectionReady() &&
+                CustomMessaging.IsEndpointReady &&
                 DateTime.UtcNow >= _nextHandshakeAttemptUtc)
             {
                 BeginHandshake();
@@ -142,6 +150,7 @@ namespace DedicatedServerMod.Client.Managers
         public void Shutdown()
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
+            CustomMessaging.EndpointReady -= OnMessagingEndpointReady;
 
             if (_isConnectionStateHooked && InstanceFinder.ClientManager != null)
             {
@@ -249,12 +258,19 @@ namespace DedicatedServerMod.Client.Managers
             if (result.Success)
             {
                 _logger.Msg($"Authentication succeeded: {result.Message}");
+                ClientBootstrap.Instance?.ConnectionManager?.OnAuthenticationSucceeded(result.Message);
                 CustomMessaging.SendToServer(DSConstants.Messages.RequestServerData);
             }
             else
             {
                 _logger.Warning($"Authentication failed: {result.Message}");
+                ClientBootstrap.Instance?.ConnectionManager?.OnAuthenticationFailed(result.Message);
             }
+        }
+
+        private void OnMessagingEndpointReady()
+        {
+            BeginHandshake();
         }
 
         private bool TryCreateAuthSessionTicket(out string steamId, out string ticketHex)

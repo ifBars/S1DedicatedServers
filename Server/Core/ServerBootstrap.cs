@@ -130,7 +130,8 @@ namespace DedicatedServerMod.Server.Core
             // Apply performance optimizations for headless server
             Application.targetFrameRate = Shared.Configuration.ServerConfig.Instance.TargetFrameRate;
             QualitySettings.vSyncCount = Shared.Configuration.ServerConfig.Instance.VSyncCount;
-            _logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}");
+            Application.runInBackground = true;
+            _logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}, Background={Application.runInBackground}");
             
             // Log the save path being used
             string resolvedSavePath = Shared.Configuration.ServerConfig.GetResolvedSaveGamePath();
@@ -357,6 +358,10 @@ namespace DedicatedServerMod.Server.Core
                 
                 // Notify API mods prior to tearing down subsystems
                 ModManager.NotifyServerShutdown();
+
+                // Notify players before messaging and transport layers are torn down.
+                _playerManager?.NotifyShutdownAndDisconnectAll(reason);
+
                 // Shutdown in reverse order
                 try { _tcpConsole?.Dispose(); } catch { }
                 _masterServerClient?.Shutdown();

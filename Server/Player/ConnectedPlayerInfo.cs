@@ -6,6 +6,7 @@ using FishNet.Connection;
 using ScheduleOne.PlayerScripts;
 #endif
 using System;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -113,7 +114,16 @@ namespace DedicatedServerMod.Server.Player
             get
             {
                 if (!string.IsNullOrEmpty(PlayerName))
+                {
+                    if (IsLoopbackConnection && string.Equals(PlayerName, "Player", StringComparison.Ordinal))
+                        return Constants.GhostHostDisplayName;
+
                     return PlayerName;
+                }
+
+                if (IsLoopbackConnection)
+                    return Constants.GhostHostDisplayName;
+
                 if (!string.IsNullOrEmpty(SteamId))
                     return $"Player_{SteamId.Substring(Math.Max(0, SteamId.Length - 6))}";
                 return $"Client_{ClientId}";

@@ -6,11 +6,13 @@ using DedicatedServerMod.Shared.Configuration;
 using HarmonyLib;
 using MelonLoader;
 #if IL2CPP
-using Il2CppScheduleOne.PlayerScripts;
 using Il2CppFishNet.Connection;
+using ConsoleType = Il2CppScheduleOne.Console;
+using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
-using ScheduleOne.PlayerScripts;
 using FishNet.Connection;
+using ConsoleType = ScheduleOne.Console;
+using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
 
 namespace DedicatedServerMod.Server.Game
@@ -56,9 +58,8 @@ namespace DedicatedServerMod.Server.Game
         {
             try
             {
-                // 1) Core always-on patches
-                harmony.PatchAll(typeof(DedicatedServerPatches));
-                appliedPatches.Add("CoreHarmonyPatches");
+                // 1) Attribute-based patches are applied automatically by MelonLoader/Harmony.
+                appliedPatches.Add("AttributeBasedServerPatches");
 
                 // 2) Dynamic RPC / mangled method patches
                 PatchPlayerReceivePlayerNameData();
@@ -87,7 +88,7 @@ namespace DedicatedServerMod.Server.Game
             try
             {
                 MethodInfo target = null;
-                foreach (var mi in typeof(ScheduleOne.PlayerScripts.Player).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+                foreach (var mi in typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
                 {
                     if (!mi.Name.StartsWith("RpcLogic_")) continue;
                     var prms = mi.GetParameters();
@@ -105,7 +106,7 @@ namespace DedicatedServerMod.Server.Game
                     return;
                 }
 
-                var postfix = typeof(DedicatedServerPatches).GetMethod(nameof(DedicatedServerPatches.BindPlayerIdentityPostfix), BindingFlags.Public | BindingFlags.Static);
+                var postfix = typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.BindPlayerIdentityPostfix), BindingFlags.Public | BindingFlags.Static);
                 harmony.Patch(target, postfix: new HarmonyMethod(postfix));
                 logger.Msg($"Patched Player RPC for identity binding: {target.Name}");
             }
@@ -123,7 +124,7 @@ namespace DedicatedServerMod.Server.Game
             try
             {
                 MethodInfo target = null;
-                foreach (var mi in typeof(ScheduleOne.Console).GetMethods(BindingFlags.Public | BindingFlags.Static))
+                foreach (var mi in typeof(ConsoleType).GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
                     if (mi.Name != "SubmitCommand") continue;
                     var prms = mi.GetParameters();
@@ -140,7 +141,7 @@ namespace DedicatedServerMod.Server.Game
                     return;
                 }
 
-                var prefix = typeof(DedicatedServerPatches).GetMethod(nameof(DedicatedServerPatches.ConsoleSubmitCommand_Prefix), BindingFlags.Public | BindingFlags.Static);
+                var prefix = typeof(ConsolePatches).GetMethod(nameof(ConsolePatches.SubmitCommandPrefix), BindingFlags.Public | BindingFlags.Static);
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
                 logger.Msg("Patched Console.SubmitCommand(List<string>) with permission checks");
                 appliedPatches.Add("ConsoleSubmitCommandPatch");

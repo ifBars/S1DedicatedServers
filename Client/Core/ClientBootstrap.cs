@@ -219,6 +219,7 @@ namespace DedicatedServerMod.Client.Core
                 // MelonLoader will automatically apply patches marked with [HarmonyPatch]
                 Patches.SleepPatches.Initialize(_logger);
                 Patches.MessagingPatches.Initialize(_logger);
+                Patches.LoadingScreenPatches.Initialize(_logger);
 
                 // Apply transport patches (runtime patching needed for flexibility)
                 _transportPatcher = new ClientTransportPatcher(_logger);
@@ -358,6 +359,15 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         public override void OnApplicationQuit()
         {
+            try
+            {
+                _connectionManager?.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down client connection manager: {ex.Message}");
+            }
+
             try
             {
                 _authManager?.Shutdown();

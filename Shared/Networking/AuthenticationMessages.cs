@@ -94,4 +94,21 @@ namespace DedicatedServerMod.Shared.Networking
         /// </summary>
         public string SteamId { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Server-to-client disconnect notice payload shown after returning to menu.
+    /// </summary>
+    [Serializable]
+    public sealed class DisconnectNoticeMessage
+    {
+        /// <summary>
+        /// Popup title to show on the main menu.
+        /// </summary>
+        public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Human-readable reason for the disconnect.
+        /// </summary>
+        public string Message { get; set; } = string.Empty;
+    }
 }

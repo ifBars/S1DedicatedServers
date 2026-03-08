@@ -177,9 +177,18 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             try
             {
-                foreach (KeyValuePair<ulong, HSteamNetConnection> kvp in _steamIdToSocket)
+                bool steamAvailable = IsAvailable;
+                if (!steamAvailable)
                 {
-                    CloseConnection(kvp.Value, 0, "Messaging shutdown", false);
+                    _logger?.Msg("Steam sockets backend shutdown detected that Steam game server was already stopped; skipping native socket close calls.");
+                }
+
+                if (steamAvailable)
+                {
+                    foreach (KeyValuePair<ulong, HSteamNetConnection> kvp in _steamIdToSocket)
+                    {
+                        CloseConnection(kvp.Value, 0, "Messaging shutdown", false);
+                    }
                 }
 
                 _steamIdToSocket.Clear();
@@ -191,17 +200,17 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 _fallbackWarnedClientIds.Clear();
 #endif
 
-                if (!IsInvalid(_listenSocket))
+                if (steamAvailable && !IsInvalid(_listenSocket))
                 {
                     CloseListenSocket(_listenSocket);
-                    _listenSocket = HSteamListenSocket.Invalid;
                 }
+                _listenSocket = HSteamListenSocket.Invalid;
 
-                if (!IsInvalid(_pollGroup))
+                if (steamAvailable && !IsInvalid(_pollGroup))
                 {
                     DestroyPollGroup(_pollGroup);
-                    _pollGroup = HSteamNetPollGroup.Invalid;
                 }
+                _pollGroup = HSteamNetPollGroup.Invalid;
 
                 _serverConnection = HSteamNetConnection.Invalid;
                 _connectionStatusCallback = null;

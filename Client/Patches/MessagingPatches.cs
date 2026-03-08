@@ -1,6 +1,4 @@
 using System;
-using DedicatedServerMod.Client.Core;
-using DedicatedServerMod.Client.Managers;
 #if IL2CPP
 using Il2CppFishNet.Object;
 using Il2CppFishNet.Object.Delegating;
@@ -74,9 +72,6 @@ namespace DedicatedServerMod.Client.Patches
                 {
                     Shared.Networking.CustomMessaging.DailySummaryAwakePostfix(__instance);
                     _logger?.Msg("Client: DailySummary RPC registration delegated to CustomMessaging");
-                    
-                    // Now that RPCs are registered, request server data if connected
-                    RequestServerDataIfConnected();
                 }
                 catch (Exception ex)
                 {
@@ -114,40 +109,6 @@ namespace DedicatedServerMod.Client.Patches
         {
             add => Shared.Networking.CustomMessaging.ServerMessageReceived += value;
             remove => Shared.Networking.CustomMessaging.ServerMessageReceived -= value;
-        }
-
-        #endregion
-
-        #region Helper Methods
-
-        /// <summary>
-        /// Requests server data if connected to a server.
-        /// Called after RPC registration to ensure DailySummary instance is ready.
-        /// </summary>
-        private static void RequestServerDataIfConnected()
-        {
-            try
-            {
-                // Check if we're connected as a client
-                if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsServer)
-                {
-                    var authManager = ClientBootstrap.Instance?.AuthManager;
-                    if (authManager != null)
-                    {
-                        _logger?.Msg("Client connected - starting auth handshake");
-                        authManager.BeginHandshake();
-                    }
-                    else
-                    {
-                        _logger?.Warning("Auth manager missing - requesting server data without auth handshake");
-                        Shared.Networking.CustomMessaging.SendToServer(Utils.Constants.Messages.RequestServerData);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.Warning($"Failed to request server data after RPC registration: {ex.Message}");
-            }
         }
 
         #endregion
