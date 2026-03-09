@@ -1020,6 +1020,7 @@
 		<!-- Game systems -->
 		<Compile Include="Server\Game\ConsolePatches.cs" />
 		<Compile Include="Server\Game\DailySummaryPatches.cs" />
+		<Compile Include="Server\Game\ClientVisualPatches.cs" />
 		<Compile Include="Server\Game\DedicatedServerPatchCommon.cs" />
 		<Compile Include="Server\Game\GameManagerPatches.cs" />
 		<Compile Include="Server\Game\GodRaysRenderPassPatches.cs" />

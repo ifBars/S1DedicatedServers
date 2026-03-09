@@ -1,8 +1,10 @@
 using MelonLoader;
 using DedicatedServerMod.Utils;
 #if IL2CPP
+using Il2CppFishNet;
 using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
+using FishNet;
 using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
 
@@ -11,6 +13,11 @@ namespace DedicatedServerMod.Server.Game
     internal static class DedicatedServerPatchCommon
     {
         internal static readonly MelonLogger.Instance Logger = new MelonLogger.Instance("DedicatedServerPatches");
+
+        internal static bool ShouldRunClientVisuals()
+        {
+            return !InstanceFinder.IsServer && !UnityEngine.Application.isBatchMode;
+        }
 
         internal static int CountSleepEligiblePlayers()
         {
