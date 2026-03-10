@@ -40,6 +40,7 @@ namespace DedicatedServerMod.Server.Core
         private static TcpConsoleServer _tcpConsole;
         private static MasterServerClient _masterServerClient;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
+        private static ServerStatusQueryService _serverStatusQueryService;
         
         // Server state
         private static bool _isServerMode = false;
@@ -188,6 +189,7 @@ namespace DedicatedServerMod.Server.Core
             
             // Start TCP Console if enabled in ServerConfig
             TryStartTcpConsole();
+            TryStartStatusQueryService();
             
             // Step 10: Wire up player events with persistence
             WirePlayerEvents();
@@ -364,6 +366,7 @@ namespace DedicatedServerMod.Server.Core
 
                 // Shutdown in reverse order
                 try { _tcpConsole?.Dispose(); } catch { }
+                _serverStatusQueryService?.Shutdown();
                 _masterServerClient?.Shutdown();
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
@@ -432,6 +435,20 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 _logger.Warning($"TCP console failed to start: {ex.Message}");
+            }
+        }
+
+        private void TryStartStatusQueryService()
+        {
+            try
+            {
+                _serverStatusQueryService = new ServerStatusQueryService(_logger);
+                _serverStatusQueryService.Start();
+                _logger.Msg("✓ Status query service initialized");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning($"Status query service failed to start: {ex.Message}");
             }
         }
 

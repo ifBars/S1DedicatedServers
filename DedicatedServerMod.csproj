@@ -931,6 +931,7 @@
 	  <!-- Legacy files in Shared root (for backward compatibility) -->
 	  <Compile Include="Shared\CustomMessaging.cs" />
 	  <Compile Include="Shared\ServerData.cs" />
+	  <Compile Include="Shared\ServerStatusSnapshot.cs" />
 	  <!-- Utils -->
 	  <Compile Include="Utils\*.cs" />
 	</ItemGroup>
@@ -997,6 +998,7 @@
 		<Compile Include="Server\Network\NetworkManager.cs" />
 		<Compile Include="Server\Network\MasterServerClient.cs" />
 		<Compile Include="Server\Network\ServerHeartbeatData.cs" />
+		<Compile Include="Server\Network\ServerStatusQueryService.cs" />
 		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
 		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />
 		

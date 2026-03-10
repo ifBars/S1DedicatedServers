@@ -1,7 +1,9 @@
 using MelonLoader;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using DedicatedServerMod.Assets;
+using DedicatedServerMod.Client.Data;
 #if IL2CPP
 using Il2CppTMPro;
 #else
@@ -46,6 +48,35 @@ namespace DedicatedServerMod.Client.Managers
         private Button dsCancelButton;
         private TMP_InputField dsIpInput;
         private TMP_InputField dsPortInput;
+        private TMP_Text dsDirectConnectStatusText;
+        private Button dsAddServerButton;
+        private Button dsRefreshButton;
+        private Button dsFavoritesButton;
+        private Button dsHistoryButton;
+        private Transform dsFavoritesListPanel;
+        private Transform dsHistoryListPanel;
+        private Transform dsFavoritesContent;
+        private Transform dsHistoryContent;
+        private GameObject dsFavoritesEntryTemplate;
+        private GameObject dsHistoryEntryTemplate;
+        private TMP_Text dsFavoritesEmptyPlaceholder;
+        private TMP_Text dsHistoryEmptyPlaceholder;
+        private GameObject dsAddServerPanel;
+        private TMP_Text dsAddServerTitleText;
+        private TMP_Text dsAddServerStatusText;
+        private TMP_InputField dsFavoriteNameInput;
+        private TMP_InputField dsFavoriteIpInput;
+        private TMP_InputField dsFavoritePortInput;
+        private Button dsFavoriteSaveButton;
+        private Button dsFavoriteCancelButton;
+        private string editingFavoriteId;
+        private string pendingHistoryName;
+        private readonly List<GameObject> spawnedFavoriteEntries = new List<GameObject>();
+        private readonly List<GameObject> spawnedHistoryEntries = new List<GameObject>();
+        private readonly ClientServerListRepository serverListRepository;
+        private readonly ServerStatusQueryService serverStatusQueryService = new ServerStatusQueryService();
+        private readonly HashSet<string> statusQueriesInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private ServerBrowserTab activeTab = ServerBrowserTab.Favorites;
 
         // Menu animation controller
         private MenuAnimationController menuAnimationController;
@@ -68,6 +99,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             this.logger = logger;
             this.connectionManager = connectionManager;
+            serverListRepository = new ClientServerListRepository(logger);
         }
 
         public void Initialize()
@@ -75,6 +107,10 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 logger.Msg("Initializing ClientUIManager");
+                serverListRepository.Initialize();
+                serverListRepository.Changed += OnServerListRepositoryChanged;
+                connectionManager.DedicatedServerConnected += OnDedicatedServerConnected;
+                ServerDataStore.OnUpdated += OnServerDataUpdated;
                 
                 // Initialize menu animation controller
                 menuAnimationController = new MenuAnimationController(logger);
@@ -416,6 +452,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             return (dsServerBrowserPanel != null && dsServerBrowserPanel.gameObject.activeSelf) ||
                    (dsDirectConnectPanel != null && dsDirectConnectPanel.gameObject.activeSelf) ||
+                   (dsAddServerPanel != null && dsAddServerPanel.activeSelf) ||
                    (serverMenuPanel != null && serverMenuPanel.activeSelf);
         }
 
@@ -431,6 +468,10 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                serverListRepository.Changed -= OnServerListRepositoryChanged;
+                connectionManager.DedicatedServerConnected -= OnDedicatedServerConnected;
+                ServerDataStore.OnUpdated -= OnServerDataUpdated;
+
                 if (serversButton != null)
                 {
                     GameObject.Destroy(serversButton);
@@ -458,6 +499,13 @@ namespace DedicatedServerMod.Client.Managers
                     GameObject.Destroy(dsDirectConnectPanel.gameObject);
                     dsDirectConnectPanel = null;
                 }
+                if (dsAddServerPanel != null)
+                {
+                    GameObject.Destroy(dsAddServerPanel);
+                    dsAddServerPanel = null;
+                }
+                spawnedFavoriteEntries.Clear();
+                spawnedHistoryEntries.Clear();
                 if (dedicatedUiBundle != null)
                 {
                     try { dedicatedUiBundle.Unload(false); } catch { }
@@ -504,7 +552,7 @@ namespace DedicatedServerMod.Client.Managers
                     if (EnsureDedicatedClientUi())
                     {
                         PrefillDedicatedDirectConnectFields();
-                        ShowDirectConnectPanel(false);
+                        ShowServerBrowserView(ServerBrowserView.Browser);
                         return;
                     }
                 }
@@ -512,6 +560,7 @@ namespace DedicatedServerMod.Client.Managers
                 {
                     if (dsServerBrowserPanel != null) dsServerBrowserPanel.gameObject.SetActive(false);
                     if (dsDirectConnectPanel != null) dsDirectConnectPanel.gameObject.SetActive(false);
+                    if (dsAddServerPanel != null) dsAddServerPanel.SetActive(false);
                     return;
                 }
 
@@ -573,6 +622,18 @@ namespace DedicatedServerMod.Client.Managers
             if (dsServerBrowserPanel != null && dsServerBrowserPanel.Equals(null))
             {
                 dsServerBrowserPanel = null;
+                dsAddServerButton = null;
+                dsRefreshButton = null;
+                dsFavoritesButton = null;
+                dsHistoryButton = null;
+                dsFavoritesListPanel = null;
+                dsHistoryListPanel = null;
+                dsFavoritesContent = null;
+                dsHistoryContent = null;
+                dsFavoritesEntryTemplate = null;
+                dsHistoryEntryTemplate = null;
+                dsFavoritesEmptyPlaceholder = null;
+                dsHistoryEmptyPlaceholder = null;
                 dsOpenDirectConnectButton = null;
             }
 
@@ -583,12 +644,26 @@ namespace DedicatedServerMod.Client.Managers
                 dsCancelButton = null;
                 dsIpInput = null;
                 dsPortInput = null;
+                dsDirectConnectStatusText = null;
+            }
+
+            if (dsAddServerPanel != null && dsAddServerPanel.Equals(null))
+            {
+                dsAddServerPanel = null;
+                dsAddServerTitleText = null;
+                dsAddServerStatusText = null;
+                dsFavoriteNameInput = null;
+                dsFavoriteIpInput = null;
+                dsFavoritePortInput = null;
+                dsFavoriteSaveButton = null;
+                dsFavoriteCancelButton = null;
+                editingFavoriteId = null;
             }
         }
 
         private bool HasLiveMenuUi()
         {
-            return serversButton != null || dsServerBrowserPanel != null || serverMenuPanel != null;
+            return serversButton != null || dsServerBrowserPanel != null || dsAddServerPanel != null || serverMenuPanel != null;
         }
 
         private bool EnsureDedicatedClientUi()
@@ -596,9 +671,9 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 // Only create once
-                if (dsServerBrowserPanel != null && dsDirectConnectPanel != null)
+                if (dsServerBrowserPanel != null && dsDirectConnectPanel != null && dsAddServerPanel != null)
                 {
-                    ShowDirectConnectPanel(false);
+                    ShowServerBrowserView(ServerBrowserView.Browser);
                     return true;
                 }
 
@@ -643,12 +718,25 @@ namespace DedicatedServerMod.Client.Managers
                 dsDirectConnectPanel.gameObject.SetActive(false);
 
                 // Wire up buttons and inputs inside the prefabs
+                dsAddServerButton = FindDeepChild(dsServerBrowserPanel, "AddServerButton")?.GetComponent<Button>();
                 dsOpenDirectConnectButton = FindDeepChild(dsServerBrowserPanel, "DirectConnectButton")?.GetComponent<Button>();
+                dsRefreshButton = FindDeepChild(dsServerBrowserPanel, "RefreshButton")?.GetComponent<Button>();
+                dsFavoritesButton = FindDeepChild(dsServerBrowserPanel, "FavoritesButton")?.GetComponent<Button>();
+                dsHistoryButton = FindDeepChild(dsServerBrowserPanel, "HistoryButton")?.GetComponent<Button>();
+                dsFavoritesListPanel = FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel");
+                dsHistoryListPanel = FindDeepChild(dsServerBrowserPanel, "HistoryListPanel");
+                dsFavoritesContent = FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel"), "Content") : null;
+                dsHistoryContent = FindDeepChild(dsServerBrowserPanel, "HistoryListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "HistoryListPanel"), "Content") : null;
+                dsFavoritesEmptyPlaceholder = FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel"), "EmptyPlaceholder")?.GetComponent<TMP_Text>() : null;
+                dsHistoryEmptyPlaceholder = FindDeepChild(dsServerBrowserPanel, "HistoryListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "HistoryListPanel"), "EmptyPlaceholder")?.GetComponent<TMP_Text>() : null;
+                dsFavoritesEntryTemplate = FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel"), "ServerEntryPrefab")?.gameObject : null;
+                dsHistoryEntryTemplate = FindDeepChild(dsServerBrowserPanel, "HistoryListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "HistoryListPanel"), "ServerEntryPrefab")?.gameObject : null;
                 dsConnectButton = FindDeepChild(dsDirectConnectPanel, "ConnectButton")?.GetComponent<Button>();
                 dsCancelButton = FindDeepChild(dsDirectConnectPanel, "CancelButton")?.GetComponent<Button>();
 
                 var ipTransform = FindDeepChild(dsDirectConnectPanel, "IP");
                 var portTransform = FindDeepChild(dsDirectConnectPanel, "Port");
+                var directConnectContent = FindDeepChild(dsDirectConnectPanel, "ServerListPanel");
                 dsIpInput = ipTransform != null ? ipTransform.GetComponent<TMP_InputField>() : null;
                 dsPortInput = portTransform != null ? portTransform.GetComponent<TMP_InputField>() : null;
 
@@ -677,15 +765,35 @@ namespace DedicatedServerMod.Client.Managers
                 }
 
                 // Hook up behavior
+                if (dsAddServerButton != null)
+                {
+                    dsAddServerButton.onClick.RemoveAllListeners();
+                    dsAddServerButton.onClick.AddListener((UnityAction)OpenAddServerPanel);
+                }
                 if (dsOpenDirectConnectButton != null)
                 {
                     dsOpenDirectConnectButton.onClick.RemoveAllListeners();
-                    dsOpenDirectConnectButton.onClick.AddListener((UnityAction)delegate { ShowDirectConnectPanel(true); });
+                    dsOpenDirectConnectButton.onClick.AddListener((UnityAction)delegate { PrefillDedicatedDirectConnectFields(); ShowServerBrowserView(ServerBrowserView.DirectConnect); });
+                }
+                if (dsRefreshButton != null)
+                {
+                    dsRefreshButton.onClick.RemoveAllListeners();
+                    dsRefreshButton.onClick.AddListener((UnityAction)RefreshAllServerMetadata);
+                }
+                if (dsFavoritesButton != null)
+                {
+                    dsFavoritesButton.onClick.RemoveAllListeners();
+                    dsFavoritesButton.onClick.AddListener((UnityAction)delegate { SetActiveTab(ServerBrowserTab.Favorites); });
+                }
+                if (dsHistoryButton != null)
+                {
+                    dsHistoryButton.onClick.RemoveAllListeners();
+                    dsHistoryButton.onClick.AddListener((UnityAction)delegate { SetActiveTab(ServerBrowserTab.History); });
                 }
                 if (dsCancelButton != null)
                 {
                     dsCancelButton.onClick.RemoveAllListeners();
-                    dsCancelButton.onClick.AddListener((UnityAction)delegate { ShowDirectConnectPanel(false); });
+                    dsCancelButton.onClick.AddListener((UnityAction)delegate { ShowServerBrowserView(ServerBrowserView.Browser); });
                 }
                 if (dsConnectButton != null)
                 {
@@ -693,12 +801,24 @@ namespace DedicatedServerMod.Client.Managers
                     dsConnectButton.onClick.AddListener((UnityAction)OnDirectConnectConfirm);
                 }
 
+                if (directConnectContent != null && dsDirectConnectStatusText == null)
+                {
+                    dsDirectConnectStatusText = CreatePanelText(directConnectContent, "DirectConnectStatusText", new Vector2(0f, -314f), new Vector2(420f, 24f), 15, FontStyles.Normal, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.78f));
+                    dsDirectConnectStatusText.text = string.Empty;
+                }
+
+                EnsureAddServerPanel();
+
                 // Apply captured fonts/colors so text is visible in game
                 ApplyCapturedFonts(dsServerBrowserPanel);
                 ApplyCapturedFonts(dsDirectConnectPanel);
+                ApplyCapturedFonts(dsAddServerPanel != null ? dsAddServerPanel.transform : null);
 
-                ShowDirectConnectPanel(false);
+                SetActiveTab(ServerBrowserTab.Favorites);
+                RefreshServerLists();
+                RefreshAllServerMetadata();
                 PrefillDedicatedDirectConnectFields();
+                ShowServerBrowserView(ServerBrowserView.Browser);
 
                 logger.Msg("Dedicated client UI loaded and initialized from AssetBundle");
                 return true;
@@ -714,19 +834,564 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                if (dsDirectConnectPanel != null)
-                {
-                    dsDirectConnectPanel.gameObject.SetActive(show);
-                }
-                if (dsServerBrowserPanel != null)
-                {
-                    dsServerBrowserPanel.gameObject.SetActive(!show);
-                }
+                ShowServerBrowserView(show ? ServerBrowserView.DirectConnect : ServerBrowserView.Browser);
             }
             catch (Exception ex)
             {
                 logger.Error($"Error toggling DirectConnect panel: {ex}");
             }
+        }
+
+        private void ShowServerBrowserView(ServerBrowserView view)
+        {
+            if (dsServerBrowserPanel != null)
+            {
+                dsServerBrowserPanel.gameObject.SetActive(view == ServerBrowserView.Browser);
+            }
+
+            if (dsDirectConnectPanel != null)
+            {
+                dsDirectConnectPanel.gameObject.SetActive(view == ServerBrowserView.DirectConnect);
+            }
+
+            if (dsAddServerPanel != null)
+            {
+                dsAddServerPanel.SetActive(view == ServerBrowserView.AddFavorite);
+            }
+        }
+
+        private void EnsureAddServerPanel()
+        {
+            if (dsAddServerPanel != null || dsServerBrowserPanel == null)
+            {
+                return;
+            }
+
+            Transform parent = dsServerBrowserPanel.parent;
+            if (parent == null)
+            {
+                return;
+            }
+
+            dsAddServerPanel = CreateUiObject("AddServerPanel", parent);
+            EnsureComponent<CanvasRenderer>(dsAddServerPanel);
+            EnsureComponent<Image>(dsAddServerPanel);
+            EnsureComponent<Outline>(dsAddServerPanel);
+            var panelRect = dsAddServerPanel.GetComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.sizeDelta = new Vector2(620f, 420f);
+            panelRect.anchoredPosition = Vector2.zero;
+
+            var panelImage = dsAddServerPanel.GetComponent<Image>();
+            panelImage.color = PANEL_BG;
+
+            var panelOutline = dsAddServerPanel.GetComponent<Outline>();
+            panelOutline.effectColor = new Color(1f, 1f, 1f, 0.1f);
+            panelOutline.effectDistance = new Vector2(1f, -1f);
+
+            dsAddServerTitleText = CreatePanelText(dsAddServerPanel.transform, "Title", new Vector2(0f, -24f), new Vector2(520f, 34f), 28, FontStyles.Bold, TextAlignmentOptions.Center, Color.white);
+
+            var helperText = CreatePanelText(dsAddServerPanel.transform, "HelperText", new Vector2(0f, -62f), new Vector2(520f, 26f), 16, FontStyles.Normal, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.72f));
+            helperText.text = "Keep favorite servers handy, then join them from the browser at any time.";
+
+            dsFavoriteNameInput = CreateLabeledInput(dsAddServerPanel.transform, "Server Name", "NameInput", new Vector2(38f, -116f), "Neighborhood Host");
+            dsFavoriteIpInput = CreateLabeledInput(dsAddServerPanel.transform, "IP / Host", "HostInput", new Vector2(38f, -196f), "127.0.0.1 or play.example.com");
+            dsFavoritePortInput = CreateLabeledInput(dsAddServerPanel.transform, "Port", "PortInput", new Vector2(38f, -276f), "38465");
+
+            dsFavoriteSaveButton = CreateStyledButton(dsAddServerPanel.transform, new Vector2(38f, -350f), new Vector2(198f, 42f), "Save Server");
+            dsFavoriteCancelButton = CreateStyledButton(dsAddServerPanel.transform, new Vector2(252f, -350f), new Vector2(144f, 42f), "Cancel");
+            dsFavoriteSaveButton.onClick.AddListener((UnityAction)OnSaveFavoriteConfirmed);
+            dsFavoriteCancelButton.onClick.AddListener((UnityAction)delegate { ShowServerBrowserView(ServerBrowserView.Browser); });
+
+            var closeButton = CreateIconButton(dsAddServerPanel.transform, new Vector2(580f, -18f), new Vector2(28f, 28f), "X");
+            var closeRect = closeButton.GetComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(1f, 1f);
+            closeRect.anchorMax = new Vector2(1f, 1f);
+            closeRect.pivot = new Vector2(1f, 1f);
+            closeRect.anchoredPosition = new Vector2(-16f, -16f);
+            closeButton.onClick.AddListener((UnityAction)delegate { ShowServerBrowserView(ServerBrowserView.Browser); });
+
+            dsAddServerStatusText = CreatePanelText(dsAddServerPanel.transform, "StatusText", new Vector2(0f, -384f), new Vector2(520f, 38f), 15, FontStyles.Normal, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.8f));
+            dsAddServerStatusText.text = string.Empty;
+
+            ApplyCapturedFonts(dsAddServerPanel.transform);
+            dsAddServerPanel.SetActive(false);
+        }
+
+        private TMP_InputField CreateLabeledInput(Transform parent, string label, string name, Vector2 anchoredPosition, string placeholderText)
+        {
+            CreatePanelText(parent, $"{name}_Label", anchoredPosition + new Vector2(0f, 22f), new Vector2(220f, 24f), 16, FontStyles.Bold, TextAlignmentOptions.Left, new Color(1f, 1f, 1f, 0.9f), leftAnchored: true).text = label;
+            return CreateInputField(parent, name, anchoredPosition, new Vector2(544f, 42f), placeholderText, false);
+        }
+
+        private TMP_InputField CreateLabeledMultilineInput(Transform parent, string label, string name, Vector2 anchoredPosition, string placeholderText, float height)
+        {
+            CreatePanelText(parent, $"{name}_Label", anchoredPosition + new Vector2(0f, 22f), new Vector2(220f, 24f), 16, FontStyles.Bold, TextAlignmentOptions.Left, new Color(1f, 1f, 1f, 0.9f), leftAnchored: true).text = label;
+            return CreateInputField(parent, name, anchoredPosition, new Vector2(544f, height), placeholderText, true);
+        }
+
+        private TMP_InputField CreateInputField(Transform parent, string name, Vector2 anchoredPosition, Vector2 size, string placeholderText, bool multiline)
+        {
+            GameObject background = CreateUiObject(name, parent);
+            EnsureComponent<CanvasRenderer>(background);
+            EnsureComponent<Image>(background);
+            var backgroundRect = background.GetComponent<RectTransform>();
+            backgroundRect.anchorMin = new Vector2(0f, 1f);
+            backgroundRect.anchorMax = new Vector2(0f, 1f);
+            backgroundRect.pivot = new Vector2(0f, 1f);
+            backgroundRect.anchoredPosition = anchoredPosition;
+            backgroundRect.sizeDelta = size;
+
+            var backgroundImage = background.GetComponent<Image>();
+            backgroundImage.color = INPUT_BG;
+
+            GameObject textArea = CreateUiObject($"{name}_TextArea", background.transform);
+            var textAreaRect = textArea.GetComponent<RectTransform>();
+            textAreaRect.anchorMin = new Vector2(0f, 0f);
+            textAreaRect.anchorMax = new Vector2(1f, 1f);
+            textAreaRect.offsetMin = new Vector2(12f, 8f);
+            textAreaRect.offsetMax = new Vector2(-12f, -8f);
+
+            GameObject placeholderObject = CreateUiObject($"{name}_Placeholder", textArea.transform);
+            var placeholderRect = placeholderObject.GetComponent<RectTransform>();
+            placeholderRect.anchorMin = new Vector2(0f, 0f);
+            placeholderRect.anchorMax = new Vector2(1f, 1f);
+            placeholderRect.offsetMin = Vector2.zero;
+            placeholderRect.offsetMax = Vector2.zero;
+            var placeholder = placeholderObject.AddComponent<TextMeshProUGUI>();
+            placeholder.text = placeholderText;
+            placeholder.fontSize = 17;
+            placeholder.color = new Color(1f, 1f, 1f, 0.32f);
+            placeholder.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
+
+            GameObject textObject = CreateUiObject($"{name}_Text", textArea.transform);
+            var textRect = textObject.GetComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textObject.AddComponent<TextMeshProUGUI>();
+            text.fontSize = 17;
+            text.color = Color.white;
+            text.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = multiline ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+
+            var inputField = background.AddComponent<TMP_InputField>();
+            inputField.textViewport = textAreaRect;
+            inputField.placeholder = placeholder;
+            inputField.textComponent = text;
+            inputField.lineType = multiline ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
+
+            return inputField;
+        }
+
+        private TMP_Text CreatePanelText(Transform parent, string name, Vector2 anchoredPosition, Vector2 size, float fontSize, FontStyles fontStyle, TextAlignmentOptions alignment, Color color, bool leftAnchored = false)
+        {
+            GameObject textObject = CreateUiObject(name, parent);
+            var textRect = textObject.GetComponent<RectTransform>();
+            if (leftAnchored)
+            {
+                textRect.anchorMin = new Vector2(0f, 1f);
+                textRect.anchorMax = new Vector2(0f, 1f);
+                textRect.pivot = new Vector2(0f, 1f);
+            }
+            else
+            {
+                textRect.anchorMin = new Vector2(0.5f, 1f);
+                textRect.anchorMax = new Vector2(0.5f, 1f);
+                textRect.pivot = new Vector2(0.5f, 1f);
+            }
+
+            textRect.anchoredPosition = anchoredPosition;
+            textRect.sizeDelta = size;
+
+            var text = textObject.AddComponent<TextMeshProUGUI>();
+            text.fontSize = fontSize;
+            text.fontStyle = fontStyle;
+            text.alignment = alignment;
+            text.color = color;
+            return text;
+        }
+
+        private void OpenAddServerPanel()
+        {
+            OpenAddServerPanel(null);
+        }
+
+        private void OpenAddServerPanel(SavedServerEntry favorite)
+        {
+            EnsureAddServerPanel();
+            if (dsAddServerPanel == null)
+            {
+                return;
+            }
+
+            editingFavoriteId = favorite?.Id;
+            if (dsAddServerTitleText != null)
+            {
+                dsAddServerTitleText.text = favorite == null ? "Add Favorite Server" : "Edit Favorite Server";
+            }
+
+            if (dsFavoriteNameInput != null) dsFavoriteNameInput.text = favorite?.Name ?? string.Empty;
+            if (dsFavoriteIpInput != null) dsFavoriteIpInput.text = favorite?.Host ?? string.Empty;
+            if (dsFavoritePortInput != null) dsFavoritePortInput.text = favorite != null ? favorite.Port.ToString() : ClientConnectionManager.GetTargetServer().port.ToString();
+            if (dsAddServerStatusText != null) dsAddServerStatusText.text = string.Empty;
+
+            ShowServerBrowserView(ServerBrowserView.AddFavorite);
+        }
+
+        private void OnSaveFavoriteConfirmed()
+        {
+            try
+            {
+                string name = dsFavoriteNameInput != null ? dsFavoriteNameInput.text : string.Empty;
+                string host = dsFavoriteIpInput != null ? dsFavoriteIpInput.text : string.Empty;
+                string portText = dsFavoritePortInput != null ? dsFavoritePortInput.text : string.Empty;
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    SetAddServerStatus("IP / host is required.");
+                    return;
+                }
+
+                if (!int.TryParse(portText, out int port) || port <= 0 || port > 65535)
+                {
+                    SetAddServerStatus("Enter a valid port between 1 and 65535.");
+                    return;
+                }
+
+                serverListRepository.SaveFavorite(editingFavoriteId, name, host, port);
+                SetActiveTab(ServerBrowserTab.Favorites);
+                ShowServerBrowserView(ServerBrowserView.Browser);
+                SetAddServerStatus("Saved. Querying server status...");
+                RefreshServerMetadata(host, port, true);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error saving favorite server: {ex}");
+                SetAddServerStatus("Unable to save this server right now.");
+            }
+        }
+
+        private void SetAddServerStatus(string message)
+        {
+            if (dsAddServerStatusText != null)
+            {
+                dsAddServerStatusText.text = message ?? string.Empty;
+            }
+        }
+
+        private void SetActiveTab(ServerBrowserTab tab)
+        {
+            activeTab = tab;
+
+            if (dsFavoritesListPanel != null)
+            {
+                dsFavoritesListPanel.gameObject.SetActive(tab == ServerBrowserTab.Favorites);
+            }
+
+            if (dsHistoryListPanel != null)
+            {
+                dsHistoryListPanel.gameObject.SetActive(tab == ServerBrowserTab.History);
+            }
+
+            ApplyTabState(dsFavoritesButton, tab == ServerBrowserTab.Favorites);
+            ApplyTabState(dsHistoryButton, tab == ServerBrowserTab.History);
+        }
+
+        private void ApplyTabState(Button button, bool active)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.interactable = !active;
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = active ? ACCENT : BTN_BG;
+            }
+        }
+
+        private void RefreshServerLists()
+        {
+            RenderServerEntries(serverListRepository.Favorites, dsFavoritesContent, dsFavoritesEntryTemplate, dsFavoritesEmptyPlaceholder, spawnedFavoriteEntries, true);
+            RenderServerEntries(serverListRepository.History, dsHistoryContent, dsHistoryEntryTemplate, dsHistoryEmptyPlaceholder, spawnedHistoryEntries, false);
+        }
+
+        private void RefreshAllServerMetadata()
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < serverListRepository.Favorites.Count; i++)
+            {
+                SavedServerEntry entry = serverListRepository.Favorites[i];
+                string key = BuildEndpointKey(entry.Host, entry.Port);
+                if (seen.Add(key))
+                {
+                    RefreshServerMetadata(entry.Host, entry.Port, false);
+                }
+            }
+
+            for (int i = 0; i < serverListRepository.History.Count; i++)
+            {
+                SavedServerEntry entry = serverListRepository.History[i];
+                string key = BuildEndpointKey(entry.Host, entry.Port);
+                if (seen.Add(key))
+                {
+                    RefreshServerMetadata(entry.Host, entry.Port, false);
+                }
+            }
+        }
+
+        private void RefreshServerMetadata(string host, int port, bool updateAddServerStatus)
+        {
+            string key = BuildEndpointKey(host, port);
+            if (!statusQueriesInFlight.Add(key))
+            {
+                return;
+            }
+
+            MelonCoroutines.Start(QueryServerMetadataCoroutine(host, port, key, updateAddServerStatus));
+        }
+
+        private IEnumerator QueryServerMetadataCoroutine(string host, int port, string key, bool updateAddServerStatus)
+        {
+            var task = serverStatusQueryService.QueryAsync(host, port);
+            while (!task.IsCompleted)
+            {
+                yield return null;
+            }
+
+            statusQueriesInFlight.Remove(key);
+
+            if (task.IsFaulted || task.IsCanceled)
+            {
+                logger.Warning($"Status query failed for {host}:{port}: {task.Exception?.GetBaseException().Message}");
+                serverListRepository.MarkPingUnavailable(host, port);
+                if (updateAddServerStatus)
+                {
+                    SetAddServerStatus("Saved, but the server did not answer its status query yet.");
+                }
+                yield break;
+            }
+
+            ServerStatusQueryResult result = task.Result;
+            serverListRepository.UpdateMetadata(
+                host,
+                port,
+                result.Snapshot.ServerName,
+                result.Snapshot.ServerDescription,
+                result.Snapshot.CurrentPlayers,
+                result.Snapshot.MaxPlayers,
+                result.PingMilliseconds);
+
+            if (updateAddServerStatus)
+            {
+                SetAddServerStatus($"Saved. {result.Snapshot.CurrentPlayers}/{result.Snapshot.MaxPlayers} players, {result.PingMilliseconds}ms ping.");
+            }
+        }
+
+        private void RenderServerEntries(IReadOnlyList<SavedServerEntry> entries, Transform contentRoot, GameObject template, TMP_Text emptyPlaceholder, List<GameObject> spawnedEntries, bool favorites)
+        {
+            if (contentRoot == null || template == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < spawnedEntries.Count; i++)
+            {
+                if (spawnedEntries[i] != null)
+                {
+                    GameObject.Destroy(spawnedEntries[i]);
+                }
+            }
+            spawnedEntries.Clear();
+
+            bool hasEntries = entries != null && entries.Count > 0;
+            if (emptyPlaceholder != null)
+            {
+                emptyPlaceholder.gameObject.SetActive(!hasEntries);
+            }
+
+            if (!hasEntries)
+            {
+                return;
+            }
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                SavedServerEntry entry = entries[i];
+                GameObject row = GameObject.Instantiate(template, contentRoot);
+                row.name = $"{(favorites ? "Favorite" : "History")}_{entry.Id}";
+                row.SetActive(true);
+                BindServerEntry(row.transform, entry, favorites);
+                spawnedEntries.Add(row);
+            }
+        }
+
+        private void BindServerEntry(Transform entryRoot, SavedServerEntry entry, bool favorite)
+        {
+            string primaryName = !string.IsNullOrWhiteSpace(entry.Name)
+                ? entry.Name
+                : !string.IsNullOrWhiteSpace(entry.ServerName)
+                    ? entry.ServerName
+                    : $"{entry.Host}:{entry.Port}";
+            string description = BuildDescriptionText(entry, favorite);
+            string pingText = entry.PingMilliseconds >= 0 ? $"{entry.PingMilliseconds}ms" : "N/A";
+            string playerCountText = entry.MaxPlayers > 0 ? $"{entry.CurrentPlayers}/{entry.MaxPlayers}" : "-/-";
+
+            SetText(entryRoot, "ServerName", primaryName);
+            SetText(entryRoot, "ServerIP", $"{entry.Host}:{entry.Port}");
+            SetText(entryRoot, "ServerDescription", description);
+            SetText(entryRoot, "Ping", pingText);
+            SetText(entryRoot, "PlayerCount", playerCountText);
+            ApplyPingState(entryRoot, entry.PingMilliseconds >= 0);
+
+            Button joinButton = FindDeepChild(entryRoot, "JoinServerButton")?.GetComponent<Button>();
+            if (joinButton != null)
+            {
+                joinButton.onClick.RemoveAllListeners();
+                joinButton.onClick.AddListener((UnityAction)delegate { JoinSavedServer(entry); });
+            }
+
+            Button deleteButton = FindDeepChild(entryRoot, "DeleteButton")?.GetComponent<Button>();
+            if (deleteButton != null)
+            {
+                deleteButton.onClick.RemoveAllListeners();
+                deleteButton.onClick.AddListener((UnityAction)delegate
+                {
+                    if (favorite)
+                    {
+                        serverListRepository.RemoveFavorite(entry.Id);
+                    }
+                    else
+                    {
+                        serverListRepository.RemoveHistory(entry.Id);
+                    }
+                });
+            }
+
+            Button editButton = FindDeepChild(entryRoot, "EditButton")?.GetComponent<Button>();
+            if (editButton != null)
+            {
+                editButton.gameObject.SetActive(favorite);
+                editButton.onClick.RemoveAllListeners();
+                if (favorite)
+                {
+                    editButton.onClick.AddListener((UnityAction)delegate { OpenAddServerPanel(serverListRepository.GetFavoriteById(entry.Id) ?? entry); });
+                }
+            }
+        }
+
+        private static string BuildDescriptionText(SavedServerEntry entry, bool favorite)
+        {
+            string sourceName = NormalizeUiText(entry.ServerName);
+            string sourceDescription = NormalizeUiText(entry.ServerDescription);
+
+            if (!string.IsNullOrWhiteSpace(sourceName) && !string.IsNullOrWhiteSpace(sourceDescription))
+            {
+                return $"{sourceName} - {sourceDescription}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(sourceDescription))
+            {
+                return sourceDescription;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sourceName) && !string.Equals(entry.Name, entry.ServerName, StringComparison.Ordinal))
+            {
+                return sourceName;
+            }
+
+            return favorite ? "Saved favorite server" : $"Joined {entry.LastJoinedUtc.ToLocalTime():MMM d, HH:mm}";
+        }
+
+        private static string NormalizeUiText(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        }
+
+        private static string BuildEndpointKey(string host, int port)
+        {
+            return $"{(host ?? string.Empty).Trim().ToLowerInvariant()}:{port}";
+        }
+
+        private void ApplyPingState(Transform entryRoot, bool isOnline)
+        {
+            TMP_Text pingText = FindDeepChild(entryRoot, "Ping")?.GetComponent<TMP_Text>();
+            if (pingText != null)
+            {
+                pingText.color = isOnline ? new Color(0.82f, 0.94f, 1f, 1f) : new Color(1f, 0.46f, 0.46f, 1f);
+            }
+
+            Image pingIcon = FindDeepChild(entryRoot, "Ping") != null ? FindDeepChild(FindDeepChild(entryRoot, "Ping"), "Icon")?.GetComponent<Image>() : null;
+            if (pingIcon != null)
+            {
+                pingIcon.color = isOnline ? Color.white : new Color(1f, 0.25f, 0.25f, 1f);
+            }
+        }
+
+        private void SetText(Transform root, string childName, string value)
+        {
+            TMP_Text text = FindDeepChild(root, childName)?.GetComponent<TMP_Text>();
+            if (text != null)
+            {
+                text.text = value ?? string.Empty;
+            }
+        }
+
+        private void JoinSavedServer(SavedServerEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            try
+            {
+                pendingHistoryName = entry.Name;
+                connectionManager.SetTargetServer(entry.Host, entry.Port);
+                connectionManager.StartDedicatedConnection();
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error joining saved server: {ex}");
+            }
+        }
+
+        private void OnDedicatedServerConnected(string host, int port)
+        {
+            serverListRepository.RecordJoinedServer(host, port, pendingHistoryName);
+            serverListRepository.UpdateMetadata(
+                host,
+                port,
+                ServerDataStore.Current?.ServerName,
+                ServerDataStore.Current?.ServerDescription,
+                ServerDataStore.Current?.CurrentPlayers ?? 0,
+                ServerDataStore.Current?.MaxPlayers ?? 0,
+                -1);
+            pendingHistoryName = null;
+        }
+
+        private void OnServerDataUpdated(Shared.ServerData data)
+        {
+            var target = ClientConnectionManager.GetTargetServer();
+            serverListRepository.UpdateMetadata(
+                target.ip,
+                target.port,
+                data?.ServerName,
+                data?.ServerDescription,
+                data?.CurrentPlayers ?? 0,
+                data?.MaxPlayers ?? 0,
+                -1);
+        }
+
+        private void OnServerListRepositoryChanged()
+        {
+            RefreshServerLists();
         }
 
         private void ApplyCapturedFonts(Transform root)
@@ -775,6 +1440,11 @@ namespace DedicatedServerMod.Client.Managers
                     dsPortInput.text = string.Empty; // Clear first to prevent concatenation
                     dsPortInput.text = target.port.ToString();
                 }
+
+                if (dsDirectConnectStatusText != null)
+                {
+                    dsDirectConnectStatusText.text = string.Empty;
+                }
             }
             catch (Exception ex)
             {
@@ -799,6 +1469,7 @@ namespace DedicatedServerMod.Client.Managers
                     return;
                 }
 
+                pendingHistoryName = null;
                 connectionManager.SetTargetServer(ip.Trim(), port);
                 SetStatusText($"Connecting to {ip.Trim()}:{port}...");
                 connectionManager.StartDedicatedConnection();
@@ -968,7 +1639,7 @@ namespace DedicatedServerMod.Client.Managers
             var addrText = addrInputGO.AddComponent<TextMeshProUGUI>();
             addrText.fontSize = 18;
             addrText.color = Color.white;
-            addrText.enableWordWrapping = false;
+            addrText.textWrappingMode = TextWrappingModes.NoWrap;
             addrText.alignment = TextAlignmentOptions.MidlineLeft;
             serverAddressInput.textComponent = addrText;
             var placeholder = CreateUiObject("Placeholder", addrInputGO.transform).AddComponent<TextMeshProUGUI>();
@@ -1087,6 +1758,7 @@ namespace DedicatedServerMod.Client.Managers
                 }
 
                 connectionManager.SetTargetServer(ip, port);
+                pendingHistoryName = null;
                 SetStatusText($"Connecting to {ip}:{port}...");
                 UpdateServerMenuState();
                 connectionManager.StartDedicatedConnection();
@@ -1111,6 +1783,11 @@ namespace DedicatedServerMod.Client.Managers
 
         private void SetStatusText(string message)
         {
+            if (dsDirectConnectStatusText != null)
+            {
+                dsDirectConnectStatusText.text = message ?? string.Empty;
+            }
+
             if (serverMenuStatusText != null)
             {
                 serverMenuStatusText.text = message ?? string.Empty;
@@ -1199,6 +1876,19 @@ namespace DedicatedServerMod.Client.Managers
         {
             var component = gameObject.GetComponent<T>();
             return component != null ? component : gameObject.AddComponent<T>();
+        }
+
+        private enum ServerBrowserTab
+        {
+            Favorites,
+            History
+        }
+
+        private enum ServerBrowserView
+        {
+            Browser,
+            DirectConnect,
+            AddFavorite
         }
     }
 }

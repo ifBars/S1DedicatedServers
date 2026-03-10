@@ -416,6 +416,9 @@ namespace DedicatedServerMod.Server.Player
                 var serverData = new DedicatedServerMod.Shared.ServerData
                 {
                     ServerName = cfg.ServerName,
+                    ServerDescription = cfg.ServerDescription,
+                    CurrentPlayers = GetVisiblePlayerCount(),
+                    MaxPlayers = cfg.MaxPlayers,
                     AllowSleeping = cfg.AllowSleeping,
                     PublicServer = cfg.PublicServer
                 };
@@ -448,6 +451,23 @@ namespace DedicatedServerMod.Server.Player
         public List<ConnectedPlayerInfo> GetConnectedPlayers()
         {
             return new List<ConnectedPlayerInfo>(connectedPlayers.Values);
+        }
+
+        /// <summary>
+        /// Gets the number of non-loopback players visible to the server browser.
+        /// </summary>
+        public int GetVisiblePlayerCount()
+        {
+            int count = 0;
+            foreach (ConnectedPlayerInfo player in connectedPlayers.Values)
+            {
+                if (player != null && !player.IsLoopbackConnection)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         /// <summary>

@@ -564,9 +564,16 @@ namespace DedicatedServerMod.Shared.Networking
             try
             {
                 var config = Shared.Configuration.ServerConfig.Instance;
-                var serverData = new ServerData
+                var serverData = new DedicatedServerMod.Shared.ServerData
                 {
                     ServerName = config.ServerName,
+                    ServerDescription = config.ServerDescription,
+#if SERVER
+                    CurrentPlayers = ServerBootstrap.Players?.GetVisiblePlayerCount() ?? 0,
+#else
+                    CurrentPlayers = 0,
+#endif
+                    MaxPlayers = config.MaxPlayers,
                     AllowSleeping = config.AllowSleeping,
                     PublicServer = config.PublicServer
                 };
@@ -733,6 +740,9 @@ namespace DedicatedServerMod.Shared.Networking
         public struct ServerData
         {
             public string ServerName;
+            public string ServerDescription;
+            public int CurrentPlayers;
+            public int MaxPlayers;
             public bool AllowSleeping;
             public bool PublicServer;
         }

@@ -21,6 +21,11 @@ namespace DedicatedServerMod.Client.Managers
 			_current = newData;
 			try { OnUpdated?.Invoke(_current); } catch { }
 		}
+
+		public static void Reset()
+		{
+			_current = new ServerData();
+		}
 	}
 }
 

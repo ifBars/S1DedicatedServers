@@ -72,6 +72,8 @@ namespace DedicatedServerMod.Client.Managers
         public string LastConnectionError { get; private set; }
         public bool ShouldBlockLoadingScreenClose => IsConnecting && !_isReturningToMenu && _worldLoadCompleted && !_authSucceeded;
 
+        public event Action<string, int> DedicatedServerConnected;
+
         public ClientConnectionManager(MelonLogger.Instance logger)
         {
             this.logger = logger;
@@ -131,6 +133,7 @@ namespace DedicatedServerMod.Client.Managers
 
             TryHookConnectionState();
             logger.Msg($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
+            ServerDataStore.Reset();
             _worldLoadCompleted = false;
             _authSucceeded = false;
             _joinCompletionNotified = false;
@@ -442,6 +445,15 @@ namespace DedicatedServerMod.Client.Managers
 
             try
             {
+                DedicatedServerConnected?.Invoke(_targetServerIP, _targetServerPort);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"DedicatedServerConnected callback error: {ex.Message}");
+            }
+
+            try
+            {
                 ModManager.NotifyConnectedToServer();
             }
             catch (Exception ex)
@@ -546,6 +558,7 @@ namespace DedicatedServerMod.Client.Managers
 
             IsConnecting = false;
             IsConnectedToDedicatedServer = false;
+            ServerDataStore.Reset();
             _worldLoadCompleted = false;
             _authSucceeded = false;
             _joinCompletionNotified = false;

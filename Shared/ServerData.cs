@@ -10,6 +10,9 @@ namespace DedicatedServerMod.Shared
 	public class ServerData
 	{
 		public string ServerName { get; set; } = "Schedule One Dedicated Server";
+		public string ServerDescription { get; set; } = "A dedicated server for Schedule One";
+		public int CurrentPlayers { get; set; }
+		public int MaxPlayers { get; set; }
 		public bool AllowSleeping { get; set; } = false;
 		public bool PublicServer { get; set; } = true;
 	}
