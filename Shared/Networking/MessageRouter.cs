@@ -89,7 +89,7 @@ namespace DedicatedServerMod.Shared.Networking
                 return;
             }
 
-            _logger.Msg($"RouteServerMessage: cmd='{command}' from={conn.ClientId}");
+            DebugLog.MessageRoutingDebug($"RouteServerMessage: cmd='{command}' from={conn.ClientId}");
 
             if (!IsCommandAllowedForConnection(conn, command))
             {
@@ -132,11 +132,11 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 default:
-                    _logger.Msg($"Unhandled server message: {command}");
+                    DebugLog.MessageRoutingDebug($"Unhandled server message: {command}");
                     break;
             }
 #else
-            _logger.Msg($"RouteServerMessage ignored on client build: cmd='{command}'");
+            DebugLog.MessageRoutingDebug($"RouteServerMessage ignored on client build: cmd='{command}'");
 #endif
         }
 
@@ -147,7 +147,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The message payload</param>
         public static void RouteClientMessage(string command, string data)
         {
-            _logger.Msg($"RouteClientMessage: cmd='{command}'");
+            DebugLog.MessageRoutingDebug($"RouteClientMessage: cmd='{command}'");
 
             switch (command)
             {
@@ -163,7 +163,7 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 default:
-                    _logger.Msg($"Unhandled client message: {command}");
+                    DebugLog.MessageRoutingDebug($"Unhandled client message: {command}");
                     break;
             }
         }
@@ -239,7 +239,7 @@ namespace DedicatedServerMod.Shared.Networking
                 AuthenticationResult beginResult = playerManager.Authentication.SubmitTicket(playerInfo, ticketMessage);
                 if (beginResult.IsPending)
                 {
-                    _logger.Msg($"HandleAuthTicket: pending auth validation for ClientId {conn.ClientId}");
+                    DebugLog.MessageRoutingDebug($"HandleAuthTicket: pending auth validation for ClientId {conn.ClientId}");
                 }
             }
             catch (Exception ex)
@@ -574,8 +574,7 @@ namespace DedicatedServerMod.Shared.Networking
                     CurrentPlayers = 0,
 #endif
                     MaxPlayers = config.MaxPlayers,
-                    AllowSleeping = config.AllowSleeping,
-                    PublicServer = config.PublicServer
+                    AllowSleeping = config.AllowSleeping
                 };
 
                 string payload = JsonConvert.SerializeObject(serverData);
@@ -744,7 +743,6 @@ namespace DedicatedServerMod.Shared.Networking
             public int CurrentPlayers;
             public int MaxPlayers;
             public bool AllowSleeping;
-            public bool PublicServer;
         }
 
         #endregion

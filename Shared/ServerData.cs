@@ -14,7 +14,6 @@ namespace DedicatedServerMod.Shared
 		public int CurrentPlayers { get; set; }
 		public int MaxPlayers { get; set; }
 		public bool AllowSleeping { get; set; } = false;
-		public bool PublicServer { get; set; } = true;
 	}
 }
 

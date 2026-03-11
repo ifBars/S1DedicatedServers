@@ -15,7 +15,6 @@ using HarmonyLib;
 using DedicatedServerMod.API;
 using UnityEngine;
 using DedicatedServerMod.Server.TcpConsole;
-using MasterServerClient = DedicatedServerMod.Server.Network.MasterServerClient;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -38,7 +37,6 @@ namespace DedicatedServerMod.Server.Core
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
         private static TcpConsoleServer _tcpConsole;
-        private static MasterServerClient _masterServerClient;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
         
@@ -81,11 +79,6 @@ namespace DedicatedServerMod.Server.Core
         /// </summary>
         public static GameSystemManager GameSystems => _gameSystemManager;
         
-        /// <summary>
-        /// Gets the master server client instance
-        /// </summary>
-        public static MasterServerClient MasterServer => _masterServerClient;
-
         /// <summary>
         /// Gets the SteamNetworkLib dedicated compatibility service.
         /// </summary>
@@ -181,11 +174,6 @@ namespace DedicatedServerMod.Server.Core
             _gameSystemManager = new GameSystemManager(_logger);
             _gameSystemManager.Initialize();
             _logger.Msg("✓ Game system manager initialized");
-            
-            // Step 9: Master Server Client
-            _masterServerClient = new MasterServerClient(_logger);
-            _masterServerClient.Initialize();
-            _logger.Msg("✓ Master server client initialized");
             
             // Start TCP Console if enabled in ServerConfig
             TryStartTcpConsole();
@@ -347,17 +335,6 @@ namespace DedicatedServerMod.Server.Core
             
             try
             {
-                // Unregister from master server gracefully
-                if (_masterServerClient != null && _masterServerClient.IsRegistered)
-                {
-                    _logger.Msg("Unregistering from master server...");
-                    var unregisterCoroutine = _masterServerClient.UnregisterFromMasterServer();
-                    while (unregisterCoroutine.MoveNext())
-                    {
-                        System.Threading.Thread.Sleep(100); // Simple wait since we're in shutdown
-                    }
-                }
-                
                 // Notify API mods prior to tearing down subsystems
                 ModManager.NotifyServerShutdown();
 
@@ -367,7 +344,6 @@ namespace DedicatedServerMod.Server.Core
                 // Shutdown in reverse order
                 try { _tcpConsole?.Dispose(); } catch { }
                 _serverStatusQueryService?.Shutdown();
-                _masterServerClient?.Shutdown();
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();

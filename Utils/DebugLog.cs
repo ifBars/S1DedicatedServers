@@ -150,6 +150,90 @@ namespace DedicatedServerMod.Utils
             }
         }
 
+        /// <summary>
+        /// Gets whether umbrella networking debug logging is enabled.
+        /// </summary>
+        public static bool IsNetworkingDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return config?.LogNetworkingDebug ?? false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether message routing debug logging is enabled.
+        /// </summary>
+        public static bool IsMessageRoutingDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return (config?.LogMessageRoutingDebug ?? false) || (config?.LogNetworkingDebug ?? false);
+            }
+        }
+
+        /// <summary>
+        /// Gets whether messaging backend debug logging is enabled.
+        /// </summary>
+        public static bool IsMessagingBackendDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return (config?.LogMessagingBackendDebug ?? false) || (config?.LogNetworkingDebug ?? false);
+            }
+        }
+
+        /// <summary>
+        /// Gets whether startup debug logging is enabled.
+        /// </summary>
+        public static bool IsStartupDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return config?.LogStartupDebug ?? false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether server network debug logging is enabled.
+        /// </summary>
+        public static bool IsServerNetworkDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return config?.LogServerNetworkDebug ?? false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether player lifecycle debug logging is enabled.
+        /// </summary>
+        public static bool IsPlayerLifecycleDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return config?.LogPlayerLifecycleDebug ?? false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether authentication debug logging is enabled.
+        /// </summary>
+        public static bool IsAuthenticationDebugLoggingEnabled
+        {
+            get
+            {
+                var config = Config;
+                return config?.LogAuthenticationDebug ?? false;
+            }
+        }
+
         #endregion
 
         #region Info Logging
@@ -447,6 +531,78 @@ namespace DedicatedServerMod.Utils
         {
             var targetStr = target.HasValue ? $" to={target.Value}" : "";
             Logger.Msg($"[MESSAGE] {direction} cmd='{command}' len={dataLength}{targetStr}");
+        }
+
+        /// <summary>
+        /// Logs a message routing debug entry when routing debug logging is enabled.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        public static void MessageRoutingDebug(string message)
+        {
+            if (IsMessageRoutingDebugLoggingEnabled)
+            {
+                Logger.Msg($"[DEBUG][NETWORK][ROUTING] {message}");
+            }
+        }
+
+        /// <summary>
+        /// Logs a messaging backend debug entry when backend debug logging is enabled.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        public static void MessagingBackendDebug(string message)
+        {
+            if (IsMessagingBackendDebugLoggingEnabled)
+            {
+                Logger.Msg($"[DEBUG][NETWORK][BACKEND] {message}");
+            }
+        }
+
+        /// <summary>
+        /// Logs a startup debug entry when startup debug logging is enabled.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        public static void StartupDebug(string message)
+        {
+            if (IsStartupDebugLoggingEnabled)
+            {
+                Logger.Msg($"[DEBUG][STARTUP] {message}");
+            }
+        }
+
+        /// <summary>
+        /// Logs a server network debug entry when transport/network debug logging is enabled.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        public static void ServerNetworkDebug(string message)
+        {
+            if (IsServerNetworkDebugLoggingEnabled)
+            {
+                Logger.Msg($"[DEBUG][SERVER][NETWORK] {message}");
+            }
+        }
+
+        /// <summary>
+        /// Logs a player lifecycle debug entry when player lifecycle debug logging is enabled.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        public static void PlayerLifecycleDebug(string message)
+        {
+            if (IsPlayerLifecycleDebugLoggingEnabled)
+            {
+                Logger.Msg($"[DEBUG][PLAYER] {message}");
+            }
+        }
+
+        /// <summary>
+        /// Logs an authentication debug entry when authentication debug logging is enabled.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        public static void AuthenticationDebug(string message)
+        {
+            if (IsAuthenticationDebugLoggingEnabled)
+            {
+                Logger.Msg($"[DEBUG][AUTH] {message}");
+            }
         }
 
         #endregion

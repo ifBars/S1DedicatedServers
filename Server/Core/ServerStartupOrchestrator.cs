@@ -49,20 +49,20 @@ namespace DedicatedServerMod.Server.Core
             Logger.Msg("Starting dedicated server loading sequence (orchestrator)");
 
             // Step 1: Wait for the game to finish loading initial scenes
-            Logger.Msg("Waiting for game initialization...");
+            DebugLog.StartupDebug("Waiting for game initialization...");
             
             // Wait a few frames for Unity to settle
             for (int i = 0; i < 10; i++)
                 yield return null;
             
-            Logger.Msg($"Current scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+            DebugLog.StartupDebug($"Current scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
             
             // Step 2: Ensure Multipass/Tugboat and configure transport
             FishNet.Managing.NetworkManager networkManager = null;
             
             // Wait for NetworkManager to be available (it might be initializing in the first scene)
             float waitNm = 0f;
-            Logger.Msg("Checking for NetworkManager...");
+            DebugLog.StartupDebug("Checking for NetworkManager...");
             
             while (networkManager == null && waitNm < 30f)
             {
@@ -73,7 +73,7 @@ namespace DedicatedServerMod.Server.Core
                 }
                 catch (Exception ex)
                 {
-                    Logger.Msg($"InstanceFinder threw: {ex.Message}");
+                    DebugLog.StartupDebug($"InstanceFinder threw: {ex.Message}");
                 }
                 
                 if (networkManager == null)
@@ -82,17 +82,17 @@ namespace DedicatedServerMod.Server.Core
                     {
                         networkManager = UnityEngine.Object.FindObjectOfType<FishNet.Managing.NetworkManager>();
                         if (networkManager != null)
-                            Logger.Msg("Found NetworkManager via FindObjectOfType");
+                            DebugLog.StartupDebug("Found NetworkManager via FindObjectOfType");
                     }
                     catch (Exception ex)
                     {
-                        Logger.Msg($"FindObjectOfType threw: {ex.Message}");
+                        DebugLog.StartupDebug($"FindObjectOfType threw: {ex.Message}");
                     }
                 }
                 
                 if (networkManager == null)
                 {
-                    Logger.Msg($"Waiting for NetworkManager... ({waitNm}s elapsed)");
+                    DebugLog.StartupDebug($"Waiting for NetworkManager... ({waitNm}s elapsed)");
                     yield return new WaitForSeconds(1f);
                     waitNm += 1f;
                 }
@@ -104,7 +104,7 @@ namespace DedicatedServerMod.Server.Core
                 yield break;
             }
             
-            Logger.Msg($"NetworkManager found! Scene: {networkManager.gameObject.scene.name}");
+            DebugLog.StartupDebug($"NetworkManager found! Scene: {networkManager.gameObject.scene.name}");
 
             var transportManager = networkManager.TransportManager;
             var transport = transportManager.Transport;
@@ -151,7 +151,7 @@ namespace DedicatedServerMod.Server.Core
                 // Get resolved path (either custom or default)
                 string configuredPath = ServerConfig.GetResolvedSaveGamePath();
                 
-                Logger.Msg($"Preparing save folder: {configuredPath}");
+                DebugLog.StartupDebug($"Preparing save folder: {configuredPath}");
 
                 // Prepare/seed the save folder similar to host flow (DefaultSave + Player_0 + metadata)
                 try
@@ -211,14 +211,14 @@ namespace DedicatedServerMod.Server.Core
             // Reset loaded save path after scene load to prevent LoadManager.Start() debug override to DevSave
             loadManager.ActiveSaveInfo = actualSaveInfo;
             loadManager.LoadedGameFolderPath = actualSaveInfo.SavePath;
-            Logger.Msg($"Restored loaded save path: {loadManager.LoadedGameFolderPath}");
+            DebugLog.StartupDebug($"Restored loaded save path: {loadManager.LoadedGameFolderPath}");
 
             TryDisableHeadlessAutoStart(networkManager.ServerManager);
 
             // Step 4: Start FishNet server via ServerManager (ensures Multipass TransportIdData registration)
             if (InstanceFinder.IsServer)
             {
-                Logger.Msg("Server already running, skipping ServerManager.StartConnection()");
+                DebugLog.StartupDebug("Server already running, skipping ServerManager.StartConnection()");
             }
             else
             {
@@ -241,7 +241,7 @@ namespace DedicatedServerMod.Server.Core
             // Step 5: Start loopback client on server (mirror host flow)
             if (networkManager.IsClient)
             {
-                Logger.Msg("Loopback client already connected, skipping ClientManager.StartConnection()");
+                DebugLog.StartupDebug("Loopback client already connected, skipping ClientManager.StartConnection()");
             }
             else
             {
@@ -273,13 +273,13 @@ namespace DedicatedServerMod.Server.Core
             ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
             ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
 #else
-            Logger.Msg("Skipping loopback spawn hook wiring on IL2CPP runtime");
+            DebugLog.StartupDebug("Skipping loopback spawn hook wiring on IL2CPP runtime");
 #endif
             TryHandleExistingLoopbackPlayer();
 
             // Native host flow guarantees Player.Local before loading persistence data.
             loadManager.LoadStatus = LoadManager.ELoadStatus.SpawningPlayer;
-            Logger.Msg("Waiting for loopback local player spawn");
+            DebugLog.StartupDebug("Waiting for loopback local player spawn");
             float localPlayerTimeout = 30f;
             float localPlayerElapsed = 0f;
             while (ScheduleOne.PlayerScripts.Player.Local == null && localPlayerElapsed < localPlayerTimeout)
@@ -295,7 +295,7 @@ namespace DedicatedServerMod.Server.Core
                 yield break;
             }
 
-            Logger.Msg($"Loopback local player ready after {localPlayerElapsed:F1}s");
+            DebugLog.StartupDebug($"Loopback local player ready after {localPlayerElapsed:F1}s");
             TryHandleExistingLoopbackPlayer();
 
             // Step 6: Load save data
@@ -304,7 +304,7 @@ namespace DedicatedServerMod.Server.Core
             yield return MelonCoroutines.Start(LoadSaveData(loadManager));
 
             // Step 7: Finalize
-            Logger.Msg("Finalizing server initialization");
+            DebugLog.StartupDebug("Finalizing server initialization");
             loadManager.LoadStatus = LoadManager.ELoadStatus.None;
             loadManager.IsLoading = false;
             loadManager.IsGameLoaded = true;
@@ -317,16 +317,6 @@ namespace DedicatedServerMod.Server.Core
             Logger.Msg($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             Logger.Msg("Waiting for client connections...");
 
-            // Register with master server if enabled
-            if (ServerBootstrap.MasterServer != null)
-            {
-                yield return ServerBootstrap.MasterServer.RegisterWithMasterServer();
-                if (ServerBootstrap.MasterServer.IsRegistered)
-                {
-                    ServerBootstrap.MasterServer.StartHeartbeat();
-                }
-            }
-
             // Notify API mods: server started
             ModManager.NotifyServerStarted();
         }
@@ -337,14 +327,14 @@ namespace DedicatedServerMod.Server.Core
             if (clientField != null)
             {
                 clientField.SetValue(multipass, transport);
-                Logger.Msg("Set client transport via _clientTransport field");
+                DebugLog.StartupDebug("Set client transport via _clientTransport field");
                 return;
             }
             var clientProp = typeof(Multipass).GetProperty("ClientTransport", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
             if (clientProp != null && clientProp.CanWrite)
             {
                 clientProp.SetValue(multipass, transport);
-                Logger.Msg("Set client transport via ClientTransport property");
+                DebugLog.StartupDebug("Set client transport via ClientTransport property");
                 return;
             }
             foreach (var m in typeof(Multipass).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
@@ -352,7 +342,7 @@ namespace DedicatedServerMod.Server.Core
                 if (!m.Name.ToLowerInvariant().Contains("client") || m.GetParameters().Length != 1) continue;
                 if (!typeof(Transport).IsAssignableFrom(m.GetParameters()[0].ParameterType)) continue;
                 m.Invoke(multipass, new object[] { transport });
-                Logger.Msg($"Set client transport via method {m.Name}");
+                DebugLog.StartupDebug($"Set client transport via method {m.Name}");
                 return;
             }
             Logger.Warning("Could not set client transport via reflection");
@@ -373,7 +363,7 @@ namespace DedicatedServerMod.Server.Core
                 }
 
                 serverManager.SetStartOnHeadless(false);
-                Logger.Msg("Disabled FishNet StartOnHeadless; orchestrator is the single server startup authority");
+                DebugLog.StartupDebug("Disabled FishNet StartOnHeadless; orchestrator is the single server startup authority");
             }
             catch (Exception ex)
             {
@@ -384,7 +374,7 @@ namespace DedicatedServerMod.Server.Core
         private static void TryRegisterDefaultQuestsWithGuidManager()
         {
 #if IL2CPP
-            Logger.Msg("Skipping GUIDManager quest registration on IL2CPP runtime");
+            DebugLog.StartupDebug("Skipping GUIDManager quest registration on IL2CPP runtime");
             return;
 #else
             try
@@ -414,7 +404,7 @@ namespace DedicatedServerMod.Server.Core
                     catch { }
                 }
                 if (registered > 0)
-                    Logger.Msg($"Pre-registered {registered}/{total} default quests with GUIDManager");
+                    DebugLog.StartupDebug($"Pre-registered {registered}/{total} default quests with GUIDManager");
             }
             catch (Exception ex)
             {
@@ -454,7 +444,7 @@ namespace DedicatedServerMod.Server.Core
         {
             loadManager.onPreLoad?.Invoke();
 
-            Logger.Msg("Creating load requests for save data");
+            DebugLog.StartupDebug("Creating load requests for save data");
 #if MONO
             foreach (var baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
             {
@@ -463,7 +453,7 @@ namespace DedicatedServerMod.Server.Core
                 new LoadRequest(loadPath, baseSaveable.Loader);
             }
 #else
-            Logger.Msg("Skipping manual load request queue creation on IL2CPP runtime");
+            DebugLog.StartupDebug("Skipping manual load request queue creation on IL2CPP runtime");
 #endif
 
             var loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -508,7 +498,7 @@ namespace DedicatedServerMod.Server.Core
 #if MONO
                     ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
 #endif
-                    Logger.Msg("Loopback player hidden/teleported");
+                    DebugLog.StartupDebug("Loopback player hidden/teleported");
                 }
             }
             catch (Exception ex)
@@ -564,7 +554,7 @@ namespace DedicatedServerMod.Server.Core
                     if (firstQuest != null && firstQuest.State == EQuestState.Inactive)
                     {
                         firstQuest.Begin(network: true);
-                        Logger.Msg($"Initialized quest: {firstQuest.GetQuestTitle()}");
+                        DebugLog.StartupDebug($"Initialized quest: {firstQuest.GetQuestTitle()}");
                     }
                 }
 
@@ -573,7 +563,7 @@ namespace DedicatedServerMod.Server.Core
                 if (saveMgr != null)
                 {
                     saveMgr.Save();
-                    Logger.Msg("Server quest initialization completed and saved");
+                    DebugLog.StartupDebug("Server quest initialization completed and saved");
                 }
             }
             catch (Exception ex)
@@ -613,7 +603,7 @@ namespace DedicatedServerMod.Server.Core
                             qm.SetQuestTracked(player.Owner, quest.GUID.ToString(), true);
                     }
                 }
-                Logger.Msg($"Quest synchronization completed for new client: {player.PlayerName}");
+                DebugLog.StartupDebug($"Quest synchronization completed for new client: {player.PlayerName}");
             }
             catch (Exception ex)
             {

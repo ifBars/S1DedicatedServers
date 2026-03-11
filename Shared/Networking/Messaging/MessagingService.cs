@@ -59,7 +59,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         {
             if (_isInitialized)
             {
-                logger?.Msg("MessagingService already initialized");
+                DebugLog.MessagingBackendDebug("MessagingService already initialized");
                 return true;
             }
 
@@ -68,7 +68,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             try
             {
                 MessagingBackendType backendType = DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.MessagingBackend;
-                _logger.Msg($"Initializing messaging service with backend: {backendType}");
+                DebugLog.MessagingBackendDebug($"Initializing messaging service with backend: {backendType}");
 
                 _backend = CreateBackend(backendType);
                 if (_backend == null)
@@ -96,7 +96,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
                 _isInitialized = true;
                 _isEndpointReady = false;
-                _logger.Msg($"Messaging service initialized with backend: {backendType}");
+                DebugLog.MessagingBackendDebug($"Messaging service initialized with backend: {backendType}");
                 return true;
             }
             catch (Exception ex)
@@ -121,7 +121,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 _backend.ClientMessageReceived -= OnBackendClientMessageReceived;
                 _backend.ServerMessageReceived -= OnBackendServerMessageReceived;
                 _backend.Shutdown();
-                _logger?.Msg("Messaging service shut down");
+                DebugLog.MessagingBackendDebug("Messaging service shut down");
             }
             catch (Exception ex)
             {

@@ -924,6 +924,7 @@
 	  <None Remove="FishNet-Docs\**" />
 	  <EmbeddedResource Remove="Docker\**" />
 	  <None Remove="Docker\**" />
+	  <None Remove="FishNet.Runtime.xml" />
 	</ItemGroup>
 	
 	<!-- Utility infrastructure (shared by all builds) -->
@@ -996,8 +997,6 @@
 		
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />
-		<Compile Include="Server\Network\MasterServerClient.cs" />
-		<Compile Include="Server\Network\ServerHeartbeatData.cs" />
 		<Compile Include="Server\Network\ServerStatusQueryService.cs" />
 		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
 		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />

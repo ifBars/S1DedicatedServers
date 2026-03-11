@@ -408,7 +408,7 @@ namespace DedicatedServerMod.Server.Player
         {
             if (IsPlayerBanned(steamId))
             {
-                _logger.Msg($"Player {steamId} is banned, denying access");
+                DebugLog.AuthenticationDebug($"Player {steamId} is banned, denying access");
                 return false;
             }
 

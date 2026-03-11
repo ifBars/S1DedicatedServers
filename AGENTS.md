@@ -35,7 +35,7 @@ DedicatedServerMod/
 │   └── *ModBase.cs        # Base classes for mods
 ├── Server/                 # Server-only code (SERVER define)
 │   ├── Core/              # Bootstrap and startup orchestration
-│   ├── Network/           # Server networking and master server
+│   ├── Network/           # Server networking services
 │   ├── Player/            # Player tracking, auth, permissions
 │   ├── Commands/          # Command system (TCP console, in-game)
 │   ├── Persistence/       # Save/load management

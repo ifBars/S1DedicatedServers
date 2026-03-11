@@ -160,52 +160,6 @@ namespace DedicatedServerMod.Shared.Configuration
         [JsonProp(Utils.Constants.ConfigKeys.SteamWebApiIdentity)]
         public string SteamWebApiIdentity { get; set; } = "DedicatedServerMod";
 
-        /// <summary>
-        /// Whether to register with public server lists.
-        /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.PublicServer)]
-        public bool PublicServer { get; set; } = true;
-
-        #endregion
-
-        #region Master Server Settings
-
-        /// <summary>
-        /// Whether to register with a master server.
-        /// </summary>
-        [JsonProp("registerWithMasterServer")]
-        public bool RegisterWithMasterServer { get; set; } = false;
-
-        /// <summary>
-        /// The master server URL for server registration.
-        /// </summary>
-        [JsonProp("masterServerUrl")]
-        public string MasterServerUrl { get; set; } = "https://s1-server-list.example.com";
-
-        /// <summary>
-        /// API key for master server authentication.
-        /// </summary>
-        [JsonProp("masterServerApiKey")]
-        public string MasterServerApiKey { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Server ID for master server registration.
-        /// </summary>
-        [JsonProp("masterServerServerId")]
-        public string MasterServerServerId { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Contact information for server owner.
-        /// </summary>
-        [JsonProp("masterServerOwnerContact")]
-        public string MasterServerOwnerContact { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Public address to advertise (if behind NAT).
-        /// </summary>
-        [JsonProp("publicServerAddress")]
-        public string PublicServerAddress { get; set; } = string.Empty;
-
         #endregion
 
         #region TCP Console Settings
@@ -448,6 +402,55 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         [JsonProp("enablePerformanceMonitoring")]
         public bool EnablePerformanceMonitoring { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable additional debug logging across shared networking systems.
+        /// This acts as an umbrella switch for routing and transport/backend debug logs.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogNetworkingDebug)]
+        public bool LogNetworkingDebug { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable detailed debug logging for message routing decisions.
+        /// When false, normal warnings and errors still log.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogMessageRoutingDebug)]
+        public bool LogMessageRoutingDebug { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable detailed debug logging for messaging backend send/receive activity.
+        /// When false, normal warnings and errors still log.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogMessagingBackendDebug)]
+        public bool LogMessagingBackendDebug { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable detailed startup orchestration and initialization tracing.
+        /// When false, only important startup milestones, warnings, and errors remain visible.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogStartupDebug)]
+        public bool LogStartupDebug { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable detailed server transport and network lifecycle tracing.
+        /// When false, only important online/offline and failure logs remain visible.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogServerNetworkDebug)]
+        public bool LogServerNetworkDebug { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable detailed player lifecycle tracing for connections, spawns, identities, and shutdown cleanup.
+        /// When false, important join, leave, kick, and ban logs remain visible.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogPlayerLifecycleDebug)]
+        public bool LogPlayerLifecycleDebug { get; set; } = false;
+
+        /// <summary>
+        /// Whether to enable detailed authentication tracing for handshake and auth state transitions.
+        /// When false, only common authentication failures remain visible.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.LogAuthenticationDebug)]
+        public bool LogAuthenticationDebug { get; set; } = false;
 
         #endregion
 
@@ -832,7 +835,6 @@ namespace DedicatedServerMod.Shared.Configuration
             info += $"Max Players: {Instance.MaxPlayers}\n";
             info += $"Server Port: {Instance.ServerPort}\n";
             info += $"Password Protected: {!string.IsNullOrEmpty(Instance.ServerPassword)}\n";
-            info += $"Public Server: {Instance.PublicServer}\n";
             info += $"Authentication Required: {Instance.RequireAuthentication}\n";
             info += $"Auth Provider: {Instance.AuthProvider}\n";
             info += $"Auth Timeout: {Instance.AuthTimeoutSeconds}s\n";

@@ -60,11 +60,6 @@ namespace DedicatedServerMod.Utils
         public const int MaxAllowedPlayers = 64;
 
         /// <summary>
-        /// Default heartbeat interval in seconds for master server registration.
-        /// </summary>
-        public const int HeartbeatIntervalSeconds = 30;
-
-        /// <summary>
         /// Timeout for player authentication in milliseconds.
         /// </summary>
         public const int AuthTimeoutMS = 5000;
@@ -409,9 +404,6 @@ namespace DedicatedServerMod.Utils
             public const string SteamP2PServerSteamId = "steamP2PServerSteamId";
             public const string SteamWebApiKey = "steamWebApiKey";
             public const string SteamWebApiIdentity = "steamWebApiIdentity";
-            public const string PublicServer = "publicServer";
-            public const string RegisterWithMasterServer = "registerWithMasterServer";
-            public const string MasterServerURL = "masterServerUrl";
             public const string TcpConsoleEnabled = "tcpConsoleEnabled";
             public const string TcpConsolePort = "tcpConsolePort";
             public const string TimeMultiplier = "timeProgressionMultiplier";
@@ -424,6 +416,13 @@ namespace DedicatedServerMod.Utils
             public const string BannedPlayers = "bannedPlayers";
             public const string DebugMode = "debugMode";
             public const string VerboseLogging = "verboseLogging";
+            public const string LogNetworkingDebug = "logNetworkingDebug";
+            public const string LogMessageRoutingDebug = "logMessageRoutingDebug";
+            public const string LogMessagingBackendDebug = "logMessagingBackendDebug";
+            public const string LogStartupDebug = "logStartupDebug";
+            public const string LogServerNetworkDebug = "logServerNetworkDebug";
+            public const string LogPlayerLifecycleDebug = "logPlayerLifecycleDebug";
+            public const string LogAuthenticationDebug = "logAuthenticationDebug";
         }
 
         #endregion

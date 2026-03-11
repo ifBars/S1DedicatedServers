@@ -157,7 +157,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 TryResolveServerSteamIdFromConfigOrArgs();
 
                 _isInitialized = true;
-                _logger.Msg($"Steam sockets messaging initialized (virtualPort={_virtualPort}, max={_maxPayloadBytes} bytes)");
+                DebugLog.MessagingBackendDebug($"Steam sockets messaging initialized (virtualPort={_virtualPort}, max={_maxPayloadBytes} bytes)");
                 return true;
             }
             catch (Exception ex)
@@ -180,7 +180,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 bool steamAvailable = IsAvailable;
                 if (!steamAvailable)
                 {
-                    _logger?.Msg("Steam sockets backend shutdown detected that Steam game server was already stopped; skipping native socket close calls.");
+                    DebugLog.MessagingBackendDebug("Steam sockets backend shutdown detected that Steam game server was already stopped; skipping native socket close calls.");
                 }
 
                 if (steamAvailable)
@@ -766,7 +766,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             if (!_fallbackWarnedClientIds.Contains(conn.ClientId))
             {
                 _fallbackWarnedClientIds.Add(conn.ClientId);
-                _logger?.Msg($"Steam sockets fallback active for ClientId {conn.ClientId} until socket mapping is available.");
+                DebugLog.MessagingBackendDebug($"Steam sockets fallback active for ClientId {conn.ClientId} until socket mapping is available.");
             }
 
             return fallbackSent;

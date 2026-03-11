@@ -33,7 +33,6 @@ DedicatedServerMod transforms Schedule I into a multiplayer-ready game with dedi
 - 💾 **Auto-Save System**: Configurable intervals with player event triggers
 - ⏰ **Time Management**: Never-stop time option with multiplier control
 - 🌙 **Sleep Cycling**: Server-controlled sleep with ghost host support
-- 🔌 **Master Server Integration**: Optional server list registration
 - 📊 **Performance Monitoring**: Built-in metrics and logging
 
 ### Client Features
@@ -94,7 +93,7 @@ The server will now run without any visible windows. Use the TCP console or log 
 
 ## 🔐 Authentication Quick Start
 
-If you host a public server, enable ticket authentication so clients must prove Steam identity before they can run server commands.
+If you share your server address with others, enable ticket authentication so clients must prove Steam identity before they can run server commands.
 
 ```json
 {

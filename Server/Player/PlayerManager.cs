@@ -96,9 +96,9 @@ namespace DedicatedServerMod.Server.Player
 #if MONO
                 InstanceFinder.ServerManager.OnRemoteConnectionState += OnClientConnectionState;
 #else
-                logger.Msg("Skipping direct remote connection hook on IL2CPP runtime");
+                DebugLog.PlayerLifecycleDebug("Skipping direct remote connection hook on IL2CPP runtime");
 #endif
-                logger.Msg("Player connection hooks established");
+                DebugLog.PlayerLifecycleDebug("Player connection hooks established");
             }
 
             try
@@ -108,9 +108,9 @@ namespace DedicatedServerMod.Server.Player
                 ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, HandleOnPlayerSpawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
                 ScheduleOne.PlayerScripts.Player.onPlayerDespawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerDespawned, OnPlayerDespawned);
-                logger.Msg("Player spawn hooks established");
+                DebugLog.PlayerLifecycleDebug("Player spawn hooks established");
 #else
-                logger.Msg("Skipping player spawn hook wiring on IL2CPP runtime");
+                DebugLog.PlayerLifecycleDebug("Skipping player spawn hook wiring on IL2CPP runtime");
 #endif
             }
             catch (Exception ex)
@@ -142,7 +142,7 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                logger.Msg($"Player connecting: ClientId {connection.ClientId}");
+                DebugLog.PlayerLifecycleDebug($"Player connecting: ClientId {connection.ClientId}");
 
                 bool isExistingPlayer = connectedPlayers.TryGetValue(connection, out var playerInfo);
                 if (!isExistingPlayer && connectedPlayers.Count >= ServerConfig.Instance.MaxPlayers)
@@ -173,7 +173,7 @@ namespace DedicatedServerMod.Server.Player
                     playerInfo.IsLoopbackConnection = IsLoopbackConnection(connection);
                 }
 
-                logger.Msg($"Player tracked: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
+                DebugLog.PlayerLifecycleDebug($"Player tracked: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
 
                 bool requiresAuthentication = authentication.IsAuthenticationRequiredForPlayer(playerInfo);
                 if (!requiresAuthentication)
@@ -194,7 +194,7 @@ namespace DedicatedServerMod.Server.Player
                 }
                 else
                 {
-                    logger.Msg($"ClientId {connection.ClientId} awaiting authentication handshake");
+                    DebugLog.AuthenticationDebug($"ClientId {connection.ClientId} awaiting authentication handshake");
                 }
             }
             catch (Exception ex)
@@ -224,7 +224,7 @@ namespace DedicatedServerMod.Server.Player
                 }
                 else
                 {
-                    logger.Msg($"Unknown player disconnected: ClientId {connection.ClientId}");
+                    DebugLog.PlayerLifecycleDebug($"Unknown player disconnected: ClientId {connection.ClientId}");
                 }
             }
             catch (Exception ex)
@@ -250,13 +250,13 @@ namespace DedicatedServerMod.Server.Player
                     if (playerInfo.IsLoopbackConnection || GhostHostIdentifier.IsGhostHost(player))
                     {
                         ApplyLoopbackIdentity(playerInfo, player.PlayerCode, player.PlayerName);
-                        logger.Msg($"Loopback player spawned and correlated: {playerInfo.DisplayName} (ClientId {player.Owner.ClientId})");
+                        DebugLog.PlayerLifecycleDebug($"Loopback player spawned and correlated: {playerInfo.DisplayName} (ClientId {player.Owner.ClientId})");
                         return;
                     }
 
                     // Identity binding happens via DedicatedServerPatches.BindPlayerIdentityPostfix
                     // which calls SetPlayerIdentity when player name data is received
-                    logger.Msg($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId}) - awaiting identity");
+                    DebugLog.PlayerLifecycleDebug($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId}) - awaiting identity");
                 }
                 else
                 {
@@ -286,7 +286,7 @@ namespace DedicatedServerMod.Server.Player
                 if (connectedPlayers.TryGetValue(player.Owner, out var playerInfo))
                 {
                     playerInfo.PlayerInstance = null;
-                    logger.Msg($"Player despawned: {player.PlayerName} (ClientId {player.Owner.ClientId})");
+                    DebugLog.PlayerLifecycleDebug($"Player despawned: {player.PlayerName} (ClientId {player.Owner.ClientId})");
                 }
             }
             catch (Exception ex)
@@ -346,7 +346,7 @@ namespace DedicatedServerMod.Server.Player
                 return;
             }
 
-            logger.Msg($"Authentication completed for ClientId {playerInfo.ClientId}: {result}");
+            DebugLog.AuthenticationDebug($"Authentication completed for ClientId {playerInfo.ClientId}: {result}");
             SendAuthResultToClient(playerInfo, result);
 
             if (result.IsSuccessful)
@@ -419,8 +419,7 @@ namespace DedicatedServerMod.Server.Player
                     ServerDescription = cfg.ServerDescription,
                     CurrentPlayers = GetVisiblePlayerCount(),
                     MaxPlayers = cfg.MaxPlayers,
-                    AllowSleeping = cfg.AllowSleeping,
-                    PublicServer = cfg.PublicServer
+                    AllowSleeping = cfg.AllowSleeping
                 };
 
                 string json = JsonConvert.SerializeObject(serverData);
@@ -595,13 +594,13 @@ namespace DedicatedServerMod.Server.Player
                     IsAuthenticationPending = false
                 };
                 connectedPlayers[connection] = playerInfo;
-                logger.Msg($"Created player entry from identity binding: ClientId {connection.ClientId}");
+                DebugLog.PlayerLifecycleDebug($"Created player entry from identity binding: ClientId {connection.ClientId}");
             }
 
             if (playerInfo.IsLoopbackConnection)
             {
                 ApplyLoopbackIdentity(playerInfo, steamId, playerName);
-                logger.Msg($"Loopback identity correlated: ClientId {connection.ClientId} -> SteamID {playerInfo.SteamId} ({playerInfo.PlayerName})");
+                DebugLog.PlayerLifecycleDebug($"Loopback identity correlated: ClientId {connection.ClientId} -> SteamID {playerInfo.SteamId} ({playerInfo.PlayerName})");
                 OnPlayerSpawned?.Invoke(playerInfo);
                 return;
             }
@@ -615,7 +614,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (isDefaultIdentity && hasValidIdentity)
             {
-                logger.Msg($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
+                DebugLog.PlayerLifecycleDebug($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
                 return;
             }
 
@@ -632,7 +631,7 @@ namespace DedicatedServerMod.Server.Player
 
             playerInfo.SteamId = steamId;
             playerInfo.PlayerName = playerName;
-            logger.Msg($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
+            DebugLog.PlayerLifecycleDebug($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
             OnPlayerSpawned?.Invoke(playerInfo);
         }
 
@@ -736,8 +735,8 @@ namespace DedicatedServerMod.Server.Player
                         continue;
                     }
 
-                    logger.Msg($"Disconnecting player {player.DisplayName}: {reason}");
-                    player.Connection.Disconnect(true);
+                        DebugLog.PlayerLifecycleDebug($"Disconnecting player {player.DisplayName}: {reason}");
+                        player.Connection.Disconnect(true);
                 }
                 catch (Exception ex)
                 {
@@ -766,11 +765,11 @@ namespace DedicatedServerMod.Server.Player
                         // Skip if already disconnected
                         if (player.Connection == null || !player.Connection.IsActive)
                         {
-                            logger.Msg($"Skipping already disconnected player: {player.DisplayName}");
+                            DebugLog.PlayerLifecycleDebug($"Skipping already disconnected player: {player.DisplayName}");
                             continue;
                         }
                         
-                        logger.Msg($"Final disconnect cleanup for player: {player.DisplayName}");
+                        DebugLog.PlayerLifecycleDebug($"Final disconnect cleanup for player: {player.DisplayName}");
                         player.Connection.Disconnect(true);
                     }
                     catch (Exception ex)

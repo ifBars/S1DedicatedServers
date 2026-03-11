@@ -18,6 +18,7 @@ using System.Reflection;
 using UnityEngine;
 using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Server.Network
 {
@@ -73,10 +74,10 @@ namespace DedicatedServerMod.Server.Network
             serverManager.OnServerConnectionState -= OnServerConnectionState;
             serverManager.OnServerConnectionState += OnServerConnectionState;
 #else
-            logger.Msg("Skipping direct OnServerConnectionState hook on IL2CPP runtime");
+                DebugLog.ServerNetworkDebug("Skipping direct OnServerConnectionState hook on IL2CPP runtime");
 #endif
-            hooksRegistered = true;
-            logger.Msg("Network event hooks established");
+                hooksRegistered = true;
+            DebugLog.ServerNetworkDebug("Network event hooks established");
             return true;
         }
 
@@ -92,21 +93,21 @@ namespace DedicatedServerMod.Server.Network
         /// </summary>
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
-            logger.Msg($"Server connection state: {args.ConnectionState} (transport index {args.TransportIndex})");
+            DebugLog.ServerNetworkDebug($"Server connection state: {args.ConnectionState} (transport index {args.TransportIndex})");
 
             switch (args.ConnectionState)
             {
                 case LocalConnectionState.Starting:
                     if (isServerRunning)
                     {
-                        logger.Msg($"Additional server transport entered Starting after server was already online (transport index {args.TransportIndex})");
+                        DebugLog.ServerNetworkDebug($"Additional server transport entered Starting after server was already online (transport index {args.TransportIndex})");
                     }
                     break;
 
                 case LocalConnectionState.Started:
                     if (isServerRunning)
                     {
-                        logger.Msg($"Additional server transport reported Started after server was already online (transport index {args.TransportIndex})");
+                        DebugLog.ServerNetworkDebug($"Additional server transport reported Started after server was already online (transport index {args.TransportIndex})");
                         break;
                     }
 
@@ -121,7 +122,7 @@ namespace DedicatedServerMod.Server.Network
                 case LocalConnectionState.Stopped:
                     if (!isServerRunning)
                     {
-                        logger.Msg($"Server transport reported Stopped while server was already offline (transport index {args.TransportIndex})");
+                        DebugLog.ServerNetworkDebug($"Server transport reported Stopped while server was already offline (transport index {args.TransportIndex})");
                         break;
                     }
 
@@ -148,7 +149,7 @@ namespace DedicatedServerMod.Server.Network
                         if (paramType.IsAssignableFrom(typeof(Transport)))
                         {
                             method.Invoke(multipass, new object[] { transport });
-                            logger.Msg("Set server transport using Multipass.SetServerTransport");
+                            DebugLog.ServerNetworkDebug("Set server transport using Multipass.SetServerTransport");
                             return true;
                         }
                     }
@@ -161,7 +162,7 @@ namespace DedicatedServerMod.Server.Network
                 if (serverTransportField != null)
                 {
                     serverTransportField.SetValue(multipass, transport);
-                    logger.Msg("Set server transport via _serverTransport field");
+                    DebugLog.ServerNetworkDebug("Set server transport via _serverTransport field");
                     return true;
                 }
 

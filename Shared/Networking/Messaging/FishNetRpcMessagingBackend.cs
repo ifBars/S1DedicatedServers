@@ -76,7 +76,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             _messageId = Constants.CustomMessageID;
 
             _isInitialized = true;
-            _logger.Msg("FishNet RPC messaging backend initialized");
+            DebugLog.MessagingBackendDebug("FishNet RPC messaging backend initialized");
             return true;
         }
 
@@ -84,7 +84,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         public void Shutdown()
         {
             _isInitialized = false;
-            _logger?.Msg("FishNet RPC messaging backend shut down");
+            DebugLog.MessagingBackendDebug("FishNet RPC messaging backend shut down");
         }
 
         /// <inheritdoc />
@@ -115,7 +115,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 // Register client→server Server RPC
                 nb.RegisterServerRpc(_messageId, new ServerRpcDelegate(OnServerMessageReceived));
 
-                _logger?.Msg("Registered FishNet custom messaging RPCs on DailySummary");
+                DebugLog.MessagingBackendDebug("Registered FishNet custom messaging RPCs on DailySummary");
 #endif
             }
             catch (Exception ex)
@@ -138,7 +138,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 var ds = DailySummary.Instance;
                 if (ds == null)
                 {
-                    _logger?.Msg($"SendToServer deferred: DailySummary instance not ready for cmd='{command}'");
+                    DebugLog.MessagingBackendDebug($"SendToServer deferred: DailySummary instance not ready for cmd='{command}'");
                     return false;
                 }
 
@@ -157,7 +157,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 nb.SendServerRpc(_messageId, writer, Channel.Reliable, DataOrderType.Default);
                 writer.Store();
 
-                _logger?.Msg($"SendToServer cmd='{command}' len={data?.Length ?? 0}");
+                DebugLog.MessagingBackendDebug($"SendToServer cmd='{command}' len={data?.Length ?? 0}");
                 return true;
             }
             catch (Exception ex)
@@ -187,7 +187,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 var ds = DailySummary.Instance;
                 if (ds == null)
                 {
-                    _logger?.Msg($"SendToClient deferred: DailySummary instance not ready for cmd='{command}'");
+                    DebugLog.MessagingBackendDebug($"SendToClient deferred: DailySummary instance not ready for cmd='{command}'");
                     return false;
                 }
 
@@ -199,7 +199,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 ((NetworkBehaviour)ds).SendTargetRpc(_messageId, writer, Channel.Reliable, DataOrderType.Default, conn, false, true);
                 writer.Store();
 
-                _logger?.Msg($"SendToClient cmd='{command}' len={data?.Length ?? 0} to={conn.ClientId}");
+                DebugLog.MessagingBackendDebug($"SendToClient cmd='{command}' len={data?.Length ?? 0} to={conn.ClientId}");
                 return true;
             }
             catch (Exception ex)
@@ -244,7 +244,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                     }
                 }
 
-                _logger?.Msg($"BroadcastToClients cmd='{command}' len={data?.Length ?? 0} sentTo={count}");
+                DebugLog.MessagingBackendDebug($"BroadcastToClients cmd='{command}' len={data?.Length ?? 0} sentTo={count}");
             }
             catch (Exception ex)
             {
@@ -295,7 +295,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                     return;
                 }
 
-                _logger?.Msg($"OnClientMessageReceived cmd='{msg.Command}' len={msg.Data?.Length ?? 0}");
+                DebugLog.MessagingBackendDebug($"OnClientMessageReceived cmd='{msg.Command}' len={msg.Data?.Length ?? 0}");
 
                 try
                 {
@@ -331,7 +331,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                     return;
                 }
 
-                _logger?.Msg($"OnServerMessageReceived cmd='{msg.Command}' len={msg.Data?.Length ?? 0} from={conn?.ClientId}");
+                DebugLog.MessagingBackendDebug($"OnServerMessageReceived cmd='{msg.Command}' len={msg.Data?.Length ?? 0} from={conn?.ClientId}");
 
                 try
                 {

@@ -1,5 +1,6 @@
 using System;
 using DedicatedServerMod.Shared.Networking.Messaging;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else
@@ -93,7 +94,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// </summary>
         public static void Initialize()
         {
-            _logger.Msg("CustomMessaging initializing via MessagingService");
+            DebugLog.MessagingBackendDebug("CustomMessaging initializing via MessagingService");
             MessagingService.Initialize(_logger);
             EnsureEventsWired();
         }
@@ -103,7 +104,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// </summary>
         public static void Shutdown()
         {
-            _logger.Msg("CustomMessaging shutting down");
+            DebugLog.MessagingBackendDebug("CustomMessaging shutting down");
             DeferredClientMessages.Clear();
             MessagingService.Shutdown();
         }
@@ -192,7 +193,7 @@ namespace DedicatedServerMod.Shared.Networking
                 Data = data ?? string.Empty
             });
 
-            _logger.Msg($"Deferred server message until messaging endpoint ready: cmd='{command}' to={conn.ClientId}");
+            DebugLog.MessagingBackendDebug($"Deferred server message until messaging endpoint ready: cmd='{command}' to={conn.ClientId}");
             return true;
         }
 
