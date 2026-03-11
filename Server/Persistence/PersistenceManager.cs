@@ -169,6 +169,7 @@ namespace DedicatedServerMod.Server.Persistence
             bool saveStarted = false;
             try
             {
+                API.ModManager.NotifyBeforeSave();
                 SaveManager.Instance.Save();
                 saveStarted = true;
                 logger.Msg("Save operation initiated through SaveManager");
@@ -199,6 +200,7 @@ namespace DedicatedServerMod.Server.Persistence
                     lastAutoSave = DateTime.Now;
                 }
 
+                API.ModManager.NotifyAfterSave();
                 logger.Msg($"Save completed: {reason} (elapsed: {elapsed:F1}s)");
             }
 

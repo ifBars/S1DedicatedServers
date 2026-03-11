@@ -442,6 +442,7 @@ namespace DedicatedServerMod.Server.Core
 
         private static IEnumerator LoadSaveData(LoadManager loadManager)
         {
+            ModManager.NotifyBeforeLoad();
             loadManager.onPreLoad?.Invoke();
 
             DebugLog.StartupDebug("Creating load requests for save data");
@@ -476,6 +477,7 @@ namespace DedicatedServerMod.Server.Core
             yield return new WaitForEndOfFrame();
             yield return new WaitForEndOfFrame();
             loadManager.onLoadComplete?.Invoke();
+            ModManager.NotifyAfterLoad();
             Logger.Msg("Save data loaded successfully");
         }
 

@@ -361,6 +361,15 @@ namespace DedicatedServerMod.Client.Core
         {
             try
             {
+                API.ModManager.NotifyClientShutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error notifying client mods of shutdown: {ex.Message}");
+            }
+
+            try
+            {
                 _connectionManager?.Shutdown();
             }
             catch (Exception ex)

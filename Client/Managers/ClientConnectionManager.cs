@@ -460,6 +460,15 @@ namespace DedicatedServerMod.Client.Managers
             {
                 logger.Warning($"NotifyConnectedToServer error: {ex.Message}");
             }
+
+            try
+            {
+                ModManager.NotifyClientPlayerReady();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"NotifyClientPlayerReady error: {ex.Message}");
+            }
         }
 
         private void ReturnToMenu(string reason, bool isFailure, bool requestPlayerSave)
