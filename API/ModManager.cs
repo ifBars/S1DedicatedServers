@@ -241,6 +241,86 @@ namespace DedicatedServerMod.API
                 }
             }
         }
+
+        /// <summary>
+        /// Notifies all server mods that a save is about to begin.
+        /// </summary>
+        public static void NotifyBeforeSave()
+        {
+            if (!S1DS.IsServer) return;
+
+            foreach (var mod in _serverMods.ToList())
+            {
+                try
+                {
+                    mod.OnBeforeSave();
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"Error in server mod {mod.GetType().Name}.OnBeforeSave(): {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Notifies all server mods that a save has completed.
+        /// </summary>
+        public static void NotifyAfterSave()
+        {
+            if (!S1DS.IsServer) return;
+
+            foreach (var mod in _serverMods.ToList())
+            {
+                try
+                {
+                    mod.OnAfterSave();
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"Error in server mod {mod.GetType().Name}.OnAfterSave(): {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Notifies all server mods that a load is about to begin.
+        /// </summary>
+        public static void NotifyBeforeLoad()
+        {
+            if (!S1DS.IsServer) return;
+
+            foreach (var mod in _serverMods.ToList())
+            {
+                try
+                {
+                    mod.OnBeforeLoad();
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"Error in server mod {mod.GetType().Name}.OnBeforeLoad(): {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Notifies all server mods that a load has completed.
+        /// </summary>
+        public static void NotifyAfterLoad()
+        {
+            if (!S1DS.IsServer) return;
+
+            foreach (var mod in _serverMods.ToList())
+            {
+                try
+                {
+                    mod.OnAfterLoad();
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"Error in server mod {mod.GetType().Name}.OnAfterLoad(): {ex.Message}");
+                }
+            }
+        }
         #endif
         #endregion
 

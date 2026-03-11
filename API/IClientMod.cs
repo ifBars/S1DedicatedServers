@@ -1,5 +1,3 @@
-using System;
-
 namespace DedicatedServerMod.API
 {
     /// <summary>
@@ -43,17 +41,5 @@ namespace DedicatedServerMod.API
         /// <param name="data">Message data</param>
         /// <returns>True if handled, false otherwise</returns>
         bool OnCustomMessage(string messageType, byte[] data);
-
-        /// <summary>
-        /// Called when the client's UI is being updated
-        /// </summary>
-        void OnUIUpdate();
-
-        /// <summary>
-        /// Called when the client needs to handle a server event
-        /// </summary>
-        /// <param name="eventType">Type of the event</param>
-        /// <param name="eventData">Event data</param>
-        void OnServerEvent(string eventType, object eventData);
     }
 }

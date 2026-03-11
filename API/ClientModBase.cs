@@ -13,8 +13,6 @@ namespace DedicatedServerMod.API
 		public virtual void OnDisconnectedFromServer() { }
 		public virtual void OnClientPlayerReady() { }
 		public virtual bool OnCustomMessage(string messageType, byte[] data) { return false; }
-		public virtual void OnUIUpdate() { }
-		public virtual void OnServerEvent(string eventType, object eventData) { }
 	}
 
 	/// <summary>
@@ -28,8 +26,6 @@ namespace DedicatedServerMod.API
 		public virtual void OnDisconnectedFromServer() { }
 		public virtual void OnClientPlayerReady() { }
 		public virtual bool OnCustomMessage(string messageType, byte[] data) { return false; }
-		public virtual void OnUIUpdate() { }
-		public virtual void OnServerEvent(string eventType, object eventData) { }
 	}
 }
 
