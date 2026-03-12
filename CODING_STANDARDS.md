@@ -20,6 +20,8 @@ Concrete guidelines:
 - Prefer interfaces over concrete types for cross-module boundaries
 - Keep classes focused; split when a class gains multiple unrelated responsibilities
 - Use partial classes only for build-variant surfaces (e.g. `S1DS.Server` / `S1DS.Client`), not as a substitute for SRP
+- Do not add pass-through properties or methods that merely mirror another subsystem's state (for example forwarding `ServerConfig.Instance` values through `ServerBootstrap`); depend on the owning type directly or extract a dedicated coordinator/service
+- Bootstrap/orchestration classes may wire systems together, but config application, status projection, command execution, and persistence policy should live in dedicated collaborators rather than accumulate in the bootstrap itself
 
 ---
 
@@ -775,6 +777,24 @@ public class ServerConfig
 public class ServerConfig { /* config only */ }
 public class PermissionManager { /* permissions only */ }
 public class NetworkManager { /* networking only */ }
+```
+
+### ❌ Don't Add Redundant Forwarders
+
+```csharp
+// Bad - bootstrap becomes a second config surface
+public static bool AutoSaveEnabled
+{
+    get => ServerConfig.Instance.AutoSaveEnabled;
+    set => ServerConfig.Instance.AutoSaveEnabled = value;
+}
+
+// Good - use the owning type directly
+bool autoSaveEnabled = ServerConfig.Instance.AutoSaveEnabled;
+
+// Good - or move behavior into a dedicated service
+ServerRuntimeConfigurationApplier applier = new ServerRuntimeConfigurationApplier(ServerConfig.Instance, logger);
+applier.Apply();
 ```
 
 ### ❌ Don't Use Magic Strings/Numbers

@@ -54,7 +54,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Gets the number of connected players
         /// </summary>
-        public int ConnectedPlayerCount => connectedPlayers.Count;
+        public int ConnectedPlayerCount => connectedPlayers.Values.Count(IsTrackedPlayerActive);
 
         /// <summary>
         /// Gets the player authentication manager
@@ -145,7 +145,13 @@ namespace DedicatedServerMod.Server.Player
                 DebugLog.PlayerLifecycleDebug($"Player connecting: ClientId {connection.ClientId}");
 
                 bool isExistingPlayer = connectedPlayers.TryGetValue(connection, out var playerInfo);
-                if (!isExistingPlayer && connectedPlayers.Count >= ServerConfig.Instance.MaxPlayers)
+                if (!isExistingPlayer)
+                {
+                    playerInfo = connectedPlayers.Values.FirstOrDefault(p => p != null && p.ClientId == connection.ClientId);
+                    isExistingPlayer = playerInfo != null;
+                }
+
+                if (!isExistingPlayer && ConnectedPlayerCount >= ServerConfig.Instance.MaxPlayers)
                 {
                     logger.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
                     connection.Disconnect(true);
@@ -171,9 +177,10 @@ namespace DedicatedServerMod.Server.Player
                     playerInfo.Connection = connection;
                     playerInfo.ClientId = connection.ClientId;
                     playerInfo.IsLoopbackConnection = IsLoopbackConnection(connection);
+                    connectedPlayers[connection] = playerInfo;
                 }
 
-                DebugLog.PlayerLifecycleDebug($"Player tracked: ClientId {connection.ClientId} ({connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers})");
+                DebugLog.PlayerLifecycleDebug($"Player tracked: ClientId {connection.ClientId} ({ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers})");
 
                 bool requiresAuthentication = authentication.IsAuthenticationRequiredForPlayer(playerInfo);
                 if (!requiresAuthentication)
@@ -190,7 +197,7 @@ namespace DedicatedServerMod.Server.Player
                     playerInfo.IsAuthenticationPending = false;
 
                     SendAuthResultToClient(playerInfo, bypassResult);
-                    FinalizePlayerJoin(playerInfo);
+                    TryFinalizePlayerJoin(playerInfo, "connection established without auth requirement");
                 }
                 else
                 {
@@ -210,17 +217,10 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                if (connectedPlayers.TryGetValue(connection, out var playerInfo))
+                ConnectedPlayerInfo playerInfo = GetPlayer(connection);
+                if (playerInfo != null)
                 {
-                    logger.Msg($"Player disconnected: {playerInfo.DisplayName} (ClientId {connection.ClientId})");
-
-                    authentication.HandlePlayerDisconnected(playerInfo);
-                    connectedPlayers.Remove(connection);
-
-                    OnPlayerLeft?.Invoke(playerInfo);
-                    try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch {}
-
-                    logger.Msg($"Current players: {connectedPlayers.Count}/{ServerConfig.Instance.MaxPlayers}");
+                    RemoveTrackedPlayer(connection, playerInfo, logDisconnect: true, reason: "Player disconnected");
                 }
                 else
                 {
@@ -243,7 +243,8 @@ namespace DedicatedServerMod.Server.Player
                 if (player == null || player.Owner == null)
                     return;
 
-                if (connectedPlayers.TryGetValue(player.Owner, out var playerInfo))
+                var playerInfo = GetPlayer(player.Owner);
+                if (playerInfo != null)
                 {
                     playerInfo.PlayerInstance = player;
 
@@ -251,12 +252,14 @@ namespace DedicatedServerMod.Server.Player
                     {
                         ApplyLoopbackIdentity(playerInfo, player.PlayerCode, player.PlayerName);
                         DebugLog.PlayerLifecycleDebug($"Loopback player spawned and correlated: {playerInfo.DisplayName} (ClientId {player.Owner.ClientId})");
+                        TryFinalizePlayerJoin(playerInfo, "loopback player spawned");
                         return;
                     }
 
                     // Identity binding happens via DedicatedServerPatches.BindPlayerIdentityPostfix
                     // which calls SetPlayerIdentity when player name data is received
                     DebugLog.PlayerLifecycleDebug($"Player spawned: {player.PlayerName} (ClientId {player.Owner.ClientId}) - awaiting identity");
+                    TryFinalizePlayerJoin(playerInfo, "player spawned");
                 }
                 else
                 {
@@ -283,7 +286,8 @@ namespace DedicatedServerMod.Server.Player
                 if (player == null || player.Owner == null)
                     return;
 
-                if (connectedPlayers.TryGetValue(player.Owner, out var playerInfo))
+                var playerInfo = GetPlayer(player.Owner);
+                if (playerInfo != null)
                 {
                     playerInfo.PlayerInstance = null;
                     DebugLog.PlayerLifecycleDebug($"Player despawned: {player.PlayerName} (ClientId {player.Owner.ClientId})");
@@ -300,6 +304,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public void Update()
         {
+            SweepDisconnectedPlayers();
             authentication.Tick();
 
             if (!ServerConfig.Instance.RequireAuthentication)
@@ -351,7 +356,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (result.IsSuccessful)
             {
-                FinalizePlayerJoin(playerInfo);
+                TryFinalizePlayerJoin(playerInfo, "authentication completed");
                 return;
             }
 
@@ -376,6 +381,29 @@ namespace DedicatedServerMod.Server.Player
             try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
 
             SendInitialServerDataToClient(playerInfo.Connection);
+        }
+
+        private void TryFinalizePlayerJoin(ConnectedPlayerInfo playerInfo, string reason)
+        {
+            if (playerInfo == null || playerInfo.HasCompletedJoinFlow)
+            {
+                return;
+            }
+
+            bool requiresAuthentication = authentication.IsAuthenticationRequiredForPlayer(playerInfo);
+            if (requiresAuthentication && !playerInfo.IsAuthenticated)
+            {
+                DebugLog.PlayerLifecycleDebug($"Join finalization deferred during {reason}: ClientId {playerInfo.ClientId} is not authenticated yet");
+                return;
+            }
+
+            if (!playerInfo.IsLoopbackConnection && playerInfo.PlayerInstance == null)
+            {
+                DebugLog.PlayerLifecycleDebug($"Join finalization deferred during {reason}: ClientId {playerInfo.ClientId} has no spawned Player instance yet");
+                return;
+            }
+
+            FinalizePlayerJoin(playerInfo);
         }
 
         private void SendAuthResultToClient(ConnectedPlayerInfo playerInfo, AuthenticationResult result)
@@ -474,7 +502,58 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public ConnectedPlayerInfo GetPlayer(NetworkConnection connection)
         {
-            connectedPlayers.TryGetValue(connection, out var player);
+            SweepDisconnectedPlayers();
+            if (connection == null)
+            {
+                return null;
+            }
+
+            if (connectedPlayers.TryGetValue(connection, out var player))
+            {
+                return player;
+            }
+
+            player = connectedPlayers.Values.FirstOrDefault(p => p != null && p.ClientId == connection.ClientId);
+            if (player != null)
+            {
+                player.Connection = connection;
+                connectedPlayers[connection] = player;
+                DebugLog.PlayerLifecycleDebug($"Recovered player tracking via ClientId match: ClientId {connection.ClientId}");
+            }
+
+            return player;
+        }
+
+        /// <summary>
+        /// Ensures a tracked player entry exists for the provided connection.
+        /// </summary>
+        public ConnectedPlayerInfo EnsureTrackedConnection(NetworkConnection connection)
+        {
+            SweepDisconnectedPlayers();
+
+            if (connection == null)
+            {
+                return null;
+            }
+
+            ConnectedPlayerInfo player = GetPlayer(connection);
+            if (player != null)
+            {
+                return player;
+            }
+
+            player = new ConnectedPlayerInfo
+            {
+                Connection = connection,
+                ConnectTime = DateTime.Now,
+                ClientId = connection.ClientId,
+                IsLoopbackConnection = IsLoopbackConnection(connection),
+                IsAuthenticated = false,
+                IsAuthenticationPending = false
+            };
+
+            connectedPlayers[connection] = player;
+            DebugLog.PlayerLifecycleDebug($"Created player entry from connection fallback: ClientId {connection.ClientId}");
             return player;
         }
 
@@ -488,9 +567,11 @@ namespace DedicatedServerMod.Server.Player
                 return null;
             }
 
+            SweepDisconnectedPlayers();
             return connectedPlayers.Values.FirstOrDefault(p =>
-                string.Equals(p.AuthenticatedSteamId, steamId, StringComparison.Ordinal) ||
-                string.Equals(p.SteamId, steamId, StringComparison.Ordinal));
+                IsTrackedPlayerActive(p) &&
+                (string.Equals(p.AuthenticatedSteamId, steamId, StringComparison.Ordinal) ||
+                 string.Equals(p.SteamId, steamId, StringComparison.Ordinal)));
         }
 
         /// <summary>
@@ -498,7 +579,9 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public ConnectedPlayerInfo GetPlayerByName(string name)
         {
+            SweepDisconnectedPlayers();
             return connectedPlayers.Values.FirstOrDefault(p => 
+                IsTrackedPlayerActive(p) &&
                 p.PlayerName?.Contains(name, StringComparison.OrdinalIgnoreCase) == true);
         }
 
@@ -582,6 +665,16 @@ namespace DedicatedServerMod.Server.Player
 
             if (!connectedPlayers.TryGetValue(connection, out var playerInfo))
             {
+                playerInfo = connectedPlayers.Values.FirstOrDefault(p => p != null && p.ClientId == connection.ClientId);
+            }
+
+            if (playerInfo != null)
+            {
+                playerInfo.Connection = connection;
+                connectedPlayers[connection] = playerInfo;
+            }
+            else
+            {
                 // Player name data can arrive before the connection event fires
                 // Create the entry now - HandlePlayerConnected will skip if it already exists
                 playerInfo = new ConnectedPlayerInfo
@@ -633,6 +726,7 @@ namespace DedicatedServerMod.Server.Player
             playerInfo.PlayerName = playerName;
             DebugLog.PlayerLifecycleDebug($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
             OnPlayerSpawned?.Invoke(playerInfo);
+            TryFinalizePlayerJoin(playerInfo, "identity set");
         }
 
         private static void ApplyLoopbackIdentity(ConnectedPlayerInfo playerInfo, string steamId, string playerName)
@@ -667,7 +761,7 @@ namespace DedicatedServerMod.Server.Player
         {
             var stats = new PlayerStats
             {
-                ConnectedPlayers = connectedPlayers.Count,
+                ConnectedPlayers = connectedPlayers.Values.Count(IsTrackedPlayerActive),
                 MaxPlayers = ServerConfig.Instance.MaxPlayers,
                 TotalBannedPlayers = ServerConfig.Instance.BannedPlayers.Count,
                 Players = GetConnectedPlayers()
@@ -805,6 +899,91 @@ namespace DedicatedServerMod.Server.Player
         public event Action<ConnectedPlayerInfo> OnPlayerJoined;
         public event Action<ConnectedPlayerInfo> OnPlayerLeft;
         public event Action<ConnectedPlayerInfo> OnPlayerSpawned;
+
+        private void SweepDisconnectedPlayers()
+        {
+            List<KeyValuePair<NetworkConnection, ConnectedPlayerInfo>> disconnectedPlayers = null;
+            HashSet<ConnectedPlayerInfo> seenPlayers = null;
+            HashSet<int> seenClientIds = null;
+
+            foreach (KeyValuePair<NetworkConnection, ConnectedPlayerInfo> entry in connectedPlayers)
+            {
+                if (IsTrackedPlayerActive(entry.Value))
+                {
+                    continue;
+                }
+
+                seenPlayers ??= new HashSet<ConnectedPlayerInfo>();
+                if (!seenPlayers.Add(entry.Value))
+                {
+                    continue;
+                }
+
+                seenClientIds ??= new HashSet<int>();
+                if (entry.Value != null && !seenClientIds.Add(entry.Value.ClientId))
+                {
+                    continue;
+                }
+
+                disconnectedPlayers ??= new List<KeyValuePair<NetworkConnection, ConnectedPlayerInfo>>();
+                disconnectedPlayers.Add(entry);
+            }
+
+            if (disconnectedPlayers == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<NetworkConnection, ConnectedPlayerInfo> entry in disconnectedPlayers)
+            {
+                RemoveTrackedPlayer(entry.Key, entry.Value, logDisconnect: false, reason: "Pruned stale disconnected player");
+            }
+        }
+
+        private void RemoveTrackedPlayer(NetworkConnection connection, ConnectedPlayerInfo playerInfo, bool logDisconnect, string reason)
+        {
+            if (playerInfo == null)
+            {
+                return;
+            }
+
+            if (logDisconnect)
+            {
+                logger.Msg($"{reason}: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
+            }
+            else
+            {
+                DebugLog.PlayerLifecycleDebug($"{reason}: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
+            }
+
+            authentication.HandlePlayerDisconnected(playerInfo);
+
+            if (connection != null)
+            {
+                connectedPlayers.Remove(connection);
+            }
+
+            List<NetworkConnection> duplicateConnections = connectedPlayers
+                .Where(entry => ReferenceEquals(entry.Value, playerInfo)
+                    || (entry.Value != null && entry.Value.ClientId == playerInfo.ClientId))
+                .Select(entry => entry.Key)
+                .ToList();
+
+            for (int i = 0; i < duplicateConnections.Count; i++)
+            {
+                connectedPlayers.Remove(duplicateConnections[i]);
+            }
+
+            OnPlayerLeft?.Invoke(playerInfo);
+            try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
+
+            logger.Msg($"Current players: {ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers}");
+        }
+
+        private static bool IsTrackedPlayerActive(ConnectedPlayerInfo playerInfo)
+        {
+            return playerInfo != null && playerInfo.Connection != null && playerInfo.Connection.IsActive;
+        }
 
         private void SendDisconnectNotice(ConnectedPlayerInfo player, string title, string reason)
         {

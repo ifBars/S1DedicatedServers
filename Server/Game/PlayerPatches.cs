@@ -33,6 +33,7 @@ namespace DedicatedServerMod.Server.Game
 
                 var playerManager = ServerBootstrap.Players;
                 playerManager?.SetPlayerIdentity(targetConn, id, playerName);
+                DebugLog.PlayerLifecycleDebug($"BindPlayerIdentityPostfix: ClientId {targetConn.ClientId} -> SteamID {id} ({playerName})");
             }
             catch (Exception ex)
             {

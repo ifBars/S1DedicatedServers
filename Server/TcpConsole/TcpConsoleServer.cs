@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using DedicatedServerMod.Server.Commands;
+using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 
 namespace DedicatedServerMod.Server.TcpConsole
@@ -28,6 +31,50 @@ namespace DedicatedServerMod.Server.TcpConsole
 			this.passwordOrNull = string.IsNullOrEmpty(passwordOrNull) ? null : passwordOrNull;
 			this.handleLine = handleLine ?? throw new ArgumentNullException(nameof(handleLine));
 			this.logger = logger ?? new MelonLogger.Instance("TcpConsole");
+		}
+
+		/// <summary>
+		/// Creates and starts the TCP console server from the active server configuration.
+		/// </summary>
+		/// <param name="commandManager">Command manager used to execute console commands.</param>
+		/// <param name="logger">Logger instance used for startup and runtime diagnostics.</param>
+		/// <returns>The started TCP console server, or <see langword="null"/> when disabled or startup fails.</returns>
+		public static TcpConsoleServer TryStart(CommandManager commandManager, MelonLogger.Instance logger)
+		{
+			if (commandManager == null)
+			{
+				throw new ArgumentNullException(nameof(commandManager));
+			}
+
+			if (logger == null)
+			{
+				throw new ArgumentNullException(nameof(logger));
+			}
+
+			try
+			{
+				ServerConfig cfg = ServerConfig.Instance;
+				if (!cfg.TcpConsoleEnabled)
+				{
+					return null;
+				}
+
+				TcpConsoleServer tcpConsole = new TcpConsoleServer(
+					cfg.TcpConsoleBindAddress,
+					cfg.TcpConsolePort,
+					cfg.TcpConsoleRequirePassword ? cfg.TcpConsolePassword : null,
+					line => ExecuteConsoleCommand(commandManager, logger, line),
+					logger);
+
+				tcpConsole.Start();
+				logger.Msg($"✓ TCP console listening on {cfg.TcpConsoleBindAddress}:{cfg.TcpConsolePort}");
+				return tcpConsole;
+			}
+			catch (Exception ex)
+			{
+				logger.Warning($"TCP console failed to start: {ex.Message}");
+				return null;
+			}
 		}
 
 		public void Start()
@@ -135,6 +182,41 @@ namespace DedicatedServerMod.Server.TcpConsole
 				sb.Append(c);
 			}
 			return sb.ToString();
+		}
+
+		private static string ExecuteConsoleCommand(CommandManager commandManager, MelonLogger.Instance logger, string line)
+		{
+			try
+			{
+				if (string.IsNullOrWhiteSpace(line))
+				{
+					return string.Empty;
+				}
+
+				List<string> parts = new List<string>(line.Trim().Split(' '));
+				string cmd = parts[0];
+				parts.RemoveAt(0);
+
+				StringBuilder output = new StringBuilder();
+				bool ok = commandManager.ExecuteCommand(
+					cmd,
+					parts,
+					s => output.AppendLine(s),
+					s => output.AppendLine("[WARN] " + s),
+					s => output.AppendLine("[ERR] " + s));
+
+				if (!ok)
+				{
+					return $"Unknown or unauthorized command: {cmd}\r\n";
+				}
+
+				return output.ToString();
+			}
+			catch (Exception ex)
+			{
+				logger.Error($"TCP console command error: {ex}");
+				return $"Error: {ex.Message}\r\n";
+			}
 		}
 
 		public void Dispose()

@@ -309,13 +309,7 @@ namespace DedicatedServerMod.Client.Managers
             timeline.PrintSummary();
 
             if (_authSucceeded)
-            {
                 CompleteJoinAfterAuthentication();
-            }
-            else
-            {
-                logger.Msg("World load complete; waiting for authentication before closing loading screen");
-            }
         }
 
         /// <summary>

@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using MelonLoader;
 using Newtonsoft.Json;
-using DedicatedServerMod.Server.Core;
+using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Configuration;
 
@@ -20,13 +20,15 @@ namespace DedicatedServerMod.Server.Network
         private const string StatusRequestCommand = "DS_STATUS";
 
         private readonly MelonLogger.Instance _logger;
+        private readonly PlayerManager _playerManager;
         private TcpListener _listener;
         private Thread _listenerThread;
         private CancellationTokenSource _cancellation;
 
-        public ServerStatusQueryService(MelonLogger.Instance logger)
+        public ServerStatusQueryService(MelonLogger.Instance logger, PlayerManager playerManager)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
         }
 
         public void Start()
@@ -124,10 +126,10 @@ namespace DedicatedServerMod.Server.Network
             }
         }
 
-        private static ServerStatusSnapshot BuildSnapshot()
+        private ServerStatusSnapshot BuildSnapshot()
         {
             ServerConfig config = ServerConfig.Instance;
-            int currentPlayers = ServerBootstrap.Players?.GetVisiblePlayerCount() ?? 0;
+            int currentPlayers = _playerManager.GetVisiblePlayerCount();
 
             return new ServerStatusSnapshot
             {

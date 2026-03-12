@@ -7,6 +7,7 @@ using Il2CppScheduleOne;
 #else
 using ScheduleOne;
 #endif
+using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands.Admin;
 using DedicatedServerMod.Server.Commands.Server;
@@ -27,12 +28,14 @@ namespace DedicatedServerMod.Server.Commands
     {
         private readonly MelonLogger.Instance logger;
         private readonly PlayerManager playerManager;
+        private readonly NetworkManager networkManager;
         private readonly Dictionary<string, IServerCommand> serverCommands;
 
-        public CommandManager(MelonLogger.Instance loggerInstance, PlayerManager playerMgr)
+        public CommandManager(MelonLogger.Instance loggerInstance, PlayerManager playerMgr, NetworkManager networkMgr)
         {
             logger = loggerInstance;
             playerManager = playerMgr;
+            networkManager = networkMgr;
             serverCommands = new Dictionary<string, IServerCommand>();
         }
 
@@ -73,7 +76,7 @@ namespace DedicatedServerMod.Server.Commands
 
             // Server management commands
             RegisterCommand(new HelpCommand(logger, playerManager, this));
-            RegisterCommand(new ServerInfoCommand(logger, playerManager));
+            RegisterCommand(new ServerInfoCommand(logger, playerManager, networkManager));
             RegisterCommand(new ReloadConfigCommand(logger, playerManager));
             RegisterCommand(new SaveCommand(logger, playerManager));
             RegisterCommand(new ShutdownCommand(logger, playerManager));

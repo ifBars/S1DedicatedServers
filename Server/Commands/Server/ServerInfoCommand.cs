@@ -1,8 +1,8 @@
 using MelonLoader;
 using System;
-using DedicatedServerMod.Server.Player;
-using DedicatedServerMod.Server.Core;
 using DedicatedServerMod;
+using DedicatedServerMod.Server.Network;
+using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Commands.Server
@@ -12,9 +12,12 @@ namespace DedicatedServerMod.Server.Commands.Server
     /// </summary>
     public class ServerInfoCommand : BaseServerCommand
     {
-        public ServerInfoCommand(MelonLogger.Instance logger, PlayerManager playerMgr) 
+        private readonly NetworkManager _networkManager;
+
+        public ServerInfoCommand(MelonLogger.Instance logger, PlayerManager playerMgr, NetworkManager networkManager)
             : base(logger, playerMgr)
         {
+            _networkManager = networkManager;
         }
 
         public override string CommandWord => "serverinfo";
@@ -26,19 +29,20 @@ namespace DedicatedServerMod.Server.Commands.Server
         {
             try
             {
-                var status = ServerBootstrap.GetStatus();
+                bool isRunning = _networkManager?.IsServerRunning ?? false;
+                TimeSpan uptime = _networkManager?.Uptime ?? TimeSpan.Zero;
                 var playerStats = PlayerManager.GetPlayerStats();
                 var permissionSummary = PlayerManager.Permissions.GetPermissionSummary();
 
                 context.Reply("=== Server Information ===");
                 context.Reply($"Server Name: {ServerConfig.Instance.ServerName}");
-                context.Reply($"Status: {(status.IsRunning ? "Running" : "Stopped")}");
+                context.Reply($"Status: {(isRunning ? "Running" : "Stopped")}");
                 context.Reply($"Port: {ServerConfig.Instance.ServerPort}");
                 context.Reply($"Players: {playerStats.ConnectedPlayers}/{ServerConfig.Instance.MaxPlayers}");
                 
-                if (status.IsRunning)
+                if (isRunning)
                 {
-                    context.Reply($"Uptime: {status.Uptime:hh\\:mm\\:ss}");
+                    context.Reply($"Uptime: {uptime:hh\\:mm\\:ss}");
                 }
 
                 context.Reply($"Authentication Required: {ServerConfig.Instance.RequireAuthentication}");
@@ -52,9 +56,9 @@ namespace DedicatedServerMod.Server.Commands.Server
                 context.Reply($"Administrators: {permissionSummary.TotalAdministrators}");
                 context.Reply($"Banned Players: {ServerConfig.Instance.BannedPlayers.Count}");
 
-                if (ServerBootstrap.Network != null)
+                if (_networkManager != null)
                 {
-                    var networkStats = ServerBootstrap.Network.GetNetworkStats();
+                    var networkStats = _networkManager.GetNetworkStats();
                     context.Reply("");
                     context.Reply("=== Network ===");
                     context.Reply($"Transport: {(networkStats.IsServerRunning ? "Tugboat (Dedicated)" : "Offline")}");

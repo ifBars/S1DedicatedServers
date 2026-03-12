@@ -993,6 +993,7 @@
 
 		<!-- Core server bootstrap -->
 		<Compile Include="Server\Core\ServerBootstrap.cs" />
+		<Compile Include="Server\Core\ServerRuntimeConfigurationApplier.cs" />
 		<Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
 		
 		<!-- Network management -->

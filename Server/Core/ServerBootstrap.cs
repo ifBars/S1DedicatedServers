@@ -3,7 +3,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections;
-using System.Collections.Generic;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands;
@@ -29,6 +28,8 @@ namespace DedicatedServerMod.Server.Core
     {
         private static MelonLogger.Instance _logger;
         private static bool _isInitialized = false;
+        private static bool _isShuttingDown = false;
+        private static bool _quitRequested = false;
         
         // Server subsystems
         private static NetworkManager _networkManager;
@@ -41,18 +42,12 @@ namespace DedicatedServerMod.Server.Core
         private static ServerStatusQueryService _serverStatusQueryService;
         
         // Server state
-        private static bool _isServerMode = false;
         private static bool _autoStartServer = false;
         
         /// <summary>
         /// Gets whether the server has been fully initialized
         /// </summary>
         public static bool IsInitialized => _isInitialized;
-        
-        /// <summary>
-        /// Gets the server configuration instance (from existing ServerConfig)
-        /// </summary>
-        public static Shared.Configuration.ServerConfig Configuration => Shared.Configuration.ServerConfig.Instance;
         
         /// <summary>
         /// Gets the network manager instance
@@ -121,23 +116,8 @@ namespace DedicatedServerMod.Server.Core
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
             
-            // Apply performance optimizations for headless server
-            Application.targetFrameRate = Shared.Configuration.ServerConfig.Instance.TargetFrameRate;
-            QualitySettings.vSyncCount = Shared.Configuration.ServerConfig.Instance.VSyncCount;
-            Application.runInBackground = true;
-            _logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}, Background={Application.runInBackground}");
-            
-            // Log the save path being used
-            string resolvedSavePath = Shared.Configuration.ServerConfig.GetResolvedSaveGamePath();
-            if (string.IsNullOrEmpty(Shared.Configuration.ServerConfig.Instance.SaveGamePath))
-            {
-                _logger.Msg($"Using default save location: {resolvedSavePath}");
-                _logger.Msg("Tip: You can set a custom 'saveGamePath' in server_config.json to use a different save folder.");
-            }
-            else
-            {
-                _logger.Msg($"Using custom save location: {resolvedSavePath}");
-            }
+            ServerRuntimeConfigurationApplier runtimeConfigurationApplier = new ServerRuntimeConfigurationApplier(Shared.Configuration.ServerConfig.Instance, _logger);
+            runtimeConfigurationApplier.Apply();
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
             
@@ -161,7 +141,7 @@ namespace DedicatedServerMod.Server.Core
             _logger.Msg("✓ SteamNetworkLib compatibility service initialized");
 
             // Step 6: Command Manager
-            _commandManager = new CommandManager(_logger, _playerManager);
+            _commandManager = new CommandManager(_logger, _playerManager, _networkManager);
             _commandManager.Initialize();
             _logger.Msg("✓ Command manager initialized");
             
@@ -176,7 +156,7 @@ namespace DedicatedServerMod.Server.Core
             _logger.Msg("✓ Game system manager initialized");
             
             // Start TCP Console if enabled in ServerConfig
-            TryStartTcpConsole();
+            _tcpConsole = TcpConsoleServer.TryStart(_commandManager, _logger);
             TryStartStatusQueryService();
             
             // Step 10: Wire up player events with persistence
@@ -245,6 +225,14 @@ namespace DedicatedServerMod.Server.Core
             }
         }
 
+        public override void OnApplicationQuit()
+        {
+            if (_isInitialized && !_isShuttingDown)
+            {
+                Shutdown("Application quit");
+            }
+        }
+
         /// <summary>
         /// Setup Unity log filtering to suppress headless mode rendering errors
         /// </summary>
@@ -274,7 +262,6 @@ namespace DedicatedServerMod.Server.Core
                     {
                         case "--dedicated-server":
                         case "--server":
-                            _isServerMode = true;
                             _autoStartServer = true;
                             _logger.Msg("Dedicated server mode enabled via command line");
                             break;
@@ -325,12 +312,19 @@ namespace DedicatedServerMod.Server.Core
         /// </summary>
         public static void Shutdown(string reason = "Server shutdown requested")
         {
+            if (_isShuttingDown)
+            {
+                _logger?.Warning($"Server shutdown already in progress: {reason}");
+                return;
+            }
+
             if (!_isInitialized)
             {
                 _logger?.Warning("Server not initialized, cannot shutdown");
                 return;
             }
 
+            _isShuttingDown = true;
             _logger.Msg($"=== Server Shutdown Initiated: {reason} ===");
             
             try
@@ -354,6 +348,13 @@ namespace DedicatedServerMod.Server.Core
                 
                 _isInitialized = false;
                 _logger.Msg("=== Server Shutdown Complete ===");
+
+                if (!_quitRequested)
+                {
+                    _quitRequested = true;
+                    _logger.Msg("Requesting application quit");
+                    Application.Quit();
+                }
             }
             catch (Exception ex)
             {
@@ -361,64 +362,11 @@ namespace DedicatedServerMod.Server.Core
             }
         }
 
-        private void TryStartTcpConsole()
-        {
-            try
-            {
-                var cfg = Shared.Configuration.ServerConfig.Instance;
-                if (!cfg.TcpConsoleEnabled)
-                {
-                    return;
-                }
-
-                _tcpConsole = new TcpConsoleServer(
-                    cfg.TcpConsoleBindAddress,
-                    cfg.TcpConsolePort,
-                    cfg.TcpConsoleRequirePassword ? cfg.TcpConsolePassword : null,
-                    (line) =>
-                    {
-                        try
-                        {
-                            if (string.IsNullOrWhiteSpace(line)) return "";
-                            var parts = new List<string>(line.Trim().Split(' '));
-                            var cmd = parts[0];
-                            parts.RemoveAt(0);
-                            var output = new System.Text.StringBuilder();
-                            bool ok = _commandManager.ExecuteCommand(
-                                cmd,
-                                parts,
-                                s => output.AppendLine(s),
-                                s => output.AppendLine("[WARN] " + s),
-                                s => output.AppendLine("[ERR] " + s)
-                            );
-                            if (!ok)
-                            {
-                                return $"Unknown or unauthorized command: {cmd}\r\n";
-                            }
-                            return output.ToString();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error($"TCP console command error: {ex}");
-                            return $"Error: {ex.Message}\r\n";
-                        }
-                    },
-                    _logger
-                );
-                _tcpConsole.Start();
-                _logger.Msg($"✓ TCP console listening on {cfg.TcpConsoleBindAddress}:{cfg.TcpConsolePort}");
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning($"TCP console failed to start: {ex.Message}");
-            }
-        }
-
         private void TryStartStatusQueryService()
         {
             try
             {
-                _serverStatusQueryService = new ServerStatusQueryService(_logger);
+                _serverStatusQueryService = new ServerStatusQueryService(_logger, _playerManager);
                 _serverStatusQueryService.Start();
                 _logger.Msg("✓ Status query service initialized");
             }
@@ -428,69 +376,7 @@ namespace DedicatedServerMod.Server.Core
             }
         }
 
-        public static ServerStatus GetStatus()
-        {
-            if (!_isInitialized)
-            {
-                return new ServerStatus
-                {
-                    IsRunning = false,
-                    Message = "Server not initialized"
-                };
-            }
-
-            return new ServerStatus
-            {
-                IsRunning = _networkManager?.IsServerRunning ?? false,
-                PlayerCount = _playerManager?.ConnectedPlayerCount ?? 0,
-                MaxPlayers = Shared.Configuration.ServerConfig.Instance.MaxPlayers,
-                ServerName = Shared.Configuration.ServerConfig.Instance.ServerName,
-                Uptime = _networkManager?.Uptime ?? TimeSpan.Zero,
-                Message = "Server operational"
-            };
-        }
-
-        public static bool IgnoreGhostHostForSleep
-        {
-            get => Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep;
-            set => Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep = value;
-        }
-
-        public static bool AutoSaveEnabled
-        {
-            get => Shared.Configuration.ServerConfig.Instance.AutoSaveEnabled;
-            set => Shared.Configuration.ServerConfig.Instance.AutoSaveEnabled = value;
-        }
-
-        public static float AutoSaveIntervalMinutes
-        {
-            get => Shared.Configuration.ServerConfig.Instance.AutoSaveIntervalMinutes;
-            set => Shared.Configuration.ServerConfig.Instance.AutoSaveIntervalMinutes = value;
-        }
-
         public static DateTime LastAutoSave => _persistenceManager?.LastAutoSave ?? DateTime.MinValue;
-    }
-
-    /// <summary>
-    /// Server status information
-    /// </summary>
-    public class ServerStatus
-    {
-        public bool IsRunning { get; set; }
-        public int PlayerCount { get; set; }
-        public int MaxPlayers { get; set; }
-        public string ServerName { get; set; }
-        public TimeSpan Uptime { get; set; }
-        public string Message { get; set; }
-        
-        public override string ToString()
-        {
-            return $"Server: {ServerName} | " +
-                   $"Status: {(IsRunning ? "Running" : "Stopped")} | " +
-                   $"Players: {PlayerCount}/{MaxPlayers} | " +
-                   $"Uptime: {Uptime:hh\\:mm\\:ss} | " +
-                   $"Message: {Message}";
-        }
     }
 
     /// <summary>

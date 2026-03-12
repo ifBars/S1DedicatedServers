@@ -10,7 +10,7 @@ using ScheduleOne.PlayerScripts;
 using DedicatedServerMod.Client.Managers;
 using DedicatedServerMod.Client.Patchers;
 
-[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Ghost")]
+[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace DedicatedServerMod.Client.Core

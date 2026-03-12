@@ -165,6 +165,12 @@ See [CODING_STANDARDS.md](CODING_STANDARDS.md) for complete details. Key points:
 
 Member order: Constants → Static fields → Fields → Constructors → Properties → Public methods → Internal → Protected → Private → Event handlers → Nested types
 
+### SOLID / SRP Guardrails
+
+- Keep `Server.Core.ServerBootstrap` focused on orchestration only; if it starts owning config interpretation, status formatting, command behavior, or feature-specific logic, extract that work into the responsible subsystem
+- Do not create mirror properties/methods that simply forward `ServerConfig`, manager, or subsystem state through another class unless that class is an intentional API facade
+- Prefer constructor injection between internal services (`CommandManager`, query/status services, runtime appliers) over reaching back into `ServerBootstrap` statics when a direct dependency is available
+
 ---
 
 ## Common Tasks

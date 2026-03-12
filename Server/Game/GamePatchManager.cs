@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
@@ -87,17 +88,39 @@ namespace DedicatedServerMod.Server.Game
         {
             try
             {
-                MethodInfo target = null;
-                foreach (var mi in typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
-                {
-                    if (!mi.Name.StartsWith("RpcLogic_")) continue;
-                    var prms = mi.GetParameters();
-                    if (prms.Length == 3 && prms[0].ParameterType == typeof(NetworkConnection)
-                        && prms[1].ParameterType == typeof(string) && prms[2].ParameterType == typeof(string))
+                MethodInfo target = typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(mi =>
                     {
-                        target = mi;
-                        break;
-                    }
+                        if (!mi.Name.StartsWith("RpcLogic___ReceivePlayerNameData_", StringComparison.Ordinal))
+                        {
+                            return false;
+                        }
+
+                        ParameterInfo[] prms = mi.GetParameters();
+                        return prms.Length == 3
+                            && prms[0].ParameterType == typeof(NetworkConnection)
+                            && prms[1].ParameterType == typeof(string)
+                            && prms[2].ParameterType == typeof(string);
+                    });
+
+                if (target == null)
+                {
+                    target = typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                        .FirstOrDefault(mi =>
+                        {
+                            if (!mi.Name.StartsWith("RpcLogic_", StringComparison.Ordinal))
+                            {
+                                return false;
+                            }
+
+                            ParameterInfo[] prms = mi.GetParameters();
+                            return prms.Length == 3
+                                && prms[0].ParameterType == typeof(NetworkConnection)
+                                && prms[1].ParameterType == typeof(string)
+                                && prms[2].ParameterType == typeof(string)
+                                && string.Equals(prms[1].Name, "playerName", StringComparison.OrdinalIgnoreCase)
+                                && string.Equals(prms[2].Name, "id", StringComparison.OrdinalIgnoreCase);
+                        });
                 }
 
                 if (target == null)
