@@ -269,7 +269,7 @@ namespace DedicatedServerMod.Server.Core
                 }
                 
                 // Let ServerConfig handle its own command line arguments
-                Shared.Configuration.ServerConfig.ParseCommandLineArgs(args);
+                Shared.Configuration.ServerConfig.ParseCommandLineArgs(args, persistChanges: false);
             }
             catch (Exception ex)
             {

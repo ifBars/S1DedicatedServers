@@ -97,7 +97,6 @@ If you share your server address with others, enable ticket authentication so cl
 
 ```json
 {
-  "requireAuthentication": true,
   "authProvider": "SteamGameServer",
   "authTimeoutSeconds": 15,
   "authAllowLoopbackBypass": true,
@@ -107,8 +106,10 @@ If you share your server address with others, enable ticket authentication so cl
 }
 ```
 
+- Set `authProvider` to `None` for local Goldberg or LAN-style testing without Steam ticket validation
 - `authProvider` supports `None`, `SteamGameServer`, and `SteamWebApi`
 - `SteamGameServer` is the recommended provider for dedicated hosting and Docker deployments
+- `steamGameServerMode: NoAuthentication` only changes how the Steam game server advertises itself; it does not disable DedicatedServerMod's client auth handshake
 - Keep `authAllowLoopbackBypass` enabled so the dedicated server host loopback connection is not blocked
 - Set `steamGameServerLogOnAnonymous` to `false` and provide `steamGameServerToken` when using a persistent GSLT
 - `SteamWebApi` configuration fields exist, but Web API ticket validation is not yet fully implemented

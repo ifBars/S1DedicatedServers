@@ -45,8 +45,7 @@ namespace DedicatedServerMod.Server.Commands.Server
                     context.Reply($"Uptime: {uptime:hh\\:mm\\:ss}");
                 }
 
-                context.Reply($"Authentication Required: {ServerConfig.Instance.RequireAuthentication}");
-                context.Reply($"Authentication Provider: {ServerConfig.Instance.AuthProvider}");
+                context.Reply($"Authentication: {(ServerConfig.Instance.AuthenticationEnabled ? ServerConfig.Instance.AuthProvider.ToString() : "Disabled")}");
                 context.Reply($"Auth Timeout: {ServerConfig.Instance.AuthTimeoutSeconds}s");
                 context.Reply($"Auto-Save: {(ServerConfig.Instance.AutoSaveEnabled ? $"Enabled ({ServerConfig.Instance.AutoSaveIntervalMinutes}m)" : "Disabled")}");
                 

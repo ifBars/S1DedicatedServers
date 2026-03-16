@@ -65,6 +65,8 @@ namespace DedicatedServerMod.Server.Game
                 // 2) Dynamic RPC / mangled method patches
                 PatchPlayerReceivePlayerNameData();
                 appliedPatches.Add("PlayerNameRPCPatch");
+                PatchPlayerServerNameValidation();
+                appliedPatches.Add("PlayerNameFriendGatePatch");
 
                 // 3) Console command permissions
                 PatchConsoleSubmitCommand();
@@ -136,6 +138,64 @@ namespace DedicatedServerMod.Server.Game
             catch (Exception ex)
             {
                 logger.Error($"Error patching Player ReceivePlayerNameData: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Patches the server-side player-name RPC logic to bypass the vanilla host-friend gate.
+        /// Dedicated servers already use their own auth/ban pipeline, so the peer-host friend check
+        /// incorrectly kicks local test clients and dedicated server players.
+        /// </summary>
+        private void PatchPlayerServerNameValidation()
+        {
+            try
+            {
+                MethodInfo target = typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(mi =>
+                    {
+                        if (!mi.Name.StartsWith("RpcLogic___SendPlayerNameData_", StringComparison.Ordinal))
+                        {
+                            return false;
+                        }
+
+                        ParameterInfo[] prms = mi.GetParameters();
+                        return prms.Length == 2
+                            && prms[0].ParameterType == typeof(string)
+                            && prms[1].ParameterType == typeof(ulong);
+                    });
+
+                if (target == null)
+                {
+                    target = typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                        .FirstOrDefault(mi =>
+                        {
+                            if (!mi.Name.StartsWith("RpcLogic_", StringComparison.Ordinal))
+                            {
+                                return false;
+                            }
+
+                            ParameterInfo[] prms = mi.GetParameters();
+                            return prms.Length == 2
+                                && prms[0].ParameterType == typeof(string)
+                                && prms[1].ParameterType == typeof(ulong)
+                                && string.Equals(prms[0].Name, "playerName", StringComparison.OrdinalIgnoreCase)
+                                && string.Equals(prms[1].Name, "id", StringComparison.OrdinalIgnoreCase);
+                        });
+                }
+
+                if (target == null)
+                {
+                    logger.Warning("Could not find Player RPC logic for SendPlayerNameData; dedicated server friend gate patch was skipped.");
+                    return;
+                }
+
+                MethodInfo prefix = typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.AllowDedicatedServerPlayerNameDataPrefix), BindingFlags.Public | BindingFlags.Static);
+                harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+                logger.Msg($"Patched Player server name validation RPC: {target.Name}");
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error patching Player SendPlayerNameData RPC: {ex}");
             }
         }
 

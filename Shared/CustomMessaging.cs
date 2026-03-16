@@ -2,8 +2,10 @@ using System;
 using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Utils;
 #if IL2CPP
+using Il2CppFishNet;
 using Il2CppFishNet.Connection;
 #else
+using FishNet;
 using FishNet.Connection;
 #endif
 using MelonLoader;
@@ -285,13 +287,34 @@ namespace DedicatedServerMod.Shared.Networking
             {
                 DeferredClientMessage deferred = pending[i];
 
-                if (deferred.Connection == null || !deferred.Connection.IsActive)
+                if (!IsConnectionReadyForDelivery(deferred.Connection))
                 {
                     continue;
                 }
 
                 MessagingService.SendToClient(deferred.Connection, deferred.Command, deferred.Data ?? string.Empty);
             }
+        }
+
+        private static bool IsConnectionReadyForDelivery(NetworkConnection connection)
+        {
+            if (connection == null)
+            {
+                return false;
+            }
+
+            if (connection.IsActive)
+            {
+                return true;
+            }
+
+#if SERVER
+            return InstanceFinder.ServerManager?.Clients != null &&
+                   InstanceFinder.ServerManager.Clients.TryGetValue(connection.ClientId, out NetworkConnection trackedConnection) &&
+                   trackedConnection != null;
+#else
+            return false;
+#endif
         }
 
         #endregion

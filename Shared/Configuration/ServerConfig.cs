@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using MelonLoader;
@@ -58,17 +59,50 @@ namespace DedicatedServerMod.Shared.Configuration
         public string ServerPassword { get; set; } = string.Empty;
 
         /// <summary>
-        /// Whether Steam authentication is required.
-        /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.RequireAuthentication)]
-        public bool RequireAuthentication { get; set; } = false;
-
-        /// <summary>
-        /// Authentication provider used when RequireAuthentication is enabled.
+        /// Authentication provider used for dedicated-server client validation.
+        /// Set to <see cref="AuthenticationProvider.None"/> to disable authentication entirely.
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.AuthProvider)]
         [JsonConv(typeof(StringEnumConverter))]
-        public AuthenticationProvider AuthProvider { get; set; } = AuthenticationProvider.SteamGameServer;
+        public AuthenticationProvider AuthProvider { get; set; } = AuthenticationProvider.None;
+
+        /// <summary>
+        /// Legacy compatibility shim for old configs that still persist <c>requireAuthentication</c>.
+        /// This is no longer serialized and only influences <see cref="AuthProvider"/> during load.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.RequireAuthentication)]
+        private bool? LegacyRequireAuthentication
+        {
+            set => _legacyRequireAuthentication = value;
+        }
+
+        /// <summary>
+        /// Whether authentication is currently enabled.
+        /// </summary>
+        [JsonIgnore]
+        public bool AuthenticationEnabled => AuthProvider != AuthenticationProvider.None;
+
+        /// <summary>
+        /// Legacy compatibility alias for older code paths.
+        /// </summary>
+        [JsonIgnore]
+        public bool RequireAuthentication
+        {
+            get => AuthenticationEnabled;
+            set
+            {
+                if (!value)
+                {
+                    AuthProvider = AuthenticationProvider.None;
+                    return;
+                }
+
+                if (AuthProvider == AuthenticationProvider.None)
+                {
+                    AuthProvider = AuthenticationProvider.SteamGameServer;
+                }
+            }
+        }
 
         /// <summary>
         /// Timeout in seconds for authentication handshake completion.
@@ -107,7 +141,8 @@ namespace DedicatedServerMod.Shared.Configuration
         public string SteamGameServerVersion { get; set; } = Utils.Constants.ModVersion;
 
         /// <summary>
-        /// Steam game server authentication mode.
+        /// Steam game server API mode announced to Steam.
+        /// This does not disable DedicatedServerMod auth by itself; use <see cref="AuthProvider"/> = <see cref="AuthenticationProvider.None"/> for that.
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerMode)]
         [JsonConv(typeof(StringEnumConverter))]
@@ -497,6 +532,11 @@ namespace DedicatedServerMod.Shared.Configuration
         private static ServerConfig _instance;
 
         /// <summary>
+        /// Cached legacy requireAuthentication value observed during deserialization.
+        /// </summary>
+        private bool? _legacyRequireAuthentication;
+
+        /// <summary>
         /// The MelonLogger instance for configuration logging.
         /// </summary>
         private static MelonLogger.Instance _logger;
@@ -564,6 +604,7 @@ namespace DedicatedServerMod.Shared.Configuration
                 {
                     string json = File.ReadAllText(ConfigFilePath);
                     _instance = JsonConvert.DeserializeObject<ServerConfig>(json);
+                    _instance?.NormalizeAuthenticationConfiguration();
                     Logger.Msg("Server configuration loaded successfully");
                 }
                 else
@@ -625,7 +666,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Parses command line arguments and applies them to the configuration.
         /// </summary>
         /// <param name="args">The command line arguments</param>
-        public static void ParseCommandLineArgs(string[] args)
+        public static void ParseCommandLineArgs(string[] args, bool persistChanges = false)
         {
             Logger.Msg("Parsing command line arguments for server config...");
 
@@ -659,8 +700,18 @@ namespace DedicatedServerMod.Shared.Configuration
 
                     case "--require-authentication":
                     case "--require-auth":
-                        Instance.RequireAuthentication = true;
-                        Logger.Msg("Authentication requirement enabled");
+                        if (Instance.AuthProvider == AuthenticationProvider.None)
+                        {
+                            Instance.AuthProvider = AuthenticationProvider.SteamGameServer;
+                        }
+                        Logger.Msg($"Authentication enabled using provider: {Instance.AuthProvider}");
+                        break;
+
+                    case "--disable-authentication":
+                    case "--disable-auth":
+                    case "--no-auth":
+                        Instance.AuthProvider = AuthenticationProvider.None;
+                        Logger.Msg("Authentication disabled via command line");
                         break;
 
                     case "--auth-provider":
@@ -802,7 +853,10 @@ namespace DedicatedServerMod.Shared.Configuration
                 }
             }
 
-            SaveConfig();
+            if (persistChanges)
+            {
+                SaveConfig();
+            }
         }
 
         #endregion
@@ -835,8 +889,7 @@ namespace DedicatedServerMod.Shared.Configuration
             info += $"Max Players: {Instance.MaxPlayers}\n";
             info += $"Server Port: {Instance.ServerPort}\n";
             info += $"Password Protected: {!string.IsNullOrEmpty(Instance.ServerPassword)}\n";
-            info += $"Authentication Required: {Instance.RequireAuthentication}\n";
-            info += $"Auth Provider: {Instance.AuthProvider}\n";
+            info += $"Authentication: {(Instance.AuthenticationEnabled ? Instance.AuthProvider.ToString() : "Disabled")}\n";
             info += $"Auth Timeout: {Instance.AuthTimeoutSeconds}s\n";
             info += $"Messaging Backend: {Instance.MessagingBackend}\n";
             info += $"Operators: {Instance.Operators.Count}\n";
@@ -938,7 +991,9 @@ namespace DedicatedServerMod.Shared.Configuration
                 ServerDescription = ServerDescription.Substring(0, Utils.Constants.MaxServerDescriptionLength);
             }
 
-            if (RequireAuthentication)
+            NormalizeAuthenticationConfiguration();
+
+            if (AuthenticationEnabled)
             {
                 if (AuthProvider == AuthenticationProvider.SteamWebApi && string.IsNullOrWhiteSpace(SteamWebApiKey))
                 {
@@ -964,7 +1019,7 @@ namespace DedicatedServerMod.Shared.Configuration
         {
             if (string.IsNullOrWhiteSpace(provider))
             {
-                value = AuthenticationProvider.SteamGameServer;
+                value = AuthenticationProvider.None;
                 return false;
             }
 
@@ -982,10 +1037,36 @@ namespace DedicatedServerMod.Shared.Configuration
                     value = AuthenticationProvider.SteamGameServer;
                     return true;
                 default:
-                    value = AuthenticationProvider.SteamGameServer;
+                    value = AuthenticationProvider.None;
                     Logger.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_web_api, steam_game_server.");
                     return false;
             }
+        }
+
+        [OnDeserialized]
+        private void OnDeserialized(StreamingContext context)
+        {
+            NormalizeAuthenticationConfiguration();
+        }
+
+        private void NormalizeAuthenticationConfiguration()
+        {
+            if (_legacyRequireAuthentication.HasValue)
+            {
+                if (!_legacyRequireAuthentication.Value)
+                {
+                    AuthProvider = AuthenticationProvider.None;
+                }
+                else if (AuthProvider == AuthenticationProvider.None)
+                {
+                    AuthProvider = AuthenticationProvider.SteamGameServer;
+                }
+            }
+        }
+
+        public bool ShouldSerializeLegacyRequireAuthentication()
+        {
+            return false;
         }
 
         /// <summary>

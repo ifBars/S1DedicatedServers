@@ -1,5 +1,8 @@
 using System;
+using System.Globalization;
+using System.Reflection;
 using DedicatedServerMod.Server.Core;
+using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
@@ -16,6 +19,11 @@ namespace DedicatedServerMod.Server.Game
 {
     internal static class PlayerPatches
     {
+        private static readonly MethodInfo ReceivePlayerNameDataMethod = AccessTools.Method(
+            typeof(PlayerType),
+            "ReceivePlayerNameData",
+            new[] { typeof(NetworkConnection), typeof(string), typeof(string) });
+
         public static void BindPlayerIdentityPostfix(PlayerType __instance, NetworkConnection conn, string playerName, string id)
         {
             try
@@ -40,6 +48,34 @@ namespace DedicatedServerMod.Server.Game
                 DedicatedServerPatchCommon.Logger.Error($"Error binding player identity: {ex}");
             }
         }
+
+        public static bool AllowDedicatedServerPlayerNameDataPrefix(PlayerType __instance, string playerName, ulong id)
+        {
+            try
+            {
+                if (!InstanceFinder.IsServer)
+                {
+                    return true;
+                }
+
+                if (ReceivePlayerNameDataMethod == null)
+                {
+                    DedicatedServerPatchCommon.Logger.Warning("ReceivePlayerNameData method not found; falling back to vanilla friend gate.");
+                    return true;
+                }
+
+                string steamId = id.ToString(CultureInfo.InvariantCulture);
+                ReceivePlayerNameDataMethod.Invoke(__instance, new object[] { null, playerName, steamId });
+                __instance.PlayerName = playerName;
+                __instance.PlayerCode = steamId;
+                return false;
+            }
+            catch (Exception ex)
+            {
+                DedicatedServerPatchCommon.Logger.Warning($"AllowDedicatedServerPlayerNameDataPrefix error: {ex.Message}");
+                return true;
+            }
+        }
     }
 
     [HarmonyPatch(typeof(PlayerType), "OnDestroy")]
@@ -55,6 +91,15 @@ namespace DedicatedServerMod.Server.Game
                 }
 
                 if (GhostHostIdentifier.IsGhostHost(__instance))
+                {
+                    return;
+                }
+
+                ConnectedPlayerInfo playerInfo = __instance?.Owner != null
+                    ? ServerBootstrap.Players?.GetPlayer(__instance.Owner)
+                    : null;
+
+                if (playerInfo == null || !playerInfo.HasCompletedJoinFlow)
                 {
                     return;
                 }

@@ -85,7 +85,7 @@ namespace DedicatedServerMod.Server.Player
                     AuthenticationResult bypassResult = new AuthenticationResult
                     {
                         IsSuccessful = true,
-                        Message = ServerConfig.Instance.RequireAuthentication
+                        Message = ServerConfig.Instance.AuthenticationEnabled
                             ? "Authentication bypassed for loopback connection"
                             : "Authentication not required"
                     };
@@ -360,7 +360,7 @@ namespace DedicatedServerMod.Server.Player
                 return false;
             }
 
-            if (!ServerConfig.Instance.RequireAuthentication)
+            if (!ServerConfig.Instance.AuthenticationEnabled)
             {
                 return false;
             }
@@ -437,7 +437,7 @@ namespace DedicatedServerMod.Server.Player
 
         private AuthenticationProvider ResolveConfiguredProvider()
         {
-            if (!ServerConfig.Instance.RequireAuthentication)
+            if (!ServerConfig.Instance.AuthenticationEnabled)
             {
                 return AuthenticationProvider.None;
             }

@@ -2,10 +2,12 @@
 using Il2CppFishNet;
 using Il2CppFishNet.Connection;
 using Il2CppFishNet.Managing.Server;
+using PlayerScript = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing.Server;
+using PlayerScript = ScheduleOne.PlayerScripts.Player;
 #endif
 using MelonLoader;
 #if IL2CPP
@@ -38,6 +40,8 @@ namespace DedicatedServerMod.Server.Player
     /// </summary>
     public class PlayerManager
     {
+        private static readonly TimeSpan PendingConnectionGracePeriod = TimeSpan.FromSeconds(15);
+
         private readonly MelonLogger.Instance logger;
         private readonly Dictionary<NetworkConnection, ConnectedPlayerInfo> connectedPlayers;
         private readonly PlayerAuthentication authentication;
@@ -167,7 +171,8 @@ namespace DedicatedServerMod.Server.Player
                         ClientId = connection.ClientId,
                         IsLoopbackConnection = IsLoopbackConnection(connection),
                         IsAuthenticated = false,
-                        IsAuthenticationPending = false
+                        IsAuthenticationPending = false,
+                        IsDisconnectProcessed = false
                     };
 
                     connectedPlayers[connection] = playerInfo;
@@ -177,6 +182,7 @@ namespace DedicatedServerMod.Server.Player
                     playerInfo.Connection = connection;
                     playerInfo.ClientId = connection.ClientId;
                     playerInfo.IsLoopbackConnection = IsLoopbackConnection(connection);
+                    playerInfo.IsDisconnectProcessed = false;
                     connectedPlayers[connection] = playerInfo;
                 }
 
@@ -244,9 +250,15 @@ namespace DedicatedServerMod.Server.Player
                     return;
 
                 var playerInfo = GetPlayer(player.Owner);
+                if (playerInfo == null)
+                {
+                    playerInfo = EnsureTrackedConnection(player.Owner);
+                }
+
                 if (playerInfo != null)
                 {
                     playerInfo.PlayerInstance = player;
+                    playerInfo.IsDisconnectProcessed = false;
 
                     if (playerInfo.IsLoopbackConnection || GhostHostIdentifier.IsGhostHost(player))
                     {
@@ -307,7 +319,7 @@ namespace DedicatedServerMod.Server.Player
             SweepDisconnectedPlayers();
             authentication.Tick();
 
-            if (!ServerConfig.Instance.RequireAuthentication)
+            if (!ServerConfig.Instance.AuthenticationEnabled)
             {
                 return;
             }
@@ -549,7 +561,8 @@ namespace DedicatedServerMod.Server.Player
                 ClientId = connection.ClientId,
                 IsLoopbackConnection = IsLoopbackConnection(connection),
                 IsAuthenticated = false,
-                IsAuthenticationPending = false
+                IsAuthenticationPending = false,
+                IsDisconnectProcessed = false
             };
 
             connectedPlayers[connection] = player;
@@ -671,6 +684,7 @@ namespace DedicatedServerMod.Server.Player
             if (playerInfo != null)
             {
                 playerInfo.Connection = connection;
+                playerInfo.IsDisconnectProcessed = false;
                 connectedPlayers[connection] = playerInfo;
             }
             else
@@ -684,7 +698,8 @@ namespace DedicatedServerMod.Server.Player
                     ClientId = connection.ClientId,
                     IsLoopbackConnection = IsLoopbackConnection(connection),
                     IsAuthenticated = false,
-                    IsAuthenticationPending = false
+                    IsAuthenticationPending = false,
+                    IsDisconnectProcessed = false
                 };
                 connectedPlayers[connection] = playerInfo;
                 DebugLog.PlayerLifecycleDebug($"Created player entry from identity binding: ClientId {connection.ClientId}");
@@ -724,6 +739,14 @@ namespace DedicatedServerMod.Server.Player
 
             playerInfo.SteamId = steamId;
             playerInfo.PlayerName = playerName;
+
+            if (playerInfo.PlayerInstance == null)
+            {
+                playerInfo.PlayerInstance = TryResolveSpawnedPlayer(connection);
+            }
+
+            TrySatisfyNoAuthFlow(playerInfo);
+
             DebugLog.PlayerLifecycleDebug($"Player identity set: ClientId {connection.ClientId} -> SteamID {steamId} ({playerName})");
             OnPlayerSpawned?.Invoke(playerInfo);
             TryFinalizePlayerJoin(playerInfo, "identity set");
@@ -947,6 +970,13 @@ namespace DedicatedServerMod.Server.Player
                 return;
             }
 
+            if (playerInfo.IsDisconnectProcessed)
+            {
+                return;
+            }
+
+            playerInfo.IsDisconnectProcessed = true;
+
             if (logDisconnect)
             {
                 logger.Msg($"{reason}: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
@@ -974,15 +1004,84 @@ namespace DedicatedServerMod.Server.Player
                 connectedPlayers.Remove(duplicateConnections[i]);
             }
 
+            playerInfo.Connection = null;
+            playerInfo.PlayerInstance = null;
+
             OnPlayerLeft?.Invoke(playerInfo);
             try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
 
             logger.Msg($"Current players: {ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers}");
         }
 
+        private void TrySatisfyNoAuthFlow(ConnectedPlayerInfo playerInfo)
+        {
+            if (playerInfo == null || authentication.IsAuthenticationRequiredForPlayer(playerInfo) || playerInfo.IsAuthenticated)
+            {
+                return;
+            }
+
+            playerInfo.IsAuthenticated = true;
+            playerInfo.IsAuthenticationPending = false;
+
+            AuthenticationResult bypassResult = new AuthenticationResult
+            {
+                IsSuccessful = true,
+                Message = playerInfo.IsLoopbackConnection
+                    ? "Loopback connection bypassed authentication"
+                    : "Authentication not required",
+                ExtractedSteamId = playerInfo.AuthenticatedSteamId ?? playerInfo.SteamId ?? string.Empty
+            };
+
+            SendAuthResultToClient(playerInfo, bypassResult);
+        }
+
+        private static PlayerScript TryResolveSpawnedPlayer(NetworkConnection connection)
+        {
+            if (connection == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return PlayerScript.GetPlayer(connection);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static bool IsTrackedPlayerActive(ConnectedPlayerInfo playerInfo)
         {
-            return playerInfo != null && playerInfo.Connection != null && playerInfo.Connection.IsActive;
+            if (playerInfo == null || playerInfo.Connection == null)
+            {
+                return false;
+            }
+
+            if (playerInfo.IsDisconnectProcessed)
+            {
+                return false;
+            }
+
+            if (playerInfo.Connection.IsActive)
+            {
+                return true;
+            }
+
+            if (InstanceFinder.ServerManager?.Clients != null &&
+                InstanceFinder.ServerManager.Clients.TryGetValue(playerInfo.ClientId, out NetworkConnection trackedConnection) &&
+                trackedConnection != null)
+            {
+                return true;
+            }
+
+            if (!playerInfo.HasCompletedJoinFlow && DateTime.Now - playerInfo.ConnectTime <= PendingConnectionGracePeriod)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void SendDisconnectNotice(ConnectedPlayerInfo player, string title, string reason)

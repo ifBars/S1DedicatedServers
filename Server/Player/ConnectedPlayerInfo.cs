@@ -1,7 +1,9 @@
 #if IL2CPP
+using Il2CppFishNet;
 using Il2CppFishNet.Connection;
 using Il2CppScheduleOne.PlayerScripts;
 #else
+using FishNet;
 using FishNet.Connection;
 using ScheduleOne.PlayerScripts;
 #endif
@@ -92,9 +94,32 @@ namespace DedicatedServerMod.Server.Player
         public bool HasCompletedJoinFlow { get; set; }
 
         /// <summary>
+        /// Whether disconnect cleanup has already been processed for this tracked player entry.
+        /// </summary>
+        public bool IsDisconnectProcessed { get; set; }
+
+        /// <summary>
         /// Whether the player is currently connected to the server
         /// </summary>
-        public bool IsConnected => Connection.IsActive;
+        public bool IsConnected
+        {
+            get
+            {
+                if (Connection == null)
+                {
+                    return false;
+                }
+
+                if (Connection.IsActive)
+                {
+                    return true;
+                }
+
+                return InstanceFinder.ServerManager?.Clients != null &&
+                       InstanceFinder.ServerManager.Clients.TryGetValue(ClientId, out NetworkConnection trackedConnection) &&
+                       trackedConnection != null;
+            }
+        }
 
         /// <summary>
         /// Whether the player is currently spawned in the game

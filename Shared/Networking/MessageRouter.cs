@@ -250,7 +250,7 @@ namespace DedicatedServerMod.Shared.Networking
 
         private static bool IsCommandAllowedForConnection(NetworkConnection conn, string command)
         {
-            if (!DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.RequireAuthentication)
+            if (!DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.AuthenticationEnabled)
             {
                 return true;
             }
