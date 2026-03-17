@@ -49,8 +49,8 @@ namespace DedicatedServerMod.Server.Persistence
 			// Extract Player_0.zip into Players
 			TryExtractEmbeddedPlayerZip(Path.Combine(saveFolderPath, "Players"), logger);
 
-			// Ensure Player.json's PlayerCode matches server identity
-			TrySetPlayerCode(Path.Combine(saveFolderPath, "Players", "Player_0", "Player.json"), serverPlayerCode, logger);
+			// Ensure Player.json's loopback identity and intro-complete state are normalized.
+			TryNormalizeLoopbackPlayer(Path.Combine(saveFolderPath, "Players", "Player_0", "Player.json"), serverPlayerCode, logger);
 
 			// Ensure Game.json exists
 			var gameJsonPath = Path.Combine(saveFolderPath, "Game.json");
@@ -197,7 +197,7 @@ namespace DedicatedServerMod.Server.Persistence
 			return name != null ? asm.GetManifestResourceStream(name) : null;
 		}
 
-		private static void TrySetPlayerCode(string playerJsonPath, string serverPlayerCode, MelonLogger.Instance logger)
+		private static void TryNormalizeLoopbackPlayer(string playerJsonPath, string serverPlayerCode, MelonLogger.Instance logger)
 		{
 			try
 			{
@@ -206,16 +206,31 @@ namespace DedicatedServerMod.Server.Persistence
 				var data = ReadJsonData<PlayerData>(playerJsonPath);
 				if (data == null)
 					return;
+
+				bool changed = false;
 				if (!string.IsNullOrWhiteSpace(serverPlayerCode))
 				{
 					data.PlayerCode = serverPlayerCode;
-					File.WriteAllText(playerJsonPath, data.GetJson());
-					logger?.Msg("Set loopback PlayerCode in Player.json");
+					changed = true;
 				}
+
+				if (!data.IntroCompleted)
+				{
+					data.IntroCompleted = true;
+					changed = true;
+				}
+
+				if (!changed)
+				{
+					return;
+				}
+
+				File.WriteAllText(playerJsonPath, data.GetJson());
+				logger?.Msg("Normalized loopback Player.json (PlayerCode + IntroCompleted).");
 			}
 			catch (Exception ex)
 			{
-				logger?.Warning($"Failed to set PlayerCode in Player.json: {ex.Message}");
+				logger?.Warning($"Failed to normalize loopback Player.json: {ex.Message}");
 			}
 		}
 

@@ -27,6 +27,7 @@ using Il2CppScheduleOne.Quests;
 #else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence;
+using ScheduleOne.Persistence.Datas;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Quests;
 #endif
@@ -474,6 +475,8 @@ namespace DedicatedServerMod.Server.Core
                 }
             }
 
+            EnsureLoopbackHostDataLoaded(loadManager.LoadedGameFolderPath);
+
             yield return new WaitForEndOfFrame();
             yield return new WaitForEndOfFrame();
             loadManager.onLoadComplete?.Invoke();
@@ -489,6 +492,7 @@ namespace DedicatedServerMod.Server.Core
                 if (p != null && p.Owner != null && p.Owner.IsLocalClient)
                 {
                     p.gameObject.name = Constants.GhostHostObjectName;
+                    p.HasCompletedIntro = true;
                     p.SetVisible(false, network: true);
                     p.SetVisibleToLocalPlayer(false);
                     var mv = p.GetComponent<PlayerMovement>();
@@ -560,17 +564,58 @@ namespace DedicatedServerMod.Server.Core
                     }
                 }
 
-                // Save after initializing quests so the state persists
-                var saveMgr = Singleton<SaveManager>.Instance;
-                if (saveMgr != null)
-                {
-                    saveMgr.Save();
-                    DebugLog.StartupDebug("Server quest initialization completed and saved");
-                }
+                DebugLog.StartupDebug("Server quest initialization completed.");
             }
             catch (Exception ex)
             {
                 Logger.Error($"Error initializing server quests: {ex}");
+            }
+        }
+
+        private static void EnsureLoopbackHostDataLoaded(string saveFolderPath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(saveFolderPath) || ScheduleOne.PlayerScripts.Player.Local == null)
+                {
+                    return;
+                }
+
+                string player0Dir = Path.Combine(saveFolderPath, "Players", "Player_0");
+                string playerJsonPath = Path.Combine(player0Dir, "Player.json");
+                if (!File.Exists(playerJsonPath))
+                {
+                    Logger.Warning($"Loopback player data file missing: {playerJsonPath}");
+                    ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                    return;
+                }
+
+                string json = File.ReadAllText(playerJsonPath);
+                PlayerData playerData = JsonUtility.FromJson<PlayerData>(json);
+                if (playerData == null)
+                {
+                    Logger.Warning("Failed to deserialize loopback Player_0 data; forcing intro complete in memory.");
+                    ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(playerData.PlayerCode) && !string.IsNullOrWhiteSpace(ScheduleOne.PlayerScripts.Player.Local.PlayerCode))
+                {
+                    playerData.PlayerCode = ScheduleOne.PlayerScripts.Player.Local.PlayerCode;
+                }
+
+                playerData.IntroCompleted = true;
+                ScheduleOne.PlayerScripts.Player.Local.Load(playerData, player0Dir);
+                ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                DebugLog.StartupDebug("Loopback host data loaded directly from Player_0 before onLoadComplete.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Failed to load loopback host data directly: {ex.Message}");
+                if (ScheduleOne.PlayerScripts.Player.Local != null)
+                {
+                    ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                }
             }
         }
 

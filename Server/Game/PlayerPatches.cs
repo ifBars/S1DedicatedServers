@@ -76,6 +76,31 @@ namespace DedicatedServerMod.Server.Game
                 return true;
             }
         }
+
+        [HarmonyPatch(typeof(PlayerType), "PlayerLoaded")]
+        [HarmonyPrefix]
+        private static void PlayerLoadedPrefix(PlayerType __instance)
+        {
+            try
+            {
+                if (!InstanceFinder.IsServer || __instance == null)
+                {
+                    return;
+                }
+
+                if (!GhostHostIdentifier.IsGhostHost(__instance) || __instance.HasCompletedIntro)
+                {
+                    return;
+                }
+
+                __instance.HasCompletedIntro = true;
+                DedicatedServerPatchCommon.Logger.Msg("Marked dedicated server loopback host intro as completed before PlayerLoaded.");
+            }
+            catch (Exception ex)
+            {
+                DedicatedServerPatchCommon.Logger.Warning($"PlayerLoadedPrefix error: {ex.Message}");
+            }
+        }
     }
 
     [HarmonyPatch(typeof(PlayerType), "OnDestroy")]

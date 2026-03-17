@@ -288,11 +288,23 @@ namespace DedicatedServerMod.Server.Core
                 {
                     _playerManager.OnPlayerJoined += (player) =>
                     {
+                        if (player != null && player.IsLoopbackConnection)
+                        {
+                            _logger.Msg("Skipping auto-save for dedicated server loopback host join.");
+                            return;
+                        }
+
                         _persistenceManager.OnPlayerJoined(player.DisplayName);
                     };
                     
                     _playerManager.OnPlayerLeft += (player) =>
                     {
+                        if (player != null && player.IsLoopbackConnection)
+                        {
+                            _logger.Msg("Skipping auto-save for dedicated server loopback host leave.");
+                            return;
+                        }
+
                         _persistenceManager.OnPlayerLeft(player.DisplayName);
                     };
                     

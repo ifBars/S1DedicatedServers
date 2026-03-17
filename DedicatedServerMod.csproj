@@ -925,6 +925,7 @@
 	  <EmbeddedResource Remove="Docker\**" />
 	  <None Remove="Docker\**" />
 	  <None Remove="FishNet.Runtime.xml" />
+	  <None Remove="Assets\Player_0.zip.old" />
 	</ItemGroup>
 	
 	<!-- Utility infrastructure (shared by all builds) -->
