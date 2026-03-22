@@ -1,4 +1,5 @@
 using HarmonyLib;
+using System.Reflection;
 #if IL2CPP
 using Il2CppFunly.SkyStudio;
 using AvatarType = Il2CppScheduleOne.AvatarFramework.Avatar;
@@ -42,18 +43,6 @@ namespace DedicatedServerMod.Server.Game
     /// </summary>
     [HarmonyPatch(typeof(AvatarImpostorType), "LateUpdate")]
     internal static class AvatarImpostorPatches
-    {
-        private static bool Prefix()
-        {
-            return DedicatedServerPatchCommon.ShouldRunClientVisuals();
-        }
-    }
-
-    /// <summary>
-    /// Skips per-frame avatar shape-key updates on dedicated servers because they only depend on local camera LOD.
-    /// </summary>
-    [HarmonyPatch(typeof(AvatarType), "LateUpdate")]
-    internal static class AvatarPatches
     {
         private static bool Prefix()
         {

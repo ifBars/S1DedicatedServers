@@ -201,29 +201,22 @@ namespace DedicatedServerMod.Client.Managers
                     return false;
                 }
 
-                var home = mainMenu.transform.Find("Home");
-                if (home == null)
-                {
-                    logger.Warning("Home not found in MainMenu");
-                    return false;
-                }
-
-                var bank = home.Find("Bank");
-                if (bank == null)
-                {
-                    logger.Warning("Bank not found in Home");
-                    return false;
-                }
-
-                var continueButton = bank.Find("Continue");
+                var continueButton = FindContinueButton(mainMenu.transform);
                 if (continueButton == null)
                 {
                     logger.Warning("Continue button not found");
                     return false;
                 }
 
+                var buttonParent = continueButton.parent;
+                if (buttonParent == null)
+                {
+                    logger.Warning("Continue button parent not found");
+                    return false;
+                }
+
                 // Create servers button by cloning continue button
-                serversButton = GameObject.Instantiate(continueButton.gameObject, bank);
+                serversButton = GameObject.Instantiate(continueButton.gameObject, buttonParent);
                 serversButton.name = "ServersButton";
                 
                 // Position it to the right of the continue button so it's not blocked
@@ -249,16 +242,40 @@ namespace DedicatedServerMod.Client.Managers
         }
 
         /// <summary>
-        /// Position the prototype button relative to the continue button
+        /// Position the Servers button above Continue.
+        /// If the menu is layout-driven, sibling order is enough. Otherwise fall back to manual positioning.
         /// </summary>
         private void PositionServersButton(GameObject newButton, Transform continueButton)
         {
-            var rectTransform = newButton.GetComponent<RectTransform>();
-            if (rectTransform != null)
+            if (newButton == null || continueButton == null)
             {
-                var pos = rectTransform.anchoredPosition;
-                rectTransform.anchoredPosition = new Vector2(pos.x + 100f, pos.y);
+                return;
             }
+
+            Transform parent = continueButton.parent;
+            if (parent == null)
+            {
+                return;
+            }
+
+            newButton.transform.SetSiblingIndex(continueButton.GetSiblingIndex());
+
+            LayoutGroup layoutGroup = parent.GetComponent<LayoutGroup>();
+            if (layoutGroup != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(parent as RectTransform);
+                return;
+            }
+
+            RectTransform continueRect = continueButton as RectTransform;
+            RectTransform newRect = newButton.GetComponent<RectTransform>();
+            if (continueRect == null || newRect == null)
+            {
+                return;
+            }
+
+            float verticalSpacing = continueRect.rect.height + 12f;
+            newRect.anchoredPosition = continueRect.anchoredPosition + new Vector2(0f, verticalSpacing);
         }
 
         /// <summary>
@@ -1480,6 +1497,38 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
+        private Transform FindContinueButton(Transform mainMenuRoot)
+        {
+            if (mainMenuRoot == null)
+            {
+                return null;
+            }
+
+            string[] preferredPaths =
+            {
+                "Home/Bank/Panel/Continue",
+                "Home/Bank/Continue"
+            };
+
+            for (int i = 0; i < preferredPaths.Length; i++)
+            {
+                Transform candidate = mainMenuRoot.Find(preferredPaths[i]);
+                if (candidate != null)
+                {
+                    logger.Msg($"Resolved Continue button at '{GetTransformPath(candidate, mainMenuRoot)}'");
+                    return candidate;
+                }
+            }
+
+            Transform fallback = FindDeepChild(mainMenuRoot, "Continue");
+            if (fallback != null)
+            {
+                logger.Warning($"Continue button found via fallback search at '{GetTransformPath(fallback, mainMenuRoot)}'");
+            }
+
+            return fallback;
+        }
+
         private Transform FindDeepChild(Transform parent, string childName)
         {
             if (parent == null || string.IsNullOrEmpty(childName)) return null;
@@ -1491,6 +1540,25 @@ namespace DedicatedServerMod.Client.Managers
                 if (result != null) return result;
             }
             return null;
+        }
+
+        private string GetTransformPath(Transform target, Transform root)
+        {
+            if (target == null)
+            {
+                return string.Empty;
+            }
+
+            string path = target.name;
+            Transform current = target.parent;
+
+            while (current != null && current != root)
+            {
+                path = $"{current.name}/{path}";
+                current = current.parent;
+            }
+
+            return current == root ? $"{root.name}/{path}" : path;
         }
 
         private void PrefillServerAddress()

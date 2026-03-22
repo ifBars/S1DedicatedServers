@@ -479,6 +479,12 @@ namespace DedicatedServerMod.Server.Player
 
             if (result.IsSuccessful)
             {
+                if (!playerInfo.IsLoopbackConnection && IsSyntheticLoopbackSteamId(result.ExtractedSteamId))
+                {
+                    _logger.Warning($"Ignoring synthetic loopback SteamID '{result.ExtractedSteamId}' for non-loopback ClientId {playerInfo.ClientId} during authentication.");
+                    result.ExtractedSteamId = string.Empty;
+                }
+
                 playerInfo.IsAuthenticated = true;
 
                 if (!string.IsNullOrEmpty(result.ExtractedSteamId))
@@ -527,6 +533,11 @@ namespace DedicatedServerMod.Server.Player
             {
                 return string.Empty;
             }
+        }
+
+        private static bool IsSyntheticLoopbackSteamId(string steamId)
+        {
+            return string.Equals(steamId, DedicatedServerMod.Utils.Constants.GhostHostSyntheticSteamId, StringComparison.Ordinal);
         }
 
         private static bool IsProviderPayloadCompatible(string providerWireValue, AuthenticationProvider activeProvider)

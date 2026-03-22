@@ -715,15 +715,21 @@ namespace DedicatedServerMod.Server.Player
 
             // Check if we're trying to overwrite a valid identity with default/empty values.
             // This happens when clients spawn with temporary placeholder values before getting real identity data.
-            bool isDefaultIdentity = string.IsNullOrEmpty(steamId) && playerName == "Player";
-            bool hasValidIdentity = !string.IsNullOrEmpty(playerInfo.SteamId) ||
-                                   !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId) ||
-                                   (!string.IsNullOrEmpty(playerInfo.PlayerName) && playerInfo.PlayerName != "Player");
+            bool hasProvidedSteamId = !string.IsNullOrEmpty(steamId) && !IsSyntheticLoopbackSteamId(steamId);
+            bool hasMeaningfulPlayerName = !string.IsNullOrEmpty(playerName) && !string.Equals(playerName, "Player", StringComparison.Ordinal);
+            bool isDefaultIdentity = !hasProvidedSteamId && !hasMeaningfulPlayerName;
+            bool hasValidIdentity = HasValidRemoteIdentity(playerInfo);
 
             if (isDefaultIdentity && hasValidIdentity)
             {
                 DebugLog.PlayerLifecycleDebug($"Skipping default identity update for ClientId {connection.ClientId} - already has valid identity: {playerInfo.DisplayName}");
                 return;
+            }
+
+            if (IsSyntheticLoopbackSteamId(steamId))
+            {
+                logger.Warning($"Ignoring synthetic loopback SteamID '{steamId}' for non-loopback ClientId {connection.ClientId}.");
+                steamId = string.Empty;
             }
 
             if (playerInfo.IsAuthenticated && !string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId))
@@ -737,8 +743,15 @@ namespace DedicatedServerMod.Server.Player
                 steamId = playerInfo.AuthenticatedSteamId;
             }
 
-            playerInfo.SteamId = steamId;
-            playerInfo.PlayerName = playerName;
+            if (!string.IsNullOrEmpty(steamId))
+            {
+                playerInfo.SteamId = steamId;
+            }
+
+            if (!string.IsNullOrEmpty(playerName) && (hasMeaningfulPlayerName || string.IsNullOrEmpty(playerInfo.PlayerName)))
+            {
+                playerInfo.PlayerName = playerName;
+            }
 
             if (playerInfo.PlayerInstance == null)
             {
@@ -768,6 +781,28 @@ namespace DedicatedServerMod.Server.Player
             return string.IsNullOrWhiteSpace(steamId)
                 ? Constants.GhostHostSyntheticSteamId
                 : steamId;
+        }
+
+        private static bool IsSyntheticLoopbackSteamId(string steamId)
+        {
+            return string.Equals(steamId, Constants.GhostHostSyntheticSteamId, StringComparison.Ordinal);
+        }
+
+        private static bool HasValidRemoteIdentity(ConnectedPlayerInfo playerInfo)
+        {
+            if (playerInfo == null)
+            {
+                return false;
+            }
+
+            bool hasValidSteamId =
+                (!string.IsNullOrEmpty(playerInfo.SteamId) && !IsSyntheticLoopbackSteamId(playerInfo.SteamId)) ||
+                (!string.IsNullOrEmpty(playerInfo.AuthenticatedSteamId) && !IsSyntheticLoopbackSteamId(playerInfo.AuthenticatedSteamId));
+
+            bool hasMeaningfulName = !string.IsNullOrEmpty(playerInfo.PlayerName) &&
+                                     !string.Equals(playerInfo.PlayerName, "Player", StringComparison.Ordinal);
+
+            return hasValidSteamId || hasMeaningfulName;
         }
 
         private static string NormalizeLoopbackPlayerName(string playerName)

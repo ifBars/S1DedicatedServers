@@ -33,15 +33,15 @@ namespace DedicatedServerMod.Server.Game
                     return;
                 }
 
-                var targetConn = conn ?? __instance.Owner;
-                if (targetConn == null)
+                var sourceConn = __instance?.Owner;
+                if (sourceConn == null)
                 {
                     return;
                 }
 
                 var playerManager = ServerBootstrap.Players;
-                playerManager?.SetPlayerIdentity(targetConn, id, playerName);
-                DebugLog.PlayerLifecycleDebug($"BindPlayerIdentityPostfix: ClientId {targetConn.ClientId} -> SteamID {id} ({playerName})");
+                playerManager?.SetPlayerIdentity(sourceConn, id, playerName);
+                DebugLog.PlayerLifecycleDebug($"BindPlayerIdentityPostfix: SourceClientId {sourceConn.ClientId}, TargetClientId {(conn != null ? conn.ClientId.ToString() : "null")} -> SteamID {id} ({playerName})");
             }
             catch (Exception ex)
             {

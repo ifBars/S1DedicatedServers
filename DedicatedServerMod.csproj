@@ -1035,6 +1035,7 @@
 		<Compile Include="Server\Game\ProductIconManagerPatches.cs" />
 		<Compile Include="Server\Game\SleepCanvasPatches.cs" />
 		<Compile Include="Server\Game\TimeManagerPatches.cs" />
+		<Compile Include="Server\Game\WeatherSystemPatches.cs" />
 		<Compile Include="Server\Game\GameSystemManager.cs" />
 		<Compile Include="Server\Game\TimeSystemManager.cs" />
 		<Compile Include="Server\Game\SleepSystemManager.cs" />
