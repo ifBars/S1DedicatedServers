@@ -65,6 +65,8 @@ dotnet build -c Mono_Server
 dotnet build
 ```
 
+*You must launch the game with MelonLoader at least once before building this project so MelonLoader can generate the MelonLoader/Il2CppAssemblies directory required by the Il2cpp_Client and Il2cpp_Server configurations. This is not Linux-specific: the same generated assemblies are required on Windows as well. MelonLoader's IL2CPP toolchain also depends on the .NET 6 runtime being available in the environment where the game is launched, whether that is a normal Windows install or a Proton/Wine prefix on Linux. The project's netstandard2.1 target remains valid for local builds; the critical requirement is that the game-side IL2CPP assemblies have been generated before you compile against them. .NET 6 can be installed inside of your prefix if on Linux by downloading the .exe*
+
 ## How It Works
 
 ### Assembly Publicization
