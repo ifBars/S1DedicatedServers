@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Network
     /// display name and last-reported ping — to all clients.
     /// </summary>
     /// <remarks>
-    /// Runs a MelonLoader coroutine that fires once per <see cref="BroadcastIntervalSeconds"/>.
+    /// Runs a MelonLoader coroutine that fires once per <see cref="BROADCAST_INTERVAL_SECONDS"/>.
     /// The ghost-host loopback connection is always excluded from the snapshot.
     ///
     /// Ping values are client-reported: each client sends its own measured RTT to the server via
@@ -26,11 +26,13 @@ namespace DedicatedServerMod.Server.Network
     /// </remarks>
     internal sealed class PlayerListBroadcastService
     {
-        private const float BroadcastIntervalSeconds = 1.0f;
+        private const float BROADCAST_INTERVAL_SECONDS = 1.0f;
+        private static readonly WaitForSeconds _broadcastWait = new WaitForSeconds(BROADCAST_INTERVAL_SECONDS);
 
         private readonly MelonLogger.Instance _logger;
         private readonly PlayerManager _playerManager;
         private bool _running;
+        private object _coroutineHandle;
 
         /// <summary>
         /// Initialises the service with required dependencies.
@@ -45,12 +47,14 @@ namespace DedicatedServerMod.Server.Network
         }
 
         /// <summary>
-        /// Starts the periodic broadcast loop.
+        /// Starts the periodic broadcast loop. If already running, the existing loop is
+        /// stopped first to prevent duplicate coroutines.
         /// </summary>
         public void Start()
         {
+            Stop();
             _running = true;
-            MelonCoroutines.Start(BroadcastLoop());
+            _coroutineHandle = MelonCoroutines.Start(BroadcastLoop());
             DebugLog.Debug("PlayerListBroadcastService started");
         }
 
@@ -60,6 +64,11 @@ namespace DedicatedServerMod.Server.Network
         public void Stop()
         {
             _running = false;
+            if (_coroutineHandle != null)
+            {
+                MelonCoroutines.Stop(_coroutineHandle);
+                _coroutineHandle = null;
+            }
         }
 
         // ── Private ──────────────────────────────────────────────────────────
@@ -68,7 +77,7 @@ namespace DedicatedServerMod.Server.Network
         {
             while (_running)
             {
-                yield return new WaitForSeconds(BroadcastIntervalSeconds);
+                yield return _broadcastWait;
                 try
                 {
                     BroadcastPlayerList();
