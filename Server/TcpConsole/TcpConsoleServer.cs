@@ -73,10 +73,13 @@ namespace DedicatedServerMod.Server.TcpConsole
 					return null;
 				}
 
+				
+				bool hasPassword = cfg.TcpConsoleRequirePassword && !string.IsNullOrWhiteSpace(cfg.TcpConsolePassword);
+
 				if (!IsLoopbackBindAddress(cfg.TcpConsoleBindAddress))
 				{
 					logger.Warning("TCP console is bound to a non-loopback address. Keep this interface LAN-only and prefer loopback unless you are deliberately securing access another way.");
-					if (!cfg.TcpConsoleRequirePassword)
+					if (!hasPassword)
 					{
 						logger.Warning("TCP console is exposed beyond loopback without a password requirement. This is not recommended.");
 					}
@@ -86,7 +89,7 @@ namespace DedicatedServerMod.Server.TcpConsole
 					cfg.TcpConsoleBindAddress,
 					cfg.TcpConsolePort,
 					cfg.TcpConsoleMaxConnections,
-					cfg.TcpConsoleRequirePassword ? cfg.TcpConsolePassword : null,
+					hasPassword ? cfg.TcpConsolePassword : null,
 					line => ExecuteConsoleCommand(commandManager, logger, line),
 					logger);
 
