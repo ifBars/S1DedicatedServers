@@ -102,6 +102,7 @@ namespace DedicatedServerMod.Server.Network
                 snapshot.Players.Add(new PlayerListEntry
                 {
                     DisplayName = info.DisplayName,
+                    Role = GetRoleLabel(info),
                     PingMs = info.PingMs
                 });
             }
@@ -110,6 +111,20 @@ namespace DedicatedServerMod.Server.Network
             CustomMessaging.BroadcastToClients(Constants.Messages.PlayerListUpdate, json);
 
             DebugLog.Verbose($"PlayerListBroadcastService: sent {snapshot.Players.Count} player(s)");
+        }
+
+        private string GetRoleLabel(ConnectedPlayerInfo player)
+        {
+            switch (_playerManager.Permissions.GetPermissionLevel(player))
+            {
+                case PermissionLevel.Operator:
+                    return "Operator";
+                case PermissionLevel.Administrator:
+                    return "Admin";
+                case PermissionLevel.Player:
+                default:
+                    return "Player";
+            }
         }
     }
 }

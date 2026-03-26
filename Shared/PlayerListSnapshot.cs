@@ -17,6 +17,12 @@ namespace DedicatedServerMod.Shared
         public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>
+        /// The player's server-side role label.
+        /// </summary>
+        [JsonProperty("role")]
+        public string Role { get; set; } = "Player";
+
+        /// <summary>
         /// Round-trip time in milliseconds as reported by the client.
         /// <c>-1</c> means the value has not yet been received from the client.
         /// </summary>

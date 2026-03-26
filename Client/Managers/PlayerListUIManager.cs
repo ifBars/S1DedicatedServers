@@ -33,15 +33,22 @@ namespace DedicatedServerMod.Client.Managers
         private const float PING_REPORT_INTERVAL = 5f;
         private const int MAX_ROWS = 64;
         private const KeyCode HOLD_KEY = KeyCode.F8;
+        private const float NAME_COLUMN_WIDTH = 178f;
+        private const float ROLE_COLUMN_WIDTH = 74f;
+        private const float PING_COLUMN_WIDTH = 52f;
 
         private static readonly Color PANEL_BG = new Color(0.08f, 0.09f, 0.12f, 0.92f);
         private static readonly Color HEADER_COLOR = new Color(0.10f, 0.65f, 1.00f, 1.00f);
+        private static readonly Color COLUMN_HEADER_COLOR = new Color(0.72f, 0.78f, 0.88f, 0.95f);
         private static readonly Color ROW_BG_EVEN = new Color(0.10f, 0.11f, 0.14f, 0.85f);
         private static readonly Color ROW_BG_ODD = new Color(0.12f, 0.13f, 0.17f, 0.85f);
         private static readonly Color PING_GOOD = new Color(0.20f, 0.90f, 0.30f, 1.00f); // < 70 ms
         private static readonly Color PING_OK = new Color(1.00f, 0.85f, 0.10f, 1.00f); // 70–150 ms
         private static readonly Color PING_BAD = new Color(1.00f, 0.30f, 0.20f, 1.00f); // > 150 ms
         private static readonly Color PING_UNKNOWN = new Color(0.55f, 0.55f, 0.55f, 1.00f);
+        private static readonly Color ROLE_PLAYER = new Color(0.72f, 0.75f, 0.80f, 1.00f);
+        private static readonly Color ROLE_ADMIN = new Color(0.98f, 0.70f, 0.18f, 1.00f);
+        private static readonly Color ROLE_OPERATOR = new Color(0.30f, 0.85f, 1.00f, 1.00f);
 
         private readonly MelonLogger.Instance _logger;
         private readonly ClientConnectionManager _connectionManager;
@@ -187,7 +194,7 @@ namespace DedicatedServerMod.Client.Managers
             panelRt.anchorMin = new Vector2(1f, 1f);
             panelRt.anchorMax = new Vector2(1f, 1f);
             panelRt.pivot = new Vector2(1f, 1f);
-            panelRt.sizeDelta = new Vector2(260f, 0f); // height driven by ContentSizeFitter
+            panelRt.sizeDelta = new Vector2(336f, 0f); // height driven by ContentSizeFitter
             panelRt.anchoredPosition = new Vector2(-10f, -10f);
 
             var panelImg = _panel.AddComponent<Image>();
@@ -214,6 +221,9 @@ namespace DedicatedServerMod.Client.Managers
             _headerText.fontStyle = FontStyle.Bold;
             _headerText.alignment = TextAnchor.MiddleLeft;
             _headerText.font = _font;
+
+            // ── Column headers ──────────────────────────────────────────────
+            CreateColumnHeaderRow();
 
             // ── Thin separator ───────────────────────────────────────────────
             var sepGo = MakePanel(_panel.transform, "DS_PlayerListSep");
@@ -262,24 +272,73 @@ namespace DedicatedServerMod.Client.Managers
             // Name cell (takes most of the width)
             var nameGo = new GameObject("NameText");
             nameGo.transform.SetParent(rowGo.transform, false);
-            nameGo.AddComponent<RectTransform>().sizeDelta = new Vector2(185f, 0f);
+            nameGo.AddComponent<RectTransform>().sizeDelta = new Vector2(NAME_COLUMN_WIDTH, 0f);
             var nameText = nameGo.AddComponent<Text>();
             nameText.color = Color.white;
             nameText.fontSize = 11;
             nameText.alignment = TextAnchor.MiddleLeft;
             nameText.font = _font;
 
+            // Role cell
+            var roleGo = new GameObject("RoleText");
+            roleGo.transform.SetParent(rowGo.transform, false);
+            roleGo.AddComponent<RectTransform>().sizeDelta = new Vector2(ROLE_COLUMN_WIDTH, 0f);
+            var roleText = roleGo.AddComponent<Text>();
+            roleText.color = ROLE_PLAYER;
+            roleText.fontSize = 10;
+            roleText.alignment = TextAnchor.MiddleCenter;
+            roleText.fontStyle = FontStyle.Bold;
+            roleText.font = _font;
+
             // Ping cell (right-aligned)
             var pingGo = new GameObject("PingText");
             pingGo.transform.SetParent(rowGo.transform, false);
-            pingGo.AddComponent<RectTransform>().sizeDelta = new Vector2(52f, 0f);
+            pingGo.AddComponent<RectTransform>().sizeDelta = new Vector2(PING_COLUMN_WIDTH, 0f);
             var pingText = pingGo.AddComponent<Text>();
             pingText.color = PING_UNKNOWN;
             pingText.fontSize = 11;
             pingText.alignment = TextAnchor.MiddleRight;
             pingText.font = _font;
 
-            return new PlayerRow { Root = rowGo, NameText = nameText, PingText = pingText };
+            return new PlayerRow { Root = rowGo, NameText = nameText, RoleText = roleText, PingText = pingText };
+        }
+
+        private void CreateColumnHeaderRow()
+        {
+            var headerRowGo = new GameObject("DS_PlayerListColumnHeaders");
+            headerRowGo.transform.SetParent(_panel.transform, false);
+
+            var headerRowRt = headerRowGo.AddComponent<RectTransform>();
+            headerRowRt.sizeDelta = new Vector2(0f, 16f);
+
+            var hlg = headerRowGo.AddComponent<HorizontalLayoutGroup>();
+            hlg.padding = new RectOffset(4, 4, 0, 0);
+            hlg.spacing = 0f;
+            hlg.childControlHeight = true;
+            hlg.childControlWidth = false;
+            hlg.childForceExpandHeight = true;
+            hlg.childForceExpandWidth = false;
+
+            CreateColumnHeaderCell(headerRowGo.transform, "NameHeader", "NAME", NAME_COLUMN_WIDTH, TextAnchor.MiddleLeft);
+            CreateColumnHeaderCell(headerRowGo.transform, "RoleHeader", "ROLE", ROLE_COLUMN_WIDTH, TextAnchor.MiddleCenter);
+            CreateColumnHeaderCell(headerRowGo.transform, "PingHeader", "PING", PING_COLUMN_WIDTH, TextAnchor.MiddleRight);
+        }
+
+        private void CreateColumnHeaderCell(Transform parent, string name, string text, float width, TextAnchor alignment)
+        {
+            var cellGo = new GameObject(name);
+            cellGo.transform.SetParent(parent, false);
+
+            var rectTransform = cellGo.AddComponent<RectTransform>();
+            rectTransform.sizeDelta = new Vector2(width, 0f);
+
+            var headerText = cellGo.AddComponent<Text>();
+            headerText.text = text;
+            headerText.color = COLUMN_HEADER_COLOR;
+            headerText.fontSize = 9;
+            headerText.fontStyle = FontStyle.Bold;
+            headerText.alignment = alignment;
+            headerText.font = _font;
         }
 
         #endregion
@@ -312,6 +371,8 @@ namespace DedicatedServerMod.Client.Managers
 
                 var entry = sorted[i];
                 _rows[i].NameText.text = entry.DisplayName;
+                _rows[i].RoleText.text = entry.Role;
+                _rows[i].RoleText.color = GetRoleColor(entry.Role);
 
                 if (entry.PingMs < 0)
                 {
@@ -325,6 +386,20 @@ namespace DedicatedServerMod.Client.Managers
                                             : entry.PingMs < 150 ? PING_OK
                                             : PING_BAD;
                 }
+            }
+        }
+
+        private static Color GetRoleColor(string role)
+        {
+            switch (role)
+            {
+                case "Operator":
+                    return ROLE_OPERATOR;
+                case "Admin":
+                    return ROLE_ADMIN;
+                case "Player":
+                default:
+                    return ROLE_PLAYER;
             }
         }
 
@@ -395,6 +470,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             public GameObject Root;
             public Text NameText;
+            public Text RoleText;
             public Text PingText;
         }
 
