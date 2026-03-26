@@ -360,6 +360,9 @@ namespace DedicatedServerMod.Server.Core
                 // Shutdown in reverse order
                 try { _tcpConsole?.Dispose(); } catch { }
                 _serverStatusQueryService?.Shutdown();
+#if SERVER
+                _playerListBroadcastService?.Stop();
+#endif
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
