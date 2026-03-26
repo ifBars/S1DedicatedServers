@@ -265,6 +265,17 @@ namespace DedicatedServerMod.Utils
             /// SteamNetworkLib dedicated P2P message delivery (server -> client).
             /// </summary>
             public const string SnlDedicatedP2PMessage = "snl_dedicated_p2p_message";
+
+            /// <summary>
+            /// Player list broadcast (server → all clients). Sent every ~1 second with names and pings.
+            /// </summary>
+            public const string PlayerListUpdate = "player_list_update";
+
+            /// <summary>
+            /// Client-reported ping (client → server). Client sends its own measured RTT so the server
+            /// can include it in the next <see cref="PlayerListUpdate"/> broadcast.
+            /// </summary>
+            public const string PlayerPingReport = "player_ping_report";
         }
 
         #endregion

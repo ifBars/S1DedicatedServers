@@ -131,6 +131,10 @@ namespace DedicatedServerMod.Shared.Networking
                     HandleSteamNetworkLibP2PSend(conn, data);
                     break;
 
+                case Constants.Messages.PlayerPingReport:
+                    HandlePlayerPingReport(conn, data);
+                    break;
+
                 default:
                     DebugLog.MessageRoutingDebug($"Unhandled server message: {command}");
                     break;
@@ -161,6 +165,12 @@ namespace DedicatedServerMod.Shared.Networking
                 case Constants.Messages.ServerData:
                     // Handled by dedicated client managers via CustomMessaging events.
                     break;
+
+#if CLIENT
+                case Constants.Messages.PlayerListUpdate:
+                    HandlePlayerListUpdate(data);
+                    break;
+#endif
 
                 default:
                     DebugLog.MessageRoutingDebug($"Unhandled client message: {command}");
@@ -688,6 +698,73 @@ namespace DedicatedServerMod.Shared.Networking
                 _logger.Error($"EnsureCoreCommandsExist: Error: {ex}");
             }
         }
+
+        #endregion
+
+        #region Player List Handling
+
+#if SERVER
+        /// <summary>
+        /// Stores the client-reported round-trip time on the player's <see cref="ConnectedPlayerInfo"/>.
+        /// </summary>
+        private static void HandlePlayerPingReport(NetworkConnection conn, string data)
+        {
+            try
+            {
+                if (!int.TryParse(data?.Trim(), out int pingMs))
+                {
+                    DebugLog.MessageRoutingDebug($"HandlePlayerPingReport: invalid payload from ClientId {conn.ClientId}");
+                    return;
+                }
+
+                ServerPlayerManager playerManager = ServerBootstrap.Players;
+                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
+                if (playerInfo == null)
+                {
+                    DebugLog.MessageRoutingDebug($"HandlePlayerPingReport: no tracked player for ClientId {conn.ClientId}");
+                    return;
+                }
+
+                // Clamp to a sane range; -1 is "unknown", 0+ is valid RTT ms.
+                playerInfo.PingMs = (pingMs < -1) ? -1 : (pingMs > 9999 ? 9999 : pingMs);
+                DebugLog.Verbose($"HandlePlayerPingReport: ClientId {conn.ClientId} ping={playerInfo.PingMs}ms");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning($"HandlePlayerPingReport error: {ex.Message}");
+            }
+        }
+#endif
+
+#if CLIENT
+        /// <summary>
+        /// Forwards a received player list snapshot to <see cref="DedicatedServerMod.Client.Managers.PlayerListStore"/>.
+        /// </summary>
+        private static void HandlePlayerListUpdate(string data)
+        {
+            try
+            {
+                var snapshot = JsonConvert.DeserializeObject<DedicatedServerMod.Shared.PlayerListSnapshot>(data ?? string.Empty);
+                if (snapshot != null)
+                {
+                    DedicatedServerMod.Client.Managers.PlayerListStore.Update(snapshot);
+                }
+                else
+                {
+                    DebugLog.MessageRoutingDebug("HandlePlayerListUpdate: deserialized snapshot was null");
+                }
+            }
+            catch (Newtonsoft.Json.JsonException ex)
+            {
+                DebugLog.MessageRoutingDebug($"HandlePlayerListUpdate: JSON parse error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning($"HandlePlayerListUpdate error: {ex.Message}");
+            }
+        }
+#endif
+
 
         #endregion
 

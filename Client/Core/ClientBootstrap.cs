@@ -76,6 +76,11 @@ namespace DedicatedServerMod.Client.Core
         private ClientTransportPatcher _transportPatcher;
 
         /// <summary>
+        /// The player list UI manager for the in-game player list overlay.
+        /// </summary>
+        private PlayerListUIManager _playerListUIManager;
+
+        /// <summary>
         /// Whether to ignore the ghost host when checking sleep readiness.
         /// </summary>
         private bool _ignoreGhostHostForSleep = true;
@@ -128,6 +133,11 @@ namespace DedicatedServerMod.Client.Core
         /// Gets the transport patcher.
         /// </summary>
         public ClientTransportPatcher TransportPatcher => _transportPatcher;
+
+        /// <summary>
+        /// Gets the player list UI manager.
+        /// </summary>
+        public PlayerListUIManager PlayerListUI => _playerListUIManager;
 
         /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
@@ -268,6 +278,10 @@ namespace DedicatedServerMod.Client.Core
             // Initialize UI manager (depends on connection manager)
             _uiManager = new ClientUIManager(_logger, _connectionManager);
             _uiManager.Initialize();
+
+            // Initialize player list overlay
+            _playerListUIManager = new PlayerListUIManager(_logger, _connectionManager);
+            _playerListUIManager.Initialize();
         }
 
         #endregion
@@ -322,6 +336,7 @@ namespace DedicatedServerMod.Client.Core
                 // Delegate scene handling to appropriate managers
                 _uiManager?.OnSceneLoaded(sceneName);
                 _questManager?.OnSceneLoaded(sceneName);
+                _playerListUIManager?.OnSceneLoaded(sceneName);
             }
             catch (Exception ex)
             {
@@ -338,6 +353,9 @@ namespace DedicatedServerMod.Client.Core
             {
                 // Handle UI input
                 _uiManager?.HandleInput();
+
+                // Handle player list UI update
+                _playerListUIManager?.Update();
 
                 // Handle auth updates
                 _authManager?.Update();

@@ -40,7 +40,10 @@ namespace DedicatedServerMod.Server.Core
         private static TcpConsoleServer _tcpConsole;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
-        
+#if SERVER
+        private static PlayerListBroadcastService _playerListBroadcastService;
+#endif
+
         // Server state
         private static bool _autoStartServer = false;
         
@@ -158,7 +161,14 @@ namespace DedicatedServerMod.Server.Core
             // Start TCP Console if enabled in ServerConfig
             _tcpConsole = TcpConsoleServer.TryStart(_commandManager, _logger);
             TryStartStatusQueryService();
-            
+
+#if SERVER
+            // Step 9a: Player list broadcast service
+            _playerListBroadcastService = new PlayerListBroadcastService(_logger, _playerManager);
+            _playerListBroadcastService.Start();
+            _logger.Msg("✓ Player list broadcast service started");
+#endif
+
             // Step 10: Wire up player events with persistence
             WirePlayerEvents();
             

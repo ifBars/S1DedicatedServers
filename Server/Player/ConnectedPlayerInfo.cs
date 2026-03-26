@@ -99,6 +99,13 @@ namespace DedicatedServerMod.Server.Player
         public bool IsDisconnectProcessed { get; set; }
 
         /// <summary>
+        /// The player's most recently reported round-trip time in milliseconds.
+        /// Populated when the client sends a <see cref="Utils.Constants.Messages.PlayerPingReport"/> message.
+        /// <c>-1</c> means no report has been received yet.
+        /// </summary>
+        public int PingMs { get; set; } = -1;
+
+        /// <summary>
         /// Whether the player is currently connected to the server
         /// </summary>
         public bool IsConnected
@@ -182,7 +189,7 @@ namespace DedicatedServerMod.Server.Player
             var status = IsSpawned ? "Spawned" : "Connected";
             var auth = IsAuthenticated ? "Auth" : (IsAuthenticationPending ? "AuthPending" : "NoAuth");
             var duration = ConnectionDuration.ToString(@"mm\:ss");
-            
+
             return $"{DisplayName} (ID: {ClientId}, Steam: {SteamId ?? "N/A"}, {status}, {auth}, {duration})";
         }
 
