@@ -993,6 +993,13 @@ namespace DedicatedServerMod.Shared.Configuration
                 VSyncCount = 0;
             }
 
+            // Validate TCP console max connections
+            if (TcpConsoleMaxConnections < 1)
+            {
+                Logger.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Utils.Constants.DefaultTcpConsoleMaxConnections}");
+                TcpConsoleMaxConnections = Utils.Constants.DefaultTcpConsoleMaxConnections;
+            }
+
             // Validate names
             if (ServerName.Length > Utils.Constants.MaxServerNameLength)
             {
