@@ -44,7 +44,7 @@ jobs:
 
           case "$requested_branch" in
             main|master)
-              resolved_branch="master"
+              resolved_branch="main"
               ;;
             beta)
               resolved_branch="beta"
