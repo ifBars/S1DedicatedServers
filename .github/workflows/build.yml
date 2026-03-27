@@ -61,15 +61,15 @@ jobs:
       - name: Create Assembly Directory Structure
         shell: bash
         run: |
-          mkdir -p DedicatedServerMod/ScheduleOneAssemblies/Managed
-          mkdir -p DedicatedServerMod/ScheduleOneAssemblies/MelonLoader
+          mkdir -p ScheduleOneAssemblies/Managed
+          mkdir -p ScheduleOneAssemblies/MelonLoader
 
       - name: Restore Game Assemblies from Cache
         id: cache-assemblies
         uses: actions/cache/restore@v4
         with:
-          path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          path: ScheduleOneAssemblies
+          key: game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
             game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-
 
@@ -87,12 +87,12 @@ jobs:
         shell: bash
         run: |
           if [ -d "game-assemblies/Managed" ]; then
-            cp -r game-assemblies/Managed/* DedicatedServerMod/ScheduleOneAssemblies/Managed/ || echo "Failed to copy Mono assemblies"
+            cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/ || echo "Failed to copy Mono assemblies"
             echo "Copied Mono assemblies"
           fi
 
           if [ -d "game-assemblies/MelonLoader" ]; then
-            cp -r game-assemblies/MelonLoader/* DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
+            cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
             echo "Copied MelonLoader assemblies"
           fi
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -103,12 +103,12 @@ jobs:
         run: |
           ready=true
 
-          if [ ! -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
+          if [ ! -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
             echo "Missing Assembly-CSharp.dll"
             ready=false
           fi
 
-          if [ ! -f "DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
+          if [ ! -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
             echo "Missing MelonLoader.dll"
             ready=false
           fi
@@ -118,14 +118,14 @@ jobs:
       - name: Verify Assemblies
         shell: bash
         run: |
-          if [ -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
+          if [ -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
             echo "Found Assembly-CSharp.dll"
           else
             echo "Missing Assembly-CSharp.dll"
             exit 1
           fi
 
-          if [ -f "DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
+          if [ -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
             echo "Found MelonLoader.dll"
           else
             echo "Missing MelonLoader.dll"
@@ -139,39 +139,39 @@ jobs:
           <Project>
               <PropertyGroup>
                   <AutomateLocalDeployment>false</AutomateLocalDeployment>
-                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)DedicatedServerMod/ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
-                  <MonoAssembliesPath>$(MSBuildThisFileDirectory)DedicatedServerMod/ScheduleOneAssemblies/Managed</MonoAssembliesPath>
+                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
+                  <MonoAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/Managed</MonoAssembliesPath>
               </PropertyGroup>
           </Project>
           EOF
 
       - name: Restore Dependencies
-        run: dotnet restore DedicatedServerMod/DedicatedServerMod.csproj
+        run: dotnet restore DedicatedServerMod.csproj
 
       - name: Build Mono Server
-        run: dotnet build DedicatedServerMod/DedicatedServerMod.csproj --no-restore -c Mono_Server -v normal
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Server -v normal
 
       - name: Build Mono Client
-        run: dotnet build DedicatedServerMod/DedicatedServerMod.csproj --no-restore -c Mono_Client -v normal
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v normal
 
       - name: Upload Mono Server Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DedicatedServerMod-Mono-Server
-          path: DedicatedServerMod/bin/Mono_Server/netstandard2.1/*.dll
+          path: bin/Mono_Server/netstandard2.1/*.dll
 
       - name: Upload Mono Client Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DedicatedServerMod-Mono-Client
-          path: DedicatedServerMod/bin/Mono_Client/netstandard2.1/*.dll
+          path: bin/Mono_Client/netstandard2.1/*.dll
 
       - name: Save Game Assemblies to Cache
         uses: actions/cache/save@v4
         if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         with:
-          path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          path: ScheduleOneAssemblies
+          key: game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
   summary:
     runs-on: ubuntu-latest
