@@ -1,0 +1,146 @@
+name: Build and Deploy Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      assembly_branch:
+        description: "Assembly branch to use (main or beta)"
+        required: false
+        default: "main"
+        type: choice
+        options:
+          - main
+          - beta
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout DedicatedServerMod
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Determine Assembly Branch
+        id: assembly-branch
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
+            echo "branch=${{ inputs.assembly_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Assembly Directory Structure
+        shell: bash
+        run: |
+          mkdir -p DedicatedServerMod/ScheduleOneAssemblies/Managed
+          mkdir -p DedicatedServerMod/ScheduleOneAssemblies/MelonLoader
+
+      - name: Restore Game Assemblies from Cache
+        id: cache-assemblies
+        uses: actions/cache/restore@v4
+        with:
+          path: DedicatedServerMod/ScheduleOneAssemblies
+          key: game-assemblies-docs-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          restore-keys: |
+            game-assemblies-docs-v1-${{ steps.assembly-branch.outputs.branch }}-
+
+      - name: Checkout Game Assemblies
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.GAME_ASSEMBLIES_REPO }}
+          token: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
+          ref: ${{ steps.assembly-branch.outputs.branch }}
+          path: game-assemblies
+          fetch-depth: 1
+        if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+
+      - name: Copy Game Assemblies
+        shell: bash
+        run: |
+          if [ -d "game-assemblies/Managed" ]; then
+            cp -r game-assemblies/Managed/* DedicatedServerMod/ScheduleOneAssemblies/Managed/ || echo "Failed to copy Mono assemblies"
+          fi
+
+          if [ -d "game-assemblies/MelonLoader" ]; then
+            cp -r game-assemblies/MelonLoader/* DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
+          fi
+        if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+
+      - name: Verify Assemblies
+        shell: bash
+        run: |
+          test -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll"
+          test -f "DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/MelonLoader.dll"
+
+      - name: Create CI Build Properties
+        shell: bash
+        run: |
+          cat > DedicatedServerMod/ci.build.props << 'EOF'
+          <Project>
+              <PropertyGroup>
+                  <MonoAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/Managed</MonoAssembliesPath>
+                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
+              </PropertyGroup>
+          </Project>
+          EOF
+
+      - name: Restore Dependencies
+        run: dotnet restore DedicatedServerMod/DedicatedServerMod.csproj
+
+      - name: Build Documentation Assembly
+        run: dotnet build DedicatedServerMod/DedicatedServerMod.csproj --no-restore -c Documentation -v normal
+
+      - name: Install DocFX
+        run: dotnet tool install -g docfx
+
+      - name: Build Documentation Site
+        shell: bash
+        run: |
+          cd DedicatedServerMod
+          docfx docfx.json
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./DedicatedServerMod/_site
+        if: github.event_name != 'pull_request'
+
+      - name: Save Game Assemblies to Cache
+        uses: actions/cache/save@v4
+        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
+        with:
+          path: DedicatedServerMod/ScheduleOneAssemblies
+          key: game-assemblies-docs-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

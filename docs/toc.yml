@@ -1,0 +1,52 @@
+- name: Home
+  items:
+  - name: Overview
+    href: index.md
+  - name: Installation
+    href: home/installation.md
+- name: Configuration
+  items:
+  - name: Overview
+    href: configuration.md
+  - name: Authentication
+    href: configuration/authentication.md
+  - name: Messaging Backends
+    href: configuration/messaging-backends.md
+  - name: Save Path
+    href: configuration/save-path.md
+  - name: Permissions
+    href: configuration/permissions.md
+  - name: Auto-Save
+    href: configuration/autosave.md
+  - name: Gameplay
+    href: configuration/gameplay.md
+- name: Commands
+  items:
+  - name: Overview
+    href: commands.md
+  - name: Server Commands
+    href: commands/server-commands.md
+  - name: Admin Commands
+    href: commands/admin-commands.md
+  - name: Player Management
+    href: commands/player-management.md
+- name: Modding
+  items:
+  - name: Overview
+    href: modding/overview.md
+  - name: Server API
+    href: modding/server.md
+  - name: Client API
+    href: modding/client.md
+  - name: Custom Messaging
+    href: modding/messaging.md
+- name: Troubleshooting
+  items:
+  - name: Overview
+    href: troubleshooting.md
+  - name: Networking
+    href: troubleshooting/networking.md
+  - name: Save and Load
+    href: troubleshooting/save-load.md
+  - name: Time and Sleep
+    href: troubleshooting/time-sleep.md
