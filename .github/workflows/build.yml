@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       assembly_branch:
-        description: 'Assembly branch to use (main/master or beta)'
+        description: "Assembly branch to use (main/master or beta)"
         required: false
-        default: 'master'
+        default: "main"
         type: choice
         options:
           - main
@@ -30,7 +30,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Determine Assembly Branch
         id: assembly-branch
@@ -69,9 +69,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          key: game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-
 
       - name: Checkout Game Assemblies
         uses: actions/checkout@v4
@@ -97,13 +97,38 @@ jobs:
           fi
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
+      - name: Check Assembly Files
+        id: assembly-files
+        shell: bash
+        run: |
+          ready=true
+
+          if [ ! -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
+            echo "Missing Assembly-CSharp.dll"
+            ready=false
+          fi
+
+          if [ ! -f "DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
+            echo "Missing MelonLoader.dll"
+            ready=false
+          fi
+
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+
       - name: Verify Assemblies
         shell: bash
         run: |
           if [ -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
-            echo "✓ Found Assembly-CSharp.dll"
+            echo "Found Assembly-CSharp.dll"
           else
-            echo "✗ Missing Assembly-CSharp.dll"
+            echo "Missing Assembly-CSharp.dll"
+            exit 1
+          fi
+
+          if [ -f "DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
+            echo "Found MelonLoader.dll"
+          else
+            echo "Missing MelonLoader.dll"
             exit 1
           fi
 
@@ -143,10 +168,10 @@ jobs:
 
       - name: Save Game Assemblies to Cache
         uses: actions/cache/save@v4
-        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
+        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         with:
           path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          key: game-assemblies-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
 
   summary:
     runs-on: ubuntu-latest

@@ -10,7 +10,7 @@ on:
       assembly_branch:
         description: "Assembly branch to use (main/master or beta)"
         required: false
-        default: "master"
+        default: "main"
         type: choice
         options:
           - main
@@ -77,9 +77,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-docs-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          key: game-assemblies-docs-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-docs-v1-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-docs-v2-${{ steps.assembly-branch.outputs.branch }}-
 
       - name: Checkout Game Assemblies
         uses: actions/checkout@v4
@@ -102,6 +102,24 @@ jobs:
             cp -r game-assemblies/MelonLoader/* DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
           fi
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+
+      - name: Check Assembly Files
+        id: assembly-files
+        shell: bash
+        run: |
+          ready=true
+
+          if [ ! -f "DedicatedServerMod/ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
+            echo "Missing Assembly-CSharp.dll"
+            ready=false
+          fi
+
+          if [ ! -f "DedicatedServerMod/ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
+            echo "Missing MelonLoader.dll"
+            ready=false
+          fi
+
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
 
       - name: Verify Assemblies
         shell: bash
@@ -144,10 +162,10 @@ jobs:
 
       - name: Save Game Assemblies to Cache
         uses: actions/cache/save@v4
-        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
+        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         with:
           path: DedicatedServerMod/ScheduleOneAssemblies
-          key: game-assemblies-docs-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
+          key: game-assemblies-docs-v2-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod/DedicatedServerMod.csproj') }}
 
   deploy:
     environment:
