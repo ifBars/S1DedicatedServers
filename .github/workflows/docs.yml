@@ -8,11 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       assembly_branch:
-        description: "Assembly branch to use (master or beta)"
+        description: "Assembly branch to use (main/master or beta)"
         required: false
         default: "master"
         type: choice
         options:
+          - main
           - master
           - beta
 
@@ -45,10 +46,25 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
-            echo "branch=${{ inputs.assembly_branch }}" >> "$GITHUB_OUTPUT"
+            requested_branch="${{ inputs.assembly_branch }}"
           else
-            echo "branch=master" >> "$GITHUB_OUTPUT"
+            requested_branch="master"
           fi
+
+          case "$requested_branch" in
+            main|master)
+              resolved_branch="master"
+              ;;
+            beta)
+              resolved_branch="beta"
+              ;;
+            *)
+              echo "Unsupported assembly branch: $requested_branch"
+              exit 1
+              ;;
+          esac
+
+          echo "branch=$resolved_branch" >> "$GITHUB_OUTPUT"
 
       - name: Create Assembly Directory Structure
         shell: bash

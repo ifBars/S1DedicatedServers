@@ -2,18 +2,19 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
   workflow_dispatch:
     inputs:
       assembly_branch:
-        description: 'Assembly branch to use (main or beta)'
+        description: 'Assembly branch to use (main/master or beta)'
         required: false
-        default: 'main'
+        default: 'master'
         type: choice
         options:
           - main
+          - master
           - beta
 
 jobs:
@@ -36,12 +37,26 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
-            echo "branch=${{ inputs.assembly_branch }}" >> $GITHUB_OUTPUT
-            echo "Using ${{ inputs.assembly_branch }} assemblies"
+            requested_branch="${{ inputs.assembly_branch }}"
           else
-            echo "branch=main" >> $GITHUB_OUTPUT
-            echo "Using main assemblies"
+            requested_branch="master"
           fi
+
+          case "$requested_branch" in
+            main|master)
+              resolved_branch="master"
+              ;;
+            beta)
+              resolved_branch="beta"
+              ;;
+            *)
+              echo "Unsupported assembly branch: $requested_branch"
+              exit 1
+              ;;
+          esac
+
+          echo "branch=$resolved_branch" >> "$GITHUB_OUTPUT"
+          echo "Using $resolved_branch assemblies (requested: $requested_branch)"
 
       - name: Create Assembly Directory Structure
         shell: bash
