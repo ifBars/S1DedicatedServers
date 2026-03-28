@@ -1,0 +1,28 @@
+apiRules:
+- include:
+    uidRegex: ^DedicatedServerMod\.API
+    type: Namespace
+- include:
+    uidRegex: ^DedicatedServerMod\.Shared$
+    type: Namespace
+- include:
+    uidRegex: ^DedicatedServerMod\.Shared\.Configuration$
+    type: Namespace
+- include:
+    uidRegex: ^DedicatedServerMod\.Shared\.Networking$
+    type: Namespace
+- include:
+    uidRegex: ^DedicatedServerMod\.Shared\.Networking\.Messaging$
+    type: Namespace
+- include:
+    uidRegex: ^DedicatedServerMod\.Shared\.Permissions$
+    type: Namespace
+- exclude:
+    uidRegex: ^DedicatedServerMod\.API\.ExampleMod$
+    type: Type
+- exclude:
+    uidRegex: ^DedicatedServerMod\.Shared\.Networking\.MessageRouter$
+    type: Type
+- exclude:
+    uidRegex: ^DedicatedServerMod\.Shared\.Networking\.Messaging\.(IMessagingBackend|MessagingService|FishNetRpcMessagingBackend|SteamP2PMessagingBackend|SteamNetworkingSocketsMessagingBackend)$
+    type: Type

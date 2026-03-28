@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "bin/Documentation/netstandard2.1",
+          "files": [
+            "DedicatedServerMod_Documentation.dll"
+          ]
+        }
+      ],
+      "dest": "reference",
+      "namespaceLayout": "Nested",
+      "disableGitFeatures": false,
+      "disableDefaultFilter": false,
+      "shouldSkipMarkup": false,
+      "force": true,
+      "filter": "filterConfig.yml"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "index.md",
+          "toc.yml",
+          "docs/**/*.md",
+          "docs/**/toc.yml",
+          "reference/**/*.yml",
+          "reference/index.md"
+        ],
+        "exclude": [
+          "_site/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "docs/assets/**"
+        ]
+      }
+    ],
+    "output": "_site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appName": "DedicatedServerMod",
+      "_appTitle": "DedicatedServerMod Documentation",
+      "_navbarTitle": "DedicatedServerMod",
+      "_enableSearch": true,
+      "pdf": true
+    }
+  }
+}

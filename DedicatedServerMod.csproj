@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<!-- Import local build configuration (user-specific paths) -->
+	<!-- Import CI and local build configuration -->
+	<Import Project="ci.build.props" Condition="Exists('ci.build.props')" />
 	<Import Project="local.build.props" Condition="Exists('local.build.props')" />
 	
 	<PropertyGroup>
@@ -8,7 +9,7 @@
 		<RootNamespace>DedicatedServerMod</RootNamespace>
 		<LangVersion>default</LangVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server</Configurations>
+		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server;Documentation</Configurations>
 	</PropertyGroup>
 	
 	<!-- NuGet Package References -->
@@ -21,7 +22,7 @@
 	</ItemGroup>
 	
 	<!-- MelonLoader references (common to all configurations) -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server'">
+	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Documentation'">
 		<Reference Include="MelonLoader">
 			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
 		</Reference>
@@ -42,12 +43,21 @@
 		</Reference>
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(Configuration)'=='Documentation'">
+		<Content Include="$(ManagedPath)\Newtonsoft.Json.dll">
+			<Link>Newtonsoft.Json.dll</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
 	<!-- Define paths and constants for different configurations -->
 	<!-- These use paths from local.build.props if it exists, otherwise use empty defaults -->
 	<PropertyGroup Condition="'$(Configuration)'=='Mono_Client'">
 		<GamePath>$(MonoGamePath)</GamePath>
-		<ManagedPath>$(GamePath)\Schedule I_Data\Managed</ManagedPath>
-		<MelonLoaderPath>$(GamePath)\MelonLoader\net35</MelonLoaderPath>
+		<ManagedPath Condition="'$(MonoAssembliesPath)' != ''">$(MonoAssembliesPath)</ManagedPath>
+		<ManagedPath Condition="'$(MonoAssembliesPath)' == ''">$(GamePath)\Schedule I_Data\Managed</ManagedPath>
+		<MelonLoaderPath Condition="'$(MelonLoaderAssembliesPath)' != ''">$(MelonLoaderAssembliesPath)</MelonLoaderPath>
+		<MelonLoaderPath Condition="'$(MelonLoaderAssembliesPath)' == ''">$(GamePath)\MelonLoader\net35</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>MONO;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Client</AssemblyName>
@@ -59,8 +69,10 @@
 
 	<PropertyGroup Condition="'$(Configuration)'=='Mono_Server'">
 		<GamePath>$(MonoGamePath)</GamePath>
-		<ManagedPath>$(GamePath)\Schedule I_Data\Managed</ManagedPath>
-		<MelonLoaderPath>$(GamePath)\MelonLoader\net35</MelonLoaderPath>
+		<ManagedPath Condition="'$(MonoAssembliesPath)' != ''">$(MonoAssembliesPath)</ManagedPath>
+		<ManagedPath Condition="'$(MonoAssembliesPath)' == ''">$(GamePath)\Schedule I_Data\Managed</ManagedPath>
+		<MelonLoaderPath Condition="'$(MelonLoaderAssembliesPath)' != ''">$(MelonLoaderAssembliesPath)</MelonLoaderPath>
+		<MelonLoaderPath Condition="'$(MelonLoaderAssembliesPath)' == ''">$(GamePath)\MelonLoader\net35</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>MONO;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Server</AssemblyName>
@@ -68,6 +80,21 @@
 		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Documentation'">
+		<GamePath>$(MonoGamePath)</GamePath>
+		<ManagedPath Condition="'$(MonoAssembliesPath)' != ''">$(MonoAssembliesPath)</ManagedPath>
+		<ManagedPath Condition="'$(MonoAssembliesPath)' == ''">$(GamePath)\Schedule I_Data\Managed</ManagedPath>
+		<MelonLoaderPath Condition="'$(MelonLoaderAssembliesPath)' != ''">$(MelonLoaderAssembliesPath)</MelonLoaderPath>
+		<MelonLoaderPath Condition="'$(MelonLoaderAssembliesPath)' == ''">$(GamePath)\MelonLoader\net35</MelonLoaderPath>
+		<ModsPath>$(GamePath)\Mods</ModsPath>
+		<DefineConstants>MONO;SERVER;CLIENT</DefineConstants>
+		<AssemblyName>DedicatedServerMod_Documentation</AssemblyName>
+		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Client'">
@@ -97,7 +124,7 @@
 	</PropertyGroup>
 
 	<!-- Mono references -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server'">
+	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Documentation'">
 		<Reference Include="AeLa.EasyFeedback">
 			<HintPath>$(ManagedPath)\AeLa.EasyFeedback.dll</HintPath>
 		</Reference>
@@ -920,12 +947,16 @@
 	<ItemGroup>
 	  <EmbeddedResource Remove="research\**" />
 	  <None Remove="research\**" />
+	  <EmbeddedResource Remove="reference\**" />
+	  <None Remove="reference\**" />
 	  <EmbeddedResource Remove="FishNet-Docs\**" />
 	  <None Remove="FishNet-Docs\**" />
 	  <EmbeddedResource Remove="Docker\**" />
 	  <None Remove="Docker\**" />
 	  <None Remove="FishNet.Runtime.xml" />
 	  <None Remove="Assets\Player_0.zip.old" />
+	  <EmbeddedResource Remove="_site\**" />
+	  <None Remove="_site\**" />
 	</ItemGroup>
 	
 	<!-- Utility infrastructure (shared by all builds) -->
@@ -964,7 +995,7 @@
 	</ItemGroup>
 
 		<!-- Client builds include the client mod entry -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'">
+	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Documentation'">
 		<None Remove="Assets\Player_0.zip" />
 		<EmbeddedResource Include="Assets\dedicatedclientui" />
 
@@ -988,7 +1019,7 @@
 	</ItemGroup>
 
 	<!-- Server builds include the new organized server structure -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'">
+	<ItemGroup Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server' Or '$(Configuration)'=='Documentation'">
 		<EmbeddedResource Include="Assets\Player_0.zip" />
 		<None Remove="Assets\dedicatedclientui" />
 

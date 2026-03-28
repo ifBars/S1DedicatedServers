@@ -1,0 +1,282 @@
+/* Custom styling for S1 Dedicated Servers Wiki */
+
+/* Custom color variables */
+:root {
+  --s1-primary: #3f51b5;
+  --s1-secondary: #ff9800;
+  --s1-accent: #2196f3;
+  --s1-success: #4caf50;
+  --s1-warning: #ff9800;
+  --s1-error: #f44336;
+}
+
+/* Enhanced header styling */
+.md-header {
+  background: linear-gradient(135deg, var(--s1-primary) 0%, var(--s1-accent) 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 2;
+}
+
+/* Custom navigation tabs */
+.md-tabs {
+  background: linear-gradient(90deg, rgba(63, 81, 181, 0.1) 0%, rgba(33, 150, 243, 0.1) 100%);
+  border-bottom: 2px solid var(--s1-primary);
+}
+
+.md-tabs__link {
+  transition: all 0.3s ease;
+}
+
+/* Ensure tab text is readable in light mode */
+.md-tabs__link,
+.md-tabs__link--active,
+.md-tabs__item--active .md-tabs__link {
+  color: #000000;
+}
+
+.md-tabs__link:hover {
+  background-color: rgba(63, 81, 181, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Enhanced sidebar */
+.md-nav__title {
+  color: var(--s1-primary);
+  font-weight: 600;
+}
+
+.md-nav__link:hover {
+  color: var(--s1-accent);
+  background-color: rgba(63, 81, 181, 0.05);
+}
+
+/* Custom button styling */
+.md-button {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.md-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced code blocks */
+.md-typeset code {
+  background-color: rgba(63, 81, 181, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 500;
+}
+
+.md-typeset pre > code {
+  background-color: #f5f5f5;
+  border-left: 4px solid var(--s1-primary);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Custom admonition styling */
+.md-typeset .admonition {
+  border-radius: 8px;
+  border-left-width: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.md-typeset .admonition.info {
+  border-left-color: var(--s1-accent);
+}
+
+.md-typeset .admonition.warning {
+  border-left-color: var(--s1-warning);
+}
+
+.md-typeset .admonition.tip {
+  border-left-color: var(--s1-success);
+}
+
+/* Enhanced tables */
+.md-typeset table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.md-typeset table th {
+  background: linear-gradient(135deg, var(--s1-primary) 0%, var(--s1-accent) 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.md-typeset table tr:nth-child(even) {
+  background-color: rgba(63, 81, 181, 0.05);
+}
+
+/* Custom link styling */
+.md-content a {
+  color: var(--s1-accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.md-content a:hover {
+  color: var(--s1-primary);
+  border-bottom-color: var(--s1-primary);
+}
+
+/* Enhanced search */
+/* Ensure search does not inherit header gradient */
+.md-search__form {
+  background-color: #ffffff;
+  border-radius: 24px;
+  box-shadow: inset 0 0 0 1px rgba(63, 81, 181, 0.2);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.md-search__input {
+  background-color: transparent;
+  color: #1f2937;
+  border: none;
+  outline: none;
+  border-radius: 24px;
+  transition: color 0.2s ease;
+}
+
+.md-search__input::placeholder {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.md-search__icon {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.md-search__form:focus-within {
+  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.15), inset 0 0 0 2px var(--s1-primary);
+}
+
+/* Search dropdown/output background */
+.md-search__output,
+.md-search__scrollwrap,
+.md-search-result {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* "Type to start searching" meta bar */
+.md-search-result__meta {
+  background-color: rgba(63, 81, 181, 0.06);
+  border-bottom: 1px solid rgba(63, 81, 181, 0.15);
+}
+
+/* Ensure search overlays tabs/navigation correctly */
+.md-search {
+  position: relative;
+  z-index: 1000;
+}
+
+.md-search__output {
+  z-index: 1100;
+}
+
+.md-tabs {
+  position: relative;
+  z-index: 1;
+}
+
+/* Custom footer */
+.md-footer {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+}
+
+/* Enhanced content cards */
+.md-content__inner {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--s1-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--s1-accent);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .md-content__inner {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+  
+  .md-tabs__link {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Dark mode enhancements */
+[data-md-color-scheme="slate"] {
+  --s1-primary: #7986cb;
+  --s1-accent: #64b5f6;
+}
+
+[data-md-color-scheme="slate"] .md-tabs__link,
+[data-md-color-scheme="slate"] .md-tabs__link--active,
+[data-md-color-scheme="slate"] .md-tabs__item--active .md-tabs__link {
+  color: #ffffff;
+}
+
+[data-md-color-scheme="slate"] .md-content__inner {
+  background: #1e1e1e;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre > code {
+  background-color: #2d2d2d;
+}
+
+/* Dark mode search tweaks */
+[data-md-color-scheme="slate"] .md-search__form {
+  background-color: #2b2b2b;
+  box-shadow: inset 0 0 0 1px rgba(121, 134, 203, 0.35);
+}
+
+[data-md-color-scheme="slate"] .md-search__input {
+  color: #e5e7eb;
+}
+
+[data-md-color-scheme="slate"] .md-search__input::placeholder,
+[data-md-color-scheme="slate"] .md-search__icon {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Dark mode: search dropdown/output background */
+[data-md-color-scheme="slate"] .md-search__output,
+[data-md-color-scheme="slate"] .md-search__scrollwrap,
+[data-md-color-scheme="slate"] .md-search-result {
+  background-color: #1f1f1f;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+[data-md-color-scheme="slate"] .md-search-result__meta {
+  background-color: rgba(121, 134, 203, 0.12);
+  border-bottom: 1px solid rgba(121, 134, 203, 0.25);
+}

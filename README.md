@@ -82,12 +82,13 @@ The server will now run without any visible windows. Use the TCP console or log 
 
 ## 📚 Documentation
 
-- **[Getting Started Guide](https://ifbars.github.io/S1DedicatedServersWiki/home/installation/)**: Detailed setup instructions
-- **[Server Modding](https://ifbars.github.io/S1DedicatedServersWiki/modding/server/)**: Complete server mod API reference
-- **[Client Modding](https://ifbars.github.io/S1DedicatedServersWiki/modding/client/)**: Complete client mod API reference
-- **[Configuration Reference](https://ifbars.github.io/S1DedicatedServersWiki/configuration/)**: All config options explained
-- **[Commands System](https://ifbars.github.io/S1DedicatedServersWiki/commands/)**: Understanding permissions and commands
-- **[Custom Messaging](https://ifbars.github.io/S1DedicatedServersWiki/modding/messaging/)**: Building server-client communication
+- **[Getting Started Guide](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html)**: Detailed setup instructions
+- **[Server Modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/server.html)**: Complete server modding guide
+- **[Client Modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/client.html)**: Complete client modding guide
+- **[Configuration Reference](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html)**: Server configuration and runtime options
+- **[Commands System](https://ifbars.github.io/S1DedicatedServers/docs/commands.html)**: Understanding permissions and commands
+- **[Custom Messaging](https://ifbars.github.io/S1DedicatedServers/docs/modding/messaging.html)**: Building server-client communication
+- **[API Reference](https://ifbars.github.io/S1DedicatedServers/reference/index.html)**: Generated reference for the public modding surface
 
 ---
 

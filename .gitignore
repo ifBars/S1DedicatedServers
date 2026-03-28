@@ -303,6 +303,8 @@ obj/
 /.vs/
 /research/
 research/
+/reference/
+reference/
 .cursor/
 /.cursor/
 Docker/MelonLoader.x64/
@@ -311,3 +313,4 @@ FishNet-Docs/
 Docker/test.bat
 Docker/
 FishNet.Runtime.xml
+_site/
