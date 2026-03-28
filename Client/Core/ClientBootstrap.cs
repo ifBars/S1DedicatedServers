@@ -16,13 +16,19 @@ using DedicatedServerMod.Client.Patchers;
 namespace DedicatedServerMod.Client.Core
 {
     /// <summary>
-    /// Main entry point for the Dedicated Server Client mod.
-    /// Minimal responsibilities - delegates to specialized managers and patch classes.
+    /// MelonLoader entry point for the DedicatedServerMod client runtime.
     /// </summary>
     /// <remarks>
-    /// This class handles initialization and coordinates between the various
-    /// client-side subsystems. All game patches are delegated to specialized
-    /// patch classes in the Patches folder.
+    /// This type is infrastructure for the client build and is created automatically by MelonLoader.
+    /// It initializes the client managers and patchers that are later exposed to mods through
+    /// <see cref="DedicatedServerMod.API.S1DS.Client"/>. Mod authors should treat this class as the
+    /// backing implementation for the public client API rather than a type to instantiate directly.
+    /// <para>
+    /// In most mod code, prefer <see cref="DedicatedServerMod.API.S1DS.Client.Connection"/>,
+    /// <see cref="DedicatedServerMod.API.S1DS.Client.UI"/>, and related facade properties. Use
+    /// <see cref="DedicatedServerMod.API.S1DS.Client.ClientCore"/> only when you specifically need
+    /// bootstrap-owned state that is not already exposed by a narrower API property.
+    /// </para>
     /// </remarks>
     public sealed class ClientBootstrap : MelonMod
     {
@@ -85,8 +91,12 @@ namespace DedicatedServerMod.Client.Core
         #region Public Properties
 
         /// <summary>
-        /// Gets the singleton instance of the ClientBootstrap.
+        /// Gets the singleton bootstrap instance for the client runtime.
         /// </summary>
+        /// <remarks>
+        /// This property backs <see cref="DedicatedServerMod.API.S1DS.Client.ClientCore"/> and is
+        /// <see langword="null"/> until <see cref="OnApplicationStart"/> runs.
+        /// </remarks>
         public static ClientBootstrap Instance => _instance;
 
         /// <summary>
@@ -95,37 +105,46 @@ namespace DedicatedServerMod.Client.Core
         public MelonLogger.Instance Logger => _logger;
 
         /// <summary>
-        /// Gets the connection manager.
+        /// Gets the dedicated-server connection manager created during client bootstrap initialization.
         /// </summary>
+        /// <remarks>
+        /// Mod authors usually access this through <see cref="DedicatedServerMod.API.S1DS.Client.Connection"/>.
+        /// </remarks>
         public ClientConnectionManager ConnectionManager => _connectionManager;
 
         /// <summary>
-        /// Gets the auth manager.
+        /// Gets the client authentication manager used for the dedicated-server Steam ticket handshake.
         /// </summary>
         public ClientAuthManager AuthManager => _authManager;
 
         /// <summary>
-        /// Gets the UI manager.
+        /// Gets the client UI manager used by the dedicated-server client features.
         /// </summary>
+        /// <remarks>
+        /// Mod authors usually access this through <see cref="DedicatedServerMod.API.S1DS.Client.UI"/>.
+        /// </remarks>
         public ClientUIManager UIManager => _uiManager;
 
         /// <summary>
-        /// Gets the quest manager.
+        /// Gets the client quest manager used by dedicated-server quest integration.
         /// </summary>
         public ClientQuestManager QuestManager => _questManager;
 
         /// <summary>
-        /// Gets the console manager.
+        /// Gets the client console manager used for remote admin console support.
         /// </summary>
+        /// <remarks>
+        /// Mod authors usually access this through <see cref="DedicatedServerMod.API.S1DS.Client.Console"/>.
+        /// </remarks>
         public ClientConsoleManager ConsoleManager => _consoleManager;
 
         /// <summary>
-        /// Gets the loopback handler.
+        /// Gets the loopback handler responsible for dedicated-server host-loopback behavior.
         /// </summary>
         public ClientLoopbackHandler LoopbackHandler => _loopbackHandler;
 
         /// <summary>
-        /// Gets the transport patcher.
+        /// Gets the transport patcher that adapts networking for dedicated-server connectivity.
         /// </summary>
         public ClientTransportPatcher TransportPatcher => _transportPatcher;
 

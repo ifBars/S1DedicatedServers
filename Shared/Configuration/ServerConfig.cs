@@ -666,6 +666,10 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Parses command line arguments and applies them to the configuration.
         /// </summary>
         /// <param name="args">The command line arguments</param>
+        /// <param name="persistChanges">
+        /// <see langword="true"/> to save the updated configuration after applying command-line overrides;
+        /// otherwise, <see langword="false"/>.
+        /// </param>
         public static void ParseCommandLineArgs(string[] args, bool persistChanges = false)
         {
             Logger.Msg("Parsing command line arguments for server config...");
