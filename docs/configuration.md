@@ -162,6 +162,7 @@ All configuration options can be overridden via command line arguments. These ta
 |----------|-------------|---------|
 | `--tcp-console` | Enable TCP console | `--tcp-console` |
 | `--tcp-console-port <port>` | Set TCP console port | `--tcp-console-port 38466` |
+| `--tcp-console-max-connections <limit>` | Set maximum number of allowed TCP Console connections | `--tcp-console-max-connections 3`
 | `--tcp-console-bind <address>` | Set TCP bind address | `--tcp-console-bind 0.0.0.0` |
 | `--tcp-console-password <password>` | Set TCP console password | `--tcp-console-password "adminpass"` |
 
