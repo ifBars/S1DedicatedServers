@@ -92,12 +92,14 @@ Enable remote console access via TCP for server administration:
   "tcpConsoleEnabled": false,
   "tcpConsoleBindAddress": "127.0.0.1",
   "tcpConsolePort": 38466,
+  "tcpConsoleMaxConnections": 3,
   "tcpConsoleRequirePassword": false,
   "tcpConsolePassword": ""
 }
 ```
 
 - `tcpConsoleBindAddress`: Use `"127.0.0.1"` for local-only access, `"0.0.0.0"` for all interfaces
+- `tcpConsoleMaxConnections`: Maximum number of concurrent TCP console clients. Default: 3.
 - Enable password protection for remote access
 - Bind to localhost (`127.0.0.1`) by default for security
 
