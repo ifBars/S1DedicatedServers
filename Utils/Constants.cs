@@ -50,6 +50,21 @@ namespace DedicatedServerMod.Utils
         public const int DefaultTcpConsolePort = 4050;
 
         /// <summary>
+        /// Default loopback bind address for local-only listeners.
+        /// </summary>
+        public const string DefaultTcpConsoleBindAddress = "127.0.0.1";
+
+        /// <summary>
+        /// Default maximum number of concurrent TCP console clients.
+        /// </summary>
+        public const int DefaultTcpConsoleMaxConnections = 3;
+
+        /// <summary>
+        /// Socket timeout for TCP console reads and writes in milliseconds.
+        /// </summary>
+        public const int TcpConsoleSocketTimeoutMs = 30000;
+
+        /// <summary>
         /// Default maximum number of players.
         /// </summary>
         public const int DefaultMaxPlayers = 16;
@@ -406,6 +421,7 @@ namespace DedicatedServerMod.Utils
             public const string SteamWebApiIdentity = "steamWebApiIdentity";
             public const string TcpConsoleEnabled = "tcpConsoleEnabled";
             public const string TcpConsolePort = "tcpConsolePort";
+            public const string TcpConsoleMaxConnections = "tcpConsoleMaxConnections";
             public const string TimeMultiplier = "timeProgressionMultiplier";
             public const string AllowSleeping = "allowSleeping";
             public const string PauseEmpty = "pauseGameWhenEmpty";

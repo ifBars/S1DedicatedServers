@@ -210,13 +210,20 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Use "127.0.0.1" for local-only, "0.0.0.0" for all interfaces.
         /// </summary>
         [JsonProp("tcpConsoleBindAddress")]
-        public string TcpConsoleBindAddress { get; set; } = "127.0.0.1";
+        public string TcpConsoleBindAddress { get; set; } = Utils.Constants.DefaultTcpConsoleBindAddress;
 
         /// <summary>
         /// Port for the TCP console server.
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.TcpConsolePort)]
         public int TcpConsolePort { get; set; } = Utils.Constants.DefaultTcpConsolePort;
+
+        /// <summary>
+        /// Maximum number of concurrent TCP console clients.
+        /// Keep this low because the console is intended for trusted administration rather than broad remote access.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.TcpConsoleMaxConnections)]
+        public int TcpConsoleMaxConnections { get; set; } = Utils.Constants.DefaultTcpConsoleMaxConnections;
 
         /// <summary>
         /// Whether authentication is required for TCP console.
@@ -549,7 +556,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Gets the resolved configuration file path.
         /// </summary>
-        public static string ConfigFilePath => _configPath ?? 
+        public static string ConfigFilePath => _configPath ??
             Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.ConfigFileName);
 
         /// <summary>
@@ -585,7 +592,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Gets the logger instance for configuration operations.
         /// </summary>
-        private static MelonLogger.Instance Logger => _logger ?? 
+        private static MelonLogger.Instance Logger => _logger ??
             new MelonLogger.Instance("ServerConfig");
 
         #endregion
@@ -822,6 +829,14 @@ namespace DedicatedServerMod.Shared.Configuration
                         }
                         break;
 
+                    case "--tcp-console-max-connections":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int tcpConsoleMaxConnections))
+                        {
+                            Instance.TcpConsoleMaxConnections = tcpConsoleMaxConnections;
+                            Logger.Msg($"TCP console max connections set to: {Instance.TcpConsoleMaxConnections}");
+                        }
+                        break;
+
                     case "--tcp-console-bind":
                         if (i + 1 < args.Length)
                         {
@@ -980,6 +995,13 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 Logger.Warning($"Invalid VSync count {VSyncCount}, using default 0");
                 VSyncCount = 0;
+            }
+
+            // Validate TCP console max connections
+            if (TcpConsoleMaxConnections < 1)
+            {
+                Logger.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Utils.Constants.DefaultTcpConsoleMaxConnections}");
+                TcpConsoleMaxConnections = Utils.Constants.DefaultTcpConsoleMaxConnections;
             }
 
             // Validate names
