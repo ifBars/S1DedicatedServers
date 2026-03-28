@@ -125,18 +125,6 @@
 
 	<!-- Mono references -->
 	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Documentation'">
-		<Reference Include="AeLa.EasyFeedback">
-			<HintPath>$(ManagedPath)\AeLa.EasyFeedback.dll</HintPath>
-		</Reference>
-		<Reference Include="AeLa.EasyFeedback.InputSystemSupport">
-			<HintPath>$(ManagedPath)\AeLa.EasyFeedback.InputSystemSupport.dll</HintPath>
-		</Reference>
-		<Reference Include="AmplifyImpostors">
-			<HintPath>$(ManagedPath)\AmplifyImpostors.dll</HintPath>
-		</Reference>
-		<Reference Include="AmplifyImpostors.Runtime">
-			<HintPath>$(ManagedPath)\AmplifyImpostors.Runtime.dll</HintPath>
-		</Reference>
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(ManagedPath)\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
@@ -145,9 +133,6 @@
 		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
 		<Publicize Include="Assembly-CSharp" />
-		<Reference Include="AstarPathfindingProject">
-			<HintPath>$(ManagedPath)\AstarPathfindingProject.dll</HintPath>
-		</Reference>
 		<Reference Include="Autodesk.Fbx">
 			<HintPath>$(ManagedPath)\Autodesk.Fbx.dll</HintPath>
 		</Reference>
@@ -160,17 +145,11 @@
 		<Reference Include="CorgiGodRays">
 			<HintPath>$(ManagedPath)\CorgiGodRays.dll</HintPath>
 		</Reference>
-		<Reference Include="EasyButtons">
-			<HintPath>$(ManagedPath)\EasyButtons.dll</HintPath>
-		</Reference>
 		<Reference Include="FbxBuildTestAssets">
 			<HintPath>$(ManagedPath)\FbxBuildTestAssets.dll</HintPath>
 		</Reference>
 		<Reference Include="FishNet.CodeAnalysis">
 			<HintPath>$(ManagedPath)\FishNet.CodeAnalysis.dll</HintPath>
-		</Reference>
-		<Reference Include="FishNet.Demos">
-			<HintPath>$(ManagedPath)\FishNet.Demos.dll</HintPath>
 		</Reference>
 		<Reference Include="FishNet.Runtime">
 			<HintPath>$(ManagedPath)\FishNet.Runtime.dll</HintPath>
@@ -180,24 +159,6 @@
 		</Reference>
 		<Reference Include="GameKit.Utilities">
 			<HintPath>$(ManagedPath)\GameKit.Utilities.dll</HintPath>
-		</Reference>
-		<Reference Include="HBAO.Demo.Runtime">
-			<HintPath>$(ManagedPath)\HBAO.Demo.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="HBAO.Demo.Universal.Runtime">
-			<HintPath>$(ManagedPath)\HBAO.Demo.Universal.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="HBAO.Runtime">
-			<HintPath>$(ManagedPath)\HBAO.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="HBAO.Universal.Runtime">
-			<HintPath>$(ManagedPath)\HBAO.Universal.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="HSVPicker">
-			<HintPath>$(ManagedPath)\HSVPicker.dll</HintPath>
-		</Reference>
-		<Reference Include="LokoSolo.PinchableScrollRect">
-			<HintPath>$(ManagedPath)\LokoSolo.PinchableScrollRect.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Data.Sqlite">
 			<HintPath>$(ManagedPath)\Mono.Data.Sqlite.dll</HintPath>
@@ -235,15 +196,6 @@
 		<Reference Include="RuntimePreviewGenerator.Runtime">
 			<HintPath>$(ManagedPath)\RuntimePreviewGenerator.Runtime.dll</HintPath>
 		</Reference>
-		<Reference Include="sc.stylizedgrass.runtime">
-			<HintPath>$(ManagedPath)\sc.stylizedgrass.runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="sc.stylizedwater2.runtime">
-			<HintPath>$(ManagedPath)\sc.stylizedwater2.runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="StylizedWaterForURP">
-			<HintPath>$(ManagedPath)\StylizedWaterForURP.dll</HintPath>
-		</Reference>
 		<Reference Include="Unity.AI.Navigation">
 			<HintPath>$(ManagedPath)\Unity.AI.Navigation.dll</HintPath>
 		</Reference>
@@ -259,9 +211,6 @@
 		<Reference Include="Unity.Collections.LowLevel.ILSupport">
 			<HintPath>$(ManagedPath)\Unity.Collections.LowLevel.ILSupport.dll</HintPath>
 		</Reference>
-		<Reference Include="Unity.Formats.Fbx.Runtime">
-			<HintPath>$(ManagedPath)\Unity.Formats.Fbx.Runtime.dll</HintPath>
-		</Reference>
 		<Reference Include="Unity.InputSystem">
 			<HintPath>$(ManagedPath)\Unity.InputSystem.dll</HintPath>
 		</Reference>
@@ -271,36 +220,6 @@
 		<Reference Include="Unity.Mathematics">
 			<HintPath>$(ManagedPath)\Unity.Mathematics.dll</HintPath>
 		</Reference>
-		<Reference Include="Unity.MemoryProfiler">
-			<HintPath>$(ManagedPath)\Unity.MemoryProfiler.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Postprocessing.Runtime">
-			<HintPath>$(ManagedPath)\Unity.Postprocessing.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.ProGrids">
-			<HintPath>$(ManagedPath)\Unity.ProGrids.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary">
-			<HintPath>$(ManagedPath)\Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Core.Runtime">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Core.ShaderLibrary">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Universal.Config.Runtime">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Universal.Config.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Universal.Runtime">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Universal.Shaders">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Universal.Shaders.dll</HintPath>
-		</Reference>
 		<Reference Include="Unity.Services.Analytics">
 			<HintPath>$(ManagedPath)\Unity.Services.Analytics.dll</HintPath>
 		</Reference>
@@ -309,9 +228,6 @@
 		</Reference>
 		<Reference Include="Unity.Services.Core.Analytics">
 			<HintPath>$(ManagedPath)\Unity.Services.Core.Analytics.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.Core.Configuration">
-			<HintPath>$(ManagedPath)\Unity.Services.Core.Configuration.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.Services.Core.Device">
 			<HintPath>$(ManagedPath)\Unity.Services.Core.Device.dll</HintPath>
@@ -352,9 +268,6 @@
 		<Reference Include="Unity.Timeline">
 			<HintPath>$(ManagedPath)\Unity.Timeline.dll</HintPath>
 		</Reference>
-		<Reference Include="UnityEngine.AccessibilityModule">
-			<HintPath>$(ManagedPath)\UnityEngine.AccessibilityModule.dll</HintPath>
-		</Reference>
 		<Reference Include="UnityEngine.AIModule">
 			<HintPath>$(ManagedPath)\UnityEngine.AIModule.dll</HintPath>
 		</Reference>
@@ -373,44 +286,14 @@
 		<Reference Include="UnityEngine.AudioModule">
 			<HintPath>$(ManagedPath)\UnityEngine.AudioModule.dll</HintPath>
 		</Reference>
-		<Reference Include="UnityEngine.ClothModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ClothModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ClusterInputModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ClusterInputModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ClusterRendererModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ClusterRendererModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ContentLoadModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ContentLoadModule.dll</HintPath>
-		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
 			<HintPath>$(ManagedPath)\UnityEngine.CoreModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.CrashReportingModule">
 			<HintPath>$(ManagedPath)\UnityEngine.CrashReportingModule.dll</HintPath>
 		</Reference>
-		<Reference Include="UnityEngine.DirectorModule">
-			<HintPath>$(ManagedPath)\UnityEngine.DirectorModule.dll</HintPath>
-		</Reference>
 		<Reference Include="UnityEngine">
 			<HintPath>$(ManagedPath)\UnityEngine.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.DSPGraphModule">
-			<HintPath>$(ManagedPath)\UnityEngine.DSPGraphModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.GameCenterModule">
-			<HintPath>$(ManagedPath)\UnityEngine.GameCenterModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.GIModule">
-			<HintPath>$(ManagedPath)\UnityEngine.GIModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.GridModule">
-			<HintPath>$(ManagedPath)\UnityEngine.GridModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.HotReloadModule">
-			<HintPath>$(ManagedPath)\UnityEngine.HotReloadModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.ImageConversionModule">
 			<HintPath>$(ManagedPath)\UnityEngine.ImageConversionModule.dll</HintPath>
@@ -427,47 +310,8 @@
 		<Reference Include="UnityEngine.JSONSerializeModule">
 			<HintPath>$(ManagedPath)\UnityEngine.JSONSerializeModule.dll</HintPath>
 		</Reference>
-		<Reference Include="UnityEngine.LocalizationModule">
-			<HintPath>$(ManagedPath)\UnityEngine.LocalizationModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.NVIDIAModule">
-			<HintPath>$(ManagedPath)\UnityEngine.NVIDIAModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ParticleSystemModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ParticleSystemModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.PerformanceReportingModule">
-			<HintPath>$(ManagedPath)\UnityEngine.PerformanceReportingModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.Physics2DModule">
-			<HintPath>$(ManagedPath)\UnityEngine.Physics2DModule.dll</HintPath>
-		</Reference>
 		<Reference Include="UnityEngine.PhysicsModule">
 			<HintPath>$(ManagedPath)\UnityEngine.PhysicsModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ProfilerModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ProfilerModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.PropertiesModule">
-			<HintPath>$(ManagedPath)\UnityEngine.PropertiesModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule">
-			<HintPath>$(ManagedPath)\UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ScreenCaptureModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ScreenCaptureModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.SharedInternalsModule">
-			<HintPath>$(ManagedPath)\UnityEngine.SharedInternalsModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.SpriteMaskModule">
-			<HintPath>$(ManagedPath)\UnityEngine.SpriteMaskModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.SpriteShapeModule">
-			<HintPath>$(ManagedPath)\UnityEngine.SpriteShapeModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.StreamingModule">
-			<HintPath>$(ManagedPath)\UnityEngine.StreamingModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.SubstanceModule">
 			<HintPath>$(ManagedPath)\UnityEngine.SubstanceModule.dll</HintPath>
@@ -572,18 +416,6 @@
 
 	<!-- Il2cpp references -->
 	<ItemGroup Condition="'$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Il2cpp_Server'">
-		<Reference Include="Il2CppAeLa.EasyFeedback">
-			<HintPath>$(ManagedPath)\Il2CppAeLa.EasyFeedback.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppAeLa.EasyFeedback.InputSystemSupport">
-			<HintPath>$(ManagedPath)\Il2CppAeLa.EasyFeedback.InputSystemSupport.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppAmplifyImpostors">
-			<HintPath>$(ManagedPath)\Il2CppAmplifyImpostors.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppAmplifyImpostors.Runtime">
-			<HintPath>$(ManagedPath)\Il2CppAmplifyImpostors.Runtime.dll</HintPath>
-		</Reference>
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(ManagedPath)\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
@@ -592,9 +424,6 @@
 		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
 		<Publicize Include="Assembly-CSharp" />
-		<Reference Include="Il2CppAstarPathfindingProject">
-			<HintPath>$(ManagedPath)\Il2CppAstarPathfindingProject.dll</HintPath>
-		</Reference>
 		<Reference Include="Il2CppCinemachine">
 			<HintPath>$(ManagedPath)\Il2CppCinemachine.dll</HintPath>
 		</Reference>
@@ -604,12 +433,6 @@
 		<Reference Include="Il2CppCorgiGodRays">
 			<HintPath>$(ManagedPath)\Il2CppCorgiGodRays.dll</HintPath>
 		</Reference>
-		<Reference Include="Il2CppEasyButtons">
-			<HintPath>$(ManagedPath)\Il2CppEasyButtons.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppFishNet.Demos">
-			<HintPath>$(ManagedPath)\Il2CppFishNet.Demos.dll</HintPath>
-		</Reference>
 		<Reference Include="Il2CppFishNet.Runtime">
 			<HintPath>$(ManagedPath)\Il2CppFishNet.Runtime.dll</HintPath>
 		</Reference>
@@ -618,24 +441,6 @@
 		</Reference>
 		<Reference Include="Il2CppGameKit.Utilities">
 			<HintPath>$(ManagedPath)\Il2CppGameKit.Utilities.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppHBAO.Demo.Runtime">
-			<HintPath>$(ManagedPath)\Il2CppHBAO.Demo.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppHBAO.Demo.Universal.Runtime">
-			<HintPath>$(ManagedPath)\Il2CppHBAO.Demo.Universal.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppHBAO.Runtime">
-			<HintPath>$(ManagedPath)\Il2CppHBAO.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppHBAO.Universal.Runtime">
-			<HintPath>$(ManagedPath)\Il2CppHBAO.Universal.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppHSVPicker">
-			<HintPath>$(ManagedPath)\Il2CppHSVPicker.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppLokoSolo.PinchableScrollRect">
-			<HintPath>$(ManagedPath)\Il2CppLokoSolo.PinchableScrollRect.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppOokii.Dialogs">
 			<HintPath>$(ManagedPath)\Il2CppOokii.Dialogs.dll</HintPath>
@@ -657,15 +462,6 @@
 		</Reference>
 		<Reference Include="Il2CppRuntimePreviewGenerator.Runtime">
 			<HintPath>$(ManagedPath)\Il2CppRuntimePreviewGenerator.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2Cppsc.stylizedgrass.runtime">
-			<HintPath>$(ManagedPath)\Il2Cppsc.stylizedgrass.runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2Cppsc.stylizedwater2.runtime">
-			<HintPath>$(ManagedPath)\Il2Cppsc.stylizedwater2.runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppStylizedWaterForURP">
-			<HintPath>$(ManagedPath)\Il2CppStylizedWaterForURP.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.AI.Navigation">
 			<HintPath>$(ManagedPath)\Unity.AI.Navigation.dll</HintPath>
@@ -690,24 +486,6 @@
 		</Reference>
 		<Reference Include="Unity.Mathematics">
 			<HintPath>$(ManagedPath)\Unity.Mathematics.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Postprocessing.Runtime">
-			<HintPath>$(ManagedPath)\Unity.Postprocessing.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Core.Runtime">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Universal.Runtime">
-			<HintPath>$(ManagedPath)\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.Analytics">
-			<HintPath>$(ManagedPath)\Unity.Services.Analytics.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.Core.Configuration">
-			<HintPath>$(ManagedPath)\Unity.Services.Core.Configuration.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.Core.Device">
-			<HintPath>$(ManagedPath)\Unity.Services.Core.Device.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.Services.Core">
 			<HintPath>$(ManagedPath)\Unity.Services.Core.dll</HintPath>
@@ -756,9 +534,6 @@
 		</Reference>
 		<Reference Include="UnityEngine.AudioModule">
 			<HintPath>$(ManagedPath)\UnityEngine.AudioModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.ClothModule">
-			<HintPath>$(ManagedPath)\UnityEngine.ClothModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.ContentLoadModule">
 			<HintPath>$(ManagedPath)\UnityEngine.ContentLoadModule.dll</HintPath>
@@ -822,12 +597,6 @@
 		</Reference>
 		<Reference Include="UnityEngine.ProfilerModule">
 			<HintPath>$(ManagedPath)\UnityEngine.ProfilerModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.PropertiesModule">
-			<HintPath>$(ManagedPath)\UnityEngine.PropertiesModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule">
-			<HintPath>$(ManagedPath)\UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.ScreenCaptureModule">
 			<HintPath>$(ManagedPath)\UnityEngine.ScreenCaptureModule.dll</HintPath>

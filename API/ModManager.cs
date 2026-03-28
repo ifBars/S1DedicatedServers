@@ -86,7 +86,7 @@ namespace DedicatedServerMod.API
                     MelonLogger.Error($"Error wiring client message forwarding during registration: {ex.Message}");
                 }
 
-                if (S1DS.IsClient)
+                if (S1DS.IsClient && S1DS.Client.IsInitialized)
                 {
                     try
                     {

@@ -58,13 +58,26 @@ Any `MelonMod` that implements `IClientMod` is automatically discovered and regi
 For more control, create separate client handler classes and register them explicitly:
 
 ```csharp
-// In your main MelonMod.OnInitializeMelon()
+internal sealed class MyClientHandler : ClientModBase
+{
+    public override void OnClientInitialize()
+    {
+    }
+}
+
+public sealed class MyMod : MelonMod
+{
+    public override void OnInitializeMelon()
+    {
 #if CLIENT
-var clientMod = new MyClientHandler();
-ModManager.RegisterClientMod(clientMod);
+        ModManager.RegisterClientMod(new MyClientHandler());
 #endif
+    }
+}
 ```
 
 Registration ensures client message forwarding is wired so `OnCustomMessage` can be triggered.
+
+Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase` / `SideAwareMelonModBase`. Those classes are auto-discovered already, and mixing both patterns causes duplicate lifecycle delivery.
 
 For exact signatures and XML documentation, use the generated API Reference section alongside this guide.

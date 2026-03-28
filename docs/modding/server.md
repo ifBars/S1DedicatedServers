@@ -50,14 +50,27 @@ Any `MelonMod` that implements `IServerMod` is automatically discovered and regi
 For more control, create separate server handler classes and register them explicitly:
 
 ```csharp
-// In your main MelonMod.OnInitializeMelon()
+internal sealed class MyServerHandler : ServerModBase
+{
+    public override void OnServerInitialize()
+    {
+    }
+}
+
+public sealed class MyMod : MelonMod
+{
+    public override void OnInitializeMelon()
+    {
 #if SERVER
-var serverMod = new MyServerHandler();
-ModManager.RegisterServerMod(serverMod);
+        ModManager.RegisterServerMod(new MyServerHandler());
 #endif
+    }
+}
 ```
 
 If registration happens after the server is live, `OnServerInitialize()` is invoked immediately.
+
+Do not manually register a `MelonMod` that already implements `IServerMod` or inherits `ServerMelonModBase` / `SideAwareMelonModBase`. Use either auto-discovery or handler registration, not both.
 
 ## Messaging on server
 

@@ -74,26 +74,41 @@ public sealed class BothSidesMod : SideAwareMelonModBase
 
 ### 2. Separate handlers with manual registration
 
-Create separate server/client classes and register them in your main `MelonMod`:
+Create separate non-Melon handler classes and register them in your main `MelonMod`:
 
 ```csharp
-public sealed class MyMod : MelonMod
+internal sealed class MyServerHandler : ServerModBase
+{
+    public override void OnServerInitialize() { }
+}
+
+internal sealed class MyClientHandler : ClientModBase
+{
+    public override void OnClientInitialize() { }
+}
+
+public sealed class MyBootstrapMod : MelonMod
 {
     public override void OnInitializeMelon()
     {
 #if SERVER
-        var serverMod = new MyServerHandler();
-        ModManager.RegisterServerMod(serverMod);
+        ModManager.RegisterServerMod(new MyServerHandler());
 #endif
 #if CLIENT
-        var clientMod = new MyClientHandler();
-        ModManager.RegisterClientMod(clientMod);
+        ModManager.RegisterClientMod(new MyClientHandler());
 #endif
     }
 }
 ```
 
 This approach gives you more control over initialization timing and separation of concerns.
+
+Choose one registration style per runtime object:
+
+- Auto-discovery for `MelonMod` classes that implement the API interfaces directly.
+- Manual registration for plain handler objects such as `ServerModBase` / `ClientModBase`.
+
+Do not manually register a `MelonMod` that is already auto-discoverable, and do not wrap a second handler layer unless you actually need that indirection.
 
 ## Lifecycle hooks
 

@@ -127,12 +127,19 @@ Client mod interface with essential lifecycle events.
 
 ## ModManager
 
-The `ModManager` automatically discovers mods that implement the interfaces and handles lifecycle events. You can also register mods manually:
+The `ModManager` automatically discovers `MelonMod` classes that implement the interfaces and handles lifecycle events. You can also register plain handler objects manually:
 
 ```csharp
 ModManager.RegisterServerMod(myServerMod);
 ModManager.RegisterClientMod(myClientMod);
 ```
+
+Use one pattern per runtime object:
+
+- Auto-discovery for `MelonMod`, `ServerMelonModBase`, `ClientMelonModBase`, or `SideAwareMelonModBase`
+- Manual registration for `ServerModBase`, `ClientModBase`, or other non-Melon handler instances
+
+Do not manually register a `MelonMod` that is already auto-discoverable, or the mod can receive duplicate lifecycle callbacks.
 
 ## Build Configuration Compatibility
 

@@ -19,6 +19,7 @@ namespace DedicatedServerMod.API
 
             // The ModManager will automatically discover and register this mod
             // because it implements IServerMod and/or IClientMod
+            // Do not also call ModManager.RegisterServerMod/RegisterClientMod for this instance.
         }
 
         #region Server Hooks

@@ -86,6 +86,11 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         private bool _ignoreGhostHostForSleep = true;
 
+        /// <summary>
+        /// Tracks whether all dedicated-server client managers are ready for API mods.
+        /// </summary>
+        private bool _apiModsReady;
+
         #endregion
 
         #region Public Properties
@@ -95,7 +100,7 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         /// <remarks>
         /// This property backs <see cref="DedicatedServerMod.API.S1DS.Client.ClientCore"/> and is
-        /// <see langword="null"/> until <see cref="OnApplicationStart"/> runs.
+        /// <see langword="null"/> until <see cref="OnInitializeMelon"/> runs.
         /// </remarks>
         public static ClientBootstrap Instance => _instance;
 
@@ -149,6 +154,11 @@ namespace DedicatedServerMod.Client.Core
         public ClientTransportPatcher TransportPatcher => _transportPatcher;
 
         /// <summary>
+        /// Gets a value indicating whether the client bootstrap finished creating the managers that API mods depend on.
+        /// </summary>
+        public bool IsApiModsReady => _apiModsReady;
+
+        /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
         /// </summary>
         public static bool IgnoreGhostHostForSleep
@@ -166,23 +176,19 @@ namespace DedicatedServerMod.Client.Core
         }
 
         #endregion
+        
+        
 
         #region Initialization
-
-        /// <summary>
-        /// Called when the application starts.
-        /// </summary>
-        public override void OnApplicationStart()
-        {
-            _instance = this;
-        }
 
         /// <summary>
         /// Called when the melon is initialized.
         /// </summary>
         public override void OnInitializeMelon()
         {
+            _instance = this;
             _logger = LoggerInstance;
+            _apiModsReady = false;
             _logger.Msg("DedicatedServerClient mod initializing...");
 
             try
@@ -207,6 +213,8 @@ namespace DedicatedServerMod.Client.Core
 
                 // Initialize all client managers
                 InitializeManagers();
+
+                _apiModsReady = true;
 
                 _logger.Msg("DedicatedServerClient mod initialized successfully");
 
@@ -378,6 +386,8 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         public override void OnApplicationQuit()
         {
+            _apiModsReady = false;
+
             try
             {
                 API.ModManager.NotifyClientShutdown();

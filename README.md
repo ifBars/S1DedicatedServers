@@ -4,171 +4,47 @@
 [![Version](https://img.shields.io/badge/version-0.2.1--beta-blue)](https://github.com/ifBars/S1DedicatedServers/releases)
 [![License](https://img.shields.io/github/license/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/blob/master/LICENSE)
 
-**Professional dedicated server framework for Schedule I** - Run authoritative, headless servers with full multiplayer support, admin management, and extensive modding capabilities.
+DedicatedServerMod adds authoritative, headless dedicated servers to Schedule I, along with admin tooling, remote console support, and a public mod API for server and client extensions.
 
----
+Current release status: `0.2.1-beta`. The project is usable, but the runtime and public API are still evolving. Minimal support will be provided until a full non-beta release is made.
 
-## 🎯 Overview
+## What It Provides
 
-DedicatedServerMod transforms Schedule I into a multiplayer-ready game with dedicated server support. It provides a complete framework for:
+- Headless dedicated hosting with Schedule I save/load, time, sleep, and multiplayer flow support
+- Operators, admins, configurable command permissions, and remote TCP console access
+- Configurable authentication and messaging backends for private or public hosting
+- Server and client mod APIs with lifecycle hooks, persistence hooks, and custom messaging
 
-- **Headless Server Operation**: Run servers without graphics/UI overhead
-- **Client-Server Architecture**: Authoritative server with synchronized clients
-- **Admin & Permission System**: Operators, admins, and granular command permissions
-- **TCP Remote Console**: Manage servers remotely via telnet/SSH
-- **Custom Messaging API**: Build server and client mods with bidirectional communication
-- **Save/Load Management**: Automated saves, backup systems, and persistence
-- **Time & Sleep Systems**: Server-controlled time progression and sleep cycling
-- **Extensive Configuration**: JSON-based config with command-line overrides
+## Quick Start
 
----
+1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
+2. Follow the [installation guide](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html).
+3. Review the [configuration overview](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html) before opening a server to other players.
+4. Check the [troubleshooting guide](https://ifbars.github.io/S1DedicatedServers/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
 
-## ✨ Key Features
+## Documentation
 
-### Server Features
-- 🖥️ **True Dedicated Server**: Headless operation with minimal resource usage
-- 👥 **Multi-Player Support**: Up to 16 players (configurable)
-- 🔐 **Advanced Permissions**: Three-tier system (operators, admins, players)
-- 📡 **TCP Console**: Remote server management and monitoring
-- 💾 **Auto-Save System**: Configurable intervals with player event triggers
-- ⏰ **Time Management**: Never-stop time option with multiplier control
-- 🌙 **Sleep Cycling**: Server-controlled sleep with ghost host support
-- 📊 **Performance Monitoring**: Built-in metrics and logging
+- [Docs site](https://ifbars.github.io/S1DedicatedServers/)
+- [Installation](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html)
+- [Configuration](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html)
+- [Authentication](https://ifbars.github.io/S1DedicatedServers/docs/configuration/authentication.html)
+- [Commands and permissions](https://ifbars.github.io/S1DedicatedServers/docs/commands.html)
+- [Troubleshooting](https://ifbars.github.io/S1DedicatedServers/docs/troubleshooting.html)
+- [Mod API overview](https://ifbars.github.io/S1DedicatedServers/docs/modding/overview.html)
+- [Server modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/server.html)
+- [Client modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/client.html)
+- [API reference](https://ifbars.github.io/S1DedicatedServers/reference/index.html)
 
-### Client Features
-- 🎮 **Seamless Connection**: Connect to dedicated servers like normal multiplayer
-- 🖼️ **Enhanced UI**: Dedicated server indicators and admin console
-- 📨 **Custom Messaging**: Bidirectional communication with server mods
-- 🛠️ **Admin Tools**: In-game admin console for permitted players
-- 🔄 **Server Data Sync**: Automatic sync of server configuration and state
+## Development
 
-### Modding API
-- 📦 **Server Mod API**: `IServerMod` interface with lifecycle callbacks
-- 🎨 **Client Mod API**: `IClientMod` interface for client-side extensions
-- 🔌 **Custom Messaging**: Type-safe message passing between server/client mods
-- 💾 **Save/Load Hooks**: Integrate custom data persistence
-- 🎯 **Event System**: Subscribe to player connect/disconnect, server events
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODING_STANDARDS.md](CODING_STANDARDS.md), and [BUILD_SETUP.md](BUILD_SETUP.md) before opening a pull request.
 
----
+Example build:
 
-## 📋 Requirements
-
-### Server Requirements
-- **OS**: Windows Server 2019+, Windows 10/11, or Linux (Wine/Proton)
-- **CPU**: 2+ cores recommended
-- **.NET**: .NET Standard 2.1 (included with MelonLoader)
-- **RAM**: 2GB minimum, 4GB recommended
-- **Storage**: 500MB for game + saves
-
-### Client Requirements
-- **Schedule I**: Latest version (matches server version)
-- **MelonLoader**: 0.6.x or 0.7.0/0.7.2+ (avoid 0.7.1)
-
----
-
-## 🖥️ Running Entirely Headless
-
-You can disable the MelonLoader console window to run the server completely headless:
-
-1. Navigate to `Schedule I/UserData/`
-2. Open `MelonLoader.cfg` in a text editor (may be named `Loader.cfg` in older MelonLoader versions)
-3. Find the `[Console]` section
-4. Set `HideConsole = true` (or `hide_console = true` in older versions)
-5. Restart the server
-
-The server will now run without any visible windows. Use the TCP console or log files for monitoring.
-
----
-
-## 📚 Documentation
-
-- **[Getting Started Guide](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html)**: Detailed setup instructions
-- **[Server Modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/server.html)**: Complete server modding guide
-- **[Client Modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/client.html)**: Complete client modding guide
-- **[Configuration Reference](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html)**: Server configuration and runtime options
-- **[Commands System](https://ifbars.github.io/S1DedicatedServers/docs/commands.html)**: Understanding permissions and commands
-- **[Custom Messaging](https://ifbars.github.io/S1DedicatedServers/docs/modding/messaging.html)**: Building server-client communication
-- **[API Reference](https://ifbars.github.io/S1DedicatedServers/reference/index.html)**: Generated reference for the public modding surface
-
----
-
-## 🔐 Authentication Quick Start
-
-If you share your server address with others, enable ticket authentication so clients must prove Steam identity before they can run server commands.
-
-```json
-{
-  "authProvider": "SteamGameServer",
-  "authTimeoutSeconds": 15,
-  "authAllowLoopbackBypass": true,
-  "steamGameServerLogOnAnonymous": true,
-  "steamGameServerQueryPort": 27016,
-  "steamGameServerMode": "Authentication"
-}
+```bash
+dotnet build -c Mono_Server
 ```
 
-- Set `authProvider` to `None` for local Goldberg or LAN-style testing without Steam ticket validation
-- `authProvider` supports `None`, `SteamGameServer`, and `SteamWebApi`
-- `SteamGameServer` is the recommended provider for dedicated hosting and Docker deployments
-- `steamGameServerMode: NoAuthentication` only changes how the Steam game server advertises itself; it does not disable DedicatedServerMod's client auth handshake
-- Keep `authAllowLoopbackBypass` enabled so the dedicated server host loopback connection is not blocked
-- Set `steamGameServerLogOnAnonymous` to `false` and provide `steamGameServerToken` when using a persistent GSLT
-- `SteamWebApi` configuration fields exist, but Web API ticket validation is not yet fully implemented
+## Disclaimer
 
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and [Coding Standards](CODING_STANDARDS.md) before submitting PRs.
-
-### Development Setup
-
-1. Clone the repository
-2. Copy `local.build.props.example` to `local.build.props`
-3. Configure your game paths in `local.build.props`
-4. Build with: `dotnet build -c Mono_Server`
-
-See [BUILD_SETUP.md](BUILD_SETUP.md) for detailed build instructions.
-
----
-
-## 🐛 Troubleshooting
-
-### Server won't start
-- Check `MelonLoader/Latest.log` for errors
-- Verify `server_config.json` is valid JSON
-- Ensure no port conflicts (default 38465)
-
-### Client can't connect
-- Check server firewall allows port 38465
-- Verify server is running (`netstat -an | findstr 38465`)
-- Ensure client and server versions match
-- If auth is enabled, verify `authProvider` and Steam server login settings in `server_config.json`
-
-### Permission denied errors
-- Check your Steam ID is in operators/admins list
-- Verify `server_config.json` saved correctly
-- Reload config: `/reload` (if already operator)
-
-### More help
-- Check logs in `UserData/admin_actions.log`
-- Enable debug mode: `"debugMode": true` in config
-- Join our Discord: [Link Here]
-
----
-
-## 📄 License
-
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## ⚠️ Disclaimer
-
-This is an alpha/beta release. Expect bugs and incomplete features. Use in production at your own risk. Always backup your save files before using with a dedicated server.
-
-**This mod is not officially affiliated with or endorsed by the developers of Schedule I.**
-
----
-
-**Made with ❤️ for the Schedule I community**
+This mod is not officially affiliated with or endorsed by the developers of Schedule I.

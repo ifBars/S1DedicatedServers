@@ -113,11 +113,11 @@ namespace DedicatedServerMod.API
             /// Gets a value indicating whether the DedicatedServerMod client bootstrap has initialized.
             /// </summary>
             /// <remarks>
-            /// When this returns <see langword="true"/>, <see cref="ClientBootstrap"/> has been
-            /// created and its client managers have been initialized. This is normally true by the
-            /// time <see cref="IClientMod.OnClientInitialize"/> is called.
+            /// When this returns <see langword="true"/>, <see cref="ClientBootstrap"/> has finished
+            /// creating the client managers exposed through this facade. This is normally true by
+            /// the time <see cref="IClientMod.OnClientInitialize"/> is called.
             /// </remarks>
-            public static bool IsInitialized => ClientBootstrap.Instance != null;
+            public static bool IsInitialized => ClientBootstrap.Instance?.IsApiModsReady ?? false;
         }
     }
 }

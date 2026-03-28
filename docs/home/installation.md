@@ -1,33 +1,48 @@
 ## Installation
 
-Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases). Each release contains both archives: `server.zip` and `client.zip`.
+Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases). Each release contains two archives:
 
-Two zips are provided in each release:
+- `server.zip` for the dedicated server install
+- `client.zip` for normal game installs that will connect to dedicated servers
 
-- server.zip
-  - Contains `Mods/` with the dedicated server mod DLL
-  - Contains `start_server.bat`
+## Compatibility
 
-- client.zip
-  - Contains `Mods/` with the client mod DLL (for the main game install)
+- Server and client should use matching Schedule I builds.
+- Supported MelonLoader versions are `0.6.x`, `0.7.0`, and `0.7.2+`.
+- Avoid MelonLoader `0.7.1`.
+- Windows is the primary target for server hosting. Linux hosting typically requires Wine or Proton.
 
-### Prepare a server installation
-1) Copy your Schedule I game folder to a new location (this becomes your server install).
+## Prepare a server installation
 
-2) Extract `server.zip` into the server install so that:
-   
-   - `Mods/` (from the zip) merges into the install’s Mods folder
-   - `start_server.bat` is placed at the root of the server install
+1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.
+2. Extract `server.zip` into that server install.
+3. Confirm that `Mods/` merged into the install and `start_server.bat` was placed at the install root.
+4. Run `start_server.bat` once to generate `server_config.json`, then close the server.
+5. Edit `server_config.json` and set `saveGamePath`.
+6. Restart with `start_server.bat`.
 
-3) Run the server once with `start_server.bat` to generate `server_config.json`, then close it.
+For save path details, see [Save Path](../configuration/save-path.md).
 
-4) Edit `server_config.json` and set `saveGamePath` (see Configuration → Save path). Restart with `start_server.bat`.
+## Run fully headless
 
-### Prepare a client installation
-1) Use your main game install (or another copy for clients).
+If you want the server to run without the MelonLoader console window:
 
-2) Extract `client.zip` into the main install so that the `Mods/` folder contains the client mod DLL.
+1. Open `UserData/MelonLoader.cfg` in the server install.
+2. In older MelonLoader versions, the file may be named `UserData/Loader.cfg`.
+3. Under `[Console]`, set `HideConsole = true`.
+4. In older config formats, use `hide_console = true` instead.
+5. Restart the server.
 
-3) Launch the game normally and connect to the server.
+Use the TCP console or log files for monitoring once the local console window is hidden.
 
+## Prepare a client installation
 
+1. Use your main game install, or another separate client copy.
+2. Extract `client.zip` so the included `Mods/` contents merge into that install.
+3. Launch the game normally and connect to the server.
+
+## Next steps
+
+- [Configuration overview](../configuration.md)
+- [Authentication](../configuration/authentication.md)
+- [Troubleshooting](../troubleshooting.md)
