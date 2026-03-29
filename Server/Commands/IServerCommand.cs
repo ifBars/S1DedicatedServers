@@ -1,87 +1,89 @@
 using System.Collections.Generic;
-using MelonLoader;
 using DedicatedServerMod.Server.Player;
+using MelonLoader;
 
 namespace DedicatedServerMod.Server.Commands
 {
     /// <summary>
-    /// Interface for all server commands
+    /// Interface for all server commands.
     /// </summary>
     public interface IServerCommand
     {
         /// <summary>
-        /// The command word used to invoke this command
+        /// The command word used to invoke this command.
         /// </summary>
         string CommandWord { get; }
 
         /// <summary>
-        /// Description of what the command does
+        /// Description of what the command does.
         /// </summary>
         string Description { get; }
 
         /// <summary>
-        /// Usage example for the command
+        /// Usage example for the command.
         /// </summary>
         string Usage { get; }
 
         /// <summary>
-        /// Required permission level to execute this command
+        /// Required permission level to execute this command.
         /// </summary>
         PermissionLevel RequiredPermission { get; }
 
         /// <summary>
-        /// Execute the command with the given context
+        /// Execute the command with the given context.
         /// </summary>
         void Execute(CommandContext context);
     }
 
     /// <summary>
-    /// Context information for command execution
+    /// Context information for command execution.
     /// </summary>
     public class CommandContext
     {
         /// <summary>
-        /// The player executing the command (null for console)
+        /// The player executing the command (null for console).
         /// </summary>
         public ConnectedPlayerInfo Executor { get; set; }
 
         /// <summary>
-        /// Command arguments
+        /// Command arguments.
         /// </summary>
         public List<string> Arguments { get; set; }
 
         /// <summary>
-        /// Logger instance
+        /// Logger instance.
         /// </summary>
         public MelonLogger.Instance Logger { get; set; }
 
         /// <summary>
-        /// Player manager
+        /// Player manager.
         /// </summary>
         public PlayerManager PlayerManager { get; set; }
 
         /// <summary>
-        /// Optional sinks for console output redirection (e.g., TCP console)
+        /// Optional transport-specific output sink.
         /// </summary>
-        public System.Action<string> OutputInfo { get; set; }
-        public System.Action<string> OutputWarning { get; set; }
-        public System.Action<string> OutputError { get; set; }
+        public ICommandOutput Output { get; set; }
 
         /// <summary>
-        /// Whether the command is being executed from console
+        /// Whether the command is being executed from console.
         /// </summary>
         public bool IsConsoleExecution => Executor == null;
 
         /// <summary>
-        /// Send a message back to the executor
+        /// Send a message back to the executor.
         /// </summary>
         public void Reply(string message)
         {
+            if (Output != null)
+            {
+                Output.WriteInfo(message);
+                return;
+            }
+
             if (IsConsoleExecution)
             {
-                OutputInfo?.Invoke(message);
                 Logger?.Msg($"[COMMAND] {message}");
-                ScheduleOne.Console.Log(message);
             }
             else
             {
@@ -90,15 +92,19 @@ namespace DedicatedServerMod.Server.Commands
         }
 
         /// <summary>
-        /// Send a warning message back to the executor
+        /// Send a warning message back to the executor.
         /// </summary>
         public void ReplyWarning(string message)
         {
+            if (Output != null)
+            {
+                Output.WriteWarning(message);
+                return;
+            }
+
             if (IsConsoleExecution)
             {
-                OutputWarning?.Invoke(message);
                 Logger?.Warning($"[COMMAND] {message}");
-                ScheduleOne.Console.LogWarning(message);
             }
             else
             {
@@ -107,15 +113,19 @@ namespace DedicatedServerMod.Server.Commands
         }
 
         /// <summary>
-        /// Send an error message back to the executor
+        /// Send an error message back to the executor.
         /// </summary>
         public void ReplyError(string message)
         {
+            if (Output != null)
+            {
+                Output.WriteError(message);
+                return;
+            }
+
             if (IsConsoleExecution)
             {
-                OutputError?.Invoke(message);
                 Logger?.Error($"[COMMAND] {message}");
-                ScheduleOne.Console.LogError(message);
             }
             else
             {
@@ -125,40 +135,61 @@ namespace DedicatedServerMod.Server.Commands
     }
 
     /// <summary>
-    /// Base class for server commands with common functionality
+    /// Base class for server commands with common functionality.
     /// </summary>
     public abstract class BaseServerCommand : IServerCommand
     {
+        /// <summary>
+        /// The logger instance shared by commands.
+        /// </summary>
         protected readonly MelonLogger.Instance Logger;
+
+        /// <summary>
+        /// The player manager shared by commands.
+        /// </summary>
         protected readonly PlayerManager PlayerManager;
 
+        /// <summary>
+        /// Initializes a new server command base instance.
+        /// </summary>
         protected BaseServerCommand(MelonLogger.Instance loggerInstance, PlayerManager playerMgr)
         {
             Logger = loggerInstance;
             PlayerManager = playerMgr;
         }
 
+        /// <inheritdoc />
         public abstract string CommandWord { get; }
+
+        /// <inheritdoc />
         public abstract string Description { get; }
+
+        /// <inheritdoc />
         public abstract string Usage { get; }
+
+        /// <inheritdoc />
         public abstract PermissionLevel RequiredPermission { get; }
 
+        /// <inheritdoc />
         public abstract void Execute(CommandContext context);
 
         /// <summary>
-        /// Find a player by name or identifier
+        /// Find a player by name or identifier.
         /// </summary>
         protected ConnectedPlayerInfo FindPlayerByNameOrId(string identifier)
         {
-            // Try exact match first
-            var player = PlayerManager.GetPlayerBySteamId(identifier);
-            if (player != null) return player;
+            ConnectedPlayerInfo player = PlayerManager.GetPlayerBySteamId(identifier);
+            if (player != null)
+            {
+                return player;
+            }
 
-            // Try by name
             player = PlayerManager.GetPlayerByName(identifier);
-            if (player != null) return player;
+            if (player != null)
+            {
+                return player;
+            }
 
-            // Try by client ID
             if (int.TryParse(identifier, out int clientId))
             {
                 return PlayerManager.GetConnectedPlayers().Find(p => p.ClientId == clientId);
@@ -168,7 +199,7 @@ namespace DedicatedServerMod.Server.Commands
         }
 
         /// <summary>
-        /// Validate that the required number of arguments are provided
+        /// Validate that the required number of arguments are provided.
         /// </summary>
         protected bool ValidateArguments(CommandContext context, int requiredCount, string usageMessage = null)
         {
@@ -177,6 +208,7 @@ namespace DedicatedServerMod.Server.Commands
                 context.ReplyError($"Usage: {usageMessage ?? Usage}");
                 return false;
             }
+
             return true;
         }
     }

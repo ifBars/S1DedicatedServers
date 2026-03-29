@@ -6,6 +6,7 @@ Key docs:
 
 - [Installation](home/installation.md)
 - [Configuration](configuration.md)
+- [Host Console](host-console.md)
 - [Client Mod Verification](configuration/client-mod-verification.md)
 - [Commands](commands.md)
 - [Mod API Overview](modding/overview.md)

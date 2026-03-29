@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using MelonLoader;
 using MelonLoader.Utils;
 using DedicatedServerMod.Shared.Networking.Messaging;
@@ -298,6 +299,13 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         [JsonProp("tcpConsolePassword")]
         public string TcpConsolePassword { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Controls activation of the stdio host console transport.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.StdioConsoleMode)]
+        [JsonConv(typeof(StringEnumConverter))]
+        public StdioConsoleMode StdioConsoleMode { get; set; } = StdioConsoleMode.Auto;
 
         #endregion
 
@@ -672,9 +680,17 @@ namespace DedicatedServerMod.Shared.Configuration
                 if (File.Exists(ConfigFilePath))
                 {
                     string json = File.ReadAllText(ConfigFilePath);
-                    _instance = JsonConvert.DeserializeObject<ServerConfig>(json);
-                    _instance?.NormalizeAuthenticationConfiguration();
+                    _instance = JsonConvert.DeserializeObject<ServerConfig>(json) ?? new ServerConfig();
+                    _instance.NormalizeAuthenticationConfiguration();
+                    _instance.Validate();
                     Logger.Msg("Server configuration loaded successfully");
+
+                    string normalizedJson = SerializeConfig();
+                    if (!AreEquivalentJsonDocuments(json, normalizedJson))
+                    {
+                        File.WriteAllText(ConfigFilePath, normalizedJson);
+                        Logger.Msg("Server configuration updated with normalized and newly added options");
+                    }
                 }
                 else
                 {
@@ -698,7 +714,7 @@ namespace DedicatedServerMod.Shared.Configuration
         {
             try
             {
-                string json = JsonConvert.SerializeObject(_instance, Formatting.Indented);
+                string json = SerializeConfig();
                 File.WriteAllText(ConfigFilePath, json);
                 Logger.Msg("Server configuration saved successfully");
             }
@@ -725,6 +741,30 @@ namespace DedicatedServerMod.Shared.Configuration
             _instance = null;
             _logger = null;
             _configPath = null;
+        }
+
+        private static string SerializeConfig()
+        {
+            return JsonConvert.SerializeObject(_instance ?? new ServerConfig(), Formatting.Indented);
+        }
+
+        private static bool AreEquivalentJsonDocuments(string left, string right)
+        {
+            if (string.Equals(left, right, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            try
+            {
+                JToken leftToken = JToken.Parse(left ?? string.Empty);
+                JToken rightToken = JToken.Parse(right ?? string.Empty);
+                return JToken.DeepEquals(leftToken, rightToken);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         #endregion
@@ -961,6 +1001,21 @@ namespace DedicatedServerMod.Shared.Configuration
                             Instance.TcpConsoleRequirePassword = true;
                             Logger.Msg("TCP console password set via CLI and requirement enabled");
                         }
+                        break;
+
+                    case "--stdio-console":
+                        Instance.StdioConsoleMode = StdioConsoleMode.Enabled;
+                        Logger.Msg("stdio host console enabled via CLI");
+                        break;
+
+                    case "--no-stdio-console":
+                        Instance.StdioConsoleMode = StdioConsoleMode.Disabled;
+                        Logger.Msg("stdio host console disabled via CLI");
+                        break;
+
+                    case "--stdio-console-auto":
+                        Instance.StdioConsoleMode = StdioConsoleMode.Auto;
+                        Logger.Msg("stdio host console auto mode enabled via CLI");
                         break;
 
                     case "--target-framerate":

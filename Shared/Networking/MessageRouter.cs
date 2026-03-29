@@ -23,6 +23,7 @@ using FishNet.Serializing;
 using FishNet.Transporting;
 #endif
 using MelonLoader;
+using DedicatedServerMod.Shared.ConsoleSupport;
 #if IL2CPP
 using Newtonsoft.Json;
 using Il2CppScheduleOne;
@@ -408,15 +409,22 @@ namespace DedicatedServerMod.Shared.Networking
                     return;
                 }
 
-                var parts = new List<string>(data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
-
-                if (parts.Count == 0)
+                CommandLineParseResult parseResult = CommandLineParser.TryParse(data);
+                if (parseResult.IsEmpty)
                 {
                     _logger.Warning("HandleAdminConsoleCommand: No command parts found");
                     return;
                 }
 
-                string cmd = parts[0].ToLower();
+                if (!parseResult.Success)
+                {
+                    _logger.Warning($"HandleAdminConsoleCommand: Parse error: {parseResult.ErrorMessage}");
+                    LogCommandError(parseResult.ErrorMessage);
+                    return;
+                }
+
+                ParsedCommandLine parsedCommand = parseResult.CommandLine;
+                string cmd = parsedCommand.CommandWord;
 
                 // Permission check - can they use this specific command?
                 if (!Permissions.PermissionManager.CanUseCommand(player, cmd))
@@ -428,12 +436,12 @@ namespace DedicatedServerMod.Shared.Networking
                 // Handle server-authoritative commands
                 if (cmd == "spawnvehicle")
                 {
-                    HandleSpawnVehicleCommand(player, parts);
+                    HandleSpawnVehicleCommand(player, parsedCommand);
                     return;
                 }
 
                 // Execute other commands via console (relay to client for Player.Local context)
-                ExecuteConsoleCommandRelay(player, cmd, parts);
+                ExecuteConsoleCommandRelay(player, parsedCommand);
             }
             catch (Exception ex)
             {
@@ -444,18 +452,17 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// Handles the spawnvehicle command server-side for proper ownership.
         /// </summary>
-        private static void HandleSpawnVehicleCommand(Player player, List<string> parts)
+        private static void HandleSpawnVehicleCommand(Player player, ParsedCommandLine parsedCommand)
         {
             try
             {
-                parts.RemoveAt(0); // Remove command name
-                if (parts.Count == 0)
+                if (parsedCommand.Arguments.Count == 0)
                 {
                     LogCommandError("Unrecognized command format. Correct format example(s): 'spawnvehicle shitbox'");
                     return;
                 }
 
-                string vehicleCode = parts[0].ToLower();
+                string vehicleCode = parsedCommand.Arguments[0].ToLowerInvariant();
                 var vm = NetworkSingleton<VehicleManager>.Instance;
                 if (vm == null)
                 {
@@ -497,7 +504,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// Relays a console command to the specific client so Player.Local refers to their player.
         /// </summary>
-        private static void ExecuteConsoleCommandRelay(Player player, string cmd, List<string> parts)
+        private static void ExecuteConsoleCommandRelay(Player player, ParsedCommandLine parsedCommand)
         {
             try
             {
@@ -517,22 +524,19 @@ namespace DedicatedServerMod.Shared.Networking
                     EnsureCoreCommandsExist(commands);
                 }
 
-                if (commands.TryGetValue(cmd, out var handler))
+                if (commands.TryGetValue(parsedCommand.CommandWord, out var handler))
                 {
-                    parts.RemoveAt(0); // Remove command name
-                    string argsString = string.Join(" ", parts);
-
                     // Relay to the specific client's context
-                    var payload = string.IsNullOrEmpty(argsString) ? cmd : $"{cmd} {argsString}";
+                    string payload = CommandLineParser.BuildLine(parsedCommand);
                     CustomMessaging.SendToClient(player.Owner, "exec_console", payload);
 
                     // Log admin action
-                    Permissions.PlayerResolver.LogAdminAction(player, cmd, argsString);
+                    Permissions.PlayerResolver.LogAdminAction(player, parsedCommand.CommandWord, string.Join(" ", parsedCommand.Arguments));
                 }
                 else
                 {
-                    _logger.Warning($"ExecuteConsoleCommandRelay: Command '{cmd}' not found in available commands");
-                    LogCommandError($"Command '{cmd}' not found.");
+                    _logger.Warning($"ExecuteConsoleCommandRelay: Command '{parsedCommand.CommandWord}' not found in available commands");
+                    LogCommandError($"Command '{parsedCommand.CommandWord}' not found.");
                 }
             }
             catch (Exception ex)
@@ -553,15 +557,22 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var parts = new List<string>(data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
-                if (parts.Count == 0)
+                CommandLineParseResult parseResult = CommandLineParser.TryParse(data);
+                if (parseResult.IsEmpty)
                 {
                     _logger.Warning("HandleClientConsoleCommand: No command parts found");
                     return;
                 }
 
-                string cmd = parts[0].ToLower();
-                parts.RemoveAt(0);
+                if (!parseResult.Success)
+                {
+                    _logger.Warning($"HandleClientConsoleCommand: Parse error: {parseResult.ErrorMessage}");
+                    ScheduleOne.Console.LogCommandError(parseResult.ErrorMessage);
+                    return;
+                }
+
+                ParsedCommandLine parsedCommand = parseResult.CommandLine;
+                string cmd = parsedCommand.CommandWord;
 
                 var commandsField = typeof(ScheduleOne.Console).GetField("commands",
                     BindingFlags.NonPublic | BindingFlags.Static);
@@ -582,14 +593,14 @@ namespace DedicatedServerMod.Shared.Networking
 
 #if IL2CPP
                 var il2cppArgs = new Il2CppSystem.Collections.Generic.List<string>();
-                for (int i = 0; i < parts.Count; i++)
+                for (int i = 0; i < parsedCommand.Arguments.Count; i++)
                 {
-                    il2cppArgs.Add(parts[i]);
+                    il2cppArgs.Add(parsedCommand.Arguments[i]);
                 }
 
                 commands[cmd].Execute(il2cppArgs);
 #else
-                commands[cmd].Execute(parts);
+                commands[cmd].Execute(new List<string>(parsedCommand.Arguments));
 #endif
             }
             catch (Exception ex)

@@ -13,7 +13,8 @@ using DedicatedServerMod.Shared.Configuration;
 using HarmonyLib;
 using DedicatedServerMod.API;
 using UnityEngine;
-using DedicatedServerMod.Server.TcpConsole;
+using DedicatedServerMod.Utils;
+using DedicatedServerMod.Server.HostConsole;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -37,7 +38,7 @@ namespace DedicatedServerMod.Server.Core
         private static CommandManager _commandManager;
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
-        private static TcpConsoleServer _tcpConsole;
+        private static HostConsoleManager _hostConsoleManager;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
         
@@ -155,8 +156,8 @@ namespace DedicatedServerMod.Server.Core
             _gameSystemManager.Initialize();
             _logger.Msg("✓ Game system manager initialized");
             
-            // Start TCP Console if enabled in ServerConfig
-            _tcpConsole = TcpConsoleServer.TryStart(_commandManager, _logger);
+            _hostConsoleManager = new HostConsoleManager(_commandManager, _logger);
+            _hostConsoleManager.Start();
             TryStartStatusQueryService();
             
             // Step 10: Wire up player events with persistence
@@ -242,7 +243,7 @@ namespace DedicatedServerMod.Server.Core
             // Log suppression is handled by command-line flags in start_server.bat:
             //   -logFile - -stackTraceLogType None
             // The patches in DedicatedServerPatches.cs prevent the systems from running that cause errors
-            
+            UnityExceptionTraceHook.Install(_logger);
             _logger.Msg("Log filtering configured (via startup flags and system patches)");
         }
 
@@ -348,7 +349,7 @@ namespace DedicatedServerMod.Server.Core
                 _playerManager?.NotifyShutdownAndDisconnectAll(reason);
 
                 // Shutdown in reverse order
-                try { _tcpConsole?.Dispose(); } catch { }
+                try { _hostConsoleManager?.Dispose(); } catch { }
                 _serverStatusQueryService?.Shutdown();
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
@@ -357,6 +358,7 @@ namespace DedicatedServerMod.Server.Core
                 Shared.Networking.CustomMessaging.Shutdown();
                 _playerManager?.Shutdown();
                 _networkManager?.Shutdown();
+                UnityExceptionTraceHook.Remove();
                 
                 _isInitialized = false;
                 _logger.Msg("=== Server Shutdown Complete ===");

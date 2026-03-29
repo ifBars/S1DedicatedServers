@@ -155,6 +155,23 @@ Enable remote console access via TCP:
 - Use a password before exposing it remotely
 - Keep the listener bound narrowly unless you really need remote administration
 
+### Host Console
+
+Enable panel-friendly stdin/stdout console support:
+
+```json
+{
+  "stdioConsoleMode": "Auto"
+}
+```
+
+- `Disabled`: never start the stdio host console transport
+- `Auto`: start stdio console only when stdin is redirected
+- `Enabled`: always start stdio console
+- `Auto` is the default because hosted panels usually inject commands through stdin, while local desktop runs should avoid stealing the interactive console unless you explicitly opt in
+
+See [Host Console](host-console.md) for deployment guidance and runtime behavior.
+
 ### Performance
 
 ```json
@@ -215,6 +232,14 @@ All configuration options can be overridden via command line arguments. These ta
 | `--steam-p2p-relay <true/false>` | Allow Steam P2P relay | `--steam-p2p-relay true` |
 | `--steam-p2p-channel <channel>` | Set Steam P2P channel | `--steam-p2p-channel 0` |
 | `--server-steamid <steam_id>` | Set Steam P2P server SteamID | `--server-steamid 90000000000000000` |
+
+#### Host Console
+
+| Argument | Description | Example |
+|----------|-------------|---------|
+| `--stdio-console` | Always enable stdio host console | `--stdio-console` |
+| `--no-stdio-console` | Disable stdio host console | `--no-stdio-console` |
+| `--stdio-console-auto` | Enable stdio host console only when stdin is redirected | `--stdio-console-auto` |
 
 #### Permissions
 

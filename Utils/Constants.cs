@@ -453,6 +453,7 @@ namespace DedicatedServerMod.Utils
             public const string TcpConsoleEnabled = "tcpConsoleEnabled";
             public const string TcpConsolePort = "tcpConsolePort";
             public const string TcpConsoleMaxConnections = "tcpConsoleMaxConnections";
+            public const string StdioConsoleMode = "stdioConsoleMode";
             public const string TimeMultiplier = "timeProgressionMultiplier";
             public const string AllowSleeping = "allowSleeping";
             public const string PauseEmpty = "pauseGameWhenEmpty";

@@ -1,21 +1,19 @@
-using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-#if IL2CPP
-using Il2CppScheduleOne;
-#else
-using ScheduleOne;
-#endif
-using DedicatedServerMod.Server.Network;
-using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands.Admin;
 using DedicatedServerMod.Server.Commands.Server;
+using DedicatedServerMod.Server.Network;
+using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared;
+using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Shared.Networking;
+using MelonLoader;
 #if IL2CPP
+using Il2CppScheduleOne;
 using Console = Il2CppScheduleOne.Console;
 #else
+using ScheduleOne;
 using Console = ScheduleOne.Console;
 #endif
 
@@ -31,6 +29,9 @@ namespace DedicatedServerMod.Server.Commands
         private readonly NetworkManager networkManager;
         private readonly Dictionary<string, IServerCommand> serverCommands;
 
+        /// <summary>
+        /// Initializes a new command manager.
+        /// </summary>
         public CommandManager(MelonLogger.Instance loggerInstance, PlayerManager playerMgr, NetworkManager networkMgr)
         {
             logger = loggerInstance;
@@ -40,7 +41,7 @@ namespace DedicatedServerMod.Server.Commands
         }
 
         /// <summary>
-        /// Initialize the command manager and register all commands
+        /// Initialize the command manager and register all commands.
         /// </summary>
         public void Initialize()
         {
@@ -58,11 +59,154 @@ namespace DedicatedServerMod.Server.Commands
         }
 
         /// <summary>
-        /// Register all server commands
+        /// Execute a raw console line through the shared parser and command pipeline.
         /// </summary>
+        public CommandExecutionResult ExecuteConsoleLine(string rawLine, ICommandOutput output = null, ConnectedPlayerInfo executor = null)
+        {
+            CommandLineParseResult parseResult = CommandLineParser.TryParse(rawLine);
+            if (parseResult.IsEmpty)
+            {
+                return new CommandExecutionResult(CommandExecutionStatus.Empty, string.Empty, string.Empty);
+            }
+
+            if (!parseResult.Success)
+            {
+                CommandExecutionResult result = new CommandExecutionResult(CommandExecutionStatus.ParseError, string.Empty, parseResult.ErrorMessage);
+                output?.WriteError(result.Message);
+                return result;
+            }
+
+            return ExecuteConsoleLine(parseResult.CommandLine, output, executor);
+        }
+
+        /// <summary>
+        /// Execute an already parsed command line.
+        /// </summary>
+        public CommandExecutionResult ExecuteConsoleLine(ParsedCommandLine commandLine, ICommandOutput output = null, ConnectedPlayerInfo executor = null)
+        {
+            if (commandLine == null)
+            {
+                throw new ArgumentNullException(nameof(commandLine));
+            }
+
+            if (!serverCommands.TryGetValue(commandLine.CommandWord, out IServerCommand command))
+            {
+                CommandExecutionResult result = new CommandExecutionResult(
+                    CommandExecutionStatus.UnknownCommand,
+                    commandLine.CommandWord,
+                    $"Unknown command: {commandLine.CommandWord}");
+                output?.WriteError(result.Message);
+                return result;
+            }
+
+            if (!CanExecuteCommand(executor, command))
+            {
+                logger.Warning($"Player {executor?.DisplayName ?? "Console"} lacks permission for command '{commandLine.CommandWord}'");
+                CommandExecutionResult result = new CommandExecutionResult(
+                    CommandExecutionStatus.Unauthorized,
+                    commandLine.CommandWord,
+                    $"Unauthorized command: {commandLine.CommandWord}");
+                output?.WriteError(result.Message);
+                return result;
+            }
+
+            try
+            {
+                CommandContext context = new CommandContext
+                {
+                    Executor = executor,
+                    Arguments = new List<string>(commandLine.Arguments),
+                    Logger = logger,
+                    PlayerManager = playerManager,
+                    Output = output
+                };
+
+                command.Execute(context);
+                return new CommandExecutionResult(CommandExecutionStatus.Success, commandLine.CommandWord, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error executing command '{commandLine.CommandWord}': {ex}");
+                CommandExecutionResult result = new CommandExecutionResult(
+                    CommandExecutionStatus.ExecutionFailed,
+                    commandLine.CommandWord,
+                    $"Error executing command '{commandLine.CommandWord}': {ex.Message}",
+                    ex);
+                output?.WriteError(result.Message);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Execute a server command by command word and arguments.
+        /// </summary>
+        public bool ExecuteCommand(string commandWord, List<string> args, ConnectedPlayerInfo executor = null)
+        {
+            ParsedCommandLine commandLine = new ParsedCommandLine(
+                commandWord?.ToLowerInvariant() ?? string.Empty,
+                args ?? new List<string>());
+
+            return ExecuteConsoleLine(commandLine, output: null, executor).Succeeded;
+        }
+
+        /// <summary>
+        /// Execute a server command with TCP-style output callbacks.
+        /// </summary>
+        public bool ExecuteCommand(string commandWord, List<string> args, Action<string> outputInfo, Action<string> outputWarning, Action<string> outputError)
+        {
+            ParsedCommandLine commandLine = new ParsedCommandLine(
+                commandWord?.ToLowerInvariant() ?? string.Empty,
+                args ?? new List<string>());
+
+            ICommandOutput output = new DelegateCommandOutput(outputInfo, outputWarning, outputError);
+            return ExecuteConsoleLine(commandLine, output).Succeeded;
+        }
+
+        /// <summary>
+        /// Get all available commands for a player.
+        /// </summary>
+        public List<IServerCommand> GetAvailableCommands(ConnectedPlayerInfo player)
+        {
+            List<IServerCommand> availableCommands = new List<IServerCommand>();
+            foreach (IServerCommand command in serverCommands.Values)
+            {
+                if (CanExecuteCommand(player, command))
+                {
+                    availableCommands.Add(command);
+                }
+            }
+
+            return availableCommands;
+        }
+
+        /// <summary>
+        /// Get command by name.
+        /// </summary>
+        public IServerCommand GetCommand(string commandWord)
+        {
+            serverCommands.TryGetValue(commandWord.ToLowerInvariant(), out IServerCommand command);
+            return command;
+        }
+
+        /// <summary>
+        /// Get all registered commands.
+        /// </summary>
+        public Dictionary<string, IServerCommand> GetAllCommands()
+        {
+            return new Dictionary<string, IServerCommand>(serverCommands);
+        }
+
+        /// <summary>
+        /// Shutdown the command manager.
+        /// </summary>
+        public void Shutdown()
+        {
+            serverCommands.Clear();
+            logger.Msg("Command manager shutdown");
+        }
+
         private void RegisterServerCommands()
         {
-            // Admin commands
             RegisterCommand(new OpCommand(logger, playerManager));
             RegisterCommand(new DeopCommand(logger, playerManager));
             RegisterCommand(new AdminCommand(logger, playerManager));
@@ -73,8 +217,6 @@ namespace DedicatedServerMod.Server.Commands
             RegisterCommand(new BanCommand(logger, playerManager));
             RegisterCommand(new UnbanCommand(logger, playerManager));
             RegisterCommand(new ListPlayersCommand(logger, playerManager));
-
-            // Server management commands
             RegisterCommand(new HelpCommand(logger, playerManager, this));
             RegisterCommand(new ServerInfoCommand(logger, playerManager, networkManager));
             RegisterCommand(new ReloadConfigCommand(logger, playerManager));
@@ -84,9 +226,6 @@ namespace DedicatedServerMod.Server.Commands
             logger.Msg($"Registered {serverCommands.Count} server commands");
         }
 
-        /// <summary>
-        /// Register a server command
-        /// </summary>
         private void RegisterCommand(IServerCommand command)
         {
             try
@@ -106,33 +245,25 @@ namespace DedicatedServerMod.Server.Commands
             }
         }
 
-        /// <summary>
-        /// Integrate with the game's console system
-        /// </summary>
         private void IntegrateWithGameConsole()
         {
             try
             {
-                // Get the game's console commands dictionary using reflection
-                var commandsField = typeof(Console).GetField("commands",
-                    BindingFlags.NonPublic | BindingFlags.Static);
+                FieldInfo commandsField = typeof(Console).GetField("commands", BindingFlags.NonPublic | BindingFlags.Static);
 
                 if (commandsField?.GetValue(null) is Dictionary<string, Console.ConsoleCommand> gameCommands)
                 {
-                                    // Ensure base game commands are available
-                if (!gameCommands.ContainsKey("settime") || !gameCommands.ContainsKey("give"))
-                {
-                    CustomMessaging.InitializeConsoleCommands(gameCommands);
-                    logger.Msg("Initialized base game console commands");
-                }
+                    if (!gameCommands.ContainsKey("settime") || !gameCommands.ContainsKey("give"))
+                    {
+                        CustomMessaging.InitializeConsoleCommands(gameCommands);
+                        logger.Msg("Initialized base game console commands");
+                    }
 
-                    // Register our server commands as console commands
-                    foreach (var serverCommand in serverCommands.Values)
+                    foreach (IServerCommand serverCommand in serverCommands.Values)
                     {
                         if (!gameCommands.ContainsKey(serverCommand.CommandWord))
                         {
-                            var consoleCommandAdapter = new ConsoleCommandAdapter(serverCommand);
-                            gameCommands[serverCommand.CommandWord] = consoleCommandAdapter;
+                            gameCommands[serverCommand.CommandWord] = new ConsoleCommandAdapter(this, serverCommand);
                         }
                     }
 
@@ -149,176 +280,64 @@ namespace DedicatedServerMod.Server.Commands
             }
         }
 
-        /// <summary>
-        /// Execute a server command
-        /// </summary>
-        public bool ExecuteCommand(string commandWord, List<string> args, ConnectedPlayerInfo executor = null)
-        {
-            try
-            {
-                if (!serverCommands.TryGetValue(commandWord.ToLower(), out var command))
-                {
-                    return false; // Command not found
-                }
-
-                // Check permissions
-                if (!CanExecuteCommand(executor, command))
-                {
-                    logger.Warning($"Player {executor?.DisplayName ?? "Console"} lacks permission for command '{commandWord}'");
-                    return false;
-                }
-
-                // Execute the command
-                var context = new CommandContext
-                {
-                    Executor = executor,
-                    Arguments = args,
-                    Logger = logger,
-                    PlayerManager = playerManager
-                };
-
-                command.Execute(context);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error executing command '{commandWord}': {ex}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Execute a server command with custom output sinks (e.g., TCP console)
-        /// </summary>
-        public bool ExecuteCommand(string commandWord, List<string> args,
-            System.Action<string> outputInfo,
-            System.Action<string> outputWarning,
-            System.Action<string> outputError)
-        {
-            try
-            {
-                if (!serverCommands.TryGetValue(commandWord.ToLower(), out var command))
-                {
-                    return false; // Command not found
-                }
-
-                var context = new CommandContext
-                {
-                    Executor = null,
-                    Arguments = args,
-                    Logger = logger,
-                    PlayerManager = playerManager,
-                    OutputInfo = outputInfo,
-                    OutputWarning = outputWarning,
-                    OutputError = outputError
-                };
-
-                command.Execute(context);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error executing command '{commandWord}': {ex}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Check if a player can execute a command
-        /// </summary>
         private bool CanExecuteCommand(ConnectedPlayerInfo player, IServerCommand command)
         {
-            // Console (null player) can execute any command
             if (player == null)
-                return true;
-
-            // Disallow administrators from executing operator-tier role management commands
-            bool isRoleMgmtOpOnly = command.CommandWord == "op" || command.CommandWord == "deop" || command.CommandWord == "admin" || command.CommandWord == "deadmin";
-            if (isRoleMgmtOpOnly)
             {
-                var level = playerManager.Permissions.GetPermissionLevel(player);
-                if (level < PermissionLevel.Operator)
-                    return false;
+                return true;
             }
 
-            // Check permission level
-            return playerManager.Permissions.CanExecuteCommand(player, command.RequiredPermission);
-        }
+            bool isRoleManagementOpOnly =
+                command.CommandWord == "op" ||
+                command.CommandWord == "deop" ||
+                command.CommandWord == "admin" ||
+                command.CommandWord == "deadmin";
 
-        /// <summary>
-        /// Get all available commands for a player
-        /// </summary>
-        public List<IServerCommand> GetAvailableCommands(ConnectedPlayerInfo player)
-        {
-            var availableCommands = new List<IServerCommand>();
-
-            foreach (var command in serverCommands.Values)
+            if (isRoleManagementOpOnly)
             {
-                if (CanExecuteCommand(player, command))
+                PermissionLevel level = playerManager.Permissions.GetPermissionLevel(player);
+                if (level < PermissionLevel.Operator)
                 {
-                    availableCommands.Add(command);
+                    return false;
                 }
             }
 
-            return availableCommands;
-        }
-
-        /// <summary>
-        /// Get command by name
-        /// </summary>
-        public IServerCommand GetCommand(string commandWord)
-        {
-            serverCommands.TryGetValue(commandWord.ToLower(), out var command);
-            return command;
-        }
-
-        /// <summary>
-        /// Get all registered commands
-        /// </summary>
-        public Dictionary<string, IServerCommand> GetAllCommands()
-        {
-            return new Dictionary<string, IServerCommand>(serverCommands);
-        }
-
-        /// <summary>
-        /// Shutdown the command manager
-        /// </summary>
-        public void Shutdown()
-        {
-            serverCommands.Clear();
-            logger.Msg("Command manager shutdown");
+            return playerManager.Permissions.CanExecuteCommand(player, command.RequiredPermission);
         }
     }
 
     /// <summary>
-    /// Adapter to integrate server commands with the game's console system
+    /// Adapter to integrate server commands with the game's console system.
     /// </summary>
     public class ConsoleCommandAdapter : Console.ConsoleCommand
     {
-        private readonly IServerCommand serverCommand;
+        private readonly CommandManager _commandManager;
+        private readonly IServerCommand _serverCommand;
 
-        public ConsoleCommandAdapter(IServerCommand command)
+        /// <summary>
+        /// Initializes a new game console adapter.
+        /// </summary>
+        public ConsoleCommandAdapter(CommandManager commandManager, IServerCommand serverCommand)
         {
-            serverCommand = command;
+            _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
+            _serverCommand = serverCommand ?? throw new ArgumentNullException(nameof(serverCommand));
         }
 
-        public override string CommandWord => serverCommand.CommandWord;
-        public override string CommandDescription => serverCommand.Description;
-        public override string ExampleUsage => serverCommand.Usage;
+        /// <inheritdoc />
+        public override string CommandWord => _serverCommand.CommandWord;
+
+        /// <inheritdoc />
+        public override string CommandDescription => _serverCommand.Description;
+
+        /// <inheritdoc />
+        public override string ExampleUsage => _serverCommand.Usage;
 
         private void ExecuteCore(List<string> args)
         {
             try
             {
-                var context = new CommandContext
-                {
-                    Executor = null,
-                    Arguments = args,
-                    Logger = null,
-                    PlayerManager = null
-                };
-
-                serverCommand.Execute(context);
+                ParsedCommandLine commandLine = new ParsedCommandLine(CommandWord.ToLowerInvariant(), args ?? new List<string>());
+                _commandManager.ExecuteConsoleLine(commandLine, new GameConsoleCommandOutput());
             }
             catch (Exception ex)
             {
@@ -327,12 +346,13 @@ namespace DedicatedServerMod.Server.Commands
         }
 
 #if IL2CPP
+        /// <inheritdoc />
         public override void Execute(Il2CppSystem.Collections.Generic.List<string> args)
         {
-            var managedArgs = new List<string>();
+            List<string> managedArgs = new List<string>();
             if (args != null)
             {
-                for (var i = 0; i < args.Count; i++)
+                for (int i = 0; i < args.Count; i++)
                 {
                     managedArgs.Add(args[i]);
                 }
@@ -341,6 +361,7 @@ namespace DedicatedServerMod.Server.Commands
             ExecuteCore(managedArgs);
         }
 #else
+        /// <inheritdoc />
         public override void Execute(List<string> args)
         {
             ExecuteCore(args ?? new List<string>());

@@ -35,6 +35,8 @@ If you want the server to run without the MelonLoader console window:
 
 Use the TCP console or log files for monitoring once the local console window is hidden.
 
+For panel-hosted environments that control the process through stdin/stdout, prefer the stdio host console and launch with `-logFile -` so logs are emitted to stdout. See [Host Console](../host-console.md).
+
 ## Prepare a client installation
 
 1. Use your main game install, or another separate client copy.

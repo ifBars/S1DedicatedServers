@@ -10,6 +10,8 @@
 		<LangVersion>default</LangVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server;Documentation</Configurations>
+		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' == 'true'">false</AutomateLocalDeployment>
+		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' != 'true'">true</AutomateLocalDeployment>
 	</PropertyGroup>
 	
 	<!-- NuGet Package References -->
@@ -759,6 +761,7 @@
 	  <!-- Mod verification -->
 	  <Compile Include="Shared\ModVerification\*.cs" />
 	  <!-- Networking -->
+	  <Compile Include="Shared\Console\*.cs" />
 	  <Compile Include="Shared\Networking\*.cs" />
 	  <Compile Include="Shared\Networking\Messaging\*.cs" />
 	  <!-- Permissions -->
@@ -805,7 +808,7 @@
 		<Compile Include="Server\Network\NetworkManager.cs" />
 		<Compile Include="Server\Network\ServerStatusQueryService.cs" />
 		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
-		<Compile Include="Server\TcpConsole\TcpConsoleServer.cs" />
+		<Compile Include="Server\HostConsole\*.cs" />
 		
 		<!-- Player management -->
 		<Compile Include="Server\Player\PlayerManager.cs" />
@@ -816,8 +819,7 @@
 		<Compile Include="Server\Player\Auth\*.cs" />
 		
 		<!-- Command system -->
-		<Compile Include="Server\Commands\CommandManager.cs" />
-		<Compile Include="Server\Commands\IServerCommand.cs" />
+		<Compile Include="Server\Commands\*.cs" />
 		<Compile Include="Server\Commands\Admin\*.cs" />
 		<Compile Include="Server\Commands\Server\*.cs" />
 		
@@ -853,7 +855,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 	</PropertyGroup>
 
-	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(AutomateLocalDeployment)' == 'true'">
 		<!-- Client builds: copy to deployment path and restart game -->
 		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
 		<!-- Server builds: copy to deployment path only -->
