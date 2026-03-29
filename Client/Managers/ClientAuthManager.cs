@@ -259,7 +259,6 @@ namespace DedicatedServerMod.Client.Managers
             {
                 _logger.Msg($"Authentication succeeded: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnAuthenticationSucceeded(result.Message);
-                CustomMessaging.SendToServer(DSConstants.Messages.RequestServerData);
             }
             else
             {

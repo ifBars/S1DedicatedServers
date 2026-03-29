@@ -44,6 +44,7 @@ using Console = Il2CppScheduleOne.Console;
 #else
 using Console = ScheduleOne.Console;
 #endif
+using DedicatedServerMod.Shared.ModVerification;
 
 namespace DedicatedServerMod.Shared.Networking
 {
@@ -107,6 +108,10 @@ namespace DedicatedServerMod.Shared.Networking
                     HandleAuthTicket(conn, data);
                     break;
 
+                case Constants.Messages.ModVerifyReport:
+                    HandleModVerificationReport(conn, data);
+                    break;
+
                 case Constants.Messages.AdminConsole:
                     HandleAdminConsoleCommand(conn, data);
                     break;
@@ -157,6 +162,8 @@ namespace DedicatedServerMod.Shared.Networking
 
                 case Constants.Messages.AuthChallenge:
                 case Constants.Messages.AuthResult:
+                case Constants.Messages.ModVerifyChallenge:
+                case Constants.Messages.ModVerifyResult:
                 case Constants.Messages.DisconnectNotice:
                 case Constants.Messages.ServerData:
                     // Handled by dedicated client managers via CustomMessaging events.
@@ -250,11 +257,6 @@ namespace DedicatedServerMod.Shared.Networking
 
         private static bool IsCommandAllowedForConnection(NetworkConnection conn, string command)
         {
-            if (!DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.AuthenticationEnabled)
-            {
-                return true;
-            }
-
             if (string.Equals(command, Constants.Messages.AuthHello, StringComparison.Ordinal) ||
                 string.Equals(command, Constants.Messages.AuthTicket, StringComparison.Ordinal))
             {
@@ -268,12 +270,57 @@ namespace DedicatedServerMod.Shared.Networking
                 return false;
             }
 
-            if (playerManager.Authentication.ShouldBypassAuthentication(playerInfo))
+            bool authenticationRequired = DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.AuthenticationEnabled &&
+                                          !playerManager.Authentication.ShouldBypassAuthentication(playerInfo);
+            if (authenticationRequired && !playerInfo.IsAuthenticated)
+            {
+                return false;
+            }
+
+            if (string.Equals(command, Constants.Messages.ModVerifyReport, StringComparison.Ordinal))
+            {
+                return !playerInfo.IsModVerificationComplete;
+            }
+
+            bool verificationRequired = playerManager.ModVerification.IsVerificationRequiredForPlayer(playerInfo);
+            if (!verificationRequired)
             {
                 return true;
             }
 
-            return playerInfo.IsAuthenticated;
+            return playerInfo.IsModVerificationComplete;
+        }
+
+        private static void HandleModVerificationReport(NetworkConnection conn, string data)
+        {
+            try
+            {
+                ServerPlayerManager playerManager = ServerBootstrap.Players;
+                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
+                if (playerInfo == null)
+                {
+                    _logger.Warning($"HandleModVerificationReport: no player tracked for ClientId {conn.ClientId}");
+                    return;
+                }
+
+                ModVerificationReportMessage reportMessage;
+                try
+                {
+                    reportMessage = JsonConvert.DeserializeObject<ModVerificationReportMessage>(data ?? string.Empty);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.Warning($"HandleModVerificationReport: invalid payload from ClientId {conn.ClientId}: {ex.Message}");
+                    playerManager.NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", "Client mod verification payload was invalid.");
+                    return;
+                }
+
+                playerManager.ModVerification.SubmitReport(playerInfo, reportMessage);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"HandleModVerificationReport error: {ex}");
+            }
         }
 
 #endif

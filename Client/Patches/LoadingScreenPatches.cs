@@ -11,7 +11,7 @@ using ScheduleOne.UI;
 namespace DedicatedServerMod.Client.Patches
 {
     /// <summary>
-    /// Holds the loading screen open until dedicated-server authentication completes.
+    /// Holds the loading screen open until dedicated-server authentication and mod verification complete.
     /// </summary>
     [HarmonyPatch]
     internal static class LoadingScreenPatches
@@ -30,7 +30,7 @@ namespace DedicatedServerMod.Client.Patches
         {
             if (ShouldHoldLoadingScreen())
             {
-                __result = "Verifying Steam ticket...";
+                __result = "Verifying server requirements...";
             }
         }
 
@@ -41,7 +41,7 @@ namespace DedicatedServerMod.Client.Patches
             bool shouldHold = ShouldHoldLoadingScreen();
             if (shouldHold)
             {
-                _logger?.Msg("Holding loading screen open until dedicated authentication completes");
+                _logger?.Msg("Holding loading screen open until dedicated join verification completes");
             }
 
             return !shouldHold;

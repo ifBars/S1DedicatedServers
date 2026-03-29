@@ -12,6 +12,7 @@ using DedicatedServerMod.Client.Patchers;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
+[assembly: MelonOptionalDependencies("MLVScan.MelonLoader")]
 
 namespace DedicatedServerMod.Client.Core
 {
@@ -55,6 +56,11 @@ namespace DedicatedServerMod.Client.Core
         /// The auth manager for Steam ticket handshake.
         /// </summary>
         private ClientAuthManager _authManager;
+
+        /// <summary>
+        /// The client mod verification manager for post-auth join gating.
+        /// </summary>
+        private ClientModVerificationManager _modVerificationManager;
 
         /// <summary>
         /// The UI manager for client UI elements.
@@ -121,6 +127,11 @@ namespace DedicatedServerMod.Client.Core
         /// Gets the client authentication manager used for the dedicated-server Steam ticket handshake.
         /// </summary>
         public ClientAuthManager AuthManager => _authManager;
+
+        /// <summary>
+        /// Gets the client mod verification manager used after authentication succeeds.
+        /// </summary>
+        public ClientModVerificationManager ModVerificationManager => _modVerificationManager;
 
         /// <summary>
         /// Gets the client UI manager used by the dedicated-server client features.
@@ -280,6 +291,10 @@ namespace DedicatedServerMod.Client.Core
             _authManager = new ClientAuthManager(_logger);
             _authManager.Initialize();
 
+            // Initialize client mod verification manager
+            _modVerificationManager = new ClientModVerificationManager(_logger);
+            _modVerificationManager.Initialize();
+
             // Initialize console manager (for admin console access)
             _consoleManager = new ClientConsoleManager(_logger);
             _consoleManager.Initialize();
@@ -413,6 +428,15 @@ namespace DedicatedServerMod.Client.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Error shutting down client auth manager: {ex.Message}");
+            }
+
+            try
+            {
+                _modVerificationManager?.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down client mod verification manager: {ex.Message}");
             }
 
             try

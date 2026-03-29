@@ -10,6 +10,8 @@
     href: configuration.md
   - name: Authentication
     href: configuration/authentication.md
+  - name: Client Mod Verification
+    href: configuration/client-mod-verification.md
   - name: Messaging Backends
     href: configuration/messaging-backends.md
   - name: Save Path
@@ -38,6 +40,8 @@
     href: modding/server.md
   - name: Client API
     href: modding/client.md
+  - name: Companion Mods
+    href: modding/companion-mods.md
   - name: Custom Messaging
     href: modding/messaging.md
 - name: Troubleshooting

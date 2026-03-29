@@ -117,6 +117,68 @@ namespace DedicatedServerMod.Shared.Configuration
         public bool AuthAllowLoopbackBypass { get; set; } = true;
 
         /// <summary>
+        /// Whether the client mod verification handshake is enabled.
+        /// </summary>
+        /// <remarks>
+        /// Enabled by default. When enabled, authenticated players must complete the dedicated
+        /// client mod verification handshake before their join flow is finalized.
+        /// </remarks>
+        [JsonProp(Utils.Constants.ConfigKeys.ModVerificationEnabled)]
+        public bool ModVerificationEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Timeout in seconds for client mod verification.
+        /// </summary>
+        /// <remarks>
+        /// This timeout begins after authentication succeeds or is bypassed. Clients that do not
+        /// return a verification report in time are disconnected before normal gameplay traffic is allowed.
+        /// </remarks>
+        [JsonProp(Utils.Constants.ConfigKeys.ModVerificationTimeoutSeconds)]
+        public int ModVerificationTimeoutSeconds { get; set; } = Utils.Constants.DefaultModVerificationTimeoutSeconds;
+
+        /// <summary>
+        /// Whether to reject clients that match the embedded risky client mod catalog.
+        /// </summary>
+        /// <remarks>
+        /// This is enabled by default and is intended to catch known high-risk tools such as
+        /// runtime inspectors or mutation utilities even when unpaired client-only mods are otherwise allowed.
+        /// </remarks>
+        [JsonProp(Utils.Constants.ConfigKeys.BlockKnownRiskyClientMods)]
+        public bool BlockKnownRiskyClientMods { get; set; } = true;
+
+        /// <summary>
+        /// Whether unpaired client-only mods are allowed.
+        /// </summary>
+        /// <remarks>
+        /// This defaults to <see langword="true"/> for usability. Disable it only when you want
+        /// the server to reject client-only mods that are not paired with an installed server mod.
+        /// </remarks>
+        [JsonProp(Utils.Constants.ConfigKeys.AllowUnpairedClientMods)]
+        public bool AllowUnpairedClientMods { get; set; } = true;
+
+        /// <summary>
+        /// Whether strict client mod mode is enabled.
+        /// </summary>
+        /// <remarks>
+        /// Strict mode hardens verification by requiring exact hash pins for paired companions and
+        /// approved unpaired client-only mods. It is intended for hardened or private servers and
+        /// can cause startup validation failures when required companions do not provide strict hashes.
+        /// </remarks>
+        [JsonProp(Utils.Constants.ConfigKeys.StrictClientModMode)]
+        public bool StrictClientModMode { get; set; } = false;
+
+        /// <summary>
+        /// Optional custom path to the client mod policy file.
+        /// When empty, the default policy path in UserData is used.
+        /// </summary>
+        /// <remarks>
+        /// The policy file stores deny lists, strict-mode hash overrides, and approved unpaired
+        /// client-only mods. Relative paths are resolved from the MelonLoader user data directory.
+        /// </remarks>
+        [JsonProp(Utils.Constants.ConfigKeys.ModPolicyPath)]
+        public string ModPolicyPath { get; set; } = string.Empty;
+
+        /// <summary>
         /// Whether to log in with Steam game server anonymous account mode.
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerLogOnAnonymous)]
@@ -742,6 +804,53 @@ namespace DedicatedServerMod.Shared.Configuration
                         }
                         break;
 
+                    case "--mod-verification":
+                        Instance.ModVerificationEnabled = true;
+                        Logger.Msg("Client mod verification enabled via command line");
+                        break;
+
+                    case "--no-mod-verification":
+                        Instance.ModVerificationEnabled = false;
+                        Logger.Msg("Client mod verification disabled via command line");
+                        break;
+
+                    case "--mod-verification-timeout":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int modVerificationTimeoutSeconds))
+                        {
+                            Instance.ModVerificationTimeoutSeconds = modVerificationTimeoutSeconds;
+                            Logger.Msg($"Mod verification timeout set to: {Instance.ModVerificationTimeoutSeconds}s");
+                        }
+                        break;
+
+                    case "--strict-client-mod-mode":
+                        Instance.StrictClientModMode = true;
+                        Logger.Msg("Strict client mod mode enabled via command line");
+                        break;
+
+                    case "--allow-unpaired-client-mods":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool allowUnpairedClientMods))
+                        {
+                            Instance.AllowUnpairedClientMods = allowUnpairedClientMods;
+                            Logger.Msg($"Allow unpaired client mods set to: {Instance.AllowUnpairedClientMods}");
+                        }
+                        break;
+
+                    case "--block-known-risky-client-mods":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool blockKnownRiskyClientMods))
+                        {
+                            Instance.BlockKnownRiskyClientMods = blockKnownRiskyClientMods;
+                            Logger.Msg($"Block known risky client mods set to: {Instance.BlockKnownRiskyClientMods}");
+                        }
+                        break;
+
+                    case "--mod-policy-path":
+                        if (i + 1 < args.Length)
+                        {
+                            Instance.ModPolicyPath = args[i + 1];
+                            Logger.Msg($"Client mod policy path set to: {Instance.ModPolicyPath}");
+                        }
+                        break;
+
                     case "--steam-gs-anonymous":
                         Instance.SteamGameServerLogOnAnonymous = true;
                         Logger.Msg("Steam game server anonymous login enabled");
@@ -910,6 +1019,9 @@ namespace DedicatedServerMod.Shared.Configuration
             info += $"Password Protected: {!string.IsNullOrEmpty(Instance.ServerPassword)}\n";
             info += $"Authentication: {(Instance.AuthenticationEnabled ? Instance.AuthProvider.ToString() : "Disabled")}\n";
             info += $"Auth Timeout: {Instance.AuthTimeoutSeconds}s\n";
+            info += $"Mod Verification Enabled: {Instance.ModVerificationEnabled}\n";
+            info += $"Mod Verification Timeout: {Instance.ModVerificationTimeoutSeconds}s\n";
+            info += $"Strict Client Mod Mode: {Instance.StrictClientModMode}\n";
             info += $"Messaging Backend: {Instance.MessagingBackend}\n";
             info += $"Operators: {Instance.Operators.Count}\n";
             info += $"Admins: {Instance.Admins.Count}\n";
@@ -956,6 +1068,12 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 Logger.Warning($"Invalid auth timeout {AuthTimeoutSeconds}, using default {Utils.Constants.DefaultAuthTimeoutSeconds}");
                 AuthTimeoutSeconds = Utils.Constants.DefaultAuthTimeoutSeconds;
+            }
+
+            if (ModVerificationTimeoutSeconds < 1 || ModVerificationTimeoutSeconds > 120)
+            {
+                Logger.Warning($"Invalid mod verification timeout {ModVerificationTimeoutSeconds}, using default {Utils.Constants.DefaultModVerificationTimeoutSeconds}");
+                ModVerificationTimeoutSeconds = Utils.Constants.DefaultModVerificationTimeoutSeconds;
             }
 
             if (SteamGameServerQueryPort < Utils.Constants.MinPort || SteamGameServerQueryPort > Utils.Constants.MaxPort)

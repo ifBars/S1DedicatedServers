@@ -85,6 +85,11 @@ namespace DedicatedServerMod.Utils
         public const int DefaultAuthTimeoutSeconds = 15;
 
         /// <summary>
+        /// Default timeout for the client mod verification handshake in seconds.
+        /// </summary>
+        public const int DefaultModVerificationTimeoutSeconds = 20;
+
+        /// <summary>
         /// Default Steam game server query port.
         /// </summary>
         public const int DefaultSteamGameServerQueryPort = 27016;
@@ -117,6 +122,11 @@ namespace DedicatedServerMod.Utils
         /// Default configuration file name.
         /// </summary>
         public const string ConfigFileName = "server_config.json";
+
+        /// <summary>
+        /// Default client mod policy file name.
+        /// </summary>
+        public const string ClientModPolicyFileName = "client_mod_policy.json";
 
         /// <summary>
         /// Default admin actions log file name.
@@ -215,6 +225,21 @@ namespace DedicatedServerMod.Utils
             /// Disconnect notice message (server -> client) sent before an intentional kick/disconnect.
             /// </summary>
             public const string DisconnectNotice = "disconnect_notice";
+
+            /// <summary>
+            /// Mod verification challenge message (server -> client).
+            /// </summary>
+            public const string ModVerifyChallenge = "mod_verify_challenge";
+
+            /// <summary>
+            /// Mod verification report submission (client -> server).
+            /// </summary>
+            public const string ModVerifyReport = "mod_verify_report";
+
+            /// <summary>
+            /// Mod verification result message (server -> client).
+            /// </summary>
+            public const string ModVerifyResult = "mod_verify_result";
 
             /// <summary>
             /// Welcome message (server → client on connect).
@@ -407,6 +432,12 @@ namespace DedicatedServerMod.Utils
             public const string AuthProvider = "authProvider";
             public const string AuthTimeoutSeconds = "authTimeoutSeconds";
             public const string AuthAllowLoopbackBypass = "authAllowLoopbackBypass";
+            public const string ModVerificationEnabled = "modVerificationEnabled";
+            public const string ModVerificationTimeoutSeconds = "modVerificationTimeoutSeconds";
+            public const string BlockKnownRiskyClientMods = "blockKnownRiskyClientMods";
+            public const string AllowUnpairedClientMods = "allowUnpairedClientMods";
+            public const string StrictClientModMode = "strictClientModMode";
+            public const string ModPolicyPath = "modPolicyPath";
             public const string SteamGameServerLogOnAnonymous = "steamGameServerLogOnAnonymous";
             public const string SteamGameServerToken = "steamGameServerToken";
             public const string SteamGameServerQueryPort = "steamGameServerQueryPort";

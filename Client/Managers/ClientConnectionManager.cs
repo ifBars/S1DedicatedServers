@@ -61,6 +61,7 @@ namespace DedicatedServerMod.Client.Managers
 
         private bool _worldLoadCompleted;
         private bool _authSucceeded;
+        private bool _modVerificationSucceeded;
         private bool _joinCompletionNotified;
         private bool _isReturningToMenu;
         private bool _isConnectionStateHooked;
@@ -70,7 +71,7 @@ namespace DedicatedServerMod.Client.Managers
         public bool IsConnecting { get; private set; }
         public bool IsConnectedToDedicatedServer { get; private set; }
         public string LastConnectionError { get; private set; }
-        public bool ShouldBlockLoadingScreenClose => IsConnecting && !_isReturningToMenu && _worldLoadCompleted && !_authSucceeded;
+        public bool ShouldBlockLoadingScreenClose => IsConnecting && !_isReturningToMenu && _worldLoadCompleted && (!_authSucceeded || !_modVerificationSucceeded);
 
         public event Action<string, int> DedicatedServerConnected;
 
@@ -136,6 +137,7 @@ namespace DedicatedServerMod.Client.Managers
             ServerDataStore.Reset();
             _worldLoadCompleted = false;
             _authSucceeded = false;
+            _modVerificationSucceeded = false;
             _joinCompletionNotified = false;
             _isReturningToMenu = false;
             IsConnecting = true;
@@ -308,8 +310,8 @@ namespace DedicatedServerMod.Client.Managers
             timeline.Mark("ClientLoadComplete");
             timeline.PrintSummary();
 
-            if (_authSucceeded)
-                CompleteJoinAfterAuthentication();
+            if (_authSucceeded && _modVerificationSucceeded)
+                CompleteJoinAfterVerification();
         }
 
         /// <summary>
@@ -399,17 +401,36 @@ namespace DedicatedServerMod.Client.Managers
         {
             _authSucceeded = true;
 
-            if (_worldLoadCompleted)
+            if (_worldLoadCompleted && _modVerificationSucceeded)
             {
-                CompleteJoinAfterAuthentication();
+                CompleteJoinAfterVerification();
             }
             else
             {
-                logger.Msg("Authentication succeeded before world load finalized; waiting to complete join");
+                logger.Msg("Authentication succeeded; waiting for mod verification and world load completion");
             }
         }
 
         public void OnAuthenticationFailed(string reason)
+        {
+            ReturnToMenu(reason, isFailure: true, requestPlayerSave: false);
+        }
+
+        public void OnModVerificationSucceeded(string message)
+        {
+            _modVerificationSucceeded = true;
+
+            if (_worldLoadCompleted && _authSucceeded)
+            {
+                CompleteJoinAfterVerification();
+            }
+            else
+            {
+                logger.Msg("Client mod verification succeeded before world load finalized; waiting to complete join");
+            }
+        }
+
+        public void OnModVerificationFailed(string reason)
         {
             ReturnToMenu(reason, isFailure: true, requestPlayerSave: false);
         }
@@ -419,9 +440,9 @@ namespace DedicatedServerMod.Client.Managers
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
         }
 
-        private void CompleteJoinAfterAuthentication()
+        private void CompleteJoinAfterVerification()
         {
-            if (_joinCompletionNotified || !_worldLoadCompleted || !_authSucceeded)
+            if (_joinCompletionNotified || !_worldLoadCompleted || !_authSucceeded || !_modVerificationSucceeded)
             {
                 return;
             }
@@ -435,7 +456,7 @@ namespace DedicatedServerMod.Client.Managers
                 Singleton<LoadingScreen>.Instance.Close();
             }
 
-            logger.Msg("Dedicated server join fully completed after authentication");
+            logger.Msg("Dedicated server join fully completed after authentication and client mod verification");
 
             try
             {
@@ -558,12 +579,14 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
+            ClientBootstrap.Instance?.ModVerificationManager?.OnDisconnected();
 
             IsConnecting = false;
             IsConnectedToDedicatedServer = false;
             ServerDataStore.Reset();
             _worldLoadCompleted = false;
             _authSucceeded = false;
+            _modVerificationSucceeded = false;
             _joinCompletionNotified = false;
             _isTugboatMode = false;
 
@@ -694,6 +717,8 @@ namespace DedicatedServerMod.Client.Managers
                 status += $"FishNet Is Server: {InstanceFinder.IsServer}\n";
                 status += $"Current Scene: {SceneManager.GetActiveScene().name}\n";
                 status += $"Player Local: {(Player.Local != null ? "Spawned" : "Not Spawned")}\n";
+                status += $"Auth Succeeded: {_authSucceeded}\n";
+                status += $"Mod Verification Succeeded: {_modVerificationSucceeded}\n";
 
                 if (!string.IsNullOrEmpty(LastConnectionError))
                     status += $"Last Error: {LastConnectionError}\n";

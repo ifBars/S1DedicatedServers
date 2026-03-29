@@ -27,6 +27,7 @@ using Il2CppFishNet.Transporting;
 using FishNet.Transporting;
 #endif
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.ModVerification;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 using Newtonsoft.Json;
@@ -45,6 +46,7 @@ namespace DedicatedServerMod.Server.Player
         private readonly MelonLogger.Instance logger;
         private readonly Dictionary<NetworkConnection, ConnectedPlayerInfo> connectedPlayers;
         private readonly PlayerAuthentication authentication;
+        private readonly ClientModVerificationManager modVerification;
         private readonly PlayerPermissions permissions;
 
         public PlayerManager(MelonLogger.Instance loggerInstance)
@@ -52,6 +54,7 @@ namespace DedicatedServerMod.Server.Player
             logger = loggerInstance;
             connectedPlayers = new Dictionary<NetworkConnection, ConnectedPlayerInfo>();
             authentication = new PlayerAuthentication(logger);
+            modVerification = new ClientModVerificationManager(logger);
             permissions = new PlayerPermissions(logger);
         }
 
@@ -64,6 +67,11 @@ namespace DedicatedServerMod.Server.Player
         /// Gets the player authentication manager
         /// </summary>
         public PlayerAuthentication Authentication => authentication;
+
+        /// <summary>
+        /// Gets the client mod verification manager.
+        /// </summary>
+        internal ClientModVerificationManager ModVerification => modVerification;
 
         /// <summary>
         /// Gets the player permissions manager
@@ -80,6 +88,8 @@ namespace DedicatedServerMod.Server.Player
                 SetupPlayerHooks();
                 authentication.Initialize();
                 authentication.AuthenticationCompleted += OnAuthenticationCompleted;
+                modVerification.Initialize();
+                modVerification.VerificationCompleted += OnModVerificationCompleted;
                 permissions.Initialize();
                 logger.Msg("Player manager initialized");
             }
@@ -171,6 +181,8 @@ namespace DedicatedServerMod.Server.Player
                         ClientId = connection.ClientId,
                         IsLoopbackConnection = IsLoopbackConnection(connection),
                         IsAuthenticated = false,
+                        IsModVerificationComplete = false,
+                        IsModVerificationPending = false,
                         IsAuthenticationPending = false,
                         IsDisconnectProcessed = false
                     };
@@ -183,6 +195,9 @@ namespace DedicatedServerMod.Server.Player
                     playerInfo.ClientId = connection.ClientId;
                     playerInfo.IsLoopbackConnection = IsLoopbackConnection(connection);
                     playerInfo.IsDisconnectProcessed = false;
+                    playerInfo.IsModVerificationComplete = false;
+                    playerInfo.IsModVerificationPending = false;
+                    playerInfo.ModVerificationNonce = string.Empty;
                     connectedPlayers[connection] = playerInfo;
                 }
 
@@ -191,18 +206,7 @@ namespace DedicatedServerMod.Server.Player
                 bool requiresAuthentication = authentication.IsAuthenticationRequiredForPlayer(playerInfo);
                 if (!requiresAuthentication)
                 {
-                    AuthenticationResult bypassResult = new AuthenticationResult
-                    {
-                        IsSuccessful = true,
-                        Message = playerInfo.IsLoopbackConnection
-                            ? "Loopback connection bypassed authentication"
-                            : "Authentication not required"
-                    };
-
-                    playerInfo.IsAuthenticated = true;
-                    playerInfo.IsAuthenticationPending = false;
-
-                    SendAuthResultToClient(playerInfo, bypassResult);
+                    TrySatisfyNoAuthFlow(playerInfo);
                     TryFinalizePlayerJoin(playerInfo, "connection established without auth requirement");
                 }
                 else
@@ -319,12 +323,8 @@ namespace DedicatedServerMod.Server.Player
             SweepDisconnectedPlayers();
             authentication.Tick();
 
-            if (!ServerConfig.Instance.AuthenticationEnabled)
-            {
-                return;
-            }
-
-            var pendingDisconnects = new List<ConnectedPlayerInfo>();
+            var pendingAuthDisconnects = new List<ConnectedPlayerInfo>();
+            var pendingVerificationDisconnects = new List<ConnectedPlayerInfo>();
             foreach (var playerInfo in connectedPlayers.Values)
             {
                 if (playerInfo == null || playerInfo.Connection == null || !playerInfo.Connection.IsActive)
@@ -332,27 +332,43 @@ namespace DedicatedServerMod.Server.Player
                     continue;
                 }
 
-                if (playerInfo.IsAuthenticated || playerInfo.IsAuthenticationPending)
+                if (ServerConfig.Instance.AuthenticationEnabled &&
+                    !playerInfo.IsAuthenticated &&
+                    !playerInfo.IsAuthenticationPending &&
+                    !authentication.ShouldBypassAuthentication(playerInfo))
+                {
+                    TimeSpan authElapsed = DateTime.Now - playerInfo.ConnectTime;
+                    if (authElapsed.TotalSeconds > ServerConfig.Instance.AuthTimeoutSeconds)
+                    {
+                        pendingAuthDisconnects.Add(playerInfo);
+                    }
+                }
+
+                if (!modVerification.IsVerificationRequiredForPlayer(playerInfo) ||
+                    !playerInfo.IsModVerificationPending ||
+                    playerInfo.IsModVerificationComplete)
                 {
                     continue;
                 }
 
-                if (authentication.ShouldBypassAuthentication(playerInfo))
+                DateTime startedAtLocal = playerInfo.ModVerificationStartedAtUtc?.ToLocalTime() ?? playerInfo.ConnectTime;
+                TimeSpan verificationElapsed = DateTime.Now - startedAtLocal;
+                if (verificationElapsed.TotalSeconds > ServerConfig.Instance.ModVerificationTimeoutSeconds)
                 {
-                    continue;
-                }
-
-                TimeSpan elapsed = DateTime.Now - playerInfo.ConnectTime;
-                if (elapsed.TotalSeconds > ServerConfig.Instance.AuthTimeoutSeconds)
-                {
-                    pendingDisconnects.Add(playerInfo);
+                    pendingVerificationDisconnects.Add(playerInfo);
                 }
             }
 
-            foreach (var playerInfo in pendingDisconnects)
+            foreach (var playerInfo in pendingAuthDisconnects)
             {
                 logger.Warning($"Disconnecting ClientId {playerInfo.ClientId}: authentication handshake timed out");
                 playerInfo.Connection.Disconnect(true);
+            }
+
+            foreach (var playerInfo in pendingVerificationDisconnects)
+            {
+                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId}: client mod verification timed out");
+                NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", "Client mod verification timed out.");
             }
         }
 
@@ -368,7 +384,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (result.IsSuccessful)
             {
-                TryFinalizePlayerJoin(playerInfo, "authentication completed");
+                BeginModVerification(playerInfo);
                 return;
             }
 
@@ -376,6 +392,29 @@ namespace DedicatedServerMod.Server.Player
             {
                 logger.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to auth failure: {result.Message}");
                 playerInfo.Connection.Disconnect(true);
+            }
+        }
+
+        private void OnModVerificationCompleted(ConnectedPlayerInfo playerInfo, ModVerificationEvaluationResult result)
+        {
+            if (playerInfo == null || result == null)
+            {
+                return;
+            }
+
+            DebugLog.PlayerLifecycleDebug($"Client mod verification completed for ClientId {playerInfo.ClientId}: success={result.Success} message='{result.Message}'");
+            SendModVerificationResultToClient(playerInfo, result);
+
+            if (result.Success)
+            {
+                TryFinalizePlayerJoin(playerInfo, "client mod verification completed");
+                return;
+            }
+
+            if (result.ShouldDisconnect && playerInfo.Connection != null && playerInfo.Connection.IsActive)
+            {
+                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to client mod verification failure: {result.Message}");
+                NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", result.Message);
             }
         }
 
@@ -406,6 +445,13 @@ namespace DedicatedServerMod.Server.Player
             if (requiresAuthentication && !playerInfo.IsAuthenticated)
             {
                 DebugLog.PlayerLifecycleDebug($"Join finalization deferred during {reason}: ClientId {playerInfo.ClientId} is not authenticated yet");
+                return;
+            }
+
+            bool requiresModVerification = modVerification.IsVerificationRequiredForPlayer(playerInfo);
+            if (requiresModVerification && !playerInfo.IsModVerificationComplete)
+            {
+                DebugLog.PlayerLifecycleDebug($"Join finalization deferred during {reason}: ClientId {playerInfo.ClientId} has not completed client mod verification yet");
                 return;
             }
 
@@ -441,6 +487,56 @@ namespace DedicatedServerMod.Server.Player
             {
                 logger.Warning($"Failed to send auth result to ClientId {playerInfo.ClientId}: {ex.Message}");
             }
+        }
+
+        private void SendModVerificationResultToClient(ConnectedPlayerInfo playerInfo, ModVerificationEvaluationResult result)
+        {
+            if (playerInfo?.Connection == null || result == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var payload = new ModVerificationResultMessage
+                {
+                    Success = result.Success,
+                    Message = result.Message ?? string.Empty
+                };
+
+                string json = JsonConvert.SerializeObject(payload);
+                CustomMessaging.SendToClientOrDeferUntilReady(playerInfo.Connection, Constants.Messages.ModVerifyResult, json);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Failed to send mod verification result to ClientId {playerInfo.ClientId}: {ex.Message}");
+            }
+        }
+
+        private void BeginModVerification(ConnectedPlayerInfo playerInfo)
+        {
+            if (playerInfo == null || playerInfo.IsModVerificationPending || playerInfo.IsModVerificationComplete)
+            {
+                return;
+            }
+
+            if (!modVerification.IsVerificationRequiredForPlayer(playerInfo))
+            {
+                ModVerificationResultMessage bypassResult = modVerification.BypassVerification(playerInfo);
+                SendModVerificationResultToClient(playerInfo, ModVerificationEvaluationResult.SuccessResult(bypassResult.Message));
+                TryFinalizePlayerJoin(playerInfo, "client mod verification bypassed");
+                return;
+            }
+
+            ModVerificationChallengeMessage challenge = modVerification.CreateChallenge(playerInfo);
+            if (challenge == null)
+            {
+                NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", "Failed to start client mod verification.");
+                return;
+            }
+
+            string json = JsonConvert.SerializeObject(challenge);
+            CustomMessaging.SendToClientOrDeferUntilReady(playerInfo.Connection, Constants.Messages.ModVerifyChallenge, json);
         }
 
         private void SendInitialServerDataToClient(NetworkConnection connection)
@@ -698,6 +794,8 @@ namespace DedicatedServerMod.Server.Player
                     ClientId = connection.ClientId,
                     IsLoopbackConnection = IsLoopbackConnection(connection),
                     IsAuthenticated = false,
+                    IsModVerificationComplete = false,
+                    IsModVerificationPending = false,
                     IsAuthenticationPending = false,
                     IsDisconnectProcessed = false
                 };
@@ -934,6 +1032,8 @@ namespace DedicatedServerMod.Server.Player
 
                 authentication.AuthenticationCompleted -= OnAuthenticationCompleted;
                 authentication.Shutdown();
+                modVerification.VerificationCompleted -= OnModVerificationCompleted;
+                modVerification.Shutdown();
 
                 // Remove hooks
                 if (InstanceFinder.ServerManager != null)
@@ -1068,6 +1168,7 @@ namespace DedicatedServerMod.Server.Player
             };
 
             SendAuthResultToClient(playerInfo, bypassResult);
+            BeginModVerification(playerInfo);
         }
 
         private static PlayerScript TryResolveSpawnedPlayer(NetworkConnection connection)

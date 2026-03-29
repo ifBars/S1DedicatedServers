@@ -28,11 +28,13 @@ Current release status: `0.2.1-beta`. The project is usable, but the runtime and
 - [Installation](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html)
 - [Configuration](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html)
 - [Authentication](https://ifbars.github.io/S1DedicatedServers/docs/configuration/authentication.html)
+- [Client mod verification](https://ifbars.github.io/S1DedicatedServers/docs/configuration/client-mod-verification.html)
 - [Commands and permissions](https://ifbars.github.io/S1DedicatedServers/docs/commands.html)
 - [Troubleshooting](https://ifbars.github.io/S1DedicatedServers/docs/troubleshooting.html)
 - [Mod API overview](https://ifbars.github.io/S1DedicatedServers/docs/modding/overview.html)
 - [Server modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/server.html)
 - [Client modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/client.html)
+- [Companion mod metadata](https://ifbars.github.io/S1DedicatedServers/docs/modding/companion-mods.html)
 - [API reference](https://ifbars.github.io/S1DedicatedServers/reference/index.html)
 
 ## Development

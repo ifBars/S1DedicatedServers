@@ -94,6 +94,36 @@ namespace DedicatedServerMod.Server.Player
         public bool HasCompletedJoinFlow { get; set; }
 
         /// <summary>
+        /// Whether client mod verification has completed successfully for this player.
+        /// </summary>
+        public bool IsModVerificationComplete { get; set; }
+
+        /// <summary>
+        /// Whether client mod verification is currently pending for this player.
+        /// </summary>
+        public bool IsModVerificationPending { get; set; }
+
+        /// <summary>
+        /// The most recent mod verification challenge nonce issued by the server.
+        /// </summary>
+        public string ModVerificationNonce { get; set; }
+
+        /// <summary>
+        /// UTC timestamp when the current mod verification attempt started.
+        /// </summary>
+        public DateTime? ModVerificationStartedAtUtc { get; set; }
+
+        /// <summary>
+        /// UTC timestamp when the most recent mod verification attempt completed.
+        /// </summary>
+        public DateTime? LastModVerificationAttemptUtc { get; set; }
+
+        /// <summary>
+        /// Last mod verification status message produced for this player.
+        /// </summary>
+        public string LastModVerificationMessage { get; set; }
+
+        /// <summary>
         /// Whether disconnect cleanup has already been processed for this tracked player entry.
         /// </summary>
         public bool IsDisconnectProcessed { get; set; }
@@ -181,9 +211,10 @@ namespace DedicatedServerMod.Server.Player
         {
             var status = IsSpawned ? "Spawned" : "Connected";
             var auth = IsAuthenticated ? "Auth" : (IsAuthenticationPending ? "AuthPending" : "NoAuth");
+            var modVerification = IsModVerificationComplete ? "ModVerified" : (IsModVerificationPending ? "ModVerifyPending" : "NoModVerify");
             var duration = ConnectionDuration.ToString(@"mm\:ss");
             
-            return $"{DisplayName} (ID: {ClientId}, Steam: {SteamId ?? "N/A"}, {status}, {auth}, {duration})";
+            return $"{DisplayName} (ID: {ClientId}, Steam: {SteamId ?? "N/A"}, {status}, {auth}, {modVerification}, {duration})";
         }
 
         /// <summary>

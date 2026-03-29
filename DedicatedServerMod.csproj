@@ -742,6 +742,8 @@
 	<ItemGroup>
 	  <Compile Include="API\Version.cs" />
 	  <Compile Include="API\S1DS.cs" />
+	  <Compile Include="API\S1DSClientCompanionAttribute.cs" />
+	  <Compile Include="API\S1DSClientModIdentityAttribute.cs" />
 	  <Compile Include="API\IServerMod.cs" />
 	  <Compile Include="API\IClientMod.cs" />
 	  <Compile Include="API\ModManager.cs" />
@@ -754,6 +756,8 @@
 	<ItemGroup>
 	  <!-- Configuration -->
 	  <Compile Include="Shared\Configuration\*.cs" />
+	  <!-- Mod verification -->
+	  <Compile Include="Shared\ModVerification\*.cs" />
 	  <!-- Networking -->
 	  <Compile Include="Shared\Networking\*.cs" />
 	  <Compile Include="Shared\Networking\Messaging\*.cs" />
@@ -807,6 +811,7 @@
 		<Compile Include="Server\Player\PlayerManager.cs" />
 		<Compile Include="Server\Player\ConnectedPlayerInfo.cs" />
 		<Compile Include="Server\Player\PlayerAuthentication.cs" />
+		<Compile Include="Server\Player\ClientModVerificationManager.cs" />
 		<Compile Include="Server\Player\PlayerPermissions.cs" />
 		<Compile Include="Server\Player\Auth\*.cs" />
 		

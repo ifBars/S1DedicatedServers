@@ -2,26 +2,26 @@
 title: Client API
 ---
 
-Client mods implement `IClientMod` (or inherit `ClientModBase` / `ClientMelonModBase`) and access client managers via `S1DS.Client`.
+Client mods implement `IClientMod` or inherit `ClientModBase` / `ClientMelonModBase`. Use `S1DS.Client` for access to dedicated-client systems.
 
-## Lifecycle hooks
+## Lifecycle Hooks
 
 - `OnClientInitialize()`
 - `OnClientShutdown()`
 - `OnConnectedToServer()`
 - `OnDisconnectedFromServer()`
 - `OnClientPlayerReady()`
-- `bool OnCustomMessage(string messageType, byte[] data)`
+- `OnCustomMessage(string messageType, byte[] data)`
 
-Use `OnClientPlayerReady()` for logic that depends on UI and messaging being initialized.
+Use `OnClientPlayerReady()` for logic that depends on UI and messaging already being initialized.
 
-## Client systems
+## Client Systems
 
-Available in CLIENT builds via `S1DS.Client`:
+Available in `CLIENT` builds via `S1DS.Client`:
 
 - `ClientCore`
-- `Connection` (connection status, connect/disconnect)
-- `UI` (UI manager)
+- `Connection`
+- `UI`
 - `Console`
 - `Quests`
 - `Loopback`
@@ -47,15 +47,13 @@ public override void OnClientPlayerReady()
 
 ### Auto-discovery
 
-Any `MelonMod` that implements `IClientMod` is automatically discovered and registered. This works with:
+Any `MelonMod` that implements `IClientMod` is discovered automatically. This includes:
 
-- `SideAwareMelonModBase` (both server and client hooks)
-- `ClientMelonModBase` (client-only mod with auto-discovery)
-- Any class that implements `IClientMod`
+- `SideAwareMelonModBase`
+- `ClientMelonModBase`
+- direct `IClientMod` implementations
 
 ### Manual registration
-
-For more control, create separate client handler classes and register them explicitly:
 
 ```csharp
 internal sealed class MyClientHandler : ClientModBase
@@ -76,8 +74,27 @@ public sealed class MyMod : MelonMod
 }
 ```
 
-Registration ensures client message forwarding is wired so `OnCustomMessage` can be triggered.
+Registration ensures client message forwarding is wired so `OnCustomMessage` can be delivered.
 
-Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase` / `SideAwareMelonModBase`. Those classes are auto-discovered already, and mixing both patterns causes duplicate lifecycle delivery.
+Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase` / `SideAwareMelonModBase`.
 
-For exact signatures and XML documentation, use the generated API Reference section alongside this guide.
+## Declaring Client Mod Identity
+
+If your client mod may be checked by a dedicated server, declare its stable identity at the assembly level:
+
+```csharp
+using DedicatedServerMod.API;
+
+[assembly: S1DSClientModIdentity("ghost.marketterminal", "2.1.0")]
+```
+
+This is strongly recommended for:
+
+- client companions paired with a server mod
+- client-only mods that server owners may want to identify by stable mod ID
+
+When the mod is paired, the `modId` should match the server-side `S1DSClientCompanionAttribute`.
+
+See [Companion Mods and Verification Metadata](companion-mods.md) for the full paired-mod workflow and strict-mode notes.
+
+For exact signatures and XML documentation, use the generated API reference alongside this guide.

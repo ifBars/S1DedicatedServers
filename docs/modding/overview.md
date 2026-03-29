@@ -2,21 +2,18 @@
 title: Mod API Overview
 ---
 
-The S1 Dedicated Server Mod API lets you write server-side and client-side mods with clear lifecycle hooks and safe access to core systems. It's designed around partial classes and conditional compilation so the same codebase can compile for server or client.
+The S1 Dedicated Server Mod API lets you write server-side and client-side mods with clear lifecycle hooks and safe access to core systems. It is designed around partial classes and conditional compilation so the same codebase can compile for server or client.
 
-Use these guides for concepts and workflows, then switch to the generated API Reference section for exact signatures and XML documentation.
+Use these guides for workflows and architecture, then use the generated API reference for exact signatures and XML documentation.
 
 ## Architecture
 
-- S1DS core is split by build symbols:
-  - SERVER build: `S1DS.Server` is available
-  - CLIENT build: `S1DS.Client` is available
-  - Shared: `S1DS.IsServer`, `S1DS.IsClient`, `S1DS.BuildConfig`, and `S1DS.Shared.Config`
-- Mods implement `IServerMod` and/or `IClientMod` to receive lifecycle callbacks, or inherit the provided base classes.
+- `S1DS.Server` is available in `SERVER` builds
+- `S1DS.Client` is available in `CLIENT` builds
+- shared access lives under `S1DS.IsServer`, `S1DS.IsClient`, `S1DS.BuildConfig`, and `S1DS.Shared.Config`
+- mods implement `IServerMod` and/or `IClientMod`, or inherit the provided base classes
 
-## Quick start
-
-Implement callbacks in a Melon mod using the side-aware base:
+## Quick Start
 
 ```csharp
 using MelonLoader;
@@ -31,50 +28,22 @@ public sealed class MyMod : SideAwareMelonModBase
 
     public override void OnClientPlayerReady()
     {
-        // Client UI/messaging is ready here
+        // Client UI and messaging are ready here.
     }
 }
 ```
 
-Alternatively, keep server and client in separate types using `ServerMelonModBase` / `ClientMelonModBase`.
+If you prefer separate types, use `ServerMelonModBase` and `ClientMelonModBase`.
 
-## Registration approaches
+## Registration Approaches
 
-### 1. Single mod with auto-discovery
+### Auto-discovery
 
-Inherit from any of the `*MelonModBase` classes to implement server and/or client hooks in one class:
+Any `MelonMod` that inherits from the provided `*MelonModBase` types or directly implements `IServerMod` / `IClientMod` is discovered automatically.
 
-```csharp
-// Server-only mod
-public sealed class ServerOnlyMod : ServerMelonModBase
-{
-    public override void OnServerInitialize() { }
-    public override void OnPlayerConnected(string playerId) { }
-}
+### Manual registration
 
-// Client-only mod  
-public sealed class ClientOnlyMod : ClientMelonModBase
-{
-    public override void OnClientPlayerReady() { }
-}
-
-// Both server and client in one class
-public sealed class BothSidesMod : SideAwareMelonModBase
-{
-    // Server hooks
-    public override void OnServerInitialize() { }
-    public override void OnPlayerConnected(string playerId) { }
-    
-    // Client hooks  
-    public override void OnClientPlayerReady() { }
-}
-```
-
-**Auto-discovery**: Any `MelonMod` that inherits from `*MelonModBase` or implements `IServerMod`/`IClientMod` is automatically discovered and registered.
-
-### 2. Separate handlers with manual registration
-
-Create separate non-Melon handler classes and register them in your main `MelonMod`:
+If you want a thin bootstrap mod with plain handler objects, register them manually:
 
 ```csharp
 internal sealed class MyServerHandler : ServerModBase
@@ -101,17 +70,29 @@ public sealed class MyBootstrapMod : MelonMod
 }
 ```
 
-This approach gives you more control over initialization timing and separation of concerns.
+Use one registration style per runtime object. Do not manually register a `MelonMod` that is already auto-discoverable.
 
-Choose one registration style per runtime object:
+## Lifecycle Hooks
 
-- Auto-discovery for `MelonMod` classes that implement the API interfaces directly.
-- Manual registration for plain handler objects such as `ServerModBase` / `ClientModBase`.
+Lifecycle hooks give you clear timing for:
 
-Do not manually register a `MelonMod` that is already auto-discoverable, and do not wrap a second handler layer unless you actually need that indirection.
+- server init/start/shutdown
+- player connect/disconnect
+- save/load notifications
+- client init/shutdown
+- server connect/disconnect
+- local player readiness
 
-## Lifecycle hooks
+## Companion Mods And Join Verification
 
-Lifecycle hooks provide clear timing for init/shutdown and player connect/disconnect events on server, and connection/player-ready events on client.
+DedicatedServerMod can automatically verify paired server/client mods during join.
 
+The normal workflow is:
 
+- server assembly declares `S1DSClientCompanionAttribute`
+- client assembly declares `S1DSClientModIdentityAttribute`
+- the server checks `modId` plus minimum version compatibility
+
+This avoids making normal servers maintain manual SHA-256 allowlists for every client build while still preserving a strict-mode path for hardened operators.
+
+See [Companion Mods and Verification Metadata](companion-mods.md) for the full attribute workflow.

@@ -141,6 +141,30 @@ Use one pattern per runtime object:
 
 Do not manually register a `MelonMod` that is already auto-discoverable, or the mod can receive duplicate lifecycle callbacks.
 
+## Companion Mod Metadata
+
+DedicatedServerMod also supports join-time verification for paired server/client mods.
+
+Normal usage:
+
+- server assembly declares `S1DSClientCompanionAttribute`
+- client assembly declares `S1DSClientModIdentityAttribute`
+- the server checks `modId` plus minimum version compatibility during join
+
+Example:
+
+```csharp
+[assembly: S1DSClientCompanion(
+    modId: "ghost.marketterminal",
+    displayName: "Market Terminal",
+    Required = true,
+    MinVersion = "2.0.0")]
+
+[assembly: S1DSClientModIdentity("ghost.marketterminal", "2.1.0")]
+```
+
+`PinnedSha256` exists for strict-mode servers, but the normal workflow is `modId` plus version compatibility, not per-build hash maintenance.
+
 ## Build Configuration Compatibility
 
 The API respects your csproj's conditional compilation:
