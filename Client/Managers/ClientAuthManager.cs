@@ -25,7 +25,7 @@ namespace DedicatedServerMod.Client.Managers
     /// <summary>
     /// Handles client-side authentication handshake and Steam ticket submission.
     /// </summary>
-    public sealed class ClientAuthManager
+    internal sealed class ClientAuthManager
     {
         private static readonly TimeSpan HandshakeRetryDelay = TimeSpan.FromSeconds(1);
 
@@ -44,7 +44,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Initializes a new client auth manager.
         /// </summary>
         /// <param name="logger">Logger instance.</param>
-        public ClientAuthManager(MelonLogger.Instance logger)
+        internal ClientAuthManager(MelonLogger.Instance logger)
         {
             _logger = logger;
             _activeAuthTicket = HAuthTicket.Invalid;
@@ -57,12 +57,12 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Gets whether authentication has completed successfully.
         /// </summary>
-        public bool IsAuthenticated => _isAuthenticated;
+        internal bool IsAuthenticated => _isAuthenticated;
 
         /// <summary>
         /// Initializes message subscriptions for auth handshake.
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
             CustomMessaging.EndpointReady += OnMessagingEndpointReady;
@@ -73,7 +73,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Starts the auth handshake by sending auth_hello to server.
         /// </summary>
-        public void BeginHandshake()
+        private void BeginHandshake()
         {
             if (!InstanceFinder.IsClient || InstanceFinder.IsServer)
             {
@@ -119,7 +119,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Updates runtime state for auth manager.
         /// </summary>
-        public void Update()
+        internal void Update()
         {
             TryHookConnectionState();
 
@@ -136,7 +136,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Clears auth state for disconnect scenarios.
         /// </summary>
-        public void OnDisconnected()
+        internal void OnDisconnected()
         {
             _isAuthenticated = false;
             _isHandshakeStarted = false;
@@ -147,7 +147,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Shuts down auth manager resources.
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
             CustomMessaging.EndpointReady -= OnMessagingEndpointReady;

@@ -6,7 +6,7 @@ This document provides guidance for AI coding assistants working on the Dedicate
 
 ## Project Overview
 
-**DedicatedServerMod** is a professional dedicated server framework for Schedule I, built on Unity + FishNet networking with MelonLoader modding support. It enables authoritative headless servers with client synchronization, admin systems, and extensive modding APIs.
+**DedicatedServerMod** is a professional dedicated server framework for Schedule I, built on Unity + FishNet networking with MelonLoader modding support. It enables authoritative headless servers with client synchronization, admin systems, and an extensible open-source integration surface.
 
 ### Key Characteristics
 
@@ -120,8 +120,15 @@ Four build configurations (cross-product of runtime x side):
 ### Build Properties
 
 - `local.build.props`: User-specific game paths (git-ignored)
+- `local.build.props.example`: Template to copy when adding or changing local path requirements
 - `ci.build.props`: CI-specific assembly paths (GitHub Actions)
 - `DedicatedServerMod.csproj`: Main project file with conditional references
+
+### Documentation Tooling
+
+- `docfx.json`: DocFX configuration for published documentation
+- `docs/`: Source markdown and table-of-contents files
+- `_site/`: Generated documentation output
 
 ### Assembly References
 
@@ -149,7 +156,7 @@ See [CODING_STANDARDS.md](CODING_STANDARDS.md) for complete details. Key points:
 ### Access Modifiers
 
 - **Explicit always**: Never rely on defaults
-- **`public`**: API surface for modders
+- **`public`**: Supported external surface for extensions, integrations, and intentionally exposed framework capabilities
 - **`internal`**: Cross-class coordination within assembly
 - **`protected`**: Template methods in base classes
 - **`private`**: Class-specific implementation
@@ -170,6 +177,9 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 - Keep `Server.Core.ServerBootstrap` focused on orchestration only; if it starts owning config interpretation, status formatting, command behavior, or feature-specific logic, extract that work into the responsible subsystem
 - Do not create mirror properties/methods that simply forward `ServerConfig`, manager, or subsystem state through another class unless that class is an intentional API facade
 - Prefer constructor injection between internal services (`CommandManager`, query/status services, runtime appliers) over reaching back into `ServerBootstrap` statics when a direct dependency is available
+- Treat `public` as a supported contract: if a type/member does not need to be called by external assemblies, keep it `internal` or `private`
+- Internal services should not expose `public` constructors or helper methods unless they are part of a deliberate extension seam
+- Do not leak raw `Il2Cpp*`, Unity game, or FishNet implementation types through the supported external surface unless explicitly intended and documented
 
 ---
 
@@ -310,6 +320,9 @@ dotnet build -c Il2cpp_Client   # if IL2CPP assemblies available
 
 # Check for warnings
 dotnet build -c Mono_Server -v normal | grep -i warning
+
+# Regenerate published documentation when API docs or structure changes
+docfx docfx.json
 ```
 
 ### Runtime Testing

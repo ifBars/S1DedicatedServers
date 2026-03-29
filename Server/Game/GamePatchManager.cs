@@ -28,7 +28,7 @@ namespace DedicatedServerMod.Server.Game
         private readonly List<string> appliedPatches;
         private readonly HarmonyLib.Harmony harmony;
 
-        public GamePatchManager(MelonLogger.Instance loggerInstance)
+        internal GamePatchManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
             appliedPatches = new List<string>();
@@ -38,7 +38,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Initialize and apply game patches
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -267,7 +267,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Shutdown and unpatch if necessary
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             try
             {

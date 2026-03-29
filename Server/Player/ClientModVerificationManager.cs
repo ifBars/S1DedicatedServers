@@ -29,29 +29,29 @@ namespace DedicatedServerMod.Server.Player
         private string _policyHash = string.Empty;
         private string _policyFilePath = string.Empty;
 
-        public ClientModVerificationManager(MelonLogger.Instance logger)
+        internal ClientModVerificationManager(MelonLogger.Instance logger)
         {
             _logger = logger;
             SeedKnownRiskyCatalog();
         }
 
-        public event Action<ConnectedPlayerInfo, ModVerificationEvaluationResult> VerificationCompleted;
+        internal event Action<ConnectedPlayerInfo, ModVerificationEvaluationResult> VerificationCompleted;
 
-        public string PolicyHash => _policyHash;
+        internal string PolicyHash => _policyHash;
 
-        public void Initialize()
+        internal void Initialize()
         {
             LoadPolicy();
             DiscoverCompanionRequirements();
             ValidateStrictModeConfiguration();
         }
 
-        public void Shutdown()
+        internal void Shutdown()
         {
             _companionRequirements.Clear();
         }
 
-        public bool IsVerificationRequiredForPlayer(ConnectedPlayerInfo playerInfo)
+        internal bool IsVerificationRequiredForPlayer(ConnectedPlayerInfo playerInfo)
         {
             return ServerConfig.Instance.ModVerificationEnabled &&
                    playerInfo != null &&
@@ -59,7 +59,7 @@ namespace DedicatedServerMod.Server.Player
                    !HasClientModPolicyBypass(playerInfo);
         }
 
-        public ModVerificationResultMessage BypassVerification(ConnectedPlayerInfo playerInfo)
+        internal ModVerificationResultMessage BypassVerification(ConnectedPlayerInfo playerInfo)
         {
             if (playerInfo == null)
             {
@@ -84,7 +84,7 @@ namespace DedicatedServerMod.Server.Player
             };
         }
 
-        public ModVerificationChallengeMessage CreateChallenge(ConnectedPlayerInfo playerInfo)
+        internal ModVerificationChallengeMessage CreateChallenge(ConnectedPlayerInfo playerInfo)
         {
             if (playerInfo == null)
             {
@@ -106,7 +106,7 @@ namespace DedicatedServerMod.Server.Player
             };
         }
 
-        public void SubmitReport(ConnectedPlayerInfo playerInfo, ModVerificationReportMessage report)
+        internal void SubmitReport(ConnectedPlayerInfo playerInfo, ModVerificationReportMessage report)
         {
             ModVerificationEvaluationResult result;
 

@@ -18,14 +18,14 @@ namespace DedicatedServerMod.Server.Persistence
     /// Manages game persistence including auto-saves and manual saves.
     /// Handles save triggers and coordinates with the game's save system.
     /// </summary>
-    public class PersistenceManager
+    public sealed class PersistenceManager
     {
         private readonly MelonLogger.Instance logger;
 
         private DateTime lastAutoSave = DateTime.MinValue;
         private bool saveInProgress = false;
 
-        public PersistenceManager(MelonLogger.Instance loggerInstance)
+        internal PersistenceManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
         }
@@ -43,7 +43,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// <summary>
         /// Initialize the persistence manager
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -263,7 +263,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// <summary>
         /// Shutdown the persistence manager
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             try
             {

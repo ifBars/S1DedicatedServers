@@ -16,7 +16,7 @@ namespace DedicatedServerMod.Client.Managers
     {
         private const string StatusRequestCommand = "DS_STATUS";
 
-        public Task<ServerStatusQueryResult> QueryAsync(string host, int port)
+        internal Task<ServerStatusQueryResult> QueryAsync(string host, int port)
         {
             return Task.Run(() => Query(host, port));
         }
@@ -52,14 +52,14 @@ namespace DedicatedServerMod.Client.Managers
 
     internal sealed class ServerStatusQueryResult
     {
-        public ServerStatusQueryResult(ServerStatusSnapshot snapshot, int pingMilliseconds)
+        internal ServerStatusQueryResult(ServerStatusSnapshot snapshot, int pingMilliseconds)
         {
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
             PingMilliseconds = pingMilliseconds;
         }
 
-        public ServerStatusSnapshot Snapshot { get; }
+        internal ServerStatusSnapshot Snapshot { get; }
 
-        public int PingMilliseconds { get; }
+        internal int PingMilliseconds { get; }
     }
 }

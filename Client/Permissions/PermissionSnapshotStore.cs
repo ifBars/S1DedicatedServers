@@ -8,7 +8,7 @@ namespace DedicatedServerMod.Client.Permissions
     /// <summary>
     /// Stores the latest server-authored permission capability snapshot for the local player.
     /// </summary>
-    public static class PermissionSnapshotStore
+    internal static class PermissionSnapshotStore
     {
         private static MelonLogger.Instance _logger;
         private static PermissionCapabilitySnapshot _current;

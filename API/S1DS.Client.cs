@@ -89,16 +89,6 @@ namespace DedicatedServerMod.API
             public static ClientQuestManager Quests => ClientBootstrap.Instance?.QuestManager;
 
             /// <summary>
-            /// Gets the loopback handler that manages dedicated-server host-loopback behavior.
-            /// </summary>
-            public static ClientLoopbackHandler Loopback => ClientBootstrap.Instance?.LoopbackHandler;
-
-            /// <summary>
-            /// Gets the transport patcher that adapts the game transport for dedicated-server use.
-            /// </summary>
-            public static ClientTransportPatcher Transport => ClientBootstrap.Instance?.TransportPatcher;
-
-            /// <summary>
             /// Gets a value indicating whether the client is currently connected to a dedicated server.
             /// </summary>
             /// <remarks>

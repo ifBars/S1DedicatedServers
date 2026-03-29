@@ -11,7 +11,7 @@ namespace DedicatedServerMod.Client.Managers
     /// <summary>
     /// Handles the client-side mod verification handshake with the dedicated server.
     /// </summary>
-    public sealed class ClientModVerificationManager
+    internal sealed class ClientModVerificationManager
     {
         private readonly MelonLogger.Instance _logger;
 
@@ -21,7 +21,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Initializes a new client mod verification manager.
         /// </summary>
         /// <param name="logger">Logger instance.</param>
-        public ClientModVerificationManager(MelonLogger.Instance logger)
+        internal ClientModVerificationManager(MelonLogger.Instance logger)
         {
             _logger = logger;
         }
@@ -29,12 +29,12 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Gets whether the current server session passed mod verification.
         /// </summary>
-        public bool IsVerified => _isVerified;
+        internal bool IsVerified => _isVerified;
 
         /// <summary>
         /// Initializes verification message subscriptions.
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
         }
@@ -42,7 +42,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Resets per-session verification state after disconnect.
         /// </summary>
-        public void OnDisconnected()
+        internal void OnDisconnected()
         {
             _isVerified = false;
         }
@@ -50,7 +50,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Shuts down verification resources.
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
             OnDisconnected();

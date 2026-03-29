@@ -20,7 +20,7 @@ namespace DedicatedServerMod.Client.Managers
     /// Manages UI additions for the dedicated server client mod.
     /// Handles adding the prototype connection button and other UI elements.
     /// </summary>
-    public class ClientUIManager
+    public sealed class ClientUIManager
     {
         private readonly MelonLogger.Instance logger;
         private readonly ClientConnectionManager connectionManager;
@@ -95,14 +95,14 @@ namespace DedicatedServerMod.Client.Managers
         private Material capturedTmpMaterial;
         private Font capturedLegacyFont;
 
-        public ClientUIManager(MelonLogger.Instance logger, ClientConnectionManager connectionManager)
+        internal ClientUIManager(MelonLogger.Instance logger, ClientConnectionManager connectionManager)
         {
             this.logger = logger;
             this.connectionManager = connectionManager;
             serverListRepository = new ClientServerListRepository(logger);
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -128,7 +128,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Handle scene loading events
         /// </summary>
-        public void OnSceneLoaded(string sceneName)
+        internal void OnSceneLoaded(string sceneName)
         {
             try
             {
@@ -365,7 +365,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Update button text based on connection state
         /// </summary>
-        public void UpdateButtonState()
+        internal void UpdateButtonState()
         {
             if (serversButton == null)
                 return;
@@ -387,7 +387,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Show connection status in a temporary UI element
         /// </summary>
-        public void ShowConnectionStatus()
+        internal void ShowConnectionStatus()
         {
             try
             {
@@ -407,7 +407,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Add debug UI elements (for development/testing)
         /// </summary>
-        public void AddDebugUI()
+        internal void AddDebugUI()
         {
             try
             {
@@ -424,7 +424,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Handle debug key inputs for UI testing
         /// </summary>
-        public void HandleDebugInput()
+        internal void HandleDebugInput()
         {
             try
             {
@@ -446,7 +446,7 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        public void HandleInput()
+        internal void HandleInput()
         {
             try
             {
@@ -481,7 +481,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Remove UI elements when cleaning up
         /// </summary>
-        public void Cleanup()
+        internal void Cleanup()
         {
             try
             {
@@ -541,7 +541,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Reset UI state when returning to menu
         /// </summary>
-        public void ResetUIState()
+        internal void ResetUIState()
         {
             try
             {

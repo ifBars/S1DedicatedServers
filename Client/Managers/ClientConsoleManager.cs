@@ -30,19 +30,19 @@ namespace DedicatedServerMod.Client.Managers
     /// Handles client-side console access for admin/operator players on dedicated servers.
     /// Patches ConsoleUI to allow admin players to open and use the console.
     /// </summary>
-    public class ClientConsoleManager
+    public sealed class ClientConsoleManager
     {
         private readonly MelonLogger.Instance logger;
         private HarmonyLib.Harmony harmony;
         private static MelonLogger.Instance _logger;
 
-        public ClientConsoleManager(MelonLogger.Instance logger)
+        internal ClientConsoleManager(MelonLogger.Instance logger)
         {
             this.logger = logger;
             _logger = logger;
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -101,7 +101,7 @@ namespace DedicatedServerMod.Client.Managers
             if (consoleEnabledProperty?.GetGetMethod() != null)
             {
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleEnabledPrefix), 
-                    BindingFlags.Static | BindingFlags.Public);
+                    BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(consoleEnabledProperty.GetGetMethod(), new HarmonyMethod(prefixMethod));
                 logger.Msg("Patched ConsoleUI.IS_CONSOLE_ENABLED");
             }
@@ -123,7 +123,7 @@ namespace DedicatedServerMod.Client.Managers
             if (setIsOpenMethod != null)
             {
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleSetIsOpenPrefix), 
-                    BindingFlags.Static | BindingFlags.Public);
+                    BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(setIsOpenMethod, new HarmonyMethod(prefixMethod));
                 logger.Msg("Patched ConsoleUI.SetIsOpen");
             }
@@ -145,7 +145,7 @@ namespace DedicatedServerMod.Client.Managers
             if (submitCommandMethod != null)
             {
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleSubmitCommandPrefix), 
-                    BindingFlags.Static | BindingFlags.Public);
+                    BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(submitCommandMethod, new HarmonyMethod(prefixMethod));
                 logger.Msg("Patched Console.SubmitCommand for client validation");
             }
@@ -161,7 +161,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Harmony prefix for ConsoleUI.IS_CONSOLE_ENABLED property
         /// Allows admin/operator players to access console on dedicated servers
         /// </summary>
-        public static bool ConsoleEnabledPrefix(ConsoleUI __instance, ref bool __result)
+        private static bool ConsoleEnabledPrefix(ConsoleUI __instance, ref bool __result)
         {
             try
             {
@@ -186,7 +186,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Harmony prefix for ConsoleUI.SetIsOpen method
         /// Ensures admin players can open the console on dedicated servers
         /// </summary>
-        public static bool ConsoleSetIsOpenPrefix(ConsoleUI __instance, bool open)
+        private static bool ConsoleSetIsOpenPrefix(ConsoleUI __instance, bool open)
         {
             try
             {
@@ -246,7 +246,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Harmony prefix for Console.SubmitCommand (string version)
         /// Provides client-side command validation for admin players
         /// </summary>
-        public static bool ConsoleSubmitCommandPrefix(string args)
+        private static bool ConsoleSubmitCommandPrefix(string args)
         {
             try
             {
@@ -305,7 +305,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Invalidate the admin status cache (call when player status might have changed)
         /// </summary>
-        public static void InvalidateAdminCache()
+        internal static void InvalidateAdminCache()
         {
             AdminStatusManager.InvalidateCache();
         }
@@ -313,7 +313,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Clear admin cache (call when disconnecting)
         /// </summary>
-        public static void ClearAdminCache()
+        internal static void ClearAdminCache()
         {
             AdminStatusManager.ClearCache();
         }

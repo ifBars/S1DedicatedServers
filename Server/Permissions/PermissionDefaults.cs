@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DedicatedServerMod.Shared.Permissions;
 
 namespace DedicatedServerMod.Server.Permissions
@@ -9,11 +10,76 @@ namespace DedicatedServerMod.Server.Permissions
     /// </summary>
     internal static class PermissionDefaults
     {
-        private const int DefaultPriority = 0;
-        private const int SupportPriority = 10;
-        private const int ModeratorPriority = 20;
-        private const int AdministratorPriority = 30;
-        private const int OperatorPriority = 40;
+        private static readonly IReadOnlyDictionary<string, BuiltInGroupTemplate> BuiltInGroups =
+            new Dictionary<string, BuiltInGroupTemplate>(StringComparer.OrdinalIgnoreCase)
+            {
+                [PermissionBuiltIns.Groups.Default] = new BuiltInGroupTemplate(
+                    PermissionBuiltIns.Groups.Default,
+                    priority: 0,
+                    inherits: Array.Empty<string>(),
+                    allow: new[]
+                    {
+                        PermissionBuiltIns.Nodes.ServerHelp
+                    }),
+                [PermissionBuiltIns.Groups.Support] = new BuiltInGroupTemplate(
+                    PermissionBuiltIns.Groups.Support,
+                    priority: 10,
+                    inherits: new[]
+                    {
+                        PermissionBuiltIns.Groups.Default
+                    },
+                    allow: new[]
+                    {
+                        PermissionBuiltIns.Nodes.ServerInfo
+                    }),
+                [PermissionBuiltIns.Groups.Moderator] = new BuiltInGroupTemplate(
+                    PermissionBuiltIns.Groups.Moderator,
+                    priority: 20,
+                    inherits: new[]
+                    {
+                        PermissionBuiltIns.Groups.Support
+                    },
+                    allow: new[]
+                    {
+                        PermissionBuiltIns.Nodes.PlayerList,
+                        PermissionBuiltIns.Nodes.PlayerKick,
+                        PermissionBuiltIns.Nodes.PlayerBan,
+                        PermissionBuiltIns.Nodes.PlayerUnban
+                    }),
+                [PermissionBuiltIns.Groups.Administrator] = new BuiltInGroupTemplate(
+                    PermissionBuiltIns.Groups.Administrator,
+                    priority: 30,
+                    inherits: new[]
+                    {
+                        PermissionBuiltIns.Groups.Moderator
+                    },
+                    allow: new[]
+                    {
+                        PermissionBuiltIns.Nodes.ServerSave,
+                        PermissionBuiltIns.Nodes.ServerReloadConfig,
+                        PermissionBuiltIns.Nodes.PermissionsInfo,
+                        PermissionBuiltIns.Nodes.PermissionsGroupList
+                    }),
+                [PermissionBuiltIns.Groups.Operator] = new BuiltInGroupTemplate(
+                    PermissionBuiltIns.Groups.Operator,
+                    priority: 40,
+                    inherits: new[]
+                    {
+                        PermissionBuiltIns.Groups.Administrator
+                    },
+                    allow: new[]
+                    {
+                        PermissionBuiltIns.Nodes.ClientModPolicyBypass,
+                        PermissionBuiltIns.Nodes.ServerStop,
+                        PermissionBuiltIns.Nodes.PermissionsReload,
+                        PermissionBuiltIns.Nodes.PermissionsGrant,
+                        PermissionBuiltIns.Nodes.PermissionsDeny,
+                        PermissionBuiltIns.Nodes.PermissionsRevoke,
+                        PermissionBuiltIns.Nodes.PermissionsTempGrant,
+                        PermissionBuiltIns.Nodes.PermissionsGroupAssign,
+                        PermissionBuiltIns.Nodes.PermissionsGroupUnassign
+                    })
+            };
 
         /// <summary>
         /// Creates the default permission store data.
@@ -30,78 +96,53 @@ namespace DedicatedServerMod.Server.Permissions
                 MigratedAtUtc = DateTime.UtcNow
             };
 
-            data.Groups[PermissionBuiltIns.Groups.Default] = new PermissionGroupDefinition
-            {
-                Name = PermissionBuiltIns.Groups.Default,
-                Priority = DefaultPriority,
-                Allow = new List<string>
-                {
-                    PermissionBuiltIns.Nodes.ServerHelp
-                }
-            };
-
-            data.Groups[PermissionBuiltIns.Groups.Support] = new PermissionGroupDefinition
-            {
-                Name = PermissionBuiltIns.Groups.Support,
-                Priority = SupportPriority,
-                Inherits = new List<string>
-                {
-                    PermissionBuiltIns.Groups.Default
-                },
-                Allow = new List<string>
-                {
-                    PermissionBuiltIns.Nodes.ServerInfo
-                }
-            };
-
-            data.Groups[PermissionBuiltIns.Groups.Moderator] = new PermissionGroupDefinition
-            {
-                Name = PermissionBuiltIns.Groups.Moderator,
-                Priority = ModeratorPriority,
-                Inherits = new List<string>
-                {
-                    PermissionBuiltIns.Groups.Support
-                },
-                Allow = new List<string>
-                {
-                    PermissionBuiltIns.Nodes.PlayerList,
-                    PermissionBuiltIns.Nodes.PlayerKick
-                }
-            };
-
-            data.Groups[PermissionBuiltIns.Groups.Administrator] = new PermissionGroupDefinition
-            {
-                Name = PermissionBuiltIns.Groups.Administrator,
-                Priority = AdministratorPriority,
-                Inherits = new List<string>
-                {
-                    PermissionBuiltIns.Groups.Moderator
-                },
-                Allow = new List<string>
-                {
-                    PermissionBuiltIns.Nodes.PlayerBan,
-                    PermissionBuiltIns.Nodes.PlayerUnban,
-                    PermissionBuiltIns.Nodes.ServerReloadConfig,
-                    PermissionBuiltIns.Nodes.PermissionsInfo,
-                    PermissionBuiltIns.Nodes.PermissionsGroupList
-                }
-            };
-
-            data.Groups[PermissionBuiltIns.Groups.Operator] = new PermissionGroupDefinition
-            {
-                Name = PermissionBuiltIns.Groups.Operator,
-                Priority = OperatorPriority,
-                Inherits = new List<string>
-                {
-                    PermissionBuiltIns.Groups.Administrator
-                },
-                Allow = new List<string>
-                {
-                    PermissionBuiltIns.Nodes.All
-                }
-            };
-
+            ApplyBuiltInGroups(data);
             return data;
+        }
+
+        /// <summary>
+        /// Ensures the built-in groups exist in the target data graph.
+        /// </summary>
+        /// <param name="data">The target permission data.</param>
+        public static void ApplyBuiltInGroups(PermissionStoreData data)
+        {
+            if (data == null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            data.Groups ??= new Dictionary<string, PermissionGroupDefinition>(StringComparer.OrdinalIgnoreCase);
+            foreach (BuiltInGroupTemplate template in BuiltInGroups.Values)
+            {
+                string normalizedGroupName = PermissionNode.NormalizeGroupName(template.Name);
+                if (!data.Groups.TryGetValue(normalizedGroupName, out PermissionGroupDefinition group))
+                {
+                    group = new PermissionGroupDefinition
+                    {
+                        Name = normalizedGroupName
+                    };
+                    data.Groups[normalizedGroupName] = group;
+                }
+
+                group.Name = normalizedGroupName;
+                group.Priority = template.Priority;
+                group.Inherits = MergeNormalizedStrings(group.Inherits, template.Inherits, isGroupName: true);
+                group.Allow = MergeNormalizedStrings(group.Allow, template.Allow, isGroupName: false);
+                group.Deny = MergeNormalizedStrings(group.Deny, Array.Empty<string>(), isGroupName: false);
+            }
+        }
+
+        /// <summary>
+        /// Gets the built-in priority for a group.
+        /// </summary>
+        /// <param name="groupName">The group name.</param>
+        /// <returns>The built-in priority, or 0 when not built-in.</returns>
+        public static int GetBuiltInGroupPriority(string groupName)
+        {
+            string normalizedGroupName = PermissionNode.NormalizeGroupName(groupName);
+            return BuiltInGroups.TryGetValue(normalizedGroupName, out BuiltInGroupTemplate template)
+                ? template.Priority
+                : 0;
         }
 
         /// <summary>
@@ -144,6 +185,39 @@ namespace DedicatedServerMod.Server.Permissions
                 Category = category,
                 Description = description
             };
+        }
+
+        private static List<string> MergeNormalizedStrings(IEnumerable<string> first, IEnumerable<string> second, bool isGroupName)
+        {
+            IEnumerable<string> values = (first ?? Enumerable.Empty<string>())
+                .Concat(second ?? Enumerable.Empty<string>())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => isGroupName ? PermissionNode.NormalizeGroupName(value) : PermissionNode.Normalize(value))
+                .Where(value => !string.IsNullOrWhiteSpace(value));
+
+            return values
+                .Distinct(isGroupName ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        private sealed class BuiltInGroupTemplate
+        {
+            public BuiltInGroupTemplate(string name, int priority, IReadOnlyList<string> inherits, IReadOnlyList<string> allow)
+            {
+                Name = name;
+                Priority = priority;
+                Inherits = inherits ?? Array.Empty<string>();
+                Allow = allow ?? Array.Empty<string>();
+            }
+
+            public string Name { get; }
+
+            public int Priority { get; }
+
+            public IReadOnlyList<string> Inherits { get; }
+
+            public IReadOnlyList<string> Allow { get; }
         }
     }
 }

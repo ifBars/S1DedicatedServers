@@ -736,6 +736,7 @@
 	  <Compile Include="Shared\CustomMessaging.cs" />
 	  <Compile Include="Shared\ServerData.cs" />
 	  <Compile Include="Shared\ServerStatusSnapshot.cs" />
+	  <Compile Include="Shared\Toml\Binding\*.cs" />
 	  <!-- Utils -->
 	  <Compile Include="Utils\*.cs" />
 	</ItemGroup>
@@ -743,6 +744,8 @@
 	<!-- API layer (shared by all builds) -->
 	<ItemGroup>
 	  <Compile Include="API\Version.cs" />
+	  <Compile Include="API\Toml\*.cs" />
+	  <Compile Include="API\Configuration\*.cs" />
 	  <Compile Include="API\S1DS.cs" />
 	  <Compile Include="API\S1DSClientCompanionAttribute.cs" />
 	  <Compile Include="API\S1DSClientModIdentityAttribute.cs" />

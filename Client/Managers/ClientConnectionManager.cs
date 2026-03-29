@@ -45,7 +45,7 @@ namespace DedicatedServerMod.Client.Managers
     /// LoadManager.LoadAsClient flow step-by-step. See <see cref="NativeInvariants"/>
     /// for the full contract this class must satisfy.
     /// </summary>
-    public class ClientConnectionManager
+    public sealed class ClientConnectionManager
     {
         private readonly MelonLogger.Instance logger;
 
@@ -76,7 +76,7 @@ namespace DedicatedServerMod.Client.Managers
 
         public event Action<string, int> DedicatedServerConnected;
 
-        public ClientConnectionManager(MelonLogger.Instance logger)
+        internal ClientConnectionManager(MelonLogger.Instance logger)
         {
             this.logger = logger;
 #if MONO
@@ -84,7 +84,7 @@ namespace DedicatedServerMod.Client.Managers
 #endif
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -399,7 +399,7 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        public void OnAuthenticationSucceeded(string message)
+        internal void OnAuthenticationSucceeded(string message)
         {
             _authSucceeded = true;
 
@@ -413,12 +413,12 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        public void OnAuthenticationFailed(string reason)
+        internal void OnAuthenticationFailed(string reason)
         {
             ReturnToMenu(reason, isFailure: true, requestPlayerSave: false);
         }
 
-        public void OnModVerificationSucceeded(string message)
+        internal void OnModVerificationSucceeded(string message)
         {
             _modVerificationSucceeded = true;
 
@@ -432,12 +432,12 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        public void OnModVerificationFailed(string reason)
+        internal void OnModVerificationFailed(string reason)
         {
             ReturnToMenu(reason, isFailure: true, requestPlayerSave: false);
         }
 
-        public void Shutdown()
+        internal void Shutdown()
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
             PermissionSnapshotStore.Reset();
@@ -708,7 +708,7 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        public string GetConnectionStatus()
+        internal string GetConnectionStatus()
         {
             try
             {
@@ -743,9 +743,9 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        public static bool IsTugboatMode => _isTugboatMode;
+        internal static bool IsTugboatMode => _isTugboatMode;
 
-        public static (string ip, int port) GetTargetServer() => (_targetServerIP, _targetServerPort);
+        internal static (string ip, int port) GetTargetServer() => (_targetServerIP, _targetServerPort);
 
         public void SetTargetServer(string ip, int port)
         {
