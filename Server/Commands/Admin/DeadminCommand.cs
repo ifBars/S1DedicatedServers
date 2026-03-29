@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "deadmin";
         public override string Description => "Removes administrator privileges from a player";
         public override string Usage => "deadmin <player_name_or_steamid>";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.PermissionsGroupUnassign;
 
         public override void Execute(CommandContext context)
         {
@@ -26,31 +26,24 @@ namespace DedicatedServerMod.Server.Commands.Admin
 
             string identifier = context.Arguments[0];
             ConnectedPlayerInfo targetPlayer = FindPlayerByNameOrId(identifier);
+            string targetId = targetPlayer?.TrustedUniqueId ?? identifier;
 
-            if (targetPlayer != null && !string.IsNullOrEmpty(targetPlayer.SteamId))
+            if (context.Permissions?.UnassignGroup(context.Executor?.TrustedUniqueId, targetId, DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Groups.Administrator, "deadmin command") == true)
             {
-                if (PlayerManager.Permissions.RemoveAdministrator(targetPlayer.SteamId))
+                if (targetPlayer != null)
                 {
-                    context.Reply($"Removed administrator privileges from {targetPlayer.DisplayName} ({targetPlayer.SteamId})");
-                    Logger.Msg($"Administrator removed from {targetPlayer.DisplayName} by {context.Executor?.DisplayName ?? "Console"}");
+                    context.Reply($"Removed administrator privileges from {targetPlayer.DisplayName} ({targetId})");
                 }
                 else
                 {
-                    context.ReplyWarning($"{targetPlayer.DisplayName} is not an administrator");
+                    context.Reply($"Removed administrator privileges from Steam ID: {targetId}");
                 }
+
+                Logger.Msg($"Administrator removed from {targetId} by {context.Executor?.DisplayName ?? "Console"}");
             }
             else
             {
-                // Try removing by Steam ID directly
-                if (PlayerManager.Permissions.RemoveAdministrator(identifier))
-                {
-                    context.Reply($"Removed administrator privileges from Steam ID: {identifier}");
-                    Logger.Msg($"Administrator removed from SteamID {identifier} by {context.Executor?.DisplayName ?? "Console"}");
-                }
-                else
-                {
-                    context.ReplyError($"Player not found or not an administrator: {identifier}");
-                }
+                context.ReplyError($"Failed to remove administrator privileges from {targetId}. The target may not be an administrator or may outrank you.");
             }
         }
     }

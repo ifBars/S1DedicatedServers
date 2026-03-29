@@ -168,7 +168,7 @@ namespace DedicatedServerMod.Client.Managers
                 // On dedicated servers, allow console UI for all clients; server will enforce per-command permissions
                 if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
-                    __result = true;
+                    __result = AdminStatusManager.CanOpenConsole();
                     return false; // Skip original method
                 }
 
@@ -193,6 +193,12 @@ namespace DedicatedServerMod.Client.Managers
                 // On dedicated servers, allow console UI for all clients and manage UI state here
                 if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
+                    if (open && !AdminStatusManager.CanOpenConsole())
+                    {
+                        _logger?.Warning("Console open rejected by latest permission snapshot");
+                        return false;
+                    }
+
                     if (open)
                     {
                         _logger?.Msg($"Opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
@@ -247,6 +253,13 @@ namespace DedicatedServerMod.Client.Managers
                 // On dedicated servers, route all commands to server for centralized validation and execution
                 if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
+                    string commandWord = ExtractCommandWord(args);
+                    if (!string.IsNullOrWhiteSpace(commandWord) && !AdminStatusManager.CanUseCommand(commandWord))
+                    {
+                        ScheduleOne.Console.LogCommandError($"You do not have permission to use '{commandWord}'.");
+                        return false;
+                    }
+
                     _logger?.Msg($"Submitting command to server: {args}");
                     CustomMessaging.SendToServer("admin_console", args);
                     return false; // Prevent local execution to avoid duplication; server will handle and relay if needed
@@ -273,6 +286,20 @@ namespace DedicatedServerMod.Client.Managers
             yield return null;
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(inputField.gameObject);
+        }
+
+        private static string ExtractCommandWord(string rawInput)
+        {
+            if (string.IsNullOrWhiteSpace(rawInput))
+            {
+                return string.Empty;
+            }
+
+            string trimmed = rawInput.Trim();
+            int firstWhitespace = trimmed.IndexOfAny(new[] { ' ', '\t' });
+            return firstWhitespace >= 0
+                ? trimmed.Substring(0, firstWhitespace).Trim().ToLowerInvariant()
+                : trimmed.ToLowerInvariant();
         }
 
         /// <summary>

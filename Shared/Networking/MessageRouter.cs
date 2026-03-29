@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 #if SERVER
+using DedicatedServerMod.Server.Commands;
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared.Configuration;
 using ServerPlayerManager = DedicatedServerMod.Server.Player.PlayerManager;
+using ServerPlayerInfo = DedicatedServerMod.Server.Player.ConnectedPlayerInfo;
 #endif
 using DedicatedServerMod.Utils;
 #if IL2CPP
@@ -167,6 +169,7 @@ namespace DedicatedServerMod.Shared.Networking
                 case Constants.Messages.ModVerifyResult:
                 case Constants.Messages.DisconnectNotice:
                 case Constants.Messages.ServerData:
+                case Constants.Messages.PermissionSnapshot:
                     // Handled by dedicated client managers via CustomMessaging events.
                     break;
 
@@ -393,19 +396,20 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The command data</param>
         private static void HandleAdminConsoleCommand(NetworkConnection conn, string data)
         {
+#if SERVER
             try
             {
+                ServerPlayerInfo playerInfo = ServerBootstrap.Players?.GetPlayer(conn);
                 var player = FindPlayerByConnection(conn);
-                if (player == null)
+                if (player == null || playerInfo == null)
                 {
                     _logger.Warning("HandleAdminConsoleCommand: Could not find player for connection");
                     return;
                 }
 
-                // Permission check - can they use the console?
-                if (!Permissions.PermissionManager.CanUseConsole(player))
+                if (ServerBootstrap.Permissions?.CanOpenConsole(playerInfo.TrustedUniqueId) != true)
                 {
-                    _logger.Warning($"HandleAdminConsoleCommand: Player {player.PlayerName} not permitted to use admin console.");
+                    _logger.Warning($"HandleAdminConsoleCommand: Player {playerInfo.DisplayName} not permitted to use admin console.");
                     return;
                 }
 
@@ -426,27 +430,39 @@ namespace DedicatedServerMod.Shared.Networking
                 ParsedCommandLine parsedCommand = parseResult.CommandLine;
                 string cmd = parsedCommand.CommandWord;
 
-                // Permission check - can they use this specific command?
-                if (!Permissions.PermissionManager.CanUseCommand(player, cmd))
+                if (ServerBootstrap.Commands?.GetCommand(cmd) != null)
                 {
-                    _logger.Warning($"HandleAdminConsoleCommand: Player {player.PlayerName} not permitted to run '{cmd}'.");
+                    CommandExecutionResult result = ServerBootstrap.Commands.ExecuteConsoleLine(parsedCommand, output: null, executor: playerInfo);
+                    ServerBootstrap.Permissions?.LogCommand(playerInfo, cmd, result.Succeeded, result.Message);
+
+                    if (!result.Succeeded && !string.IsNullOrWhiteSpace(result.Message))
+                    {
+                        LogCommandError(result.Message);
+                    }
+
                     return;
                 }
 
-                // Handle server-authoritative commands
+                if (ServerBootstrap.Permissions?.CanExecuteRemoteConsoleCommand(playerInfo.TrustedUniqueId, cmd) != true)
+                {
+                    _logger.Warning($"HandleAdminConsoleCommand: Player {playerInfo.DisplayName} not permitted to run remote console command '{cmd}'.");
+                    return;
+                }
+
                 if (cmd == "spawnvehicle")
                 {
                     HandleSpawnVehicleCommand(player, parsedCommand);
+                    ServerBootstrap.Permissions?.LogCommand(playerInfo, cmd, succeeded: true, "spawnvehicle");
                     return;
                 }
 
-                // Execute other commands via console (relay to client for Player.Local context)
-                ExecuteConsoleCommandRelay(player, parsedCommand);
+                ExecuteConsoleCommandRelay(playerInfo, player, parsedCommand);
             }
             catch (Exception ex)
             {
                 _logger.Error($"HandleAdminConsoleCommand: Error executing admin console command: {ex}");
             }
+#endif
         }
 
         /// <summary>
@@ -504,7 +520,14 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// Relays a console command to the specific client so Player.Local refers to their player.
         /// </summary>
-        private static void ExecuteConsoleCommandRelay(Player player, ParsedCommandLine parsedCommand)
+        private static void ExecuteConsoleCommandRelay(
+#if SERVER
+            ServerPlayerInfo playerInfo,
+#else
+            object playerInfo,
+#endif
+            Player player,
+            ParsedCommandLine parsedCommand)
         {
             try
             {
@@ -529,19 +552,25 @@ namespace DedicatedServerMod.Shared.Networking
                     // Relay to the specific client's context
                     string payload = CommandLineParser.BuildLine(parsedCommand);
                     CustomMessaging.SendToClient(player.Owner, "exec_console", payload);
-
-                    // Log admin action
-                    Permissions.PlayerResolver.LogAdminAction(player, parsedCommand.CommandWord, string.Join(" ", parsedCommand.Arguments));
+#if SERVER
+                    ServerBootstrap.Permissions?.LogCommand(playerInfo, parsedCommand.CommandWord, succeeded: true, string.Join(" ", parsedCommand.Arguments));
+#endif
                 }
                 else
                 {
                     _logger.Warning($"ExecuteConsoleCommandRelay: Command '{parsedCommand.CommandWord}' not found in available commands");
                     LogCommandError($"Command '{parsedCommand.CommandWord}' not found.");
+#if SERVER
+                    ServerBootstrap.Permissions?.LogCommand(playerInfo, parsedCommand.CommandWord, succeeded: false, "command_not_found");
+#endif
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error($"ExecuteConsoleCommandRelay: Error: {ex}");
+#if SERVER
+                ServerBootstrap.Permissions?.LogCommand(playerInfo, parsedCommand.CommandWord, succeeded: false, ex.Message);
+#endif
             }
         }
 

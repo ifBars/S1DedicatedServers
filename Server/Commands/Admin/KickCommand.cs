@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "kick";
         public override string Description => "Kicks a player from the server";
         public override string Usage => "kick <player_name_or_id> [reason]";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.PlayerKick;
 
         public override void Execute(CommandContext context)
         {
@@ -60,11 +60,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         /// </summary>
         private bool CanKickPlayer(ConnectedPlayerInfo executor, ConnectedPlayerInfo target)
         {
-            var executorLevel = PlayerManager.Permissions.GetPermissionLevel(executor);
-            var targetLevel = PlayerManager.Permissions.GetPermissionLevel(target);
-
-            // Can only kick players with lower or equal permission level
-            return executorLevel >= targetLevel;
+            return PlayerManager.Permissions.HasDominanceOver(executor, target);
         }
     }
 }

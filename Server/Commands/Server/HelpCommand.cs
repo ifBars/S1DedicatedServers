@@ -21,7 +21,7 @@ namespace DedicatedServerMod.Server.Commands.Server
 		public override string CommandWord => "help";
 		public override string Description => "List available commands or show help for a specific command.";
 		public override string Usage => "help [command]";
-		public override PermissionLevel RequiredPermission => PermissionLevel.Player;
+		public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.ServerHelp;
 
 		public override void Execute(CommandContext context)
 		{
@@ -29,8 +29,7 @@ namespace DedicatedServerMod.Server.Commands.Server
 			if (args.Count == 0)
 			{
 				var commands = commandManager
-					.GetAllCommands()
-					.Values
+					.GetAvailableCommands(context.Executor)
 					.OrderBy(c => c.CommandWord)
 					.ToList();
 
@@ -50,10 +49,12 @@ namespace DedicatedServerMod.Server.Commands.Server
 
 			// Detailed help for a specific command
 			string target = args[0].ToLowerInvariant();
-			var command = commandManager.GetCommand(target);
+			var command = commandManager
+				.GetAvailableCommands(context.Executor)
+				.FirstOrDefault(candidate => string.Equals(candidate.CommandWord, target, StringComparison.OrdinalIgnoreCase));
 			if (command == null)
 			{
-				context.ReplyWarning($"Unknown command '{target}'. Type 'help' for a list of commands.");
+				context.ReplyWarning($"Unknown or unavailable command '{target}'. Type 'help' for a list of commands.");
 				return;
 			}
 

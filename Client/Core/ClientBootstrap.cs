@@ -8,6 +8,7 @@ using Il2CppScheduleOne.PlayerScripts;
 using ScheduleOne.PlayerScripts;
 #endif
 using DedicatedServerMod.Client.Managers;
+using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Bars")]
@@ -209,6 +210,7 @@ namespace DedicatedServerMod.Client.Core
 
                 // Initialize MessageRouter for client-side message handling
                 Shared.Networking.MessageRouter.Initialize(_logger);
+                PermissionSnapshotStore.Initialize(_logger);
 
                 // Initialize messaging service (backend selection)
                 Shared.Networking.CustomMessaging.Initialize();
@@ -335,6 +337,14 @@ namespace DedicatedServerMod.Client.Core
                                 Managers.ServerDataStore.Update(serverData);
                             }
                         }
+                        else if (cmd == Utils.Constants.Messages.PermissionSnapshot)
+                        {
+                            var snapshot = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.Permissions.PermissionCapabilitySnapshot>(data);
+                            if (snapshot != null)
+                            {
+                                PermissionSnapshotStore.Update(snapshot);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -402,6 +412,7 @@ namespace DedicatedServerMod.Client.Core
         public override void OnApplicationQuit()
         {
             _apiModsReady = false;
+            PermissionSnapshotStore.Reset();
 
             try
             {

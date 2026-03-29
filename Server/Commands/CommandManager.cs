@@ -5,6 +5,7 @@ using DedicatedServerMod.Server.Commands.Admin;
 using DedicatedServerMod.Server.Commands.Server;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
+using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Shared.Networking;
@@ -27,6 +28,7 @@ namespace DedicatedServerMod.Server.Commands
         private readonly MelonLogger.Instance logger;
         private readonly PlayerManager playerManager;
         private readonly NetworkManager networkManager;
+        private readonly ServerPermissionService permissionService;
         private readonly Dictionary<string, IServerCommand> serverCommands;
 
         /// <summary>
@@ -37,6 +39,7 @@ namespace DedicatedServerMod.Server.Commands
             logger = loggerInstance;
             playerManager = playerMgr;
             networkManager = networkMgr;
+            permissionService = DedicatedServerMod.Server.Core.ServerBootstrap.Permissions;
             serverCommands = new Dictionary<string, IServerCommand>();
         }
 
@@ -99,7 +102,7 @@ namespace DedicatedServerMod.Server.Commands
                 return result;
             }
 
-            if (!CanExecuteCommand(executor, command))
+            if (!CanExecuteCommand(executor, command, commandLine.Arguments))
             {
                 logger.Warning($"Player {executor?.DisplayName ?? "Console"} lacks permission for command '{commandLine.CommandWord}'");
                 CommandExecutionResult result = new CommandExecutionResult(
@@ -118,6 +121,7 @@ namespace DedicatedServerMod.Server.Commands
                     Arguments = new List<string>(commandLine.Arguments),
                     Logger = logger,
                     PlayerManager = playerManager,
+                    Permissions = permissionService,
                     Output = output
                 };
 
@@ -170,7 +174,7 @@ namespace DedicatedServerMod.Server.Commands
             List<IServerCommand> availableCommands = new List<IServerCommand>();
             foreach (IServerCommand command in serverCommands.Values)
             {
-                if (CanExecuteCommand(player, command))
+                if (CanDiscoverCommand(player, command))
                 {
                     availableCommands.Add(command);
                 }
@@ -207,6 +211,9 @@ namespace DedicatedServerMod.Server.Commands
 
         private void RegisterServerCommands()
         {
+            RegisterCommand(new ReloadPermissionsCommand(logger, playerManager));
+            RegisterCommand(new PermissionCommand(logger, playerManager));
+            RegisterCommand(new GroupCommand(logger, playerManager));
             RegisterCommand(new OpCommand(logger, playerManager));
             RegisterCommand(new DeopCommand(logger, playerManager));
             RegisterCommand(new AdminCommand(logger, playerManager));
@@ -280,29 +287,44 @@ namespace DedicatedServerMod.Server.Commands
             }
         }
 
-        private bool CanExecuteCommand(ConnectedPlayerInfo player, IServerCommand command)
+        private bool CanDiscoverCommand(ConnectedPlayerInfo player, IServerCommand command)
         {
             if (player == null)
             {
                 return true;
             }
 
-            bool isRoleManagementOpOnly =
-                command.CommandWord == "op" ||
-                command.CommandWord == "deop" ||
-                command.CommandWord == "admin" ||
-                command.CommandWord == "deadmin";
-
-            if (isRoleManagementOpOnly)
+            IReadOnlyCollection<string> discoveryNodes = command.GetDiscoveryPermissionNodes();
+            if (discoveryNodes == null || discoveryNodes.Count == 0)
             {
-                PermissionLevel level = playerManager.Permissions.GetPermissionLevel(player);
-                if (level < PermissionLevel.Operator)
+                return true;
+            }
+
+            foreach (string discoveryNode in discoveryNodes)
+            {
+                if (string.IsNullOrWhiteSpace(discoveryNode) || playerManager.Permissions.CanExecuteCommand(player, discoveryNode))
                 {
-                    return false;
+                    return true;
                 }
             }
 
-            return playerManager.Permissions.CanExecuteCommand(player, command.RequiredPermission);
+            return false;
+        }
+
+        private bool CanExecuteCommand(ConnectedPlayerInfo player, IServerCommand command, IReadOnlyList<string> arguments)
+        {
+            if (player == null)
+            {
+                return true;
+            }
+
+            string requiredPermissionNode = command.GetRequiredPermissionNode(arguments ?? Array.Empty<string>());
+            if (string.IsNullOrWhiteSpace(requiredPermissionNode))
+            {
+                return true;
+            }
+
+            return playerManager.Permissions.CanExecuteCommand(player, requiredPermissionNode);
         }
     }
 

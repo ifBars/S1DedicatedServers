@@ -2,7 +2,6 @@ using MelonLoader;
 using System.Linq;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod;
-using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Commands.Admin
 {
@@ -19,7 +18,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "unban";
         public override string Description => "Removes a ban from a player";
         public override string Usage => "unban <steamid>";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.PlayerUnban;
 
         public override void Execute(CommandContext context)
         {
@@ -34,10 +33,8 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 return;
             }
 
-            // Remove from ban list
-            if (ServerConfig.Instance.BannedPlayers.Remove(steamId))
+            if (context.Permissions?.RemoveBan(context.Executor?.TrustedUniqueId, steamId, "unban command") == true)
             {
-                ServerConfig.SaveConfig();
                 context.Reply($"Removed ban for Steam ID: {steamId}");
                 Logger.Msg($"Ban removed for SteamID {steamId} by {context.Executor?.DisplayName ?? "Console"}");
             }

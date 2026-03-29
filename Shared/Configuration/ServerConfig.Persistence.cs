@@ -175,6 +175,21 @@ namespace DedicatedServerMod.Shared.Configuration
         private static string LegacyConfigFilePath => Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.LegacyConfigFileName);
 
         /// <summary>
+        /// Gets the legacy JSON compatibility path used during transition releases.
+        /// </summary>
+        public static string LegacyCompatibilityConfigFilePath => LegacyConfigFilePath;
+
+        /// <summary>
+        /// Gets the path the current configuration instance was loaded from.
+        /// </summary>
+        public static string LastLoadedFromPath { get; private set; }
+
+        /// <summary>
+        /// Gets whether the current configuration instance originated from the legacy JSON format.
+        /// </summary>
+        public static bool LastLoadedFromLegacyJson { get; private set; }
+
+        /// <summary>
         /// Gets the current server configuration instance.
         /// Loads the configuration if not already loaded.
         /// </summary>
@@ -226,6 +241,8 @@ namespace DedicatedServerMod.Shared.Configuration
                 _instance = loadResult.Config ?? new ServerConfig();
                 _instance.NormalizeAuthenticationConfiguration();
                 _instance.Validate();
+                LastLoadedFromPath = loadResult.LoadedFromPath;
+                LastLoadedFromLegacyJson = IsJsonConfigPath(loadResult.LoadedFromPath);
 
                 Logger.Msg($"Server configuration loaded successfully from {loadResult.LoadedFromPath}");
 
@@ -290,6 +307,23 @@ namespace DedicatedServerMod.Shared.Configuration
             _logger = null;
             _configPath = null;
             _configPathWasExplicit = false;
+            LastLoadedFromPath = null;
+            LastLoadedFromLegacyJson = false;
+        }
+
+        /// <summary>
+        /// Loads a configuration snapshot from an explicit path without replacing the active singleton instance.
+        /// </summary>
+        /// <param name="path">The configuration file path to load.</param>
+        /// <returns>The loaded configuration snapshot.</returns>
+        internal static ServerConfig LoadConfigSnapshot(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException("Configuration path cannot be null or empty.", nameof(path));
+            }
+
+            return LoadConfigFromPath(Path.GetFullPath(path)).Config ?? new ServerConfig();
         }
 
         private static string GetDefaultConfigFilePath()

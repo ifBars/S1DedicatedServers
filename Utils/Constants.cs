@@ -129,6 +129,11 @@ namespace DedicatedServerMod.Utils
         public const string LegacyConfigFileName = "server_config.json";
 
         /// <summary>
+        /// Dedicated permissions file name.
+        /// </summary>
+        public const string PermissionsFileName = "permissions.toml";
+
+        /// <summary>
         /// Default client mod policy file name.
         /// </summary>
         public const string ClientModPolicyFileName = "client_mod_policy.json";
@@ -205,6 +210,11 @@ namespace DedicatedServerMod.Utils
             /// Server data response (server → client).
             /// </summary>
             public const string ServerData = "server_data";
+
+            /// <summary>
+            /// Permission capability snapshot response (server -> client).
+            /// </summary>
+            public const string PermissionSnapshot = "permission_snapshot";
 
             /// <summary>
             /// Authentication hello message (client → server).

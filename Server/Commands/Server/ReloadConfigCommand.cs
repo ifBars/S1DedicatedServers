@@ -20,16 +20,23 @@ namespace DedicatedServerMod.Server.Commands.Server
         public override string CommandWord => "reloadconfig";
         public override string Description => "Reloads the server configuration from file";
         public override string Usage => "reloadconfig";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.ServerReloadConfig;
 
         public override void Execute(CommandContext context)
         {
             try
             {
-                // Reload configuration from file
                 ServerConfig.ReloadConfig();
-                
-                context.Reply("Server configuration reloaded successfully");
+                bool permissionsReloaded = context.Permissions?.Reload() ?? false;
+
+                if (!permissionsReloaded)
+                {
+                    context.ReplyWarning("Server configuration reloaded, but permissions reload failed. Previous live permission state was kept.");
+                    Logger.Warning($"Configuration reloaded by {context.Executor?.DisplayName ?? "Console"}, but permissions reload failed.");
+                    return;
+                }
+
+                context.Reply("Server configuration and permissions reloaded successfully");
                 Logger.Msg($"Configuration reloaded by {context.Executor?.DisplayName ?? "Console"}");
             }
             catch (Exception ex)

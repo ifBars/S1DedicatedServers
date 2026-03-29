@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-#if IL2CPP
-using Il2CppFishNet;
-#else
-using FishNet;
+#if SERVER
+using DedicatedServerMod.Server.Core;
 #endif
+using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
@@ -16,18 +15,14 @@ using ScheduleOne.PlayerScripts;
 namespace DedicatedServerMod.Shared.Permissions
 {
     /// <summary>
-    /// Manages player permissions (operators, admins, banned players) and command access control.
-    /// Provides centralized permission checking for the dedicated server.
+    /// Compatibility facade over the authoritative node-based permission service.
     /// </summary>
     /// <remarks>
-    /// This class handles all permission-related logic that was previously in ServerConfig.
-    /// For Steam ID resolution, see <see cref="PlayerResolver"/>. For configuration, see
-    /// <see cref="Configuration.ServerConfig"/>. This class coordinates between both.
+    /// This static facade preserves the existing permission call sites during the transition
+    /// release while delegating runtime authority to <c>permissions.toml</c> on the server.
     /// </remarks>
     public static class PermissionManager
     {
-        #region Events
-
         /// <summary>
         /// Raised when an operator is added.
         /// </summary>
@@ -59,493 +54,409 @@ namespace DedicatedServerMod.Shared.Permissions
         public static event Action<string> BanRemoved;
 
         /// <summary>
-        /// Raised when permissions have changed (operator/admin/ban added/removed).
+        /// Raised when permissions change.
         /// </summary>
         public static event Action PermissionsChanged;
 
-        #endregion
-
-        #region Properties
+        private static MelonLogger.Instance _logger;
 
         /// <summary>
         /// Gets the server configuration instance.
         /// </summary>
-        internal static Configuration.ServerConfig Config => Configuration.ServerConfig.Instance;
+        internal static ServerConfig Config => ServerConfig.Instance;
 
-        /// <summary>
-        /// Reference to the logger.
-        /// </summary>
         private static MelonLogger.Instance Logger => _logger ?? new MelonLogger.Instance("PermissionManager");
 
         /// <summary>
-        /// Cached logger instance.
+        /// Initializes the compatibility facade.
         /// </summary>
-        private static MelonLogger.Instance _logger;
-
-        #endregion
-
-        #region Initialization
-
-        /// <summary>
-        /// Initializes the permission manager with a logger instance.
-        /// </summary>
-        /// <param name="logger">The logger to use for permission-related messages</param>
+        /// <param name="logger">The logger instance.</param>
         public static void Initialize(MelonLogger.Instance logger)
         {
             _logger = logger;
-            Logger.Msg("PermissionManager initialized");
+            Logger.Msg("PermissionManager compatibility facade initialized");
         }
 
-        #endregion
-
-        #region Operator Management
-
         /// <summary>
-        /// Checks if a Steam ID has operator privileges.
+        /// Checks if a subject has operator privileges.
         /// </summary>
-        /// <param name="steamId">The Steam ID to check</param>
-        /// <returns>True if the Steam ID is an operator</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the subject is an operator.</returns>
         public static bool IsOperator(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            return Config.Operators.Contains(steamId);
+#if SERVER
+            return ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Operator, StringComparer.OrdinalIgnoreCase) == true;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
         /// Checks if a player has operator privileges.
         /// </summary>
-        /// <param name="player">The player to check</param>
-        /// <returns>True if the player is an operator</returns>
+        /// <param name="player">The player to check.</param>
+        /// <returns><see langword="true"/> if the player is an operator.</returns>
         public static bool IsOperator(Player player)
         {
-            if (player?.Owner?.ClientId == null)
-                return false;
-
-            string steamId = PlayerResolver.GetSteamId(player);
-            return IsOperator(steamId);
+            return IsOperator(PlayerResolver.GetSteamId(player));
         }
 
         /// <summary>
-        /// Adds a Steam ID to the operator list.
+        /// Checks if a subject has administrator privileges.
         /// </summary>
-        /// <param name="steamId">The Steam ID to add</param>
-        /// <returns>True if the operator was added (false if already an operator)</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the subject is an administrator.</returns>
+        public static bool IsAdmin(string steamId)
+        {
+#if SERVER
+            return ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Administrator, StringComparer.OrdinalIgnoreCase) == true;
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Checks if a player has administrator privileges.
+        /// </summary>
+        /// <param name="player">The player to check.</param>
+        /// <returns><see langword="true"/> if the player is an administrator.</returns>
+        public static bool IsAdmin(Player player)
+        {
+            return IsAdmin(PlayerResolver.GetSteamId(player));
+        }
+
+        /// <summary>
+        /// Adds a subject to the operator group.
+        /// </summary>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the operator assignment changed.</returns>
         public static bool AddOperator(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            bool added = Config.Operators.Add(steamId);
-            if (added)
+#if SERVER
+            bool changed = ServerBootstrap.Permissions?.AssignGroup(null, steamId, PermissionBuiltIns.Groups.Operator, "compat_add_operator") == true;
+            if (changed)
             {
-                // Operators also get admin
-                Config.Admins.Add(steamId);
-                Configuration.ServerConfig.SaveConfig();
-                Logger.Msg($"Added operator: {steamId}");
                 OperatorAdded?.Invoke(steamId);
                 PermissionsChanged?.Invoke();
             }
-            return added;
+
+            return changed;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Removes a Steam ID from the operator list.
+        /// Removes a subject from the operator group.
         /// </summary>
-        /// <param name="steamId">The Steam ID to remove</param>
-        /// <returns>True if the operator was removed</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the operator assignment changed.</returns>
         public static bool RemoveOperator(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            bool removed = Config.Operators.Remove(steamId);
-            if (removed)
+#if SERVER
+            bool changed = ServerBootstrap.Permissions?.UnassignGroup(null, steamId, PermissionBuiltIns.Groups.Operator, "compat_remove_operator") == true;
+            if (changed)
             {
-                Configuration.ServerConfig.SaveConfig();
-                Logger.Msg($"Removed operator: {steamId}");
                 OperatorRemoved?.Invoke(steamId);
                 PermissionsChanged?.Invoke();
             }
-            return removed;
+
+            return changed;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Gets all current operators.
+        /// Adds a subject to the administrator group.
         /// </summary>
-        /// <returns>A read-only list of operator Steam IDs</returns>
-        public static IReadOnlyList<string> GetAllOperators()
-        {
-            return Config.Operators.ToList().AsReadOnly();
-        }
-
-        #endregion
-
-        #region Admin Management
-
-        /// <summary>
-        /// Checks if a Steam ID has admin privileges.
-        /// Operators automatically have admin privileges.
-        /// </summary>
-        /// <param name="steamId">The Steam ID to check</param>
-        /// <returns>True if the Steam ID is an admin or operator</returns>
-        public static bool IsAdmin(string steamId)
-        {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            return Config.Admins.Contains(steamId) || IsOperator(steamId);
-        }
-
-        /// <summary>
-        /// Checks if a player has admin privileges.
-        /// </summary>
-        /// <param name="player">The player to check</param>
-        /// <returns>True if the player is an admin or operator</returns>
-        public static bool IsAdmin(Player player)
-        {
-            if (player?.Owner?.ClientId == null)
-                return false;
-
-            string steamId = PlayerResolver.GetSteamId(player);
-            return IsAdmin(steamId);
-        }
-
-        /// <summary>
-        /// Adds a Steam ID to the admin list.
-        /// </summary>
-        /// <param name="steamId">The Steam ID to add</param>
-        /// <returns>True if the admin was added (false if already an admin or is operator)</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the administrator assignment changed.</returns>
         public static bool AddAdmin(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            // Don't add admin if already operator (operator already implies admin)
-            if (Config.Operators.Contains(steamId))
-                return Config.Admins.Add(steamId);
-
-            bool added = Config.Admins.Add(steamId);
-            if (added)
+#if SERVER
+            bool changed = ServerBootstrap.Permissions?.AssignGroup(null, steamId, PermissionBuiltIns.Groups.Administrator, "compat_add_admin") == true;
+            if (changed)
             {
-                Configuration.ServerConfig.SaveConfig();
-                Logger.Msg($"Added admin: {steamId}");
                 AdminAdded?.Invoke(steamId);
                 PermissionsChanged?.Invoke();
             }
-            return added;
+
+            return changed;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Removes a Steam ID from the admin list.
+        /// Removes a subject from the administrator group.
         /// </summary>
-        /// <param name="steamId">The Steam ID to remove</param>
-        /// <returns>True if the admin was removed (false if still an operator)</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the administrator assignment changed.</returns>
         public static bool RemoveAdmin(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            // Never remove admin if user is still operator
-            if (Config.Operators.Contains(steamId))
-                return false;
-
-            bool removed = Config.Admins.Remove(steamId);
-            if (removed)
+#if SERVER
+            bool changed = ServerBootstrap.Permissions?.UnassignGroup(null, steamId, PermissionBuiltIns.Groups.Administrator, "compat_remove_admin") == true;
+            if (changed)
             {
-                Configuration.ServerConfig.SaveConfig();
-                Logger.Msg($"Removed admin: {steamId}");
                 AdminRemoved?.Invoke(steamId);
                 PermissionsChanged?.Invoke();
             }
-            return removed;
+
+            return changed;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Gets all current admins.
+        /// Gets all directly assigned operators.
         /// </summary>
-        /// <returns>A read-only list of admin Steam IDs</returns>
+        /// <returns>The operator identifiers.</returns>
+        public static IReadOnlyList<string> GetAllOperators()
+        {
+#if SERVER
+            return ServerBootstrap.Permissions?.GetDirectUsersInGroup(PermissionBuiltIns.Groups.Operator) ?? Array.Empty<string>();
+#else
+            return Array.Empty<string>();
+#endif
+        }
+
+        /// <summary>
+        /// Gets all directly assigned administrators.
+        /// </summary>
+        /// <returns>The administrator identifiers.</returns>
         public static IReadOnlyList<string> GetAllAdmins()
         {
-            return Config.Admins.ToList().AsReadOnly();
+#if SERVER
+            return ServerBootstrap.Permissions?.GetDirectUsersInGroup(PermissionBuiltIns.Groups.Administrator) ?? Array.Empty<string>();
+#else
+            return Array.Empty<string>();
+#endif
         }
 
-        #endregion
-
-        #region Ban Management
-
         /// <summary>
-        /// Checks if a Steam ID is banned.
+        /// Checks whether a subject is banned.
         /// </summary>
-        /// <param name="steamId">The Steam ID to check</param>
-        /// <returns>True if the Steam ID is banned</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if banned.</returns>
         public static bool IsBanned(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            return Config.BannedPlayers.Contains(steamId);
+#if SERVER
+            return ServerBootstrap.Permissions?.IsBanned(steamId) == true;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Checks if a player is banned.
+        /// Adds a ban for a subject.
         /// </summary>
-        /// <param name="player">The player to check</param>
-        /// <returns>True if the player is banned</returns>
-        public static bool IsBanned(Player player)
-        {
-            if (player?.Owner?.ClientId == null)
-                return false;
-
-            string steamId = PlayerResolver.GetSteamId(player);
-            return IsBanned(steamId);
-        }
-
-        /// <summary>
-        /// Bans a Steam ID from the server.
-        /// </summary>
-        /// <param name="steamId">The Steam ID to ban</param>
-        /// <returns>True if the ban was added (false if already banned)</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the ban changed.</returns>
         public static bool AddBan(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            bool added = Config.BannedPlayers.Add(steamId);
-            if (added)
+#if SERVER
+            bool changed = ServerBootstrap.Permissions?.AddBan(null, steamId, "compat_add_ban") == true;
+            if (changed)
             {
-                // Also remove from operators/admins if present
-                Config.Operators.Remove(steamId);
-                Config.Admins.Remove(steamId);
-                Configuration.ServerConfig.SaveConfig();
-                Logger.Msg($"Added ban: {steamId}");
                 PlayerBanned?.Invoke(steamId);
                 PermissionsChanged?.Invoke();
             }
-            return added;
+
+            return changed;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Removes a ban from a Steam ID.
+        /// Removes a ban for a subject.
         /// </summary>
-        /// <param name="steamId">The Steam ID to unban</param>
-        /// <returns>True if the ban was removed</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if the ban changed.</returns>
         public static bool RemoveBan(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
-                return false;
-
-            bool removed = Config.BannedPlayers.Remove(steamId);
-            if (removed)
+#if SERVER
+            bool changed = ServerBootstrap.Permissions?.RemoveBan(null, steamId, "compat_remove_ban") == true;
+            if (changed)
             {
-                Configuration.ServerConfig.SaveConfig();
-                Logger.Msg($"Removed ban: {steamId}");
                 BanRemoved?.Invoke(steamId);
                 PermissionsChanged?.Invoke();
             }
-            return removed;
+
+            return changed;
+#else
+            return false;
+#endif
         }
 
         /// <summary>
-        /// Gets all banned Steam IDs.
+        /// Gets all banned subject identifiers.
         /// </summary>
-        /// <returns>A read-only list of banned Steam IDs</returns>
+        /// <returns>The banned identifiers.</returns>
         public static IReadOnlyList<string> GetAllBanned()
         {
-            return Config.BannedPlayers.ToList().AsReadOnly();
+#if SERVER
+            IReadOnlyCollection<BanEntry> bans = ServerBootstrap.Permissions?.GetBanEntries();
+            return bans == null
+                ? Array.Empty<string>()
+                : bans.Select(entry => entry.SubjectId).ToList().AsReadOnly();
+#else
+            return Array.Empty<string>();
+#endif
         }
 
-        #endregion
-
-        #region Console Access Control
-
         /// <summary>
-        /// Checks if a player can use the admin console.
+        /// Checks if a player can open the remote admin console.
         /// </summary>
-        /// <param name="player">The player to check</param>
-        /// <returns>True if the player can open the console</returns>
+        /// <param name="player">The player to evaluate.</param>
+        /// <returns><see langword="true"/> if the player can open the console.</returns>
         public static bool CanUseConsole(Player player)
         {
-            if (player?.Owner?.ClientId == null)
-                return false;
-
-            // Only check on server
-            if (!InstanceFinder.IsServer)
-                return false;
-
-            // Determine if this is a remote client
-            bool isRemoteClient = player.Owner != null && !player.Owner.IsLocalClient;
-            if (!isRemoteClient)
-                return false;
-
-            string steamId = PlayerResolver.GetSteamId(player);
-            if (IsOperator(player) && Config.EnableConsoleForOps)
-                return true;
-
-            if (IsAdmin(player) && Config.EnableConsoleForAdmins)
-                return true;
-
-            // Check if regular players have any allowed commands
-            if (Config.EnableConsoleForPlayers && Config.PlayerAllowedCommands.Count > 0)
-                return true;
-
-            Logger.Warning($"CanUseConsole: Denying console access for {player.PlayerName} - not operator/admin or console disabled");
+#if SERVER
+            return player != null && ServerBootstrap.Permissions?.HasPermission(PlayerResolver.GetSteamId(player), PermissionBuiltIns.Nodes.ConsoleOpen) == true;
+#else
             return false;
+#endif
         }
 
         /// <summary>
         /// Checks if a player can use a specific command.
         /// </summary>
-        /// <param name="player">The player attempting to use the command</param>
-        /// <param name="command">The command name (case-insensitive)</param>
-        /// <returns>True if the player can use the command</returns>
+        /// <param name="player">The player to evaluate.</param>
+        /// <param name="command">The command word.</param>
+        /// <returns><see langword="true"/> if the command is permitted.</returns>
         public static bool CanUseCommand(Player player, string command)
         {
-            if (player?.Owner?.ClientId == null)
-            {
-                Logger.Warning("CanUseCommand: Player or Owner or ClientId is null");
-                return false;
-            }
-
-            if (string.IsNullOrEmpty(command))
-            {
-                Logger.Warning("CanUseCommand: Command is null or empty");
-                return false;
-            }
-
-            string normalizedCommand = command.ToLower();
-
-            // 0) Global disables override everything
-            if (Config.GlobalDisabledCommands.Contains(normalizedCommand))
-                return false;
-
-            // Operators can use all commands
-            if (IsOperator(player))
-                return true;
-
-            // Admins can use allowed commands but not restricted ones
-            if (IsAdmin(player))
-            {
-                if (Config.RestrictedCommands.Contains(normalizedCommand))
-                    return false;
-
-                return Config.AllowedCommands.Contains(normalizedCommand);
-            }
-
-            // Regular player: only allow if present in PlayerAllowedCommands
-            return Config.PlayerAllowedCommands.Contains(normalizedCommand);
+            return CanUseCommand(PlayerResolver.GetSteamId(player), command);
         }
 
         /// <summary>
-        /// Checks if a Steam ID can use a specific command (without player context).
+        /// Checks if a subject can use a specific command.
         /// </summary>
-        /// <param name="steamId">The Steam ID to check</param>
-        /// <param name="command">The command name</param>
-        /// <returns>True if the Steam ID can use the command</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <param name="command">The command word.</param>
+        /// <returns><see langword="true"/> if the command is permitted.</returns>
         public static bool CanUseCommand(string steamId, string command)
         {
-            if (string.IsNullOrEmpty(steamId) || string.IsNullOrEmpty(command))
-                return false;
-
-            string normalizedCommand = command.ToLower();
-
-            // 0) Global disables override everything
-            if (Config.GlobalDisabledCommands.Contains(normalizedCommand))
-                return false;
-
-            // Operators can use all commands
-            if (IsOperator(steamId))
-                return true;
-
-            // Admins can use allowed commands but not restricted ones
-            if (IsAdmin(steamId))
+#if SERVER
+            if (string.IsNullOrWhiteSpace(steamId) || string.IsNullOrWhiteSpace(command))
             {
-                if (Config.RestrictedCommands.Contains(normalizedCommand))
-                    return false;
-
-                return Config.AllowedCommands.Contains(normalizedCommand);
+                return false;
             }
 
-            // Regular player: only allow if present in PlayerAllowedCommands
-            return Config.PlayerAllowedCommands.Contains(normalizedCommand);
+            string node = MapCommandToPermissionNode(command);
+            return ServerBootstrap.Permissions?.HasPermission(steamId, node) == true;
+#else
+            return false;
+#endif
         }
 
-        #endregion
-
-        #region Player Access Control
-
         /// <summary>
-        /// Checks if a player is allowed to connect based on ban status.
+        /// Checks if a player is allowed to connect.
         /// </summary>
-        /// <param name="player">The player attempting to connect</param>
-        /// <returns>True if the player is allowed to connect</returns>
+        /// <param name="player">The player to evaluate.</param>
+        /// <returns><see langword="true"/> if allowed.</returns>
         public static bool CanPlayerConnect(Player player)
         {
-            if (player == null)
-                return false;
-
-            string steamId = PlayerResolver.GetSteamId(player);
-            return !IsBanned(steamId);
+            return player != null && CanPlayerConnect(PlayerResolver.GetSteamId(player));
         }
 
         /// <summary>
-        /// Checks if a Steam ID is allowed to connect.
+        /// Checks if a subject is allowed to connect.
         /// </summary>
-        /// <param name="steamId">The Steam ID to check</param>
-        /// <returns>True if the Steam ID is allowed to connect</returns>
+        /// <param name="steamId">The subject identifier.</param>
+        /// <returns><see langword="true"/> if allowed.</returns>
         public static bool CanPlayerConnect(string steamId)
         {
             return !IsBanned(steamId);
         }
 
-        #endregion
-
-        #region Admin Action Logging
-
         /// <summary>
-        /// Logs an admin action to the console and admin log file.
+        /// Logs an administrative action to the admin log.
         /// </summary>
-        /// <param name="player">The player who performed the action</param>
-        /// <param name="command">The command executed</param>
-        /// <param name="args">The command arguments</param>
+        /// <param name="player">The acting player.</param>
+        /// <param name="command">The command word.</param>
+        /// <param name="args">The optional argument text.</param>
         public static void LogAdminAction(Player player, string command, string args = "")
         {
             if (!Config.LogAdminCommands)
-                return;
-
-            var steamId = PlayerResolver.GetSteamId(player);
-            var playerName = player?.PlayerName ?? "Unknown";
-
-            var logMessage = $"Admin Action - Player: {playerName} ({steamId}) | Command: {command}";
-
-            if (!string.IsNullOrEmpty(args))
             {
-                logMessage += $" | Args: {args}";
+                return;
             }
 
-            Logger.Msg(logMessage);
-            Utils.DebugLog.WriteToAdminLog(logMessage);
+            string steamId = PlayerResolver.GetSteamId(player);
+            string playerName = player?.PlayerName ?? "Unknown";
+            string message = $"Admin Action - Player: {playerName} ({steamId}) | Command: {command}";
+            if (!string.IsNullOrWhiteSpace(args))
+            {
+                message += $" | Args: {args}";
+            }
+
+            Logger.Msg(message);
+            Utils.DebugLog.WriteToAdminLog(message);
         }
-
-        #endregion
-
-        #region Permission Information
 
         /// <summary>
-        /// Gets a summary of the permission configuration.
+        /// Gets a formatted permission summary.
         /// </summary>
-        /// <returns>A formatted string describing permission settings</returns>
+        /// <returns>The permission summary text.</returns>
         public static string GetPermissionSummary()
         {
-            return $"Permissions: {Config.Operators.Count} operators, " +
-                   $"{Config.Admins.Count} admins, " +
-                   $"{Config.BannedPlayers.Count} banned, " +
-                   $"Console: ops={Config.EnableConsoleForOps}, " +
-                   $"admins={Config.EnableConsoleForAdmins}, " +
-                   $"players={Config.EnableConsoleForPlayers}";
+#if SERVER
+            DedicatedServerMod.Shared.Permissions.PermissionSummary summary = ServerBootstrap.Permissions?.GetSummary();
+            if (summary == null)
+            {
+                return "Permissions unavailable";
+            }
+
+            return $"Permissions: {summary.TotalGroups} groups, {summary.TotalUsers} users, {summary.TotalBans} banned, {summary.TotalOperators} operators, {summary.TotalAdministrators} administrators";
+#else
+            return "Permissions unavailable";
+#endif
         }
 
-        #endregion
+#if SERVER
+        private static string MapCommandToPermissionNode(string command)
+        {
+            string normalizedCommand = command.Trim().ToLowerInvariant();
+
+            switch (normalizedCommand)
+            {
+                case "help":
+                    return PermissionBuiltIns.Nodes.ServerHelp;
+                case "serverinfo":
+                    return PermissionBuiltIns.Nodes.ServerInfo;
+                case "save":
+                    return PermissionBuiltIns.Nodes.ServerSave;
+                case "reloadconfig":
+                    return PermissionBuiltIns.Nodes.ServerReloadConfig;
+                case "shutdown":
+                    return PermissionBuiltIns.Nodes.ServerStop;
+                case "listplayers":
+                    return PermissionBuiltIns.Nodes.PlayerList;
+                case "kick":
+                    return PermissionBuiltIns.Nodes.PlayerKick;
+                case "ban":
+                    return PermissionBuiltIns.Nodes.PlayerBan;
+                case "unban":
+                    return PermissionBuiltIns.Nodes.PlayerUnban;
+                case "reloadpermissions":
+                    return PermissionBuiltIns.Nodes.PermissionsReload;
+                case "listops":
+                case "listadmins":
+                    return PermissionBuiltIns.Nodes.PermissionsGroupList;
+                case "op":
+                case "admin":
+                    return PermissionBuiltIns.Nodes.PermissionsGroupAssign;
+                case "deop":
+                case "deadmin":
+                    return PermissionBuiltIns.Nodes.PermissionsGroupUnassign;
+                default:
+                    return PermissionNode.CreateConsoleCommandNode(normalizedCommand);
+            }
+        }
+#endif
     }
 }

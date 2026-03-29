@@ -1,279 +1,170 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using DedicatedServerMod.Client.Permissions;
 using MelonLoader;
 #if IL2CPP
 using Il2CppFishNet;
-using Il2CppFishNet.Connection;
-using Il2CppFishNet.Managing;
-using Il2CppScheduleOne.PlayerScripts;
 #else
 using FishNet;
-using FishNet.Connection;
-using FishNet.Managing;
-using ScheduleOne.PlayerScripts;
 #endif
-using UnityEngine;
 
 namespace DedicatedServerMod.Client.Managers
 {
     /// <summary>
-    /// Manages admin status checking and caching for client-side console access.
-    /// Provides methods to query and cache admin permissions from the server.
+    /// Compatibility facade over the server-authored client permission snapshot.
     /// </summary>
     public static class AdminStatusManager
     {
-        private static MelonLogger.Instance logger;
-        private static bool? _cachedAdminStatus = null;
-        private static bool? _cachedOperatorStatus = null;
-        private static float _lastStatusCheck = 0f;
-        private static readonly float STATUS_CHECK_INTERVAL = 10f; // Check every 10 seconds
-        private static readonly float STATUS_TIMEOUT = 30f; // Consider status stale after 30 seconds
+        private static readonly HashSet<string> BuiltInServerCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "help",
+            "serverinfo",
+            "save",
+            "reloadconfig",
+            "shutdown",
+            "listplayers",
+            "kick",
+            "ban",
+            "unban",
+            "reloadpermissions",
+            "perm",
+            "group",
+            "op",
+            "admin",
+            "deop",
+            "deadmin",
+            "listops",
+            "listadmins"
+        };
 
-        // Steam ID to admin/operator status mapping (for offline checking)
-        private static Dictionary<string, bool> _cachedAdminList = new Dictionary<string, bool>();
-        private static Dictionary<string, bool> _cachedOperatorList = new Dictionary<string, bool>();
+        private static MelonLogger.Instance _logger;
 
+        /// <summary>
+        /// Initializes the local permission snapshot facade.
+        /// </summary>
+        /// <param name="loggerInstance">The logger instance.</param>
         public static void Initialize(MelonLogger.Instance loggerInstance)
         {
-            logger = loggerInstance;
-            logger?.Msg("AdminStatusManager initialized");
+            _logger = loggerInstance;
+            PermissionSnapshotStore.Initialize(loggerInstance);
+            _logger?.Msg("AdminStatusManager initialized from permission snapshots");
         }
 
         /// <summary>
-        /// Check if the local player is an admin on the current server
+        /// Gets whether the local player has elevated console access.
         /// </summary>
         public static bool IsLocalPlayerAdmin()
         {
-            try
-            {
-                // Return cached result if recent and valid
-                if (_cachedAdminStatus.HasValue && 
-                    Time.time - _lastStatusCheck < STATUS_CHECK_INTERVAL)
-                {
-                    return _cachedAdminStatus.Value;
-                }
-
-                var localPlayer = Player.Local;
-                if (localPlayer == null)
-                {
-                    _cachedAdminStatus = false;
-                    _lastStatusCheck = Time.time;
-                    return false;
-                }
-
-                // For dedicated server connections, we need to implement proper admin checking
-                if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
-                {
-                    // Only trust server-provided status via cache
-                    string playerId = GetLocalPlayerId();
-                    
-                    if (!string.IsNullOrEmpty(playerId))
-                    {
-                        if (_cachedAdminList.TryGetValue(playerId, out bool isAdmin))
-                        {
-                            bool result = isAdmin;
-                            _cachedAdminStatus = result;
-                            _lastStatusCheck = Time.time;
-                            return result;
-                        }
-                        
-                        if (_cachedOperatorList.TryGetValue(playerId, out bool isOperator))
-                        {
-                            bool result = isOperator;
-                            _cachedAdminStatus = result;
-                            _lastStatusCheck = Time.time;
-                            return result;
-                        }
-                        
-                    }
-
-                    // If no cached server-provided status is available, default to false
-                    _cachedAdminStatus = false;
-                    _lastStatusCheck = Time.time;
-                    return false;
-                }
-
-                // For hosts, they always have admin access
-                if (InstanceFinder.IsHost)
-                {
-                    _cachedAdminStatus = true;
-                    _lastStatusCheck = Time.time;
-                    return true;
-                }
-
-                _cachedAdminStatus = false;
-                _lastStatusCheck = Time.time;
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"IsLocalPlayerAdmin: Exception occurred: {ex}");
-                return false;
-            }
+            return InstanceFinder.IsHost || PermissionSnapshotStore.Current?.CanOpenConsole == true;
         }
 
         /// <summary>
-        /// Check if the local player is an operator on the current server
+        /// Gets whether the local player effectively has wildcard remote console access.
         /// </summary>
         public static bool IsLocalPlayerOperator()
         {
-            try
-            {
-                // Return cached result if recent and valid
-                if (_cachedOperatorStatus.HasValue && 
-                    Time.time - _lastStatusCheck < STATUS_CHECK_INTERVAL)
-                {
-                    return _cachedOperatorStatus.Value;
-                }
-
-                var localPlayer = Player.Local;
-                if (localPlayer == null)
-                {
-                    _cachedOperatorStatus = false;
-                    return false;
-                }
-
-                // Check cached operator status
-                string playerId = GetLocalPlayerId();
-                if (!string.IsNullOrEmpty(playerId) && 
-                    _cachedOperatorList.TryGetValue(playerId, out bool isOperator))
-                {
-                    _cachedOperatorStatus = isOperator;
-                    return isOperator;
-                }
-
-                // For hosts, they always have operator access
-                if (InstanceFinder.IsHost)
-                {
-                    _cachedOperatorStatus = true;
-                    return true;
-                }
-
-                _cachedOperatorStatus = false;
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"Error checking operator status: {ex}");
-                _cachedOperatorStatus = false;
-                return false;
-            }
+            return InstanceFinder.IsHost || HasWildcardConsoleAccess();
         }
 
         /// <summary>
-        /// Update admin status from server data (called when server sends admin list)
+        /// Legacy no-op compatibility entry point.
         /// </summary>
         public static void UpdateAdminStatus(string playerId, bool isAdmin, bool isOperator)
         {
-            if (string.IsNullOrEmpty(playerId)) return;
-
-            _cachedAdminList[playerId] = isAdmin;
-            _cachedOperatorList[playerId] = isOperator;
-            
-            // If this is the local player, update cached status
-            string localPlayerId = GetLocalPlayerId();
-            if (playerId == localPlayerId)
-            {
-                _cachedAdminStatus = isAdmin || isOperator;
-                _cachedOperatorStatus = isOperator;
-                _lastStatusCheck = Time.time;
-                
-                logger?.Msg($"Updated local player admin status: Admin={isAdmin}, Operator={isOperator}");
-            }
+            _logger?.Warning("UpdateAdminStatus is deprecated. Client permissions now come from server snapshots.");
         }
 
         /// <summary>
-        /// Clear all cached admin status (call when disconnecting or changing servers)
+        /// Clears the cached capability snapshot.
         /// </summary>
         public static void ClearCache()
         {
-            _cachedAdminStatus = null;
-            _cachedOperatorStatus = null;
-            _lastStatusCheck = 0f;
-            _cachedAdminList.Clear();
-            _cachedOperatorList.Clear();
-            
-            logger?.Msg("Admin status cache cleared");
+            PermissionSnapshotStore.Reset();
         }
 
         /// <summary>
-        /// Force refresh of admin status on next check
+        /// Invalidates the cached capability snapshot.
         /// </summary>
         public static void InvalidateCache()
         {
-            _cachedAdminStatus = null;
-            _cachedOperatorStatus = null;
-            _lastStatusCheck = 0f;
-            
-            logger?.Msg("Admin status cache invalidated");
+            PermissionSnapshotStore.Reset();
         }
 
         /// <summary>
-        /// Get the local player's identifier for admin checking
+        /// Checks whether the local player can use a remote console command according to the latest snapshot.
         /// </summary>
-        private static string GetLocalPlayerId()
-        {
-            try
-            {
-                var localPlayer = Player.Local;
-                if (localPlayer?.Owner?.ClientId != null)
-                {
-                    // For now, use ClientId as identifier
-                    string clientId = localPlayer.Owner.ClientId.ToString();
-                    return clientId;
-                }
-                
-                logger?.Warning("GetLocalPlayerId: Local player or Owner or ClientId is null");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                logger?.Error($"GetLocalPlayerId: Error getting local player ID: {ex}");
-                return null;
-            }
-        }
-
-        
-
-        /// <summary>
-        /// Check if a specific command is allowed for the current player
-        /// </summary>
+        /// <param name="command">The command word to evaluate.</param>
+        /// <returns><see langword="true"/> when the command is allowed.</returns>
         public static bool CanUseCommand(string command)
         {
-            if (string.IsNullOrEmpty(command)) return false;
-
-            command = command.ToLower();
-
-            // Operators can use all commands
-            if (IsLocalPlayerOperator()) return true;
-
-            // Admins can use most commands but not restricted ones
-            if (IsLocalPlayerAdmin())
+            if (string.IsNullOrWhiteSpace(command))
             {
-                var restrictedCommands = new[]
-                {
-                    "settimescale", "freecam", "disable", "enable", "endtutorial",
-                    "disablenpcasset", "hideui", "bind", "unbind", "clearbinds"
-                };
-
-                return !Array.Exists(restrictedCommands, 
-                    cmd => cmd.Equals(command, StringComparison.OrdinalIgnoreCase));
+                return false;
             }
 
-            return false;
+            if (InstanceFinder.IsHost)
+            {
+                return true;
+            }
+
+            if (!IsLocalPlayerAdmin())
+            {
+                return false;
+            }
+
+            IReadOnlyList<string> allowedCommands = PermissionSnapshotStore.Current?.AllowedRemoteCommands;
+            if (allowedCommands == null)
+            {
+                allowedCommands = Array.Empty<string>();
+            }
+
+            string normalizedCommand = command.Trim().ToLowerInvariant();
+            return BuiltInServerCommands.Contains(normalizedCommand) ||
+                   allowedCommands.Contains("*") ||
+                   allowedCommands.Contains(normalizedCommand);
         }
 
         /// <summary>
-        /// Get a descriptive string of the current player's permissions
+        /// Gets a human-readable description of the local snapshot.
         /// </summary>
+        /// <returns>The permission summary text.</returns>
         public static string GetPermissionInfo()
         {
-            if (IsLocalPlayerOperator())
-                return "OPERATOR (Full console access)";
-            else if (IsLocalPlayerAdmin())
-                return "ADMIN (Limited console access)";
-            else
-                return "PLAYER (No console access)";
+            if (InstanceFinder.IsHost)
+            {
+                return "HOST (Full console access)";
+            }
+
+            if (HasWildcardConsoleAccess())
+            {
+                return "STAFF (Full remote console access)";
+            }
+
+            if (IsLocalPlayerAdmin())
+            {
+                return "STAFF (Scoped remote console access)";
+            }
+
+            return "PLAYER (No remote console access)";
+        }
+
+        /// <summary>
+        /// Gets whether the latest snapshot allows opening the remote console.
+        /// </summary>
+        public static bool CanOpenConsole()
+        {
+            return IsLocalPlayerAdmin();
+        }
+
+        private static bool HasWildcardConsoleAccess()
+        {
+            IReadOnlyList<string> allowedCommands = PermissionSnapshotStore.Current?.AllowedRemoteCommands;
+            if (allowedCommands == null)
+            {
+                allowedCommands = Array.Empty<string>();
+            }
+            return allowedCommands.Contains("*");
         }
     }
 }

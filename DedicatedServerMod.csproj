@@ -780,6 +780,7 @@
 		
 		<!-- Client managers -->
 		<Compile Include="Client\Managers\*.cs" />
+		<Compile Include="Client\Permissions\*.cs" />
 		
 		<!-- Client patchers -->
 		<Compile Include="Client\Patchers\*.cs" />
@@ -822,6 +823,7 @@
 		<Compile Include="Server\Commands\*.cs" />
 		<Compile Include="Server\Commands\Admin\*.cs" />
 		<Compile Include="Server\Commands\Server\*.cs" />
+		<Compile Include="Server\Permissions\*.cs" />
 		
 		<!-- Persistence system -->
 		<Compile Include="Server\Persistence\PersistenceManager.cs" />

@@ -5,8 +5,10 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ModVerification;
+using DedicatedServerMod.Shared.Permissions;
 using DedicatedServerMod.Utils;
 using MelonLoader;
 using MelonLoader.Utils;
@@ -53,7 +55,8 @@ namespace DedicatedServerMod.Server.Player
         {
             return ServerConfig.Instance.ModVerificationEnabled &&
                    playerInfo != null &&
-                   !playerInfo.IsLoopbackConnection;
+                   !playerInfo.IsLoopbackConnection &&
+                   !HasClientModPolicyBypass(playerInfo);
         }
 
         public ModVerificationResultMessage BypassVerification(ConnectedPlayerInfo playerInfo)
@@ -562,6 +565,12 @@ namespace DedicatedServerMod.Server.Player
                 KnownHashes = new List<string>(),
                 Reason = "Client mod verification rejected UnityExplorer because it exposes runtime object inspection and mutation capabilities that can be abused on dedicated servers."
             });
+        }
+
+        private static bool HasClientModPolicyBypass(ConnectedPlayerInfo playerInfo)
+        {
+            return !string.IsNullOrWhiteSpace(playerInfo?.TrustedUniqueId) &&
+                   ServerBootstrap.Permissions?.HasPermission(playerInfo.TrustedUniqueId, PermissionBuiltIns.Nodes.ClientModPolicyBypass) == true;
         }
 
         private sealed class KnownRiskyClientModEntry

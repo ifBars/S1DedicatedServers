@@ -4,6 +4,7 @@ using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Game;
 using DedicatedServerMod.Server.Persistence;
+using DedicatedServerMod.Server.Permissions;
 
 namespace DedicatedServerMod.API
 {
@@ -37,6 +38,11 @@ namespace DedicatedServerMod.API
             /// Access to persistence functionality
             /// </summary>
             public static PersistenceManager Persistence => ServerBootstrap.Persistence;
+
+            /// <summary>
+            /// Access to the authoritative permission service.
+            /// </summary>
+            public static ServerPermissionService Permissions => ServerBootstrap.Permissions;
 
             /// <summary>
             /// Checks if the server is currently running and initialized

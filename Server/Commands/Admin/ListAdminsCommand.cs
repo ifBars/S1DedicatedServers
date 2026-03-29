@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "listadmins";
         public override string Description => "Lists all server administrators";
         public override string Usage => "listadmins";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.PermissionsGroupList;
 
         public override void Execute(CommandContext context)
         {

@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "ban";
         public override string Description => "Bans a player from the server";
         public override string Usage => "ban <player_name_or_id> [reason]";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.PlayerBan;
 
         public override void Execute(CommandContext context)
         {
@@ -51,8 +51,9 @@ namespace DedicatedServerMod.Server.Commands.Admin
                 return;
             }
 
-            if (PlayerManager.BanPlayer(targetPlayer, reason))
+            if (context.Permissions?.AddBan(context.Executor?.TrustedUniqueId, targetPlayer.TrustedUniqueId, reason) == true)
             {
+                PlayerManager.NotifyAndDisconnectPlayer(targetPlayer, "Banned", $"Banned: {reason}");
                 context.Reply($"Banned {targetPlayer.DisplayName} ({targetPlayer.SteamId}): {reason}");
                 Logger.Msg($"Player {targetPlayer.DisplayName} banned by {context.Executor?.DisplayName ?? "Console"}: {reason}");
             }
@@ -67,11 +68,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         /// </summary>
         private bool CanBanPlayer(ConnectedPlayerInfo executor, ConnectedPlayerInfo target)
         {
-            var executorLevel = PlayerManager.Permissions.GetPermissionLevel(executor);
-            var targetLevel = PlayerManager.Permissions.GetPermissionLevel(target);
-
-            // Can only ban players with lower permission level
-            return executorLevel > targetLevel;
+            return PlayerManager.Permissions.HasDominanceOver(executor, target);
         }
     }
 }

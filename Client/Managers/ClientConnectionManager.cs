@@ -30,6 +30,7 @@ using System.Collections;
 using System.Reflection;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Client.Core;
+using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
@@ -135,6 +136,7 @@ namespace DedicatedServerMod.Client.Managers
             TryHookConnectionState();
             logger.Msg($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
             ServerDataStore.Reset();
+            PermissionSnapshotStore.Reset();
             _worldLoadCompleted = false;
             _authSucceeded = false;
             _modVerificationSucceeded = false;
@@ -438,6 +440,7 @@ namespace DedicatedServerMod.Client.Managers
         public void Shutdown()
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
+            PermissionSnapshotStore.Reset();
         }
 
         private void CompleteJoinAfterVerification()
@@ -584,6 +587,7 @@ namespace DedicatedServerMod.Client.Managers
             IsConnecting = false;
             IsConnectedToDedicatedServer = false;
             ServerDataStore.Reset();
+            PermissionSnapshotStore.Reset();
             _worldLoadCompleted = false;
             _authSucceeded = false;
             _modVerificationSucceeded = false;

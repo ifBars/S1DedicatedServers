@@ -19,7 +19,7 @@ namespace DedicatedServerMod.Server.Commands.Server
         public override string CommandWord => "save";
         public override string Description => "Manually triggers a game save";
         public override string Usage => "save";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Operator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.ServerSave;
 
         public override void Execute(CommandContext context)
         {

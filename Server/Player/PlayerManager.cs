@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DedicatedServerMod;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Core;
 #if IL2CPP
 using Il2CppFishNet.Transporting;
 #else
@@ -729,10 +730,10 @@ namespace DedicatedServerMod.Server.Player
                     return false;
                 }
 
-                if (!ServerConfig.Instance.BannedPlayers.Contains(banIdentifier))
+                if (ServerBootstrap.Permissions?.AddBan(null, banIdentifier, reason) != true)
                 {
-                    ServerConfig.Instance.BannedPlayers.Add(banIdentifier);
-                    ServerConfig.SaveConfig();
+                    logger.Warning($"Ban for {banIdentifier} was rejected or already exists.");
+                    return false;
                 }
 
                 // Kick the player
@@ -753,7 +754,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public bool IsPlayerBanned(string steamId)
         {
-            return ServerConfig.Instance.BannedPlayers.Contains(steamId);
+            return ServerBootstrap.Permissions?.IsBanned(steamId) == true;
         }
 
         /// <summary>
@@ -919,7 +920,7 @@ namespace DedicatedServerMod.Server.Player
             {
                 ConnectedPlayers = connectedPlayers.Values.Count(IsTrackedPlayerActive),
                 MaxPlayers = ServerConfig.Instance.MaxPlayers,
-                TotalBannedPlayers = ServerConfig.Instance.BannedPlayers.Count,
+                TotalBannedPlayers = ServerBootstrap.Permissions?.GetBanEntries().Count ?? 0,
                 Players = GetConnectedPlayers()
             };
 

@@ -427,7 +427,7 @@ namespace DedicatedServerMod.Server.Player
                 return false;
             }
 
-            return ServerConfig.Instance.BannedPlayers.Contains(steamId);
+            return Shared.Permissions.PermissionManager.IsBanned(steamId);
         }
 
         /// <summary>

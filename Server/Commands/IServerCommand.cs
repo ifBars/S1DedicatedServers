@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DedicatedServerMod.Server.Player;
+using DedicatedServerMod.Server.Permissions;
 using MelonLoader;
 
 namespace DedicatedServerMod.Server.Commands
@@ -25,9 +26,21 @@ namespace DedicatedServerMod.Server.Commands
         string Usage { get; }
 
         /// <summary>
-        /// Required permission level to execute this command.
+        /// Required permission node to execute this command.
         /// </summary>
-        PermissionLevel RequiredPermission { get; }
+        string RequiredPermissionNode { get; }
+
+        /// <summary>
+        /// Gets the permission nodes that should make this command visible in help and discovery surfaces.
+        /// </summary>
+        IReadOnlyCollection<string> GetDiscoveryPermissionNodes();
+
+        /// <summary>
+        /// Resolves the required permission node for a specific invocation.
+        /// </summary>
+        /// <param name="arguments">The parsed command arguments.</param>
+        /// <returns>The required permission node for the invocation.</returns>
+        string GetRequiredPermissionNode(IReadOnlyList<string> arguments);
 
         /// <summary>
         /// Execute the command with the given context.
@@ -59,6 +72,11 @@ namespace DedicatedServerMod.Server.Commands
         /// Player manager.
         /// </summary>
         public PlayerManager PlayerManager { get; set; }
+
+        /// <summary>
+        /// Permission service.
+        /// </summary>
+        public ServerPermissionService Permissions { get; set; }
 
         /// <summary>
         /// Optional transport-specific output sink.
@@ -168,7 +186,21 @@ namespace DedicatedServerMod.Server.Commands
         public abstract string Usage { get; }
 
         /// <inheritdoc />
-        public abstract PermissionLevel RequiredPermission { get; }
+        public abstract string RequiredPermissionNode { get; }
+
+        /// <inheritdoc />
+        public virtual IReadOnlyCollection<string> GetDiscoveryPermissionNodes()
+        {
+            return string.IsNullOrWhiteSpace(RequiredPermissionNode)
+                ? System.Array.Empty<string>()
+                : new[] { RequiredPermissionNode };
+        }
+
+        /// <inheritdoc />
+        public virtual string GetRequiredPermissionNode(IReadOnlyList<string> arguments)
+        {
+            return RequiredPermissionNode;
+        }
 
         /// <inheritdoc />
         public abstract void Execute(CommandContext context);

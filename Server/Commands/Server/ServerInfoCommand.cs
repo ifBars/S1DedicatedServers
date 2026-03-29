@@ -23,7 +23,7 @@ namespace DedicatedServerMod.Server.Commands.Server
         public override string CommandWord => "serverinfo";
         public override string Description => "Displays server information and statistics";
         public override string Usage => "serverinfo";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Player;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.ServerInfo;
 
         public override void Execute(CommandContext context)
         {
@@ -32,7 +32,7 @@ namespace DedicatedServerMod.Server.Commands.Server
                 bool isRunning = _networkManager?.IsServerRunning ?? false;
                 TimeSpan uptime = _networkManager?.Uptime ?? TimeSpan.Zero;
                 var playerStats = PlayerManager.GetPlayerStats();
-                var permissionSummary = PlayerManager.Permissions.GetPermissionSummary();
+                var permissionSummary = context.Permissions?.GetSummary();
 
                 context.Reply("=== Server Information ===");
                 context.Reply($"Server Name: {ServerConfig.Instance.ServerName}");
@@ -51,9 +51,11 @@ namespace DedicatedServerMod.Server.Commands.Server
                 
                 context.Reply("");
                 context.Reply("=== Permissions ===");
-                context.Reply($"Operators: {permissionSummary.TotalOperators}");
-                context.Reply($"Administrators: {permissionSummary.TotalAdministrators}");
-                context.Reply($"Banned Players: {ServerConfig.Instance.BannedPlayers.Count}");
+                context.Reply($"Groups: {permissionSummary?.TotalGroups ?? 0}");
+                context.Reply($"Users With Direct Rules: {permissionSummary?.TotalUsers ?? 0}");
+                context.Reply($"Banned Players: {permissionSummary?.TotalBans ?? 0}");
+                context.Reply($"Operators: {permissionSummary?.TotalOperators ?? 0}");
+                context.Reply($"Administrators: {permissionSummary?.TotalAdministrators ?? 0}");
 
                 if (_networkManager != null)
                 {

@@ -1,181 +1,225 @@
-using MelonLoader;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using DedicatedServerMod;
-using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Server.Core;
+using DedicatedServerMod.Shared.Permissions;
+using MelonLoader;
 
 namespace DedicatedServerMod.Server.Player
 {
     /// <summary>
-    /// Manages player permissions including operators and administrators.
+    /// Compatibility wrapper for legacy player permission queries.
     /// </summary>
-    public class PlayerPermissions
+    public sealed class PlayerPermissions
     {
-        private readonly MelonLogger.Instance logger;
+        private readonly MelonLogger.Instance _logger;
 
+        /// <summary>
+        /// Initializes a new player permission wrapper.
+        /// </summary>
+        /// <param name="loggerInstance">The logger instance.</param>
         public PlayerPermissions(MelonLogger.Instance loggerInstance)
         {
-            logger = loggerInstance;
+            _logger = loggerInstance;
         }
 
         /// <summary>
-        /// Initialize the permissions system
+        /// Initializes the permission wrapper.
         /// </summary>
         public void Initialize()
         {
-            logger.Msg("Player permissions system initialized");
+            _logger.Msg("Player permissions compatibility wrapper initialized");
         }
 
         /// <summary>
-        /// Check if a player is an operator
+        /// Checks if a subject is an operator.
         /// </summary>
         public bool IsOperator(string steamId)
         {
-            return Shared.Permissions.PermissionManager.IsOperator(steamId);
+            return PermissionManager.IsOperator(steamId);
         }
 
         /// <summary>
-        /// Check if a player is an administrator
+        /// Checks if a subject is an administrator.
         /// </summary>
         public bool IsAdministrator(string steamId)
         {
-            return Shared.Permissions.PermissionManager.IsAdmin(steamId);
+            return PermissionManager.IsAdmin(steamId);
         }
 
         /// <summary>
-        /// Check if a player has operator privileges
+        /// Checks if a player is an operator.
         /// </summary>
         public bool IsOperator(ConnectedPlayerInfo player)
         {
-            return IsOperator(player?.SteamId);
+            return IsOperator(player?.TrustedUniqueId);
         }
 
         /// <summary>
-        /// Check if a player has administrator privileges
+        /// Checks if a player is an administrator.
         /// </summary>
         public bool IsAdministrator(ConnectedPlayerInfo player)
         {
-            return IsAdministrator(player?.SteamId);
+            return IsAdministrator(player?.TrustedUniqueId);
         }
 
         /// <summary>
-        /// Check if a player has any elevated privileges
+        /// Checks if a player has elevated privileges.
         /// </summary>
         public bool HasElevatedPrivileges(string steamId)
         {
-            return IsOperator(steamId) || IsAdministrator(steamId);
+            PermissionLevel level = GetPermissionLevel(steamId);
+            return level >= PermissionLevel.Administrator;
         }
 
         /// <summary>
-        /// Check if a player has any elevated privileges
+        /// Checks if a player has elevated privileges.
         /// </summary>
         public bool HasElevatedPrivileges(ConnectedPlayerInfo player)
         {
-            return HasElevatedPrivileges(player?.SteamId);
+            return HasElevatedPrivileges(player?.TrustedUniqueId);
         }
 
         /// <summary>
-        /// Add a player as an operator
+        /// Adds a subject as an operator.
         /// </summary>
         public bool AddOperator(string steamId)
         {
-            return Shared.Permissions.PermissionManager.AddOperator(steamId);
+            return PermissionManager.AddOperator(steamId);
         }
 
         /// <summary>
-        /// Remove a player from operators
+        /// Removes a subject from operators.
         /// </summary>
         public bool RemoveOperator(string steamId)
         {
-            return Shared.Permissions.PermissionManager.RemoveOperator(steamId);
+            return PermissionManager.RemoveOperator(steamId);
         }
 
         /// <summary>
-        /// Add a player as an administrator
+        /// Adds a subject as an administrator.
         /// </summary>
         public bool AddAdministrator(string steamId)
         {
-            return Shared.Permissions.PermissionManager.AddAdmin(steamId);
+            return PermissionManager.AddAdmin(steamId);
         }
 
         /// <summary>
-        /// Remove a player from administrators
+        /// Removes a subject from administrators.
         /// </summary>
         public bool RemoveAdministrator(string steamId)
         {
-            return Shared.Permissions.PermissionManager.RemoveAdmin(steamId);
+            return PermissionManager.RemoveAdmin(steamId);
         }
 
         /// <summary>
-        /// Get all operators
+        /// Gets directly assigned operators.
         /// </summary>
         public List<string> GetOperators()
         {
-            return new List<string>(ServerConfig.Instance.Operators);
+            return new List<string>(PermissionManager.GetAllOperators());
         }
 
         /// <summary>
-        /// Get all administrators
+        /// Gets directly assigned administrators.
         /// </summary>
         public List<string> GetAdministrators()
         {
-            return new List<string>(ServerConfig.Instance.Admins);
+            return new List<string>(PermissionManager.GetAllAdmins());
         }
 
         /// <summary>
-        /// Get permission level for a player
+        /// Gets the legacy permission level for a subject.
         /// </summary>
         public PermissionLevel GetPermissionLevel(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId))
+            if (string.IsNullOrWhiteSpace(steamId))
+            {
                 return PermissionLevel.None;
+            }
 
-            // Operator implies highest privileges
-            if (IsOperator(steamId))
+            if (ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Operator, System.StringComparer.OrdinalIgnoreCase) == true)
+            {
                 return PermissionLevel.Operator;
-            
-            if (IsAdministrator(steamId))
+            }
+
+            if (ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Administrator, System.StringComparer.OrdinalIgnoreCase) == true ||
+                ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Moderator, System.StringComparer.OrdinalIgnoreCase) == true)
+            {
                 return PermissionLevel.Administrator;
+            }
 
             return PermissionLevel.Player;
         }
 
         /// <summary>
-        /// Get permission level for a player
+        /// Gets the legacy permission level for a player.
         /// </summary>
         public PermissionLevel GetPermissionLevel(ConnectedPlayerInfo player)
         {
-            return GetPermissionLevel(player?.SteamId);
+            return GetPermissionLevel(player?.TrustedUniqueId);
         }
 
         /// <summary>
-        /// Check if a player can execute a command based on required permission level
+        /// Checks if a player can execute a permission node.
+        /// </summary>
+        public bool CanExecuteCommand(ConnectedPlayerInfo player, string requiredPermissionNode)
+        {
+            if (string.IsNullOrWhiteSpace(requiredPermissionNode) || player == null)
+            {
+                return true;
+            }
+
+            return ServerBootstrap.Permissions?.HasPermission(player.TrustedUniqueId, requiredPermissionNode) == true;
+        }
+
+        /// <summary>
+        /// Checks if a subject can execute a permission node.
+        /// </summary>
+        public bool CanExecuteCommand(string steamId, string requiredPermissionNode)
+        {
+            if (string.IsNullOrWhiteSpace(requiredPermissionNode) || string.IsNullOrWhiteSpace(steamId))
+            {
+                return true;
+            }
+
+            return ServerBootstrap.Permissions?.HasPermission(steamId, requiredPermissionNode) == true;
+        }
+
+        /// <summary>
+        /// Checks if a player can execute a legacy command level.
         /// </summary>
         public bool CanExecuteCommand(ConnectedPlayerInfo player, PermissionLevel requiredLevel)
         {
-            var playerLevel = GetPermissionLevel(player);
-            return playerLevel >= requiredLevel;
+            return GetPermissionLevel(player) >= requiredLevel;
         }
 
         /// <summary>
-        /// Check if a player can execute a command based on required permission level
+        /// Checks if a subject can execute a legacy command level.
         /// </summary>
         public bool CanExecuteCommand(string steamId, PermissionLevel requiredLevel)
         {
-            var playerLevel = GetPermissionLevel(steamId);
-            return playerLevel >= requiredLevel;
+            return GetPermissionLevel(steamId) >= requiredLevel;
         }
 
         /// <summary>
-        /// Get a summary of all permissions
+        /// Checks whether an actor strictly outranks a target.
+        /// </summary>
+        public bool HasDominanceOver(ConnectedPlayerInfo actor, ConnectedPlayerInfo target)
+        {
+            return ServerBootstrap.Permissions?.HasDominanceOver(actor?.TrustedUniqueId, target?.TrustedUniqueId) == true;
+        }
+
+        /// <summary>
+        /// Gets a summary of the current permission state.
         /// </summary>
         public PermissionSummary GetPermissionSummary()
         {
+            DedicatedServerMod.Shared.Permissions.PermissionSummary summary = ServerBootstrap.Permissions?.GetSummary()
+                ?? new DedicatedServerMod.Shared.Permissions.PermissionSummary();
+
             return new PermissionSummary
             {
-                TotalOperators = ServerConfig.Instance.Operators.Count,
-                TotalAdministrators = ServerConfig.Instance.Admins.Count,
+                TotalOperators = summary.TotalOperators,
+                TotalAdministrators = summary.TotalAdministrators,
                 Operators = GetOperators(),
                 Administrators = GetAdministrators()
             };
@@ -183,7 +227,7 @@ namespace DedicatedServerMod.Server.Player
     }
 
     /// <summary>
-    /// Permission levels for players
+    /// Legacy permission levels preserved for transition compatibility.
     /// </summary>
     public enum PermissionLevel
     {
@@ -194,14 +238,17 @@ namespace DedicatedServerMod.Server.Player
     }
 
     /// <summary>
-    /// Summary of server permissions
+    /// Legacy permission summary model preserved for transition compatibility.
     /// </summary>
-    public class PermissionSummary
+    public sealed class PermissionSummary
     {
         public int TotalOperators { get; set; }
+
         public int TotalAdministrators { get; set; }
-        public List<string> Operators { get; set; }
-        public List<string> Administrators { get; set; }
+
+        public List<string> Operators { get; set; } = new List<string>();
+
+        public List<string> Administrators { get; set; } = new List<string>();
 
         public override string ToString()
         {

@@ -10,11 +10,13 @@ using DedicatedServerMod.Server.Persistence;
 using DedicatedServerMod.Server.Game;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.Permissions;
 using HarmonyLib;
 using DedicatedServerMod.API;
 using UnityEngine;
 using DedicatedServerMod.Utils;
 using DedicatedServerMod.Server.HostConsole;
+using DedicatedServerMod.Server.Permissions;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -35,6 +37,7 @@ namespace DedicatedServerMod.Server.Core
         // Server subsystems
         private static NetworkManager _networkManager;
         private static PlayerManager _playerManager;
+        private static ServerPermissionService _permissionService;
         private static CommandManager _commandManager;
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
@@ -64,6 +67,11 @@ namespace DedicatedServerMod.Server.Core
         /// Gets the command manager instance
         /// </summary>
         public static CommandManager Commands => _commandManager;
+
+        /// <summary>
+        /// Gets the permission service instance.
+        /// </summary>
+        public static ServerPermissionService Permissions => _permissionService;
         
         /// <summary>
         /// Gets the persistence manager instance
@@ -113,9 +121,15 @@ namespace DedicatedServerMod.Server.Core
             
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
+
+            PermissionManager.Initialize(_logger);
+            PlayerResolver.Initialize(_logger);
             
             ServerRuntimeConfigurationApplier runtimeConfigurationApplier = new ServerRuntimeConfigurationApplier(ServerConfig.Instance, _logger);
             runtimeConfigurationApplier.Apply();
+            _permissionService = new ServerPermissionService(_logger);
+            _permissionService.Initialize();
+            _logger.Msg("✓ Permission service initialized");
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
             
@@ -127,6 +141,7 @@ namespace DedicatedServerMod.Server.Core
             // Step 5: Player Manager
             _playerManager = new PlayerManager(_logger);
             _playerManager.Initialize();
+            _permissionService.AttachPlayerManager(_playerManager);
             _logger.Msg("✓ Player manager initialized");
 
             // Step 5a: Messaging Service (required for custom server-client communication)
@@ -211,6 +226,15 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Server update tick error: {ex.Message}");
+            }
+
+            try
+            {
+                _permissionService?.Tick();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Permission service tick error: {ex.Message}");
             }
 
             try
@@ -338,6 +362,7 @@ namespace DedicatedServerMod.Server.Core
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
+                _permissionService?.Shutdown();
                 _steamNetworkLibCompatService?.Shutdown();
                 Shared.Networking.CustomMessaging.Shutdown();
                 _playerManager?.Shutdown();

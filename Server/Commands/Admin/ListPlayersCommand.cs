@@ -3,6 +3,7 @@ using System.Linq;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.Permissions;
 
 namespace DedicatedServerMod.Server.Commands.Admin
 {
@@ -19,7 +20,7 @@ namespace DedicatedServerMod.Server.Commands.Admin
         public override string CommandWord => "listplayers";
         public override string Description => "Lists all connected players";
         public override string Usage => "listplayers";
-        public override PermissionLevel RequiredPermission => PermissionLevel.Administrator;
+        public override string RequiredPermissionNode => DedicatedServerMod.Shared.Permissions.PermissionBuiltIns.Nodes.PlayerList;
 
         public override void Execute(CommandContext context)
         {
@@ -35,18 +36,16 @@ namespace DedicatedServerMod.Server.Commands.Admin
             
             foreach (var player in players.OrderBy(p => p.ConnectTime))
             {
-                var permLevel = PlayerManager.Permissions.GetPermissionLevel(player);
-                var permText = permLevel switch
-                {
-                    PermissionLevel.Administrator => " [ADMIN]",
-                    PermissionLevel.Operator => " [OP]",
-                    _ => ""
-                };
-
                 var statusText = player.IsConnected ? "Online" : "Connecting";
                 var duration = player.ConnectionDuration.ToString(@"mm\:ss");
-                
-                context.Reply($"  {player.DisplayName}{permText} - {statusText} ({duration})");
+                var highestGroup = context.Permissions?
+                    .GetEffectiveGroups(player.TrustedUniqueId)
+                    .FirstOrDefault(groupName => !string.Equals(groupName, PermissionBuiltIns.Groups.Default, System.StringComparison.OrdinalIgnoreCase));
+                var roleText = string.IsNullOrWhiteSpace(highestGroup)
+                    ? string.Empty
+                    : $" [{highestGroup.Replace('-', ' ').ToUpperInvariant()}]";
+
+                context.Reply($"  {player.DisplayName}{roleText} - {statusText} ({duration})");
             }
         }
     }
