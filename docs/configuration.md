@@ -4,6 +4,14 @@ The server reads settings from `server_config.toml` under the MelonLoader user d
 
 If you already have a legacy `server_config.json`, the server will import it automatically on first run and write the migrated TOML file next to it.
 
+The dedicated server now uses separate config files by responsibility:
+
+- `server_config.toml`: runtime server settings such as ports, auth, autosave, gameplay, logging, and messaging
+- `permissions.toml`: groups, bans, direct grants and denies, and console command authorization
+- `client_mod_policy.toml`: client mod verification policy overrides
+
+If the server detects a legacy permission section in `server_config.toml`, it migrates that data into `permissions.toml` and rewrites the normalized server config without the deprecated section.
+
 ### Required
 
 - `saveGamePath`: full path to the save folder you want to host
@@ -77,7 +85,7 @@ Quick reference:
 
 See [Client Mod Verification](configuration/client-mod-verification.md) for:
 
-- the full config and `client_mod_policy.json` format
+- the full config and `client_mod_policy.toml` format
 - deny-list examples
 - strict mode behavior
 - command-line overrides
@@ -111,9 +119,11 @@ See [Messaging Backends Guide](configuration/messaging-backends.md) for:
 
 ### Access Control
 
-- `operators`: full permissions and all commands
-- `admins`: limited commands controlled by config
-- `bannedPlayers`: SteamID64 strings blocked from joining
+Access control now lives in `permissions.toml`, not `server_config.toml`.
+
+- use `permissions.toml` for built-in staff groups, bans, and direct user rules
+- use `reloadpermissions` after editing the file on a running server
+- see [Permissions](configuration/permissions.md) for the file format and default group layout
 
 ### Auto-Save
 
@@ -187,7 +197,9 @@ vSyncCount = 0
 
 ### Command-Line Arguments
 
-All configuration options can be overridden via command line arguments. These take precedence over values in `server_config.toml`.
+All `server_config.toml` settings can be overridden via command line arguments. These take precedence over values in `server_config.toml`.
+
+Permission graph data lives in `permissions.toml` and is managed separately.
 
 #### Server Startup
 
@@ -235,12 +247,14 @@ All configuration options can be overridden via command line arguments. These ta
 | `--no-stdio-console` | Disable stdio host console | `--no-stdio-console` |
 | `--stdio-console-auto` | Enable stdio host console only when stdin is redirected | `--stdio-console-auto` |
 
-#### Permissions
+#### Legacy Permission Bootstrap
+
+These flags remain for compatibility with the older config-based permission flow. Prefer editing `permissions.toml` and using `reloadpermissions` for normal administration.
 
 | Argument | Description | Example |
 |----------|-------------|---------|
-| `--add-operator <steam_id>` | Add operator by SteamID | `--add-operator 76561198000000001` |
-| `--add-admin <steam_id>` | Add admin by SteamID | `--add-admin 76561198000000001` |
+| `--add-operator <steam_id>` | Seed the built-in `operator` group during legacy migration/bootstrap | `--add-operator 76561198000000001` |
+| `--add-admin <steam_id>` | Seed the built-in `administrator` group during legacy migration/bootstrap | `--add-admin 76561198000000001` |
 
 #### TCP Console
 

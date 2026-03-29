@@ -83,6 +83,16 @@ Lifecycle hooks give you clear timing for:
 - server connect/disconnect
 - local player readiness
 
+## Configuration
+
+Addon configuration now uses the same TOML platform as the core server.
+
+- use the typed schema/store API for normal addon settings
+- use the low-level document API for dynamic table-driven formats
+- keep addon config files under the standard `UserData/DedicatedServerMod/Mods/<modId>/` path
+
+See [Addon Configuration](configuration.md) for the full reusable TOML workflow.
+
 ## Companion Mods And Join Verification
 
 DedicatedServerMod can automatically verify paired server/client mods during join.

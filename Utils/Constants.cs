@@ -136,7 +136,7 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// Default client mod policy file name.
         /// </summary>
-        public const string ClientModPolicyFileName = "client_mod_policy.json";
+        public const string ClientModPolicyFileName = "client_mod_policy.toml";
 
         /// <summary>
         /// Default admin actions log file name.

@@ -49,24 +49,15 @@ See [Companion Mods and Verification Metadata](../modding/companion-mods.md) for
 
 ## Policy File
 
-The policy file is always stored at `UserData/client_mod_policy.json`, next to `server_config.toml`.
+The policy file is always stored at `UserData/client_mod_policy.toml`, next to `server_config.toml`.
 
 Example:
 
-```json
-{
-  "deniedClientModIds": [
-    "example.badmod"
-  ],
-  "deniedClientModNames": [
-    "Suspicious Visual Pack"
-  ],
-  "deniedClientModHashes": [
-    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-  ],
-  "approvedUnpairedClientMods": [],
-  "strictPinnedCompanionHashes": {}
-}
+```toml
+[policy]
+deniedClientModIds = ['example.badmod']
+deniedClientModNames = ['Suspicious Visual Pack']
+deniedClientModHashes = ['0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef']
 ```
 
 Use this file for:
@@ -116,32 +107,26 @@ When enabled:
 Pinned hashes can come from:
 
 - a mod author’s `S1DSClientCompanionAttribute.PinnedSha256`
-- `strictPinnedCompanionHashes` in `client_mod_policy.json`
+- `strictPinnedCompanionHashes` in `client_mod_policy.toml`
 
 If a required companion mod has no strict-mode hash source, server startup fails fast instead of silently weakening policy.
 
 Example strict policy:
 
-```json
-{
-  "deniedClientModIds": [],
-  "deniedClientModNames": [],
-  "deniedClientModHashes": [],
-  "approvedUnpairedClientMods": [
-    {
-      "modId": "ghost.visualtrees",
-      "displayName": "Visual Trees",
-      "pinnedSha256": [
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ]
-    }
-  ],
-  "strictPinnedCompanionHashes": {
-    "ghost.mycoolmod": [
-      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-    ]
-  }
-}
+```toml
+[policy]
+deniedClientModIds = []
+deniedClientModNames = []
+deniedClientModHashes = []
+
+[approvedUnpairedClientMods.ghost.visualtrees]
+modId = 'ghost.visualtrees'
+displayName = 'Visual Trees'
+pinnedSha256 = ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']
+
+[strictPinnedCompanionHashes.ghost.mycoolmod]
+modId = 'ghost.mycoolmod'
+pinnedSha256 = ['bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
 ```
 
 ## Command-Line Overrides

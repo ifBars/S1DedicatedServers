@@ -141,7 +141,7 @@ namespace DedicatedServerMod.Shared.ModVerification
     /// Configuration entry describing an approved unpaired client-only mod for strict mode.
     /// </summary>
     /// <remarks>
-    /// Server owners place these entries in <c>client_mod_policy.json</c> when strict mode is enabled
+    /// Server owners place these entries in <c>client_mod_policy.toml</c> when strict mode is enabled
     /// and they still want to allow specific client-only mods.
     /// </remarks>
     [Serializable]
@@ -170,19 +170,25 @@ namespace DedicatedServerMod.Shared.ModVerification
     /// File-backed server policy for client mod verification.
     /// </summary>
     /// <remarks>
-    /// This type maps directly to <c>client_mod_policy.json</c>. In the default compatibility-first
+    /// This type maps directly to <c>client_mod_policy.toml</c>. In the default compatibility-first
     /// mode, most paired mods are discovered automatically from server mod metadata, so server owners
     /// usually only need this file for deny lists or strict-mode overrides.
     /// </remarks>
     /// <example>
     /// <code>
-    /// {
-    ///   "deniedClientModIds": [ "example.badmod" ],
-    ///   "deniedClientModNames": [ "Suspicious Visual Pack" ],
-    ///   "deniedClientModHashes": [ "abcdef123456..." ],
-    ///   "approvedUnpairedClientMods": [],
-    ///   "strictPinnedCompanionHashes": {}
-    /// }
+    /// [policy]
+    /// deniedClientModIds = ['example.badmod']
+    /// deniedClientModNames = ['Suspicious Visual Pack']
+    /// deniedClientModHashes = ['abcdef123456...']
+    ///
+    /// [approvedUnpairedClientMods.example-badmod]
+    /// modId = 'example.badmod'
+    /// displayName = 'Suspicious Visual Pack'
+    /// pinnedSha256 = ['abcdef123456...']
+    ///
+    /// [strictPinnedCompanionHashes.example-badmod]
+    /// modId = 'example.badmod'
+    /// pinnedSha256 = ['abcdef123456...']
     /// </code>
     /// </example>
     [Serializable]

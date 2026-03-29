@@ -6,7 +6,7 @@
 
 ### Server saves to DevSave
 - Ensure you set `saveGamePath`.
-- Check logs for: “Restored loaded save path: …” after the Main scene loads.
+- Check logs for `Restored loaded save path:` after the Main scene loads.
 - Open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues).
 
 ### Clients stuck or time freezes at 4:00
@@ -16,8 +16,9 @@
 - Open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues).
 
 ### Console says you lack permission
-- You may need to add your SteamID64 to `operators` and/or `admins` in `server_config.toml`.
-- Restart the server
+- Add your SteamID64 to `permissions.toml`, usually by assigning the built-in `operator` or `administrator` group under `[user.<steamid>]`.
+- Run `reloadpermissions` or restart the server after editing the file.
+- See [Permissions](configuration/permissions.md) for the live file format.
 
 ### Connection/port problems
 - Confirm that you forwarded the correct port in `serverPort` in `server_config.toml`.
