@@ -11,10 +11,10 @@ Apply these principles when designing APIs and modules:
 | Principle | Definition | Applied In DedicatedServerMod |
 |-----------|------------|-------------------------------|
 | **S**ingle Responsibility | A class has one reason to change | `PlayerManager` (players only), `NetworkManager` (network only), `ServerConfig` (config only) |
-| **O**pen/Closed | Open for extension, closed for modification | `IServerMod`/`IClientMod` interfaces; mods extend via callbacks instead of modifying core |
+| **O**pen/Closed | Open for extension, closed for modification | `IServerMod`/`IClientMod` interfaces and other extension seams let consumers extend behavior without modifying core |
 | **L**iskov Substitution | Subtypes are substitutable for base types | `ServerModBase` / `ClientModBase`; any implementation works where base is expected |
 | **I**nterface Segregation | Clients depend only on what they use | `IServerMod` vs `IClientMod`; small, focused interfaces |
-| **D**ependency Inversion | Depend on abstractions, not concretions | Mods depend on `S1DS.Server`, `S1DS.Client`; internals can change without breaking mods |
+| **D**ependency Inversion | Depend on abstractions, not concretions | External consumers depend on stable surfaces such as `S1DS.Server` and `S1DS.Client`; internals can change without breaking integrations |
 
 Concrete guidelines:
 - Prefer interfaces over concrete types for cross-module boundaries
@@ -212,6 +212,8 @@ internal static class SteamworksCompat
 }
 ```
 
+Prefer existing shared aliases/helpers when they already exist (for example `Utils/GlobalTypeAliases.cs`) instead of inventing file-local naming schemes for the same runtime split.
+
 #### 6. What NOT to Do
 
 **❌ Don't scatter inline conditionals for type references:**
@@ -269,6 +271,9 @@ public class PlayerManager
 * **PascalCase**: Classes, methods, properties, public/internal fields, enums
 * **camelCase**: Local variables, parameters, private fields (prefixed with `_`)
 * **SCREAMING_SNAKE_CASE**: Constants (use sparingly, prefer `const` in static class)
+* Prefix private and internal instance fields with `_`
+* Static readonly fields use PascalCase
+* Prefer existing naming patterns in the codebase over introducing new generic suffixes
 
 ### Examples
 
@@ -285,6 +290,7 @@ public string ServerName { get; }
 private MelonLogger.Instance _logger;
 private readonly ServerConfig _config;
 internal NetworkConnection _activeConnection;
+private static readonly MelonLogger.Instance Logger;
 
 // Local variables and parameters
 public void ProcessPlayer(Player player)
@@ -343,6 +349,8 @@ public static partial class S1DS { }
   public class CommandManager { }
   ```
 
+* **Avoid suffix churn**: Do not introduce interchangeable names like `FooManager`, `FooHandler`, `FooService`, and `FooSystem` for the same kind of responsibility. Follow the terminology already established in the surrounding subsystem.
+
 * **Patches**: Use `-Patches` or `-Patcher` suffix for Harmony patch classes
   ```csharp
   public static class SleepPatches { }
@@ -384,16 +392,34 @@ void ProcessInternal() { }  // implicit private - be explicit!
 
 ### Access Level Guidelines
 
-* **`public`**: API surface for modders, documented public functionality
-* **`internal`**: Implementation details, cross-class coordination within assembly
-* **`protected`**: Template pattern methods in base classes (e.g., `ServerModBase`)
-* **`private`**: Class-specific implementation details
+* **`public`**: Reserved for intentional supported surface for external consumers, integrations, and extensibility points. Every `public` member expands the compatibility contract and documentation surface, so do not use it for convenience.
+* **`internal`**: Default for non-API types and members that must be shared within DedicatedServerMod but are not part of the external contract.
+* **`protected`**: Only for subclass extension points in deliberate inheritance scenarios (for example `ServerModBase`).
+* **`private`**: Default for implementation details used only inside the declaring type.
+* **`private protected` / `protected internal`**: Avoid unless the exact accessibility semantics are required and justified in review. These are almost never appropriate in this codebase.
+
+### API Boundary Rules
+
+Treat accessibility as contract design, not just visibility:
+
+* Do not mark a type or member `public` unless external assemblies are expected to call it directly as part of the supported surface.
+* Internal systems may expose helper methods needed by other code in this assembly, but those helpers should remain `internal`, not `public`.
+* Types that are not part of the supported extension surface should not have `public` constructors. If a service is only created by the assembly, use `internal` or `private` constructors as appropriate.
+* Do not expose lifecycle, coordination, cache, patch, bootstrap, or manager internals publicly just to make call sites easier. Add a deliberate API facade instead if external access is truly needed.
+* If a member is public only for tests, refactor the design instead of widening production visibility.
+* Before adding a `public` symbol, ask: "Do we want to document, support, and preserve this member across versions?" If the answer is no, it should not be public.
+* Do not leak raw `Il2Cpp*`, Unity game, or FishNet implementation types through the supported external surface unless that is an explicit and documented design decision. Prefer DedicatedServerMod-owned abstractions or DTOs at public boundaries.
+
+This matters for both safety and maintainability:
+
+* Public internals let outside assemblies call into states and sequences we do not control, increasing the risk of breakage.
+* Accidentally public members bloat generated documentation and make the supported modding surface harder to understand.
 
 ```csharp
 // Public API
 public abstract class ServerModBase
 {
-    // Public API for modders
+    // Supported external API
     public MelonLogger.Instance LoggerInstance { get; }
     
     // Template methods for subclasses
@@ -405,6 +431,34 @@ public abstract class ServerModBase
     
     // Private implementation
     private void ValidateState() { }
+}
+```
+
+```csharp
+// Internal system with assembly-only helpers
+internal sealed class AdminStatusManager
+{
+    private readonly ClientContext _context;
+
+    internal AdminStatusManager(ClientContext context)
+    {
+        _context = context;
+    }
+
+    internal bool IsLocalPlayerAdmin()
+    {
+        return _context.LocalPlayer != null && _context.LocalPlayer.IsAdmin;
+    }
+
+}
+```
+
+```csharp
+// Bad - accidental external contract on an internal service
+internal sealed class AdminStatusManager
+{
+    public AdminStatusManager(ClientContext context) { }
+    public bool IsLocalPlayerAdmin() => true;
 }
 ```
 
@@ -493,8 +547,11 @@ public static void SendToServer(string command, string data = "")
 ### When NOT to Document
 
 * Private implementation methods (unless complex)
+* Internal implementation details, unless additional comments are needed for maintainers
 * Self-explanatory property getters/setters
 * Override methods (inherit documentation from base)
+* Never widen a member to `public` just to make it appear in generated documentation
+* Raw runtime-specific details that are intentionally hidden behind the public API
 
 ```csharp
 // No documentation needed - obvious
@@ -760,6 +817,16 @@ string name = GetPlayer(steamId)!.PlayerName;
 
 ---
 
+## Extension Surface Design
+
+DedicatedServerMod is an open-source dedicated server framework, not just a modding API. Design public contracts accordingly:
+
+* Prefer small, stable extension seams over exposing entire internal subsystems.
+* Public APIs should represent deliberate framework capabilities, not incidental access to current implementation details.
+* When an external scenario only needs read-only state or a narrow capability, expose that narrow abstraction instead of the owning manager/service.
+* Favor project-owned models, interfaces, and events at boundaries so internal networking, patching, and game interop can evolve without unnecessary breakage.
+* If a new public member is primarily useful to code inside this repository, it probably should be `internal`.
+
 ## What **NOT** to Do
 
 ### ❌ Don't Mix Concerns
@@ -950,6 +1017,14 @@ Document test scenarios for new features:
 /// </remarks>
 public static bool AddOperator(string steamId)
 ```
+
+### Documentation Validation
+
+For changes that affect the supported external surface or published guides:
+
+- Build the relevant configuration(s) and keep XML documentation warnings clean
+- Regenerate DocFX output when API docs or documentation structure changes
+- Update `local.build.props.example` if new local path properties are introduced
 
 ---
 

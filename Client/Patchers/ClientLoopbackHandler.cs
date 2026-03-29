@@ -21,17 +21,17 @@ namespace DedicatedServerMod.Client.Patchers
     /// Handles hiding server loopback players on dedicated server clients.
     /// Uses <see cref="GhostHostIdentifier"/> for centralized detection.
     /// </summary>
-    public class ClientLoopbackHandler
+    internal class ClientLoopbackHandler
     {
         private readonly MelonLogger.Instance logger;
         private bool eventHooksSetup = false;
 
-        public ClientLoopbackHandler(MelonLogger.Instance logger)
+        internal ClientLoopbackHandler(MelonLogger.Instance logger)
         {
             this.logger = logger;
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -134,7 +134,7 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
-        public void ShowLoopbackPlayer(Player player)
+        internal void ShowLoopbackPlayer(Player player)
         {
             if (player == null) return;
 
@@ -151,7 +151,7 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
-        public string GetLoopbackStatus()
+        internal string GetLoopbackStatus()
         {
             try
             {
@@ -180,7 +180,7 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
-        public void ForceCheckAllPlayers()
+        internal void ForceCheckAllPlayers()
         {
             try
             {
@@ -197,7 +197,7 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
-        public void Cleanup()
+        internal void Cleanup()
         {
             if (!eventHooksSetup) return;
 

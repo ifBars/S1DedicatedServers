@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DedicatedServerMod.API.Toml;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Permissions;
 using DedicatedServerMod.Utils;
 using MelonLoader;
 using MelonLoader.Utils;
+using Newtonsoft.Json.Linq;
 
 namespace DedicatedServerMod.Server.Permissions
 {
@@ -15,6 +17,20 @@ namespace DedicatedServerMod.Server.Permissions
     /// </summary>
     internal sealed class PermissionMigrationCoordinator
     {
+        private static readonly string[] LegacyConfigPermissionKeys =
+        {
+            Utils.Constants.ConfigKeys.Operators,
+            Utils.Constants.ConfigKeys.Admins,
+            Utils.Constants.ConfigKeys.BannedPlayers,
+            "enableConsoleForOps",
+            "enableConsoleForAdmins",
+            "enableConsoleForPlayers",
+            "allowedCommands",
+            "restrictedCommands",
+            "playerAllowedCommands",
+            "globalDisabledCommands"
+        };
+
         private readonly MelonLogger.Instance _logger;
         private readonly PermissionStore _store;
 
@@ -44,15 +60,15 @@ namespace DedicatedServerMod.Server.Permissions
             string legacyJsonPath = Path.Combine(MelonEnvironment.UserDataDirectory, Constants.LegacyConfigFileName);
 
             PermissionStoreData migratedData;
-            if (File.Exists(configPath))
+            if (HasLegacyPermissionFields(configPath))
             {
                 _logger.Warning($"Legacy permission fields detected in '{configPath}'. Migrating them into '{_store.FilePath}'. Future permission changes must be made in the dedicated permissions file.");
-                migratedData = ImportFromLegacyConfig(ServerConfig.Instance, Path.GetFileName(configPath));
+                migratedData = ImportFromLegacyConfig(ServerConfig.LoadConfigSnapshot(configPath), Path.GetFileName(configPath));
             }
-            else if (File.Exists(legacyJsonPath))
+            else if (HasLegacyPermissionFields(legacyJsonPath))
             {
                 _logger.Warning($"Legacy permission fields detected in '{legacyJsonPath}'. Migrating them into '{_store.FilePath}'. Future permission changes must be made in the dedicated permissions file.");
-                migratedData = ImportFromLegacyConfig(ServerConfig.Instance, Path.GetFileName(legacyJsonPath));
+                migratedData = ImportFromLegacyConfig(ServerConfig.LoadConfigSnapshot(legacyJsonPath), Path.GetFileName(legacyJsonPath));
             }
             else
             {
@@ -185,6 +201,72 @@ namespace DedicatedServerMod.Server.Permissions
             return string.IsNullOrWhiteSpace(userId)
                 ? string.Empty
                 : userId.Trim();
+        }
+
+        private static bool HasLegacyPermissionFields(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return false;
+            }
+
+            return string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase)
+                ? JsonContainsLegacyPermissionFields(path)
+                : TomlContainsLegacyPermissionFields(path);
+        }
+
+        private static bool JsonContainsLegacyPermissionFields(string path)
+        {
+            JToken rootToken;
+            try
+            {
+                rootToken = JToken.Parse(File.ReadAllText(path));
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (!(rootToken is JObject rootObject))
+            {
+                return false;
+            }
+
+            return LegacyConfigPermissionKeys.Any(key => rootObject.Property(key, StringComparison.OrdinalIgnoreCase) != null);
+        }
+
+        private static bool TomlContainsLegacyPermissionFields(string path)
+        {
+            TomlReadResult readResult;
+            try
+            {
+                readResult = TomlParser.ParseFile(path);
+            }
+            catch
+            {
+                return false;
+            }
+
+            foreach (string key in LegacyConfigPermissionKeys)
+            {
+                if (ContainsTomlKey(readResult.Document.Root, key))
+                {
+                    return true;
+                }
+            }
+
+            TomlTable permissionsTable = readResult.Document.GetTable("permissions");
+            if (permissionsTable == null)
+            {
+                return false;
+            }
+
+            return LegacyConfigPermissionKeys.Any(key => ContainsTomlKey(permissionsTable, key));
+        }
+
+        private static bool ContainsTomlKey(TomlTable table, string key)
+        {
+            return table != null && !string.IsNullOrWhiteSpace(key) && table.ContainsKey(key);
         }
     }
 }

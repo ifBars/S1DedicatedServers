@@ -40,7 +40,7 @@ namespace DedicatedServerMod.Server.Player
     /// Manages player connections, authentication, and player lifecycle.
     /// Handles player joining/leaving, permissions, and player data tracking.
     /// </summary>
-    public class PlayerManager
+    public sealed class PlayerManager
     {
         private static readonly TimeSpan PendingConnectionGracePeriod = TimeSpan.FromSeconds(15);
 
@@ -50,7 +50,7 @@ namespace DedicatedServerMod.Server.Player
         private readonly ClientModVerificationManager modVerification;
         private readonly PlayerPermissions permissions;
 
-        public PlayerManager(MelonLogger.Instance loggerInstance)
+        internal PlayerManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
             connectedPlayers = new Dictionary<NetworkConnection, ConnectedPlayerInfo>();
@@ -82,7 +82,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Initialize the player manager
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -999,7 +999,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Shutdown the player manager
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             try
             {

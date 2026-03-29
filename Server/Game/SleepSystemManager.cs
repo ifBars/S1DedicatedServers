@@ -15,7 +15,7 @@ namespace DedicatedServerMod.Server.Game
 
         private bool isActive = false;
 
-        public SleepSystemManager(MelonLogger.Instance loggerInstance)
+        internal SleepSystemManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
         }
@@ -28,7 +28,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Initialize the sleep system manager
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -97,7 +97,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Shutdown the sleep system
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             isActive = false;
             logger.Msg("Sleep system shutdown");

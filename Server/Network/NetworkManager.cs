@@ -26,14 +26,14 @@ namespace DedicatedServerMod.Server.Network
     /// Manages network transport, server connections, and network lifecycle.
     /// Handles switching between Steam networking and Tugboat for dedicated servers.
     /// </summary>
-    public class NetworkManager
+    public sealed class NetworkManager
     {
         private readonly MelonLogger.Instance logger;
         private DateTime serverStartTime;
         private bool isServerRunning = false;
         private bool hooksRegistered = false;
 
-        public NetworkManager(MelonLogger.Instance loggerInstance)
+        internal NetworkManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
         }
@@ -51,7 +51,7 @@ namespace DedicatedServerMod.Server.Network
         /// <summary>
         /// Initialize the network manager
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -253,7 +253,7 @@ namespace DedicatedServerMod.Server.Network
         /// <summary>
         /// Shutdown the network manager
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             try
             {

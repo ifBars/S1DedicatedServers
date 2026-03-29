@@ -19,25 +19,25 @@ namespace DedicatedServerMod.Client.Data
 
         private ClientServerListState _state = new ClientServerListState();
 
-        public ClientServerListRepository(MelonLogger.Instance logger)
+        internal ClientServerListRepository(MelonLogger.Instance logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _filePath = Path.Combine(MelonEnvironment.UserDataDirectory, "DedicatedServerClientServers.json");
         }
 
-        public event Action Changed;
+        internal event Action Changed;
 
-        public IReadOnlyList<SavedServerEntry> Favorites => _state.Favorites;
+        internal IReadOnlyList<SavedServerEntry> Favorites => _state.Favorites;
 
-        public IReadOnlyList<SavedServerEntry> History => _state.History;
+        internal IReadOnlyList<SavedServerEntry> History => _state.History;
 
-        public void Initialize()
+        internal void Initialize()
         {
             Load();
             CleanupDuplicateEntries();
         }
 
-        public SavedServerEntry GetFavoriteById(string id)
+        internal SavedServerEntry GetFavoriteById(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -56,7 +56,7 @@ namespace DedicatedServerMod.Client.Data
             return null;
         }
 
-        public SavedServerEntry SaveFavorite(string existingId, string name, string host, int port)
+        internal SavedServerEntry SaveFavorite(string existingId, string name, string host, int port)
         {
             string normalizedHost = NormalizeHost(host);
             string normalizedName = NormalizeName(name, normalizedHost, port);
@@ -87,17 +87,17 @@ namespace DedicatedServerMod.Client.Data
             return Clone(existing);
         }
 
-        public bool RemoveFavorite(string id)
+        internal bool RemoveFavorite(string id)
         {
             return RemoveById(_state.Favorites, id);
         }
 
-        public bool RemoveHistory(string id)
+        internal bool RemoveHistory(string id)
         {
             return RemoveById(_state.History, id);
         }
 
-        public SavedServerEntry RecordJoinedServer(string host, int port, string preferredName)
+        internal SavedServerEntry RecordJoinedServer(string host, int port, string preferredName)
         {
             string normalizedHost = NormalizeHost(host);
             string normalizedName = NormalizeName(preferredName, normalizedHost, port);
@@ -120,7 +120,7 @@ namespace DedicatedServerMod.Client.Data
             return Clone(existing);
         }
 
-        public void UpdateMetadata(string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers, int pingMilliseconds)
+        internal void UpdateMetadata(string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers, int pingMilliseconds)
         {
             string normalizedHost = NormalizeHost(host);
             bool changed = UpdateListMetadata(_state.Favorites, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers, pingMilliseconds);
@@ -132,7 +132,7 @@ namespace DedicatedServerMod.Client.Data
             }
         }
 
-        public void MarkPingUnavailable(string host, int port)
+        internal void MarkPingUnavailable(string host, int port)
         {
             string normalizedHost = NormalizeHost(host);
             bool changed = UpdatePingUnavailable(_state.Favorites, normalizedHost, port);

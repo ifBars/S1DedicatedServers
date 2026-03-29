@@ -26,7 +26,7 @@ namespace DedicatedServerMod.Client.Managers
     /// Manages quest system initialization for dedicated server clients.
     /// Ensures proper quest synchronization when connecting to dedicated servers.
     /// </summary>
-    public class ClientQuestManager
+    public sealed class ClientQuestManager
     {
         private readonly MelonLogger.Instance logger;
         
@@ -34,12 +34,12 @@ namespace DedicatedServerMod.Client.Managers
         private bool questSystemInitialized = false;
         private QuestManager questManagerInstance;
 
-        public ClientQuestManager(MelonLogger.Instance logger)
+        internal ClientQuestManager(MelonLogger.Instance logger)
         {
             this.logger = logger;
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -58,7 +58,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Handle scene loading events
         /// </summary>
-        public void OnSceneLoaded(string sceneName)
+        internal void OnSceneLoaded(string sceneName)
         {
             try
             {
@@ -186,7 +186,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Handle quest completion events for dedicated server clients
         /// </summary>
-        public void OnQuestCompleted(string questId)
+        internal void OnQuestCompleted(string questId)
         {
             try
             {
@@ -207,7 +207,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Handle quest progression events
         /// </summary>
-        public void OnQuestProgressed(string questId, float progress)
+        internal void OnQuestProgressed(string questId, float progress)
         {
             try
             {
@@ -246,7 +246,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Force quest system resynchronization
         /// </summary>
-        public void ForceQuestResync()
+        internal void ForceQuestResync()
         {
             try
             {
@@ -270,7 +270,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Get quest system status for debugging
         /// </summary>
-        public string GetQuestSystemStatus()
+        internal string GetQuestSystemStatus()
         {
             try
             {
@@ -297,7 +297,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Handle player disconnection cleanup
         /// </summary>
-        public void OnPlayerDisconnected()
+        internal void OnPlayerDisconnected()
         {
             try
             {
@@ -317,7 +317,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Reset quest system state
         /// </summary>
-        public void ResetQuestSystem()
+        internal void ResetQuestSystem()
         {
             try
             {
@@ -334,7 +334,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Check if quest system is ready
         /// </summary>
-        public bool IsQuestSystemReady()
+        internal bool IsQuestSystemReady()
         {
             return questSystemInitialized && questManagerInstance != null && Player.Local != null;
         }

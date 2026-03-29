@@ -14,7 +14,7 @@ namespace DedicatedServerMod.Client.Managers
     /// <summary>
     /// Compatibility facade over the server-authored client permission snapshot.
     /// </summary>
-    public static class AdminStatusManager
+    internal static class AdminStatusManager
     {
         private static readonly HashSet<string> BuiltInServerCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -44,7 +44,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Initializes the local permission snapshot facade.
         /// </summary>
         /// <param name="loggerInstance">The logger instance.</param>
-        public static void Initialize(MelonLogger.Instance loggerInstance)
+        internal static void Initialize(MelonLogger.Instance loggerInstance)
         {
             _logger = loggerInstance;
             PermissionSnapshotStore.Initialize(loggerInstance);
@@ -54,7 +54,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Gets whether the local player has elevated console access.
         /// </summary>
-        public static bool IsLocalPlayerAdmin()
+        internal static bool IsLocalPlayerAdmin()
         {
             return InstanceFinder.IsHost || PermissionSnapshotStore.Current?.CanOpenConsole == true;
         }
@@ -62,23 +62,15 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Gets whether the local player effectively has wildcard remote console access.
         /// </summary>
-        public static bool IsLocalPlayerOperator()
+        internal static bool IsLocalPlayerOperator()
         {
             return InstanceFinder.IsHost || HasWildcardConsoleAccess();
         }
 
         /// <summary>
-        /// Legacy no-op compatibility entry point.
-        /// </summary>
-        public static void UpdateAdminStatus(string playerId, bool isAdmin, bool isOperator)
-        {
-            _logger?.Warning("UpdateAdminStatus is deprecated. Client permissions now come from server snapshots.");
-        }
-
-        /// <summary>
         /// Clears the cached capability snapshot.
         /// </summary>
-        public static void ClearCache()
+        internal static void ClearCache()
         {
             PermissionSnapshotStore.Reset();
         }
@@ -86,7 +78,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Invalidates the cached capability snapshot.
         /// </summary>
-        public static void InvalidateCache()
+        internal static void InvalidateCache()
         {
             PermissionSnapshotStore.Reset();
         }
@@ -96,7 +88,7 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         /// <param name="command">The command word to evaluate.</param>
         /// <returns><see langword="true"/> when the command is allowed.</returns>
-        public static bool CanUseCommand(string command)
+        internal static bool CanUseCommand(string command)
         {
             if (string.IsNullOrWhiteSpace(command))
             {
@@ -129,7 +121,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Gets a human-readable description of the local snapshot.
         /// </summary>
         /// <returns>The permission summary text.</returns>
-        public static string GetPermissionInfo()
+        internal static string GetPermissionInfo()
         {
             if (InstanceFinder.IsHost)
             {
@@ -152,7 +144,7 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Gets whether the latest snapshot allows opening the remote console.
         /// </summary>
-        public static bool CanOpenConsole()
+        internal static bool CanOpenConsole()
         {
             return IsLocalPlayerAdmin();
         }

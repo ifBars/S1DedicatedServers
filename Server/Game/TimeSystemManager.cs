@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Game
         private readonly MelonLogger.Instance logger;
         private bool isActive;
 
-        public TimeSystemManager(MelonLogger.Instance loggerInstance)
+        internal TimeSystemManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
         }
@@ -31,7 +31,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Initializes time handling in native-game mode.
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -107,7 +107,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Shuts down the time system manager.
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             isActive = false;
             logger.Msg("Time system shutdown");

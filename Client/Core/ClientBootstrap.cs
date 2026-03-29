@@ -122,17 +122,17 @@ namespace DedicatedServerMod.Client.Core
         /// <remarks>
         /// Mod authors usually access this through <see cref="DedicatedServerMod.API.S1DS.Client.Connection"/>.
         /// </remarks>
-        public ClientConnectionManager ConnectionManager => _connectionManager;
+        internal ClientConnectionManager ConnectionManager => _connectionManager;
 
         /// <summary>
         /// Gets the client authentication manager used for the dedicated-server Steam ticket handshake.
         /// </summary>
-        public ClientAuthManager AuthManager => _authManager;
+        internal ClientAuthManager AuthManager => _authManager;
 
         /// <summary>
         /// Gets the client mod verification manager used after authentication succeeds.
         /// </summary>
-        public ClientModVerificationManager ModVerificationManager => _modVerificationManager;
+        internal ClientModVerificationManager ModVerificationManager => _modVerificationManager;
 
         /// <summary>
         /// Gets the client UI manager used by the dedicated-server client features.
@@ -140,12 +140,12 @@ namespace DedicatedServerMod.Client.Core
         /// <remarks>
         /// Mod authors usually access this through <see cref="DedicatedServerMod.API.S1DS.Client.UI"/>.
         /// </remarks>
-        public ClientUIManager UIManager => _uiManager;
+        internal ClientUIManager UIManager => _uiManager;
 
         /// <summary>
         /// Gets the client quest manager used by dedicated-server quest integration.
         /// </summary>
-        public ClientQuestManager QuestManager => _questManager;
+        internal ClientQuestManager QuestManager => _questManager;
 
         /// <summary>
         /// Gets the client console manager used for remote admin console support.
@@ -153,22 +153,22 @@ namespace DedicatedServerMod.Client.Core
         /// <remarks>
         /// Mod authors usually access this through <see cref="DedicatedServerMod.API.S1DS.Client.Console"/>.
         /// </remarks>
-        public ClientConsoleManager ConsoleManager => _consoleManager;
+        internal ClientConsoleManager ConsoleManager => _consoleManager;
 
         /// <summary>
         /// Gets the loopback handler responsible for dedicated-server host-loopback behavior.
         /// </summary>
-        public ClientLoopbackHandler LoopbackHandler => _loopbackHandler;
+        internal ClientLoopbackHandler LoopbackHandler => _loopbackHandler;
 
         /// <summary>
         /// Gets the transport patcher that adapts networking for dedicated-server connectivity.
         /// </summary>
-        public ClientTransportPatcher TransportPatcher => _transportPatcher;
+        internal ClientTransportPatcher TransportPatcher => _transportPatcher;
 
         /// <summary>
         /// Gets a value indicating whether the client bootstrap finished creating the managers that API mods depend on.
         /// </summary>
-        public bool IsApiModsReady => _apiModsReady;
+        internal bool IsApiModsReady => _apiModsReady;
 
         /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking sleep readiness.

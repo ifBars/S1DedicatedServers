@@ -17,15 +17,6 @@ namespace DedicatedServerMod.Server.Permissions
         private static readonly StringComparer Comparer = StringComparer.OrdinalIgnoreCase;
         private static readonly TimeSpan TemporaryGrantSweepInterval = TimeSpan.FromSeconds(30);
 
-        private static readonly IReadOnlyDictionary<string, int> BuiltInGroupPriorities = new Dictionary<string, int>(Comparer)
-        {
-            [PermissionBuiltIns.Groups.Default] = 0,
-            [PermissionBuiltIns.Groups.Support] = 10,
-            [PermissionBuiltIns.Groups.Moderator] = 20,
-            [PermissionBuiltIns.Groups.Administrator] = 30,
-            [PermissionBuiltIns.Groups.Operator] = 40
-        };
-
         private static readonly IReadOnlyDictionary<string, string> BuiltInServerCommandNodes = new Dictionary<string, string>(Comparer)
         {
             ["help"] = PermissionBuiltIns.Nodes.ServerHelp,
@@ -57,7 +48,7 @@ namespace DedicatedServerMod.Server.Permissions
         private PlayerManager _playerManager;
         private DateTime _lastTemporarySweepUtc = DateTime.MinValue;
 
-        public ServerPermissionService(MelonLogger.Instance logger)
+        internal ServerPermissionService(MelonLogger.Instance logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _store = new PermissionStore(_logger);
@@ -72,7 +63,7 @@ namespace DedicatedServerMod.Server.Permissions
 
         public string FilePath => _store.FilePath;
 
-        public void Initialize()
+        internal void Initialize()
         {
             RegisterBuiltInDefinitions();
             _data = LoadOrCreatePermissionData();
@@ -100,7 +91,7 @@ namespace DedicatedServerMod.Server.Permissions
             }
         }
 
-        public void Shutdown()
+        internal void Shutdown()
         {
             if (_playerManager != null)
             {
@@ -703,42 +694,7 @@ namespace DedicatedServerMod.Server.Permissions
 
         private void RegisterBuiltInDefinitions()
         {
-            RegisterPermissionDefinitions(
-                "core",
-                new[]
-                {
-                    CreateDefinition(PermissionBuiltIns.Nodes.ServerHelp, "server", "View help for built-in server commands."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ConsoleOpen, "console", "Open the remote administration console."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ConsoleCommandWildcard, "console", "Execute any relayed game console command."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ClientModPolicyBypass, "clientmods", "Bypass client mod policy verification."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PlayerList, "player", "List connected players."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PlayerKick, "player", "Kick connected players."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PlayerBan, "player", "Ban players from the server."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PlayerUnban, "player", "Remove player bans."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ServerInfo, "server", "View server information."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ServerSave, "server", "Trigger a save."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ServerReloadConfig, "server", "Reload server configuration."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.ServerStop, "server", "Stop the dedicated server."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsReload, "permissions", "Reload permissions from disk."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsInfo, "permissions", "Inspect permission state."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsGrant, "permissions", "Grant direct permission nodes."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsDeny, "permissions", "Deny direct permission nodes."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsRevoke, "permissions", "Revoke direct permission nodes."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsTempGrant, "permissions", "Grant temporary permission nodes."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsGroupList, "permissions", "List permission groups."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsGroupAssign, "permissions", "Assign permission groups."),
-                    CreateDefinition(PermissionBuiltIns.Nodes.PermissionsGroupUnassign, "permissions", "Remove permission groups.")
-                });
-        }
-
-        private static PermissionDefinition CreateDefinition(string node, string category, string description)
-        {
-            return new PermissionDefinition
-            {
-                Node = node,
-                Category = category,
-                Description = description
-            };
+            RegisterPermissionDefinitions("core", PermissionDefaults.GetBuiltInDefinitions());
         }
 
         private PermissionStoreData LoadOrCreatePermissionData()
@@ -746,192 +702,6 @@ namespace DedicatedServerMod.Server.Permissions
             RegisterKnownRemoteCommands(GetKnownConsoleCommandsFromConstants());
 
             return NormalizeAndValidate(_migrationCoordinator.LoadOrCreate());
-        }
-
-        private bool TryLoadMigrationConfig(string path, out ServerConfig config)
-        {
-            config = null;
-
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return false;
-            }
-
-            try
-            {
-                config = ServerConfig.LoadConfigSnapshot(path);
-                return config != null;
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning($"Failed to load migration config from {path}: {ex.Message}");
-                return false;
-            }
-        }
-
-        private PermissionStoreData CreatePermissionDataFromLegacyConfig(ServerConfig config, string migratedFromPath)
-        {
-            PermissionStoreData data = CreateDefaultStoreData();
-            data.MigrationVersion = 1;
-            data.MigratedFrom = migratedFromPath ?? string.Empty;
-            data.MigratedAtUtc = DateTime.UtcNow;
-
-            AddLegacyConsoleOpen(config.EnableConsoleForPlayers, PermissionBuiltIns.Groups.Default, data);
-            AddLegacyConsoleOpen(config.EnableConsoleForAdmins, PermissionBuiltIns.Groups.Administrator, data);
-            AddLegacyConsoleOpen(config.EnableConsoleForOps, PermissionBuiltIns.Groups.Operator, data);
-
-            AddNodesToGroup(data, PermissionBuiltIns.Groups.Default, config.PlayerAllowedCommands, isDeny: false);
-            AddNodesToGroup(data, PermissionBuiltIns.Groups.Administrator, config.AllowedCommands, isDeny: false);
-            AddNodesToGroup(data, PermissionBuiltIns.Groups.Administrator, config.RestrictedCommands, isDeny: true);
-            AddNodesToGroup(data, PermissionBuiltIns.Groups.Operator, config.RestrictedCommands, isDeny: false);
-
-            PermissionGroupDefinition operatorGroup = data.Groups[PermissionBuiltIns.Groups.Operator];
-            if (!operatorGroup.Allow.Contains(PermissionBuiltIns.Nodes.ConsoleCommandWildcard, StringComparer.Ordinal))
-            {
-                operatorGroup.Allow.Add(PermissionBuiltIns.Nodes.ConsoleCommandWildcard);
-                operatorGroup.Allow.Sort(StringComparer.Ordinal);
-            }
-
-            IReadOnlyList<string> globalDisabledNodes = ExpandLegacyCommandNodes(config.GlobalDisabledCommands).ToList().AsReadOnly();
-            foreach (PermissionGroupDefinition group in data.Groups.Values)
-            {
-                MergeNodes(group.Deny, globalDisabledNodes);
-            }
-
-            foreach (string operatorId in config.Operators ?? new HashSet<string>())
-            {
-                if (!string.IsNullOrWhiteSpace(operatorId))
-                {
-                    EnsureUserMigration(data, operatorId).Groups.Add(PermissionBuiltIns.Groups.Operator);
-                }
-            }
-
-            foreach (string adminId in config.Admins ?? new HashSet<string>())
-            {
-                if (string.IsNullOrWhiteSpace(adminId))
-                {
-                    continue;
-                }
-
-                PermissionUserRecord user = EnsureUserMigration(data, adminId);
-                if (!user.Groups.Contains(PermissionBuiltIns.Groups.Operator, Comparer))
-                {
-                    user.Groups.Add(PermissionBuiltIns.Groups.Administrator);
-                }
-            }
-
-            foreach (string bannedId in config.BannedPlayers ?? new HashSet<string>())
-            {
-                string normalizedBannedId = NormalizeSubjectId(bannedId);
-                if (string.IsNullOrWhiteSpace(normalizedBannedId))
-                {
-                    continue;
-                }
-
-                data.Bans[normalizedBannedId] = new BanEntry
-                {
-                    SubjectId = normalizedBannedId,
-                    CreatedAtUtc = DateTime.UtcNow,
-                    CreatedBy = "migration",
-                    Reason = "Migrated from legacy configuration"
-                };
-            }
-
-            foreach (PermissionUserRecord user in data.Users.Values)
-            {
-                user.Groups = user.Groups
-                    .Select(PermissionNode.NormalizeGroupName)
-                    .Distinct(Comparer)
-                    .OrderBy(value => value, StringComparer.Ordinal)
-                    .ToList();
-            }
-
-            return data;
-        }
-
-        private static PermissionUserRecord EnsureUserMigration(PermissionStoreData data, string subjectId)
-        {
-            string normalizedSubjectId = NormalizeSubjectId(subjectId);
-            if (!data.Users.TryGetValue(normalizedSubjectId, out PermissionUserRecord user))
-            {
-                user = new PermissionUserRecord
-                {
-                    UserId = normalizedSubjectId
-                };
-                data.Users[normalizedSubjectId] = user;
-            }
-
-            return user;
-        }
-
-        private static void AddLegacyConsoleOpen(bool enabled, string groupName, PermissionStoreData data)
-        {
-            if (!enabled || !data.Groups.TryGetValue(groupName, out PermissionGroupDefinition group))
-            {
-                return;
-            }
-
-            if (!group.Allow.Contains(PermissionBuiltIns.Nodes.ConsoleOpen, StringComparer.Ordinal))
-            {
-                group.Allow.Add(PermissionBuiltIns.Nodes.ConsoleOpen);
-                group.Allow.Sort(StringComparer.Ordinal);
-            }
-        }
-
-        private static IEnumerable<string> ExpandLegacyCommandNodes(IEnumerable<string> commandWords)
-        {
-            foreach (string commandWord in commandWords ?? Enumerable.Empty<string>())
-            {
-                string normalizedCommandWord = commandWord?.Trim().ToLowerInvariant();
-                if (string.IsNullOrWhiteSpace(normalizedCommandWord))
-                {
-                    continue;
-                }
-
-                if (BuiltInServerCommandNodes.TryGetValue(normalizedCommandWord, out string builtInNode))
-                {
-                    yield return builtInNode;
-                    continue;
-                }
-
-                yield return PermissionNode.CreateConsoleCommandNode(normalizedCommandWord);
-            }
-        }
-
-        private static void AddNodesToGroup(PermissionStoreData data, string groupName, IEnumerable<string> commandWords, bool isDeny)
-        {
-            if (!data.Groups.TryGetValue(groupName, out PermissionGroupDefinition group))
-            {
-                return;
-            }
-
-            MergeNodes(isDeny ? group.Deny : group.Allow, ExpandLegacyCommandNodes(commandWords));
-        }
-
-        private static void MergeNodes(List<string> target, IEnumerable<string> nodes)
-        {
-            HashSet<string> mergedNodes = new HashSet<string>(target ?? new List<string>(), StringComparer.Ordinal);
-            foreach (string node in nodes ?? Enumerable.Empty<string>())
-            {
-                if (!string.IsNullOrWhiteSpace(node))
-                {
-                    mergedNodes.Add(PermissionNode.Normalize(node));
-                }
-            }
-
-            target.Clear();
-            target.AddRange(mergedNodes.OrderBy(value => value, StringComparer.Ordinal));
-        }
-
-        private PermissionStoreData CreateDefaultStoreData()
-        {
-            PermissionStoreData data = new PermissionStoreData
-            {
-                SchemaVersion = 1,
-                MigrationVersion = 1
-            };
-            SeedBuiltInGroups(data);
-            return data;
         }
 
         private PermissionStoreData NormalizeAndValidate(PermissionStoreData data)
@@ -943,7 +713,7 @@ namespace DedicatedServerMod.Server.Permissions
             normalized.Users = new Dictionary<string, PermissionUserRecord>(normalized.Users ?? new Dictionary<string, PermissionUserRecord>(), Comparer);
             normalized.Bans = new Dictionary<string, BanEntry>(normalized.Bans ?? new Dictionary<string, BanEntry>(), Comparer);
 
-            SeedBuiltInGroups(normalized);
+            PermissionDefaults.ApplyBuiltInGroups(normalized);
             NormalizeGroups(normalized);
             NormalizeUsers(normalized);
             NormalizeBans(normalized);
@@ -952,63 +722,6 @@ namespace DedicatedServerMod.Server.Permissions
             PruneExpiredEntries(normalized);
 
             return normalized;
-        }
-
-        private void SeedBuiltInGroups(PermissionStoreData data)
-        {
-            EnsureBuiltInGroup(data, PermissionBuiltIns.Groups.Default, 0, Array.Empty<string>(), new[] { PermissionBuiltIns.Nodes.ServerHelp }, Array.Empty<string>());
-            EnsureBuiltInGroup(data, PermissionBuiltIns.Groups.Support, 10, new[] { PermissionBuiltIns.Groups.Default }, new[] { PermissionBuiltIns.Nodes.ServerInfo }, Array.Empty<string>());
-            EnsureBuiltInGroup(data, PermissionBuiltIns.Groups.Moderator, 20, new[] { PermissionBuiltIns.Groups.Support }, new[]
-            {
-                PermissionBuiltIns.Nodes.PlayerList,
-                PermissionBuiltIns.Nodes.PlayerKick,
-                PermissionBuiltIns.Nodes.PlayerBan,
-                PermissionBuiltIns.Nodes.PlayerUnban
-            }, Array.Empty<string>());
-            EnsureBuiltInGroup(data, PermissionBuiltIns.Groups.Administrator, 30, new[] { PermissionBuiltIns.Groups.Moderator }, new[]
-            {
-                PermissionBuiltIns.Nodes.ServerSave,
-                PermissionBuiltIns.Nodes.ServerReloadConfig,
-                PermissionBuiltIns.Nodes.PermissionsInfo,
-                PermissionBuiltIns.Nodes.PermissionsGroupList
-            }, Array.Empty<string>());
-            EnsureBuiltInGroup(data, PermissionBuiltIns.Groups.Operator, 40, new[] { PermissionBuiltIns.Groups.Administrator }, new[]
-            {
-                PermissionBuiltIns.Nodes.ClientModPolicyBypass,
-                PermissionBuiltIns.Nodes.ServerStop,
-                PermissionBuiltIns.Nodes.PermissionsReload,
-                PermissionBuiltIns.Nodes.PermissionsGrant,
-                PermissionBuiltIns.Nodes.PermissionsDeny,
-                PermissionBuiltIns.Nodes.PermissionsRevoke,
-                PermissionBuiltIns.Nodes.PermissionsTempGrant,
-                PermissionBuiltIns.Nodes.PermissionsGroupAssign,
-                PermissionBuiltIns.Nodes.PermissionsGroupUnassign
-            }, Array.Empty<string>());
-        }
-
-        private static void EnsureBuiltInGroup(
-            PermissionStoreData data,
-            string groupName,
-            int priority,
-            IEnumerable<string> inherits,
-            IEnumerable<string> allow,
-            IEnumerable<string> deny)
-        {
-            string normalizedGroupName = PermissionNode.NormalizeGroupName(groupName);
-            if (!data.Groups.TryGetValue(normalizedGroupName, out PermissionGroupDefinition group))
-            {
-                group = new PermissionGroupDefinition
-                {
-                    Name = normalizedGroupName
-                };
-                data.Groups[normalizedGroupName] = group;
-            }
-
-            group.Name = normalizedGroupName;
-            group.Priority = priority;
-            group.Inherits = MergeNormalizedStrings(group.Inherits, inherits, isGroupName: true);
-            group.Allow = MergeNormalizedStrings(group.Allow, allow, isGroupName: false);
-            group.Deny = MergeNormalizedStrings(group.Deny, deny, isGroupName: false);
         }
 
         private static List<string> MergeNormalizedStrings(IEnumerable<string> first, IEnumerable<string> second, bool isGroupName)
@@ -1041,15 +754,16 @@ namespace DedicatedServerMod.Server.Permissions
                     group = new PermissionGroupDefinition
                     {
                         Name = normalizedGroupName,
-                        Priority = BuiltInGroupPriorities.TryGetValue(normalizedGroupName, out int builtInPriority)
-                            ? builtInPriority
+                        Priority = PermissionDefaults.GetBuiltInGroupPriority(normalizedGroupName) != 0
+                            ? PermissionDefaults.GetBuiltInGroupPriority(normalizedGroupName)
                             : sourceGroup?.Priority ?? 0
                     };
                     normalizedGroups[normalizedGroupName] = group;
                 }
 
-                group.Priority = BuiltInGroupPriorities.TryGetValue(normalizedGroupName, out int priority)
-                    ? priority
+                int builtInPriority = PermissionDefaults.GetBuiltInGroupPriority(normalizedGroupName);
+                group.Priority = builtInPriority != 0 || string.Equals(normalizedGroupName, PermissionBuiltIns.Groups.Default, StringComparison.OrdinalIgnoreCase)
+                    ? builtInPriority
                     : sourceGroup?.Priority ?? group.Priority;
                 group.Inherits = MergeNormalizedStrings(group.Inherits, sourceGroup?.Inherits, isGroupName: true);
                 group.Allow = MergeNormalizedStrings(group.Allow, sourceGroup?.Allow, isGroupName: false);
@@ -1342,7 +1056,7 @@ namespace DedicatedServerMod.Server.Permissions
                 return group.Priority;
             }
 
-            return BuiltInGroupPriorities.GetValueOrDefault(normalizedGroupName, 0);
+            return PermissionDefaults.GetBuiltInGroupPriority(normalizedGroupName);
         }
 
         private void CollectEffectiveGroups(string subjectId, ISet<string> effectiveGroups)

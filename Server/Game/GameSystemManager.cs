@@ -19,7 +19,7 @@ namespace DedicatedServerMod.Server.Game
     /// Manages game-specific systems, patches, and behaviors for the dedicated server.
     /// Handles time management, sleep systems, and other game mechanics modifications.
     /// </summary>
-    public class GameSystemManager
+    public sealed class GameSystemManager
     {
         private readonly MelonLogger.Instance logger;
 
@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Server.Game
         private readonly SleepSystemManager sleepManager;
         private readonly GamePatchManager patchManager;
 
-        public GameSystemManager(MelonLogger.Instance loggerInstance)
+        internal GameSystemManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
             timeManager = new TimeSystemManager(logger);
@@ -53,7 +53,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Initialize the game system manager
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -88,7 +88,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Shutdown the game system manager
         /// </summary>
-        public void Shutdown()
+        internal void Shutdown()
         {
             try
             {

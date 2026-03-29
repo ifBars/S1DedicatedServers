@@ -31,7 +31,7 @@ namespace DedicatedServerMod.Client.Patchers
     /// Handles Harmony patches for transport configuration in dedicated server mode.
     /// Manages switching between Steam networking and Tugboat transport.
     /// </summary>
-    public class ClientTransportPatcher
+    internal class ClientTransportPatcher
     {
         private readonly MelonLogger.Instance logger;
         private static bool isExiting = false;
@@ -42,12 +42,12 @@ namespace DedicatedServerMod.Client.Patchers
         private static readonly FieldInfo TransportsListField =
             typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        public ClientTransportPatcher(MelonLogger.Instance logger)
+        internal ClientTransportPatcher(MelonLogger.Instance logger)
         {
             this.logger = logger;
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             try
             {
@@ -213,7 +213,7 @@ namespace DedicatedServerMod.Client.Patchers
         /// Sets the client transport on a Multipass instance using cached reflection.
         /// Called by ClientConnectionManager during transport preconfiguration.
         /// </summary>
-        public static bool SetMultipassClientTransport(Multipass multipass, Transport transport)
+        internal static bool SetMultipassClientTransport(Multipass multipass, Transport transport)
         {
             if (ClientTransportField != null)
             {
@@ -226,7 +226,7 @@ namespace DedicatedServerMod.Client.Patchers
         /// <summary>
         /// Adds a Tugboat transport to the Multipass internal transports list.
         /// </summary>
-        public static void AddTugboatToTransportsList(Multipass multipass, Tugboat tugboat)
+        internal static void AddTugboatToTransportsList(Multipass multipass, Tugboat tugboat)
         {
             try
             {
@@ -246,7 +246,7 @@ namespace DedicatedServerMod.Client.Patchers
 
         #endregion
 
-        public string GetTransportInfo()
+        internal string GetTransportInfo()
         {
             try
             {
