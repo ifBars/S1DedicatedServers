@@ -324,7 +324,7 @@ Steam-based backends (SteamP2P and SteamNetworkingSockets) require Steam ID mapp
 **Symptoms:** Messages fail to send, "backend not initialized" in logs
 
 **Solutions:**
-1. Check that messaging backend is valid in `server_config.json`
+1. Check that messaging backend is valid in `server_config.toml`
 2. For Steam backends, verify Steam is running and initialized
 3. Check MelonLoader logs for initialization errors
 4. Try switching to FishNetRpc temporarily to isolate the issue

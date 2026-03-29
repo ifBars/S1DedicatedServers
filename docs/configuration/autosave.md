@@ -1,6 +1,6 @@
 ## Auto-save
 
-Keys in `server_config.json`:
+Keys in `server_config.toml`:
 
 - `autoSaveEnabled`: true/false
 - `autoSaveIntervalMinutes`: number of minutes between saves

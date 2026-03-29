@@ -121,7 +121,12 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// Default configuration file name.
         /// </summary>
-        public const string ConfigFileName = "server_config.json";
+        public const string ConfigFileName = "server_config.toml";
+
+        /// <summary>
+        /// Legacy JSON configuration file name kept for backwards compatibility.
+        /// </summary>
+        public const string LegacyConfigFileName = "server_config.json";
 
         /// <summary>
         /// Default client mod policy file name.
@@ -240,11 +245,6 @@ namespace DedicatedServerMod.Utils
             /// Mod verification result message (server -> client).
             /// </summary>
             public const string ModVerifyResult = "mod_verify_result";
-
-            /// <summary>
-            /// Welcome message (server → client on connect).
-            /// </summary>
-            public const string WelcomeMessage = "welcome_message";
 
             /// <summary>
             /// Server status broadcast (server → all clients).
@@ -437,7 +437,6 @@ namespace DedicatedServerMod.Utils
             public const string BlockKnownRiskyClientMods = "blockKnownRiskyClientMods";
             public const string AllowUnpairedClientMods = "allowUnpairedClientMods";
             public const string StrictClientModMode = "strictClientModMode";
-            public const string ModPolicyPath = "modPolicyPath";
             public const string SteamGameServerLogOnAnonymous = "steamGameServerLogOnAnonymous";
             public const string SteamGameServerToken = "steamGameServerToken";
             public const string SteamGameServerQueryPort = "steamGameServerQueryPort";
@@ -534,16 +533,6 @@ namespace DedicatedServerMod.Utils
         /// Default admin console title.
         /// </summary>
         public const string AdminConsoleTitle = "Server Admin Console";
-
-        /// <summary>
-        /// Default welcome message template.
-        /// </summary>
-        public const string DefaultWelcomeMessage = "Welcome {playerName} to {serverName}!";
-
-        /// <summary>
-        /// Default MOTD message.
-        /// </summary>
-        public const string DefaultMotdMessage = "Welcome to the server! Type /help for commands.";
 
         #endregion
     }

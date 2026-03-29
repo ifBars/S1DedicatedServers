@@ -1,6 +1,6 @@
 ## Permissions
 
-There are three permission levels: Players, Admins, and Operators. Which console commands each level can run is controlled entirely by `server_config.json`.
+There are three permission levels: Players, Admins, and Operators. Which console commands each level can run is controlled entirely by `server_config.toml`.
 
 ### Roles
 - Players: default role for everyone not listed as admin/operator.
@@ -18,10 +18,10 @@ There are three permission levels: Players, Admins, and Operators. Which console
   - `enableConsoleForOps`, `enableConsoleForAdmins`, `enableConsoleForPlayers`.
 - Even if a user can open the console, each command is still checked against the rules above. Opening ≠ permission to execute.
 
-### Configure in `server_config.json`
-- `operators`: ["SteamID64", ...]
-- `admins`: ["SteamID64", ...]
-- `bannedPlayers`: ["SteamID64", ...]
+### Configure in `server_config.toml`
+- `operators = ['SteamID64', ...]`
+- `admins = ['SteamID64', ...]`
+- `bannedPlayers = ['SteamID64', ...]`
 - `allowedCommands`: commands admins may use
 - `restrictedCommands`: commands denied to admins (operators still allowed)
 - `playerAllowedCommands`: commands regular players may use

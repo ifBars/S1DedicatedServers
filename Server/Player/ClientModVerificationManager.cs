@@ -205,19 +205,7 @@ namespace DedicatedServerMod.Server.Player
 
         private string ResolvePolicyFilePath()
         {
-            string configuredPath = ServerConfig.Instance.ModPolicyPath;
-            if (string.IsNullOrWhiteSpace(configuredPath))
-            {
-                return Path.Combine(MelonEnvironment.UserDataDirectory, Constants.ClientModPolicyFileName);
-            }
-
-            configuredPath = configuredPath.Trim();
-            if (Path.IsPathRooted(configuredPath))
-            {
-                return configuredPath;
-            }
-
-            return Path.Combine(MelonEnvironment.UserDataDirectory, configuredPath);
+            return Path.Combine(MelonEnvironment.UserDataDirectory, Constants.ClientModPolicyFileName);
         }
 
         private void DiscoverCompanionRequirements()

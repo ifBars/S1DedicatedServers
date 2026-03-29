@@ -105,19 +105,16 @@ namespace DedicatedServerMod.Server.Core
         {
             AudioListener.volume = 0;
             
-            // Suppress Unity rendering/shader errors in headless mode
-            SetupLogFiltering();
-            
             _logger.Msg("Initializing server subsystems...");
             
             // Step 1: Initialize existing ServerConfig system (must be first)
-            Shared.Configuration.ServerConfig.Initialize(_logger);
+            ServerConfig.Initialize(_logger);
             _logger.Msg("✓ Configuration system initialized");
             
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
             
-            ServerRuntimeConfigurationApplier runtimeConfigurationApplier = new ServerRuntimeConfigurationApplier(Shared.Configuration.ServerConfig.Instance, _logger);
+            ServerRuntimeConfigurationApplier runtimeConfigurationApplier = new ServerRuntimeConfigurationApplier(ServerConfig.Instance, _logger);
             runtimeConfigurationApplier.Apply();
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
@@ -235,19 +232,6 @@ namespace DedicatedServerMod.Server.Core
         }
 
         /// <summary>
-        /// Setup Unity log filtering to suppress headless mode rendering errors
-        /// </summary>
-        private void SetupLogFiltering()
-        {
-            // Note: Unity's Application.logMessageReceived += cannot actually *suppress* logs
-            // Log suppression is handled by command-line flags in start_server.bat:
-            //   -logFile - -stackTraceLogType None
-            // The patches in DedicatedServerPatches.cs prevent the systems from running that cause errors
-            UnityExceptionTraceHook.Install(_logger);
-            _logger.Msg("Log filtering configured (via startup flags and system patches)");
-        }
-
-        /// <summary>
         /// Process command line arguments for server startup
         /// </summary>
         private void ParseCommandLineArguments()
@@ -358,7 +342,6 @@ namespace DedicatedServerMod.Server.Core
                 Shared.Networking.CustomMessaging.Shutdown();
                 _playerManager?.Shutdown();
                 _networkManager?.Shutdown();
-                UnityExceptionTraceHook.Remove();
                 
                 _isInitialized = false;
                 _logger.Msg("=== Server Shutdown Complete ===");

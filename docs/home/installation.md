@@ -17,8 +17,8 @@ Download the latest release from [GitHub Releases](https://github.com/ifBars/S1D
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.
 2. Extract `server.zip` into that server install.
 3. Confirm that `Mods/` merged into the install and `start_server.bat` was placed at the install root.
-4. Run `start_server.bat` once to generate `server_config.json`, then close the server.
-5. Edit `server_config.json` and set `saveGamePath`.
+4. Run `start_server.bat` once to generate `server_config.toml`, then close the server.
+5. Edit `server_config.toml` and set `saveGamePath`.
 6. Restart with `start_server.bat`.
 
 For save path details, see [Save Path](../configuration/save-path.md).

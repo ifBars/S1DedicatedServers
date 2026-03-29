@@ -1,6 +1,8 @@
 ## Configuration
 
-The server reads settings from `server_config.json` under the MelonLoader user data directory. The file is created automatically on first run.
+The server reads settings from `server_config.toml` under the MelonLoader user data directory. The file is created automatically on first run.
+
+If you already have a legacy `server_config.json`, the server will import it automatically on first run and write the migrated TOML file next to it.
 
 ### Required
 
@@ -8,10 +10,9 @@ The server reads settings from `server_config.json` under the MelonLoader user d
 
 Windows example:
 
-```json
-{
-  "saveGamePath": "C:\\Users\\you\\AppData\\LocalLow\\TVGS\\Schedule I\\Saves\\<SteamID>\\SaveGame_1"
-}
+```toml
+[storage]
+saveGamePath = 'C:\Users\you\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\SaveGame_1'
 ```
 
 The folder must contain files such as `Game.json` and `Metadata.json`.
@@ -28,15 +29,14 @@ The folder must contain files such as `Game.json` and `Metadata.json`.
 
 Use Steam ticket authentication on public servers to verify player identities:
 
-```json
-{
-  "authProvider": "SteamGameServer",
-  "authTimeoutSeconds": 15,
-  "authAllowLoopbackBypass": true,
-  "steamGameServerLogOnAnonymous": true,
-  "steamGameServerQueryPort": 27016,
-  "steamGameServerMode": "Authentication"
-}
+```toml
+[authentication]
+authProvider = 'SteamGameServer'
+authTimeoutSeconds = 15
+authAllowLoopbackBypass = true
+steamGameServerLogOnAnonymous = true
+steamGameServerQueryPort = 27016
+steamGameServerMode = 'Authentication'
 ```
 
 Quick reference:
@@ -58,15 +58,13 @@ See [Authentication Guide](configuration/authentication.md) for:
 
 Client mod verification runs after authentication and before a player is fully admitted to the server.
 
-```json
-{
-  "modVerificationEnabled": true,
-  "modVerificationTimeoutSeconds": 20,
-  "blockKnownRiskyClientMods": true,
-  "allowUnpairedClientMods": true,
-  "strictClientModMode": false,
-  "modPolicyPath": ""
-}
+```toml
+[authentication]
+modVerificationEnabled = true
+modVerificationTimeoutSeconds = 20
+blockKnownRiskyClientMods = true
+allowUnpairedClientMods = true
+strictClientModMode = false
 ```
 
 Quick reference:
@@ -88,11 +86,12 @@ See [Client Mod Verification](configuration/client-mod-verification.md) for:
 
 Choose how custom server-client messages are transmitted:
 
-```json
-{
-  "messagingBackend": "FishNetRpc"
-}
+```toml
+[messaging]
+messagingBackend = 'FishNetRpc'
 ```
+
+The same key names are still used as before; TOML just groups them into sections and allows inline comments.
 
 Recommended:
 
@@ -140,15 +139,14 @@ See [Gameplay](configuration/gameplay.md) for details.
 
 Enable remote console access via TCP:
 
-```json
-{
-  "tcpConsoleEnabled": false,
-  "tcpConsoleBindAddress": "127.0.0.1",
-  "tcpConsolePort": 38466,
-  "tcpConsoleMaxConnections": 3,
-  "tcpConsoleRequirePassword": false,
-  "tcpConsolePassword": ""
-}
+```toml
+[tcpConsole]
+tcpConsoleEnabled = false
+tcpConsoleBindAddress = '127.0.0.1'
+tcpConsolePort = 38466
+tcpConsoleMaxConnections = 3
+tcpConsoleRequirePassword = false
+tcpConsolePassword = ''
 ```
 
 - Use `127.0.0.1` for local-only access
@@ -159,10 +157,9 @@ Enable remote console access via TCP:
 
 Enable panel-friendly stdin/stdout console support:
 
-```json
-{
-  "stdioConsoleMode": "Auto"
-}
+```toml
+[tcpConsole]
+stdioConsoleMode = 'Auto'
 ```
 
 - `Disabled`: never start the stdio host console transport
@@ -174,11 +171,10 @@ See [Host Console](host-console.md) for deployment guidance and runtime behavior
 
 ### Performance
 
-```json
-{
-  "targetFrameRate": 60,
-  "vSyncCount": 0
-}
+```toml
+[performance]
+targetFrameRate = 60
+vSyncCount = 0
 ```
 
 - `targetFrameRate`: 30-60 is the normal dedicated-server range
@@ -191,7 +187,7 @@ See [Host Console](host-console.md) for deployment guidance and runtime behavior
 
 ### Command-Line Arguments
 
-All configuration options can be overridden via command line arguments. These take precedence over values in `server_config.json`.
+All configuration options can be overridden via command line arguments. These take precedence over values in `server_config.toml`.
 
 #### Server Startup
 
@@ -222,8 +218,6 @@ All configuration options can be overridden via command line arguments. These ta
 | `--strict-client-mod-mode` | Enable strict client mod mode | `--strict-client-mod-mode` |
 | `--allow-unpaired-client-mods <true|false>` | Allow client-only mods without a paired server mod | `--allow-unpaired-client-mods true` |
 | `--block-known-risky-client-mods <true|false>` | Enable built-in risky client mod blocking | `--block-known-risky-client-mods true` |
-| `--mod-policy-path <path>` | Override the policy file location | `--mod-policy-path "client_mod_policy.json"` |
-
 #### Networking
 
 | Argument | Description | Example |

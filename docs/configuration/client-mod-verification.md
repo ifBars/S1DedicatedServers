@@ -15,17 +15,15 @@ This feature does not download mods from the server and does not make the server
 
 ## Default Behavior
 
-Default settings in `server_config.json`:
+Default settings in `server_config.toml`:
 
-```json
-{
-  "modVerificationEnabled": true,
-  "modVerificationTimeoutSeconds": 20,
-  "blockKnownRiskyClientMods": true,
-  "allowUnpairedClientMods": true,
-  "strictClientModMode": false,
-  "modPolicyPath": ""
-}
+```toml
+[authentication]
+modVerificationEnabled = true
+modVerificationTimeoutSeconds = 20
+blockKnownRiskyClientMods = true
+allowUnpairedClientMods = true
+strictClientModMode = false
 ```
 
 With those defaults:
@@ -51,10 +49,7 @@ See [Companion Mods and Verification Metadata](../modding/companion-mods.md) for
 
 ## Policy File
 
-The policy file defaults to `UserData/client_mod_policy.json`. You can move it by setting `modPolicyPath` to either:
-
-- an absolute path
-- a path relative to the MelonLoader user data directory
+The policy file is always stored at `UserData/client_mod_policy.json`, next to `server_config.toml`.
 
 Example:
 
@@ -108,11 +103,6 @@ Use this file for:
 - Default: `false`
 - Enables exact hash pinning for paired and approved unpaired mods
 
-### `modPolicyPath`
-
-- Default: `""`
-- Empty means `UserData/client_mod_policy.json`
-
 ## Strict Mode
 
 Strict mode is for hardened or private servers, not the normal default.
@@ -156,7 +146,7 @@ Example strict policy:
 
 ## Command-Line Overrides
 
-The following startup arguments override `server_config.json`:
+The following startup arguments override `server_config.toml`:
 
 - `--mod-verification`
 - `--no-mod-verification`
@@ -164,7 +154,6 @@ The following startup arguments override `server_config.json`:
 - `--strict-client-mod-mode`
 - `--allow-unpaired-client-mods <true|false>`
 - `--block-known-risky-client-mods <true|false>`
-- `--mod-policy-path <path>`
 
 ## Recommended Setups
 

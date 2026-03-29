@@ -4,8 +4,6 @@ using System.IO;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
-using MelonLoader;
 using MelonLoader.Utils;
 using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Utils;
@@ -25,7 +23,7 @@ namespace DedicatedServerMod.Shared.Configuration
     /// <see cref="Shared.Permissions.PlayerResolver"/> for Steam ID utilities.
     /// </remarks>
     [Serializable]
-    public sealed class ServerConfig
+    public sealed partial class ServerConfig
     {
         #region Server Settings
 
@@ -167,17 +165,6 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </remarks>
         [JsonProp(Utils.Constants.ConfigKeys.StrictClientModMode)]
         public bool StrictClientModMode { get; set; } = false;
-
-        /// <summary>
-        /// Optional custom path to the client mod policy file.
-        /// When empty, the default policy path in UserData is used.
-        /// </summary>
-        /// <remarks>
-        /// The policy file stores deny lists, strict-mode hash overrides, and approved unpaired
-        /// client-only mods. Relative paths are resolved from the MelonLoader user data directory.
-        /// </remarks>
-        [JsonProp(Utils.Constants.ConfigKeys.ModPolicyPath)]
-        public string ModPolicyPath { get; set; } = string.Empty;
 
         /// <summary>
         /// Whether to log in with Steam game server anonymous account mode.
@@ -455,40 +442,6 @@ namespace DedicatedServerMod.Shared.Configuration
 
         #endregion
 
-        #region MOTD & Welcome Messages
-
-        /// <summary>
-        /// Whether to display the message of the day on connect.
-        /// </summary>
-        [JsonProp("enableMotd")]
-        public bool EnableMotd { get; set; } = true;
-
-        /// <summary>
-        /// Message of the day content.
-        /// </summary>
-        [JsonProp("motdMessage")]
-        public string MotdMessage { get; set; } = Utils.Constants.DefaultMotdMessage;
-
-        /// <summary>
-        /// Welcome message template. Supports {playerName} and {serverName}.
-        /// </summary>
-        [JsonProp("welcomeMessage")]
-        public string WelcomeMessage { get; set; } = Utils.Constants.DefaultWelcomeMessage;
-
-        /// <summary>
-        /// Whether to show messages when players join.
-        /// </summary>
-        [JsonProp("showPlayerJoinMessages")]
-        public bool ShowPlayerJoinMessages { get; set; } = true;
-
-        /// <summary>
-        /// Whether to show messages when players leave.
-        /// </summary>
-        [JsonProp("showPlayerLeaveMessages")]
-        public bool ShowPlayerLeaveMessages { get; set; } = true;
-
-        #endregion
-
         #region Debug & Logging
 
         /// <summary>
@@ -613,160 +566,6 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         private bool? _legacyRequireAuthentication;
 
-        /// <summary>
-        /// The MelonLogger instance for configuration logging.
-        /// </summary>
-        private static MelonLogger.Instance _logger;
-
-        /// <summary>
-        /// The path to the configuration file.
-        /// </summary>
-        private static string _configPath;
-
-        /// <summary>
-        /// Gets the resolved configuration file path.
-        /// </summary>
-        public static string ConfigFilePath => _configPath ??
-            Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.ConfigFileName);
-
-        /// <summary>
-        /// Gets the current server configuration instance.
-        /// Loads the configuration if not already loaded.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if configuration not initialized</exception>
-        public static ServerConfig Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    LoadConfig();
-                }
-                return _instance;
-            }
-        }
-
-        /// <summary>
-        /// Initializes the server configuration system.
-        /// Should be called during server startup.
-        /// </summary>
-        /// <param name="loggerInstance">The logger instance to use</param>
-        /// <param name="configFilePath">Optional custom path for config file</param>
-        public static void Initialize(MelonLogger.Instance loggerInstance, string configFilePath = null)
-        {
-            _logger = loggerInstance;
-            _configPath = configFilePath ?? ConfigFilePath;
-            LoadConfig();
-        }
-
-        /// <summary>
-        /// Gets the logger instance for configuration operations.
-        /// </summary>
-        private static MelonLogger.Instance Logger => _logger ??
-            new MelonLogger.Instance("ServerConfig");
-
-        #endregion
-
-        #region Config File Management
-
-        /// <summary>
-        /// Loads the server configuration from disk.
-        /// Creates default configuration if file doesn't exist.
-        /// </summary>
-        public static void LoadConfig()
-        {
-            try
-            {
-                if (File.Exists(ConfigFilePath))
-                {
-                    string json = File.ReadAllText(ConfigFilePath);
-                    _instance = JsonConvert.DeserializeObject<ServerConfig>(json) ?? new ServerConfig();
-                    _instance.NormalizeAuthenticationConfiguration();
-                    _instance.Validate();
-                    Logger.Msg("Server configuration loaded successfully");
-
-                    string normalizedJson = SerializeConfig();
-                    if (!AreEquivalentJsonDocuments(json, normalizedJson))
-                    {
-                        File.WriteAllText(ConfigFilePath, normalizedJson);
-                        Logger.Msg("Server configuration updated with normalized and newly added options");
-                    }
-                }
-                else
-                {
-                    _instance = new ServerConfig();
-                    SaveConfig();
-                    Logger.Msg("Created new server configuration file");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to load server config: {ex}");
-                _instance = new ServerConfig();
-                SaveConfig();
-            }
-        }
-
-        /// <summary>
-        /// Saves the current configuration to disk.
-        /// </summary>
-        public static void SaveConfig()
-        {
-            try
-            {
-                string json = SerializeConfig();
-                File.WriteAllText(ConfigFilePath, json);
-                Logger.Msg("Server configuration saved successfully");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to save server config: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Reloads the configuration from disk.
-        /// </summary>
-        public static void ReloadConfig()
-        {
-            Logger.Msg("Reloading server configuration...");
-            LoadConfig();
-        }
-
-        /// <summary>
-        /// Resets the configuration (primarily for testing).
-        /// </summary>
-        public static void Reset()
-        {
-            _instance = null;
-            _logger = null;
-            _configPath = null;
-        }
-
-        private static string SerializeConfig()
-        {
-            return JsonConvert.SerializeObject(_instance ?? new ServerConfig(), Formatting.Indented);
-        }
-
-        private static bool AreEquivalentJsonDocuments(string left, string right)
-        {
-            if (string.Equals(left, right, StringComparison.Ordinal))
-            {
-                return true;
-            }
-
-            try
-            {
-                JToken leftToken = JToken.Parse(left ?? string.Empty);
-                JToken rightToken = JToken.Parse(right ?? string.Empty);
-                return JToken.DeepEquals(leftToken, rightToken);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
         #endregion
 
         #region Command Line Integration
@@ -880,14 +679,6 @@ namespace DedicatedServerMod.Shared.Configuration
                         {
                             Instance.BlockKnownRiskyClientMods = blockKnownRiskyClientMods;
                             Logger.Msg($"Block known risky client mods set to: {Instance.BlockKnownRiskyClientMods}");
-                        }
-                        break;
-
-                    case "--mod-policy-path":
-                        if (i + 1 < args.Length)
-                        {
-                            Instance.ModPolicyPath = args[i + 1];
-                            Logger.Msg($"Client mod policy path set to: {Instance.ModPolicyPath}");
                         }
                         break;
 
