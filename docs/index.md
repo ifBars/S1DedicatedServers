@@ -6,10 +6,12 @@ Key docs:
 
 - [Installation](home/installation.md)
 - [Configuration](configuration.md)
+- [Permissions](configuration/permissions.md)
 - [Host Console](host-console.md)
 - [Client Mod Verification](configuration/client-mod-verification.md)
 - [Commands](commands.md)
 - [Mod API Overview](modding/overview.md)
+- [Addon Configuration](modding/configuration.md)
 - [Companion Mods and Verification Metadata](modding/companion-mods.md)
 - [Troubleshooting](troubleshooting.md)
 

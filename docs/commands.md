@@ -1,27 +1,35 @@
 ## Commands
 
-Console commands are executed in-game. On dedicated servers, only authorized players may use console commands.
+Console commands on dedicated servers are controlled by the permissions system, not by hard-coded role lists in `server_config.toml`.
 
-### Roles and permissions
-- Players: may execute only commands listed in `playerAllowedCommands`.
-- Admins: may execute commands listed in `allowedCommands`, except those in `restrictedCommands`.
-- Operators: full access to all commands except those in `globalDisabledCommands`.
+- `permissions.toml` defines who can open the console and which nodes they can execute
+- `console.open` gates console access
+- most ordinary commands evaluate against `console.command.<commandword>`
+- framework management commands also expose dedicated nodes such as `server.save`, `player.kick`, and `permissions.reload`
 
-### Precedence and global rules
-- `globalDisabledCommands` are denied for everyone (including operators).
-- Being able to open the console UI is gated by `enableConsoleForOps`, `enableConsoleForAdmins`, and `enableConsoleForPlayers`, but every command still undergoes the checks above. See [Permissions](configuration/permissions.md) for details.
+The built-in group defaults are:
 
-### Examples (typical)
-- `save` – Triggers a save.
-- `shutdown` – Gracefully stops the server.
-- `server.info` – Prints server status.
-- `op <steamId>` – Grants operator.
-- `deop <steamId>` – Revokes operator.
-- `ban <steamId>` – Bans a player.
-- `unban <steamId>` – Unbans a player.
-- `kick <steamId>` – Kicks a player.
-- `players` – Lists connected players.
+- `default`: help
+- `support`: server info
+- `moderator`: player moderation commands
+- `administrator`: config reload and save
+- `operator`: permission mutation and shutdown
 
-Most base game commands should work as expected.
+You can change that layout by editing `permissions.toml`.
 
+## Common Commands
 
+- `help`: show command help
+- `serverinfo`: print server status
+- `save`: trigger a manual save
+- `reloadconfig`: reload `server_config.toml`
+- `reloadpermissions`: reload `permissions.toml`
+- `listplayers`: list connected players
+- `kick <player_name_or_id> [reason]`: disconnect a player
+- `ban <player_name_or_id> [reason]`: ban a player
+- `unban <steamid>`: remove a ban
+- `group <list|assign|unassign> ...`: manage permission groups
+- `perm <info|grant|deny|revoke|tempgrant> ...`: inspect and mutate direct permission nodes
+- `op`, `deop`, `admin`, `deadmin`: compatibility wrappers for built-in staff groups
+
+See [Permissions](configuration/permissions.md) for file structure, group defaults, and rule precedence.

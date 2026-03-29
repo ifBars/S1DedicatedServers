@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,6 +21,7 @@ namespace DedicatedServerMod.Server.Player
     internal sealed class ClientModVerificationManager
     {
         private readonly MelonLogger.Instance _logger;
+        private readonly ClientModPolicyStore _policyStore;
         private readonly List<DeclaredClientCompanionRequirement> _companionRequirements = new List<DeclaredClientCompanionRequirement>();
         private readonly List<KnownRiskyClientModEntry> _knownRiskyClientMods = new List<KnownRiskyClientModEntry>();
 
@@ -32,6 +32,7 @@ namespace DedicatedServerMod.Server.Player
         internal ClientModVerificationManager(MelonLogger.Instance logger)
         {
             _logger = logger;
+            _policyStore = new ClientModPolicyStore(logger);
             SeedKnownRiskyCatalog();
         }
 
@@ -158,23 +159,22 @@ namespace DedicatedServerMod.Server.Player
 
         private void LoadPolicy()
         {
-            _policyFilePath = ResolvePolicyFilePath();
+            _policyFilePath = _policyStore.FilePath;
 
             try
             {
-                if (File.Exists(_policyFilePath))
-                {
-                    string json = File.ReadAllText(_policyFilePath);
-                    _policy = JsonConvert.DeserializeObject<ClientModPolicy>(json) ?? new ClientModPolicy();
-                }
-                else
-                {
-                    _policy = new ClientModPolicy();
-                    SavePolicy();
-                }
+                _policy = _policyStore.Exists
+                    ? _policyStore.Load()
+                    : new ClientModPolicy();
 
                 _policy.Normalize();
                 _policyHash = BuildPolicyHash();
+
+                if (!_policyStore.Exists)
+                {
+                    SavePolicy();
+                }
+
                 _logger.Msg($"Client mod policy loaded from {_policyFilePath}");
             }
             catch (Exception ex)
@@ -191,24 +191,12 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                string directory = Path.GetDirectoryName(_policyFilePath);
-                if (!string.IsNullOrWhiteSpace(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                string json = JsonConvert.SerializeObject(_policy, Formatting.Indented);
-                File.WriteAllText(_policyFilePath, json);
+                _policyStore.Save(_policy ?? new ClientModPolicy());
             }
             catch (Exception ex)
             {
                 _logger.Warning($"Failed to write default client mod policy: {ex.Message}");
             }
-        }
-
-        private string ResolvePolicyFilePath()
-        {
-            return Path.Combine(MelonEnvironment.UserDataDirectory, Constants.ClientModPolicyFileName);
         }
 
         private void DiscoverCompanionRequirements()

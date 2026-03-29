@@ -119,7 +119,7 @@ A mod with no server component can still declare `S1DSClientModIdentityAttribute
 
 That is recommended because it gives server owners a stable mod ID they can:
 
-- deny in `client_mod_policy.json`
+- deny in `client_mod_policy.toml`
 - approve in strict mode
 - recognize in logs and disconnect reasons
 

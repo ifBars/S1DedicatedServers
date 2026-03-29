@@ -36,6 +36,8 @@
   items:
   - name: Overview
     href: modding/overview.md
+  - name: Addon Configuration
+    href: modding/configuration.md
   - name: Server API
     href: modding/server.md
   - name: Client API

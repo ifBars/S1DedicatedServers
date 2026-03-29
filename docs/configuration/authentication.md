@@ -23,10 +23,9 @@ The `authProvider` setting determines how Steam tickets are validated. Three opt
 
 **Configuration:**
 
-```json
-{
-  "authProvider": "None"
-}
+```toml
+[authentication]
+authProvider = 'None'
 ```
 
 ### SteamGameServer (Recommended)
@@ -47,31 +46,29 @@ The `authProvider` setting determines how Steam tickets are validated. Three opt
 
 **Configuration (anonymous login):**
 
-```json
-{
-  "authProvider": "SteamGameServer",
-  "authTimeoutSeconds": 15,
-  "authAllowLoopbackBypass": true,
-  "steamGameServerLogOnAnonymous": true,
-  "steamGameServerQueryPort": 27016,
-  "steamGameServerVersion": "0.2.1-beta",
-  "steamGameServerMode": "Authentication"
-}
+```toml
+[authentication]
+authProvider = 'SteamGameServer'
+authTimeoutSeconds = 15
+authAllowLoopbackBypass = true
+steamGameServerLogOnAnonymous = true
+steamGameServerQueryPort = 27016
+steamGameServerVersion = '0.2.1-beta'
+steamGameServerMode = 'Authentication'
 ```
 
 **Configuration (persistent token):**
 
-```json
-{
-  "authProvider": "SteamGameServer",
-  "authTimeoutSeconds": 15,
-  "authAllowLoopbackBypass": true,
-  "steamGameServerLogOnAnonymous": false,
-  "steamGameServerToken": "YOUR_GAME_SERVER_TOKEN_HERE",
-  "steamGameServerQueryPort": 27016,
-  "steamGameServerVersion": "0.2.1-beta",
-  "steamGameServerMode": "Authentication"
-}
+```toml
+[authentication]
+authProvider = 'SteamGameServer'
+authTimeoutSeconds = 15
+authAllowLoopbackBypass = true
+steamGameServerLogOnAnonymous = false
+steamGameServerToken = 'YOUR_GAME_SERVER_TOKEN_HERE'
+steamGameServerQueryPort = 27016
+steamGameServerVersion = '0.2.1-beta'
+steamGameServerMode = 'Authentication'
 ```
 
 **Steam Game Server Mode options:**
@@ -90,14 +87,13 @@ The `authProvider` setting determines how Steam tickets are validated. Three opt
 
 **Configuration (future-facing only):**
 
-```json
-{
-  "authProvider": "SteamWebApi",
-  "authTimeoutSeconds": 15,
-  "authAllowLoopbackBypass": true,
-  "steamWebApiKey": "YOUR_STEAM_WEB_API_KEY",
-  "steamWebApiIdentity": "DedicatedServerMod"
-}
+```toml
+[authentication]
+authProvider = 'SteamWebApi'
+authTimeoutSeconds = 15
+authAllowLoopbackBypass = true
+steamWebApiKey = 'YOUR_STEAM_WEB_API_KEY'
+steamWebApiIdentity = 'DedicatedServerMod'
 ```
 
 Use `SteamGameServer` instead unless you are explicitly testing this incomplete path.
@@ -147,15 +143,14 @@ When `authAllowLoopbackBypass` is enabled, the local ghost host connection bypas
 
 ### Ban System
 
-Players in `bannedPlayers` are rejected during authentication, even if their Steam tickets are otherwise valid.
+Players with ban entries in `permissions.toml` are rejected during authentication, even if their Steam tickets are otherwise valid.
 
-```json
-{
-  "bannedPlayers": [
-    "76561198012345678",
-    "76561198087654321"
-  ]
-}
+```toml
+[ban.76561198012345678]
+subjectId = '76561198012345678'
+createdAtUtc = '2026-03-29T12:00:00.0000000Z'
+createdBy = 'console'
+reason = 'Repeated griefing'
 ```
 
 ## Command-Line Overrides
@@ -222,7 +217,7 @@ If you see messages about `SteamWebApi` not being implemented, switch `authProvi
 
 1. Use `authProvider: "None"` only when the trust model is acceptable.
 2. Consider keeping Steam auth enabled anyway for accountability.
-3. Use `operators` and `admins` as a coarse whitelist if needed.
+3. Use `permissions.toml` groups, direct user rules, and bans if you need a coarse whitelist or staff-only environment.
 
 ### Docker or cloud deployments
 
@@ -236,10 +231,10 @@ If you see messages about `SteamWebApi` not being implemented, switch `authProvi
 - Never commit Steam API keys or game server tokens.
 - Store sensitive values in environment variables or secure local configuration.
 - Keep `authAllowLoopbackBypass` enabled unless you fully understand the consequences.
-- Maintain the `bannedPlayers` list in SteamID64 format.
+- Maintain ban entries in `permissions.toml` using SteamID64 subject IDs.
 
 ## Related Documentation
 
-- [Permissions System](permissions.md) - Operators, admins, and command permissions
+- [Permissions System](permissions.md) - Groups, bans, and command permissions
 - [Server Commands](../commands.md) - Admin and player commands
 - [Networking](../troubleshooting/networking.md) - Connection troubleshooting
