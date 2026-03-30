@@ -147,7 +147,8 @@ namespace DedicatedServerMod.Server.Player
 
                 return InstanceFinder.ServerManager?.Clients != null &&
                        InstanceFinder.ServerManager.Clients.TryGetValue(ClientId, out NetworkConnection trackedConnection) &&
-                       trackedConnection != null;
+                       trackedConnection != null &&
+                       trackedConnection.IsActive;
             }
         }
 

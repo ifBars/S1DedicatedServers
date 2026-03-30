@@ -77,7 +77,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Gets the number of connected players
         /// </summary>
-        public int ConnectedPlayerCount => connectedPlayers.Values.Count(IsTrackedPlayerActive);
+        public int ConnectedPlayerCount => GetTrackedPlayersSnapshot(includeLoopbackConnections: true).Count;
 
         /// <summary>
         /// Gets the player authentication manager
@@ -658,7 +658,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public List<ConnectedPlayerInfo> GetConnectedPlayers()
         {
-            return new List<ConnectedPlayerInfo>(connectedPlayers.Values);
+            return GetTrackedPlayersSnapshot(includeLoopbackConnections: true);
         }
 
         /// <summary>
@@ -666,16 +666,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public int GetVisiblePlayerCount()
         {
-            int count = 0;
-            foreach (ConnectedPlayerInfo player in connectedPlayers.Values)
-            {
-                if (player != null && !player.IsLoopbackConnection)
-                {
-                    count++;
-                }
-            }
-
-            return count;
+            return GetTrackedPlayersSnapshot(includeLoopbackConnections: false).Count;
         }
 
         /// <summary>
@@ -1280,7 +1271,8 @@ namespace DedicatedServerMod.Server.Player
 
             if (InstanceFinder.ServerManager?.Clients != null &&
                 InstanceFinder.ServerManager.Clients.TryGetValue(playerInfo.ClientId, out NetworkConnection trackedConnection) &&
-                trackedConnection != null)
+                trackedConnection != null &&
+                trackedConnection.IsActive)
             {
                 return true;
             }
@@ -1291,6 +1283,37 @@ namespace DedicatedServerMod.Server.Player
             }
 
             return false;
+        }
+
+        private List<ConnectedPlayerInfo> GetTrackedPlayersSnapshot(bool includeLoopbackConnections)
+        {
+            SweepDisconnectedPlayers();
+
+            var players = new List<ConnectedPlayerInfo>();
+            var seenPlayers = new HashSet<ConnectedPlayerInfo>();
+            var seenClientIds = new HashSet<int>();
+
+            foreach (ConnectedPlayerInfo player in connectedPlayers.Values)
+            {
+                if (!IsTrackedPlayerActive(player))
+                {
+                    continue;
+                }
+
+                if (!includeLoopbackConnections && player.IsLoopbackConnection)
+                {
+                    continue;
+                }
+
+                if (!seenPlayers.Add(player) || !seenClientIds.Add(player.ClientId))
+                {
+                    continue;
+                }
+
+                players.Add(player);
+            }
+
+            return players;
         }
 
         private void SendDisconnectNotice(ConnectedPlayerInfo player, string title, string reason)
