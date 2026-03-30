@@ -17,6 +17,7 @@ using UnityEngine;
 using DedicatedServerMod.Utils;
 using DedicatedServerMod.Server.HostConsole;
 using DedicatedServerMod.Server.Permissions;
+using DedicatedServerMod.Server.WebPanel;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -42,6 +43,7 @@ namespace DedicatedServerMod.Server.Core
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
         private static HostConsoleManager _hostConsoleManager;
+        private static WebPanelManager _webPanelManager;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
         
@@ -91,6 +93,7 @@ namespace DedicatedServerMod.Server.Core
         public override void OnInitializeMelon()
         {
             _logger = LoggerInstance;
+            DebugLog.Initialize(_logger);
             _logger.Msg("=== Dedicated Server Bootstrap Starting ===");
             
             try
@@ -170,6 +173,7 @@ namespace DedicatedServerMod.Server.Core
             
             _hostConsoleManager = new HostConsoleManager(_commandManager, _logger);
             _hostConsoleManager.Start();
+            TryStartWebPanel();
             TryStartStatusQueryService();
             
             // Step 10: Wire up player events with persistence
@@ -357,6 +361,7 @@ namespace DedicatedServerMod.Server.Core
                 _playerManager?.NotifyShutdownAndDisconnectAll(reason);
 
                 // Shutdown in reverse order
+                try { _webPanelManager?.Dispose(); } catch { }
                 try { _hostConsoleManager?.Dispose(); } catch { }
                 _serverStatusQueryService?.Shutdown();
                 _gameSystemManager?.Shutdown();
@@ -395,6 +400,20 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 _logger.Warning($"Status query service failed to start: {ex.Message}");
+            }
+        }
+
+        private void TryStartWebPanel()
+        {
+            try
+            {
+                _webPanelManager = new WebPanelManager(_logger, _networkManager, _playerManager, _permissionService, _commandManager, _persistenceManager);
+                _webPanelManager.Start();
+                _logger.Msg("✓ Web panel initialized");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning($"Web panel failed to start: {ex.Message}");
             }
         }
 

@@ -288,6 +288,44 @@ namespace DedicatedServerMod.Shared.Configuration
         public string TcpConsolePassword { get; set; } = string.Empty;
 
         /// <summary>
+        /// Whether the integrated localhost web panel is enabled.
+        /// Defaults to <see langword="false"/> so hosted and service-style deployments do not expose it unless explicitly opted in.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.WebPanelEnabled)]
+        public bool WebPanelEnabled { get; set; } = false;
+
+        /// <summary>
+        /// IP address to bind the web panel to.
+        /// Use "127.0.0.1" for local-only access.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.WebPanelBindAddress)]
+        public string WebPanelBindAddress { get; set; } = Utils.Constants.DefaultTcpConsoleBindAddress;
+
+        /// <summary>
+        /// Port for the integrated web panel.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.WebPanelPort)]
+        public int WebPanelPort { get; set; } = Utils.Constants.DefaultWebPanelPort;
+
+        /// <summary>
+        /// Whether the server should attempt to open the web panel in the default browser on startup.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.WebPanelOpenBrowserOnStart)]
+        public bool WebPanelOpenBrowserOnStart { get; set; } = true;
+
+        /// <summary>
+        /// Duration in minutes for localhost web panel sessions.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.WebPanelSessionMinutes)]
+        public int WebPanelSessionMinutes { get; set; } = Utils.Constants.DefaultWebPanelSessionMinutes;
+
+        /// <summary>
+        /// Whether recent logs are exposed to the localhost web panel.
+        /// </summary>
+        [JsonProp(Utils.Constants.ConfigKeys.WebPanelExposeLogs)]
+        public bool WebPanelExposeLogs { get; set; } = true;
+
+        /// <summary>
         /// Controls activation of the stdio host console transport.
         /// </summary>
         [JsonProp(Utils.Constants.ConfigKeys.StdioConsoleMode)]
@@ -966,6 +1004,18 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 Logger.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Utils.Constants.DefaultTcpConsoleMaxConnections}");
                 TcpConsoleMaxConnections = Utils.Constants.DefaultTcpConsoleMaxConnections;
+            }
+
+            if (WebPanelPort < Utils.Constants.MinPort || WebPanelPort > Utils.Constants.MaxPort)
+            {
+                Logger.Warning($"Invalid web panel port {WebPanelPort}, using default {Utils.Constants.DefaultWebPanelPort}");
+                WebPanelPort = Utils.Constants.DefaultWebPanelPort;
+            }
+
+            if (WebPanelSessionMinutes < 1 || WebPanelSessionMinutes > 1440)
+            {
+                Logger.Warning($"Invalid web panel session duration {WebPanelSessionMinutes}, using default {Utils.Constants.DefaultWebPanelSessionMinutes}");
+                WebPanelSessionMinutes = Utils.Constants.DefaultWebPanelSessionMinutes;
             }
 
             // Validate names

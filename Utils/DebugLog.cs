@@ -42,6 +42,11 @@ namespace DedicatedServerMod.Utils
         /// </summary>
         private static bool _initialized;
 
+        /// <summary>
+        /// Raised when a structured log entry is emitted through this utility.
+        /// </summary>
+        public static event Action<DebugLogEntry> EntryWritten;
+
         #endregion
 
         #region Initialization
@@ -245,6 +250,7 @@ namespace DedicatedServerMod.Utils
         public static void Info(string message)
         {
             Logger.Msg(message);
+            Publish(DebugLogLevel.Info, message);
         }
 
         /// <summary>
@@ -255,6 +261,7 @@ namespace DedicatedServerMod.Utils
         public static void Info(string message, ConsoleColor color)
         {
             Logger.Msg(color, message);
+            Publish(DebugLogLevel.Info, message);
         }
 
         /// <summary>
@@ -264,7 +271,9 @@ namespace DedicatedServerMod.Utils
         /// <param name="args">The format arguments</param>
         public static void Info(string format, params object[] args)
         {
-            Logger.Msg(string.Format(format, args));
+            string message = string.Format(format, args);
+            Logger.Msg(message);
+            Publish(DebugLogLevel.Info, message);
         }
 
         #endregion
@@ -278,6 +287,7 @@ namespace DedicatedServerMod.Utils
         public static void Warning(string message)
         {
             Logger.Warning(message);
+            Publish(DebugLogLevel.Warning, message);
         }
 
         /// <summary>
@@ -287,7 +297,9 @@ namespace DedicatedServerMod.Utils
         /// <param name="args">The format arguments</param>
         public static void Warning(string format, params object[] args)
         {
-            Logger.Warning(string.Format(format, args));
+            string message = string.Format(format, args);
+            Logger.Warning(message);
+            Publish(DebugLogLevel.Warning, message);
         }
 
         /// <summary>
@@ -297,7 +309,9 @@ namespace DedicatedServerMod.Utils
         /// <param name="exception">The exception that occurred</param>
         public static void Warning(string message, Exception exception)
         {
-            Logger.Warning($"{message}: {exception.Message}");
+            string rendered = $"{message}: {exception.Message}";
+            Logger.Warning(rendered);
+            Publish(DebugLogLevel.Warning, rendered);
         }
 
         #endregion
@@ -311,6 +325,7 @@ namespace DedicatedServerMod.Utils
         public static void Error(string message)
         {
             Logger.Error(message);
+            Publish(DebugLogLevel.Error, message);
         }
 
         /// <summary>
@@ -320,7 +335,9 @@ namespace DedicatedServerMod.Utils
         /// <param name="args">The format arguments</param>
         public static void Error(string format, params object[] args)
         {
-            Logger.Error(string.Format(format, args));
+            string message = string.Format(format, args);
+            Logger.Error(message);
+            Publish(DebugLogLevel.Error, message);
         }
 
         /// <summary>
@@ -330,7 +347,9 @@ namespace DedicatedServerMod.Utils
         /// <param name="exception">The exception that occurred</param>
         public static void Error(string message, Exception exception)
         {
-            Logger.Error($"{message}: {exception}");
+            string rendered = $"{message}: {exception}";
+            Logger.Error(rendered);
+            Publish(DebugLogLevel.Error, rendered);
         }
 
         /// <summary>
@@ -342,6 +361,7 @@ namespace DedicatedServerMod.Utils
             if (exception != null)
             {
                 Logger.Error(exception.ToString());
+                Publish(DebugLogLevel.Error, exception.ToString());
             }
         }
 
@@ -357,7 +377,9 @@ namespace DedicatedServerMod.Utils
         {
             if (IsDebugEnabled)
             {
-                Logger.Msg($"[DEBUG] {message}");
+                string rendered = $"[DEBUG] {message}";
+                Logger.Msg(rendered);
+                Publish(DebugLogLevel.Debug, rendered);
             }
         }
 
@@ -370,7 +392,9 @@ namespace DedicatedServerMod.Utils
         {
             if (IsDebugEnabled)
             {
-                Logger.Msg($"[DEBUG] {string.Format(format, args)}");
+                string rendered = $"[DEBUG] {string.Format(format, args)}";
+                Logger.Msg(rendered);
+                Publish(DebugLogLevel.Debug, rendered);
             }
         }
 
@@ -386,7 +410,9 @@ namespace DedicatedServerMod.Utils
                 var argsStr = args != null && args.Length > 0
                     ? $"({string.Join(", ", args)})"
                     : "()";
-                Logger.Msg($"[DEBUG] → {methodName}{argsStr}");
+                string rendered = $"[DEBUG] → {methodName}{argsStr}";
+                Logger.Msg(rendered);
+                Publish(DebugLogLevel.Debug, rendered);
             }
         }
 
@@ -403,7 +429,9 @@ namespace DedicatedServerMod.Utils
         {
             if (IsVerboseEnabled)
             {
-                Logger.Msg($"[VERBOSE] {message}");
+                string rendered = $"[VERBOSE] {message}";
+                Logger.Msg(rendered);
+                Publish(DebugLogLevel.Verbose, rendered);
             }
         }
 
@@ -416,7 +444,9 @@ namespace DedicatedServerMod.Utils
         {
             if (IsVerboseEnabled)
             {
-                Logger.Msg($"[VERBOSE] {string.Format(format, args)}");
+                string rendered = $"[VERBOSE] {string.Format(format, args)}";
+                Logger.Msg(rendered);
+                Publish(DebugLogLevel.Verbose, rendered);
             }
         }
 
@@ -429,7 +459,9 @@ namespace DedicatedServerMod.Utils
         {
             if (IsVerboseEnabled)
             {
-                Logger.Msg($"[VERBOSE] {variableName} = {value}");
+                string rendered = $"[VERBOSE] {variableName} = {value}";
+                Logger.Msg(rendered);
+                Publish(DebugLogLevel.Verbose, rendered);
             }
         }
 
@@ -518,6 +550,7 @@ namespace DedicatedServerMod.Utils
                 message += $" - {details}";
             }
             Logger.Msg(message);
+            Publish(DebugLogLevel.Info, message);
         }
 
         /// <summary>
@@ -531,6 +564,7 @@ namespace DedicatedServerMod.Utils
         {
             var targetStr = target.HasValue ? $" to={target.Value}" : "";
             Logger.Msg($"[MESSAGE] {direction} cmd='{command}' len={dataLength}{targetStr}");
+            Publish(DebugLogLevel.Info, $"[MESSAGE] {direction} cmd='{command}' len={dataLength}{targetStr}");
         }
 
         /// <summary>
@@ -542,6 +576,7 @@ namespace DedicatedServerMod.Utils
             if (IsMessageRoutingDebugLoggingEnabled)
             {
                 Logger.Msg($"[DEBUG][NETWORK][ROUTING] {message}");
+                Publish(DebugLogLevel.Debug, $"[DEBUG][NETWORK][ROUTING] {message}");
             }
         }
 
@@ -554,6 +589,7 @@ namespace DedicatedServerMod.Utils
             if (IsMessagingBackendDebugLoggingEnabled)
             {
                 Logger.Msg($"[DEBUG][NETWORK][BACKEND] {message}");
+                Publish(DebugLogLevel.Debug, $"[DEBUG][NETWORK][BACKEND] {message}");
             }
         }
 
@@ -566,6 +602,7 @@ namespace DedicatedServerMod.Utils
             if (IsStartupDebugLoggingEnabled)
             {
                 Logger.Msg($"[DEBUG][STARTUP] {message}");
+                Publish(DebugLogLevel.Debug, $"[DEBUG][STARTUP] {message}");
             }
         }
 
@@ -578,6 +615,7 @@ namespace DedicatedServerMod.Utils
             if (IsServerNetworkDebugLoggingEnabled)
             {
                 Logger.Msg($"[DEBUG][SERVER][NETWORK] {message}");
+                Publish(DebugLogLevel.Debug, $"[DEBUG][SERVER][NETWORK] {message}");
             }
         }
 
@@ -590,6 +628,7 @@ namespace DedicatedServerMod.Utils
             if (IsPlayerLifecycleDebugLoggingEnabled)
             {
                 Logger.Msg($"[DEBUG][PLAYER] {message}");
+                Publish(DebugLogLevel.Debug, $"[DEBUG][PLAYER] {message}");
             }
         }
 
@@ -602,6 +641,7 @@ namespace DedicatedServerMod.Utils
             if (IsAuthenticationDebugLoggingEnabled)
             {
                 Logger.Msg($"[DEBUG][AUTH] {message}");
+                Publish(DebugLogLevel.Debug, $"[DEBUG][AUTH] {message}");
             }
         }
 
@@ -619,6 +659,7 @@ namespace DedicatedServerMod.Utils
             if (IsDebugEnabled || IsVerboseEnabled)
             {
                 Logger.Msg($"[PERF] {operation}: {elapsedMs}ms");
+                Publish(DebugLogLevel.Debug, $"[PERF] {operation}: {elapsedMs}ms");
             }
         }
 
@@ -632,6 +673,7 @@ namespace DedicatedServerMod.Utils
             {
                 var usedMemory = GC.GetTotalMemory(false);
                 Logger.Msg($"[MEMORY] {context}: {usedMemory / 1024 / 1024:F2}MB");
+                Publish(DebugLogLevel.Verbose, $"[MEMORY] {context}: {usedMemory / 1024 / 1024:F2}MB");
             }
         }
 
@@ -648,7 +690,9 @@ namespace DedicatedServerMod.Utils
         public static void LogProgress(string operation, int current, int total)
         {
             var percent = total > 0 ? (double)current / total * 100 : 0;
-            Logger.Msg($"[PROGRESS] {operation}: {current}/{total} ({percent:F1}%)");
+            string rendered = $"[PROGRESS] {operation}: {current}/{total} ({percent:F1}%)";
+            Logger.Msg(rendered);
+            Publish(DebugLogLevel.Info, rendered);
         }
 
         #endregion
@@ -663,6 +707,16 @@ namespace DedicatedServerMod.Utils
             _logger = null;
             _config = null;
             _initialized = false;
+        }
+
+        private static void Publish(DebugLogLevel level, string message)
+        {
+            EntryWritten?.Invoke(new DebugLogEntry
+            {
+                TimestampUtc = DateTime.UtcNow,
+                Level = level,
+                Message = message ?? string.Empty
+            });
         }
 
         #endregion

@@ -813,6 +813,8 @@
 		<Compile Include="Server\Network\ServerStatusQueryService.cs" />
 		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
 		<Compile Include="Server\HostConsole\*.cs" />
+		<Compile Include="Server\WebPanel\*.cs" />
+		<EmbeddedResource Include="Server\WebPanel\Static\**\*" />
 		
 		<!-- Player management -->
 		<Compile Include="Server\Player\PlayerManager.cs" />

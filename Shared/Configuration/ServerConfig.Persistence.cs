@@ -46,6 +46,16 @@ namespace DedicatedServerMod.Shared.Configuration
         public static bool LastLoadedFromLegacyJson { get; private set; }
 
         /// <summary>
+        /// Raised after the active configuration is saved to disk.
+        /// </summary>
+        public static event Action Saved;
+
+        /// <summary>
+        /// Raised after the active configuration is reloaded from disk.
+        /// </summary>
+        public static event Action Reloaded;
+
+        /// <summary>
         /// Gets the current server configuration instance.
         /// Loads the configuration if not already loaded.
         /// </summary>
@@ -130,6 +140,7 @@ namespace DedicatedServerMod.Shared.Configuration
                 string configPath = ConfigFilePath;
                 CreateStore().Save(_instance ?? new ServerConfig());
                 Logger.Msg($"Server configuration saved successfully to {configPath}");
+                Saved?.Invoke();
             }
             catch (Exception ex)
             {
@@ -144,6 +155,7 @@ namespace DedicatedServerMod.Shared.Configuration
         {
             Logger.Msg("Reloading server configuration...");
             LoadConfig();
+            Reloaded?.Invoke();
         }
 
         /// <summary>

@@ -25,6 +25,16 @@ namespace DedicatedServerMod.Server.Persistence
         private DateTime lastAutoSave = DateTime.MinValue;
         private bool saveInProgress = false;
 
+        /// <summary>
+        /// Raised when a save starts.
+        /// </summary>
+        public event Action<string, bool> SaveStarted;
+
+        /// <summary>
+        /// Raised when a save completes.
+        /// </summary>
+        public event Action<string, bool, bool> SaveCompleted;
+
         internal PersistenceManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
@@ -156,6 +166,7 @@ namespace DedicatedServerMod.Server.Persistence
         private IEnumerator PerformSave(string reason, bool isAutoSave)
         {
             saveInProgress = true;
+            SaveStarted?.Invoke(reason, isAutoSave);
 
             logger.Msg($"Starting {(isAutoSave ? "auto" : "manual")} save: {reason}");
 
@@ -163,6 +174,7 @@ namespace DedicatedServerMod.Server.Persistence
             {
                 logger.Error("SaveManager instance not available");
                 saveInProgress = false;
+                SaveCompleted?.Invoke(reason, isAutoSave, false);
                 yield break;
             }
 
@@ -178,6 +190,7 @@ namespace DedicatedServerMod.Server.Persistence
             {
                 logger.Error($"Error calling SaveManager.Save(): {ex}");
                 saveInProgress = false;
+                SaveCompleted?.Invoke(reason, isAutoSave, false);
                 yield break;
             }
 
@@ -205,6 +218,7 @@ namespace DedicatedServerMod.Server.Persistence
             }
 
             saveInProgress = false;
+            SaveCompleted?.Invoke(reason, isAutoSave, true);
         }
 
         /// <summary>

@@ -60,6 +60,16 @@ namespace DedicatedServerMod.Utils
         public const int DefaultTcpConsoleMaxConnections = 3;
 
         /// <summary>
+        /// Default port for the integrated localhost web panel.
+        /// </summary>
+        public const int DefaultWebPanelPort = 4051;
+
+        /// <summary>
+        /// Default session duration in minutes for localhost web panel sessions.
+        /// </summary>
+        public const int DefaultWebPanelSessionMinutes = 120;
+
+        /// <summary>
         /// Socket timeout for TCP console reads and writes in milliseconds.
         /// </summary>
         public const int TcpConsoleSocketTimeoutMs = 30000;
@@ -460,8 +470,17 @@ namespace DedicatedServerMod.Utils
             public const string SteamWebApiKey = "steamWebApiKey";
             public const string SteamWebApiIdentity = "steamWebApiIdentity";
             public const string TcpConsoleEnabled = "tcpConsoleEnabled";
+            public const string TcpConsoleBindAddress = "tcpConsoleBindAddress";
             public const string TcpConsolePort = "tcpConsolePort";
             public const string TcpConsoleMaxConnections = "tcpConsoleMaxConnections";
+            public const string TcpConsoleRequirePassword = "tcpConsoleRequirePassword";
+            public const string TcpConsolePassword = "tcpConsolePassword";
+            public const string WebPanelEnabled = "webPanelEnabled";
+            public const string WebPanelBindAddress = "webPanelBindAddress";
+            public const string WebPanelPort = "webPanelPort";
+            public const string WebPanelOpenBrowserOnStart = "webPanelOpenBrowserOnStart";
+            public const string WebPanelSessionMinutes = "webPanelSessionMinutes";
+            public const string WebPanelExposeLogs = "webPanelExposeLogs";
             public const string StdioConsoleMode = "stdioConsoleMode";
             public const string TimeMultiplier = "timeProgressionMultiplier";
             public const string AllowSleeping = "allowSleeping";

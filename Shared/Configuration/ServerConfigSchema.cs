@@ -58,6 +58,14 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.TcpConsoleRequirePassword, option => option.Comment("Require a password for the TCP console."))
                     .Option(config => config.TcpConsolePassword, option => option.Comment("TCP console password."))
                     .Option(config => config.StdioConsoleMode, option => option.Comment("Host stdio console mode: 'Disabled', 'Auto', or 'Enabled'.")))
+                .Section("webPanel", section => section
+                    .Comment("Integrated localhost browser panel for server owners.")
+                    .Option(config => config.WebPanelEnabled, option => option.Comment("Enable the integrated localhost web panel. Disabled by default for hosted or service-style deployments."))
+                    .Option(config => config.WebPanelBindAddress, option => option.Comment("Bind address for the web panel. Use '127.0.0.1' for local-only access."))
+                    .Option(config => config.WebPanelPort, option => option.Comment("HTTP port for the integrated web panel."))
+                    .Option(config => config.WebPanelOpenBrowserOnStart, option => option.Comment("Attempt to open the web panel in the default browser on startup."))
+                    .Option(config => config.WebPanelSessionMinutes, option => option.Comment("Session lifetime in minutes for localhost browser access."))
+                    .Option(config => config.WebPanelExposeLogs, option => option.Comment("Expose recent runtime logs to the localhost web panel.")))
                 .Section("gameplay", section => section
                     .Comment("Gameplay and simulation behavior on dedicated servers.")
                     .Option(config => config.IgnoreGhostHostForSleep, option => option.Comment("Ignore the loopback ghost host when checking sleep readiness."))
