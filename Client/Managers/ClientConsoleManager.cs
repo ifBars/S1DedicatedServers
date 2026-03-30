@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Networking;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 #else
@@ -32,33 +33,29 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientConsoleManager
     {
-        private readonly MelonLogger.Instance logger;
         private HarmonyLib.Harmony harmony;
-        private static MelonLogger.Instance _logger;
 
-        internal ClientConsoleManager(MelonLogger.Instance logger)
+        internal ClientConsoleManager()
         {
-            this.logger = logger;
-            _logger = logger;
         }
 
         internal void Initialize()
         {
             try
             {
-                logger.Msg("Initializing ClientConsoleManager");
+                DebugLog.Info("Initializing ClientConsoleManager");
                 
                 // Initialize admin status manager
-                AdminStatusManager.Initialize(logger);
+                AdminStatusManager.Initialize();
                 
                 harmony = new HarmonyLib.Harmony("DedicatedServerMod.ClientConsoleManager");
                 ApplyConsolePatches();
                 
-                logger.Msg("ClientConsoleManager initialized successfully");
+                DebugLog.Info("ClientConsoleManager initialized successfully");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize ClientConsoleManager: {ex}");
+                DebugLog.Error($"Failed to initialize ClientConsoleManager: {ex}");
             }
         }
 
@@ -81,11 +78,11 @@ namespace DedicatedServerMod.Client.Managers
                 // Hook client console submit to send to server via custom messaging as well
                 // so servers without our Console.SubmitCommand server patch can still receive text.
                 
-                logger.Msg("Console patches applied successfully");
+                DebugLog.Info("Console patches applied successfully");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to apply console patches: {ex}");
+                DebugLog.Error($"Failed to apply console patches: {ex}");
             }
         }
 
@@ -103,11 +100,11 @@ namespace DedicatedServerMod.Client.Managers
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleEnabledPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(consoleEnabledProperty.GetGetMethod(), new HarmonyMethod(prefixMethod));
-                logger.Msg("Patched ConsoleUI.IS_CONSOLE_ENABLED");
+                DebugLog.Info("Patched ConsoleUI.IS_CONSOLE_ENABLED");
             }
             else
             {
-                logger.Error("Could not find ConsoleUI.IS_CONSOLE_ENABLED property");
+                DebugLog.Error("Could not find ConsoleUI.IS_CONSOLE_ENABLED property");
             }
         }
 
@@ -125,11 +122,11 @@ namespace DedicatedServerMod.Client.Managers
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleSetIsOpenPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(setIsOpenMethod, new HarmonyMethod(prefixMethod));
-                logger.Msg("Patched ConsoleUI.SetIsOpen");
+                DebugLog.Info("Patched ConsoleUI.SetIsOpen");
             }
             else
             {
-                logger.Error("Could not find ConsoleUI.SetIsOpen method");
+                DebugLog.Error("Could not find ConsoleUI.SetIsOpen method");
             }
         }
 
@@ -147,11 +144,11 @@ namespace DedicatedServerMod.Client.Managers
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleSubmitCommandPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(submitCommandMethod, new HarmonyMethod(prefixMethod));
-                logger.Msg("Patched Console.SubmitCommand for client validation");
+                DebugLog.Info("Patched Console.SubmitCommand for client validation");
             }
             else
             {
-                logger.Error("Could not find Console.SubmitCommand method");
+                DebugLog.Error("Could not find Console.SubmitCommand method");
             }
         }
 
@@ -177,7 +174,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                _logger?.Error($"Error in ConsoleEnabled patch: {ex}");
+                DebugLog.Error($"Error in ConsoleEnabled patch: {ex}");
                 return true; // Let original method run as fallback
             }
         }
@@ -195,13 +192,13 @@ namespace DedicatedServerMod.Client.Managers
                 {
                     if (open && !AdminStatusManager.CanOpenConsole())
                     {
-                        _logger?.Warning("Console open rejected by latest permission snapshot");
+                        DebugLog.Warning("Console open rejected by latest permission snapshot");
                         return false;
                     }
 
                     if (open)
                     {
-                        _logger?.Msg($"Opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
+                        DebugLog.Info($"Opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
                     }
                     
                     var canvas = __instance.canvas;
@@ -237,7 +234,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                _logger?.Error($"Error in ConsoleSetIsOpen patch: {ex}");
+                DebugLog.Error($"Error in ConsoleSetIsOpen patch: {ex}");
                 return true; // Let original method run as fallback
             }
         }
@@ -260,7 +257,7 @@ namespace DedicatedServerMod.Client.Managers
                         return false;
                     }
 
-                    _logger?.Msg($"Submitting command to server: {args}");
+                    DebugLog.Info($"Submitting command to server: {args}");
                     CustomMessaging.SendToServer("admin_console", args);
                     return false; // Prevent local execution to avoid duplication; server will handle and relay if needed
                 }
@@ -269,7 +266,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                _logger?.Error($"Error in ConsoleSubmitCommand patch: {ex}");
+                DebugLog.Error($"Error in ConsoleSubmitCommand patch: {ex}");
                 return true; // Let original method run as fallback
             }
         }

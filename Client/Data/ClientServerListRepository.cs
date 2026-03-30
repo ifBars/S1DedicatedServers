@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using MelonLoader;
 using MelonLoader.Utils;
 using Newtonsoft.Json;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Client.Data
 {
@@ -14,14 +14,12 @@ namespace DedicatedServerMod.Client.Data
     {
         private const int HISTORY_LIMIT = 20;
 
-        private readonly MelonLogger.Instance _logger;
         private readonly string _filePath;
 
         private ClientServerListState _state = new ClientServerListState();
 
-        internal ClientServerListRepository(MelonLogger.Instance logger)
+        internal ClientServerListRepository()
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _filePath = Path.Combine(MelonEnvironment.UserDataDirectory, "DedicatedServerClientServers.json");
         }
 
@@ -224,7 +222,7 @@ namespace DedicatedServerMod.Client.Data
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Failed to load dedicated server list data: {ex.Message}");
+                DebugLog.Warning($"Failed to load dedicated server list data: {ex.Message}");
                 _state = new ClientServerListState();
             }
         }
@@ -318,7 +316,7 @@ namespace DedicatedServerMod.Client.Data
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Failed to persist dedicated server list data: {ex.Message}");
+                DebugLog.Warning($"Failed to persist dedicated server list data: {ex.Message}");
             }
         }
 

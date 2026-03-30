@@ -45,7 +45,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Error($"Error binding player identity: {ex}");
+                DebugLog.Error($"Error binding player identity: {ex}");
             }
         }
 
@@ -60,7 +60,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
 
                 if (ReceivePlayerNameDataMethod == null)
                 {
-                    DedicatedServerPatchCommon.Logger.Warning("ReceivePlayerNameData method not found; falling back to vanilla friend gate.");
+                    DebugLog.Warning("ReceivePlayerNameData method not found; falling back to vanilla friend gate.");
                     return true;
                 }
 
@@ -72,7 +72,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Warning($"AllowDedicatedServerPlayerNameDataPrefix error: {ex.Message}");
+                DebugLog.Warning($"AllowDedicatedServerPlayerNameDataPrefix error: {ex.Message}");
                 return true;
             }
         }
@@ -94,11 +94,11 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                 }
 
                 __instance.HasCompletedIntro = true;
-                DedicatedServerPatchCommon.Logger.Msg("Marked dedicated server loopback host intro as completed before PlayerLoaded.");
+                DebugLog.Info("Marked dedicated server loopback host intro as completed before PlayerLoaded.");
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Warning($"PlayerLoadedPrefix error: {ex.Message}");
+                DebugLog.Warning($"PlayerLoadedPrefix error: {ex.Message}");
             }
         }
     }
@@ -133,7 +133,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Warning($"Player.OnDestroy save trigger error: {ex.Message}");
+                DebugLog.Warning($"Player.OnDestroy save trigger error: {ex.Message}");
             }
         }
     }
@@ -185,7 +185,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Warning($"AreAllPlayersReadyToSleep prefix error: {ex.Message}");
+                DebugLog.Warning($"AreAllPlayersReadyToSleep prefix error: {ex.Message}");
                 return true;
             }
         }

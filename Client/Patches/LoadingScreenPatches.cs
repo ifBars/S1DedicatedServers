@@ -1,5 +1,5 @@
 using HarmonyLib;
-using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.UI;
@@ -16,12 +16,9 @@ namespace DedicatedServerMod.Client.Patches
     [HarmonyPatch]
     internal static class LoadingScreenPatches
     {
-        private static MelonLogger.Instance _logger;
-
-        public static void Initialize(MelonLogger.Instance logger)
+        public static void Initialize()
         {
-            _logger = logger;
-            _logger.Msg("LoadingScreen patches initialized (using attribute-based patching)");
+            DebugLog.StartupDebug("LoadingScreen patches initialized (using attribute-based patching)");
         }
 
         [HarmonyPatch(typeof(LoadManager), nameof(LoadManager.GetLoadStatusText))]
@@ -41,7 +38,7 @@ namespace DedicatedServerMod.Client.Patches
             bool shouldHold = ShouldHoldLoadingScreen();
             if (shouldHold)
             {
-                _logger?.Msg("Holding loading screen open until dedicated join verification completes");
+                DebugLog.Debug("Holding loading screen open until dedicated join verification completes");
             }
 
             return !shouldHold;

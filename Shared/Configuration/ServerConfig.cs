@@ -624,7 +624,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length)
                         {
                             Instance.ServerName = args[i + 1];
-                            Logger.Msg($"Server name set to: {Instance.ServerName}");
+                            DebugLog.Info($"Server name set to: {Instance.ServerName}");
                         }
                         break;
 
@@ -632,7 +632,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int maxPlayers))
                         {
                             Instance.MaxPlayers = Math.Min(maxPlayers, Constants.MaxAllowedPlayers);
-                            Logger.Msg($"Max players set to: {Instance.MaxPlayers}");
+                            DebugLog.Info($"Max players set to: {Instance.MaxPlayers}");
                         }
                         break;
 
@@ -640,7 +640,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length)
                         {
                             Instance.ServerPassword = args[i + 1];
-                            Logger.Msg("Server password set");
+                            DebugLog.Info("Server password set");
                         }
                         break;
 
@@ -650,14 +650,14 @@ namespace DedicatedServerMod.Shared.Configuration
                         {
                             Instance.AuthProvider = AuthenticationProvider.SteamGameServer;
                         }
-                        Logger.Msg($"Authentication enabled");
+                        DebugLog.Info("Authentication enabled");
                         break;
 
                     case "--disable-authentication":
                     case "--disable-auth":
                     case "--no-auth":
                         Instance.AuthProvider = AuthenticationProvider.None;
-                        Logger.Msg("Authentication disabled via command line");
+                        DebugLog.Info("Authentication disabled via command line");
                         break;
 
                     case "--auth-provider":
@@ -665,7 +665,7 @@ namespace DedicatedServerMod.Shared.Configuration
                             TryParseAuthenticationProvider(args[i + 1], out AuthenticationProvider authProvider))
                         {
                             Instance.AuthProvider = authProvider;
-                            Logger.Msg($"Authentication provider set to: {Instance.AuthProvider}");
+                            DebugLog.Info($"Authentication provider set to: {Instance.AuthProvider}");
                         }
                         break;
 
@@ -673,38 +673,38 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int authTimeoutSeconds))
                         {
                             Instance.AuthTimeoutSeconds = authTimeoutSeconds;
-                            Logger.Msg($"Authentication timeout set to: {Instance.AuthTimeoutSeconds}s");
+                            DebugLog.Info($"Authentication timeout set to: {Instance.AuthTimeoutSeconds}s");
                         }
                         break;
 
                     case "--mod-verification":
                         Instance.ModVerificationEnabled = true;
-                        Logger.Msg("Client mod verification enabled via command line");
+                        DebugLog.Info("Client mod verification enabled via command line");
                         break;
 
                     case "--no-mod-verification":
                         Instance.ModVerificationEnabled = false;
-                        Logger.Msg("Client mod verification disabled via command line");
+                        DebugLog.Info("Client mod verification disabled via command line");
                         break;
 
                     case "--mod-verification-timeout":
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int modVerificationTimeoutSeconds))
                         {
                             Instance.ModVerificationTimeoutSeconds = modVerificationTimeoutSeconds;
-                            Logger.Msg($"Mod verification timeout set to: {Instance.ModVerificationTimeoutSeconds}s");
+                            DebugLog.Info($"Mod verification timeout set to: {Instance.ModVerificationTimeoutSeconds}s");
                         }
                         break;
 
                     case "--strict-client-mod-mode":
                         Instance.StrictClientModMode = true;
-                        Logger.Msg("Strict client mod mode enabled via command line");
+                        DebugLog.Info("Strict client mod mode enabled via command line");
                         break;
 
                     case "--allow-unpaired-client-mods":
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool allowUnpairedClientMods))
                         {
                             Instance.AllowUnpairedClientMods = allowUnpairedClientMods;
-                            Logger.Msg($"Allow unpaired client mods set to: {Instance.AllowUnpairedClientMods}");
+                            DebugLog.Info($"Allow unpaired client mods set to: {Instance.AllowUnpairedClientMods}");
                         }
                         break;
 
@@ -712,13 +712,13 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool blockKnownRiskyClientMods))
                         {
                             Instance.BlockKnownRiskyClientMods = blockKnownRiskyClientMods;
-                            Logger.Msg($"Block known risky client mods set to: {Instance.BlockKnownRiskyClientMods}");
+                            DebugLog.Info($"Block known risky client mods set to: {Instance.BlockKnownRiskyClientMods}");
                         }
                         break;
 
                     case "--steam-gs-anonymous":
                         Instance.SteamGameServerLogOnAnonymous = true;
-                        Logger.Msg("Steam game server anonymous login enabled");
+                        DebugLog.Info("Steam game server anonymous login enabled");
                         break;
 
                     case "--steam-gs-token":
@@ -726,7 +726,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         {
                             Instance.SteamGameServerToken = args[i + 1];
                             Instance.SteamGameServerLogOnAnonymous = false;
-                            Logger.Msg("Steam game server token set and anonymous login disabled");
+                            DebugLog.Info("Steam game server token set and anonymous login disabled");
                         }
                         break;
 
@@ -735,7 +735,7 @@ namespace DedicatedServerMod.Shared.Configuration
                             TryParseMessagingBackend(args[i + 1], out MessagingBackendType messagingBackend))
                         {
                             Instance.MessagingBackend = messagingBackend;
-                            Logger.Msg($"Messaging backend set to: {Instance.MessagingBackend}");
+                            DebugLog.Info($"Messaging backend set to: {Instance.MessagingBackend}");
                         }
                         break;
 
@@ -743,7 +743,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool allowRelay))
                         {
                             Instance.SteamP2PAllowRelay = allowRelay;
-                            Logger.Msg($"Steam P2P relay set to: {Instance.SteamP2PAllowRelay}");
+                            DebugLog.Info($"Steam P2P relay set to: {Instance.SteamP2PAllowRelay}");
                         }
                         break;
 
@@ -751,7 +751,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p2pChannel))
                         {
                             Instance.SteamP2PChannel = p2pChannel;
-                            Logger.Msg($"Steam P2P channel set to: {Instance.SteamP2PChannel}");
+                            DebugLog.Info($"Steam P2P channel set to: {Instance.SteamP2PChannel}");
                         }
                         break;
 
@@ -760,7 +760,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length)
                         {
                             Instance.SteamP2PServerSteamId = args[i + 1];
-                            Logger.Msg("Steam P2P target server SteamID set");
+                            DebugLog.Info("Steam P2P target server SteamID set");
                         }
                         break;
 
@@ -768,7 +768,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length)
                         {
                             Instance.Operators.Add(args[i + 1]);
-                            Logger.Msg($"Added operator: {args[i + 1]}");
+                            DebugLog.Info($"Added operator: {args[i + 1]}");
                         }
                         break;
 
@@ -776,30 +776,30 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length)
                         {
                             Instance.Admins.Add(args[i + 1]);
-                            Logger.Msg($"Added admin: {args[i + 1]}");
+                            DebugLog.Info($"Added admin: {args[i + 1]}");
                         }
                         break;
 
                     case "--debug":
                         Instance.DebugMode = true;
-                        Logger.Msg("Debug mode enabled");
+                        DebugLog.Info("Debug mode enabled");
                         break;
 
                     case "--verbose":
                         Instance.VerboseLogging = true;
-                        Logger.Msg("Verbose logging enabled");
+                        DebugLog.Info("Verbose logging enabled");
                         break;
 
                     case "--tcp-console":
                         Instance.TcpConsoleEnabled = true;
-                        Logger.Msg("TCP console enabled via CLI");
+                        DebugLog.Info("TCP console enabled via CLI");
                         break;
 
                     case "--tcp-console-port":
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int tcpPort))
                         {
                             Instance.TcpConsolePort = tcpPort;
-                            Logger.Msg($"TCP console port set to: {Instance.TcpConsolePort}");
+                            DebugLog.Info($"TCP console port set to: {Instance.TcpConsolePort}");
                         }
                         break;
 
@@ -807,7 +807,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int tcpConsoleMaxConnections))
                         {
                             Instance.TcpConsoleMaxConnections = tcpConsoleMaxConnections;
-                            Logger.Msg($"TCP console max connections set to: {Instance.TcpConsoleMaxConnections}");
+                            DebugLog.Info($"TCP console max connections set to: {Instance.TcpConsoleMaxConnections}");
                         }
                         break;
 
@@ -815,7 +815,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length)
                         {
                             Instance.TcpConsoleBindAddress = args[i + 1];
-                            Logger.Msg($"TCP console bind address set to: {Instance.TcpConsoleBindAddress}");
+                            DebugLog.Info($"TCP console bind address set to: {Instance.TcpConsoleBindAddress}");
                         }
                         break;
 
@@ -824,30 +824,30 @@ namespace DedicatedServerMod.Shared.Configuration
                         {
                             Instance.TcpConsolePassword = args[i + 1];
                             Instance.TcpConsoleRequirePassword = true;
-                            Logger.Msg("TCP console password set via CLI and requirement enabled");
+                            DebugLog.Info("TCP console password set via CLI and requirement enabled");
                         }
                         break;
 
                     case "--stdio-console":
                         Instance.StdioConsoleMode = StdioConsoleMode.Enabled;
-                        Logger.Msg("stdio host console enabled via CLI");
+                        DebugLog.Info("stdio host console enabled via CLI");
                         break;
 
                     case "--no-stdio-console":
                         Instance.StdioConsoleMode = StdioConsoleMode.Disabled;
-                        Logger.Msg("stdio host console disabled via CLI");
+                        DebugLog.Info("stdio host console disabled via CLI");
                         break;
 
                     case "--stdio-console-auto":
                         Instance.StdioConsoleMode = StdioConsoleMode.Auto;
-                        Logger.Msg("stdio host console auto mode enabled via CLI");
+                        DebugLog.Info("stdio host console auto mode enabled via CLI");
                         break;
 
                     case "--target-framerate":
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int fps))
                         {
                             Instance.TargetFrameRate = fps;
-                            Logger.Msg($"Target framerate set to: {fps}");
+                            DebugLog.Info($"Target framerate set to: {fps}");
                         }
                         break;
 
@@ -855,7 +855,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int vsync))
                         {
                             Instance.VSyncCount = Math.Clamp(vsync, 0, 2);
-                            Logger.Msg($"VSync set to: {vsync}");
+                            DebugLog.Info($"VSync set to: {vsync}");
                         }
                         break;
                 }
@@ -920,110 +920,110 @@ namespace DedicatedServerMod.Shared.Configuration
             // Validate port
             if (ServerPort < Constants.MinPort || ServerPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid server port {ServerPort}, using default {Constants.DefaultServerPort}");
+                DebugLog.Warning($"Invalid server port {ServerPort}, using default {Constants.DefaultServerPort}");
                 ServerPort = Constants.DefaultServerPort;
             }
 
             // Validate max players
             if (MaxPlayers < 1)
             {
-                Logger.Warning($"Invalid max players {MaxPlayers}, using default {Constants.DefaultMaxPlayers}");
+                DebugLog.Warning($"Invalid max players {MaxPlayers}, using default {Constants.DefaultMaxPlayers}");
                 MaxPlayers = Constants.DefaultMaxPlayers;
             }
             else if (MaxPlayers > Constants.MaxAllowedPlayers)
             {
-                Logger.Warning($"Max players {MaxPlayers} exceeds limit {Constants.MaxAllowedPlayers}");
+                DebugLog.Warning($"Max players {MaxPlayers} exceeds limit {Constants.MaxAllowedPlayers}");
                 MaxPlayers = Constants.MaxAllowedPlayers;
             }
 
             // Validate time multiplier
             if (TimeProgressionMultiplier < 0 || TimeProgressionMultiplier > Constants.MaxTimeMultiplier)
             {
-                Logger.Warning($"Invalid time multiplier {TimeProgressionMultiplier}, using default {Constants.DefaultTimeMultiplier}");
+                DebugLog.Warning($"Invalid time multiplier {TimeProgressionMultiplier}, using default {Constants.DefaultTimeMultiplier}");
                 TimeProgressionMultiplier = Constants.DefaultTimeMultiplier;
             }
 
             // Validate auth timeout
             if (AuthTimeoutSeconds < 1 || AuthTimeoutSeconds > 120)
             {
-                Logger.Warning($"Invalid auth timeout {AuthTimeoutSeconds}, using default {Constants.DefaultAuthTimeoutSeconds}");
+                DebugLog.Warning($"Invalid auth timeout {AuthTimeoutSeconds}, using default {Constants.DefaultAuthTimeoutSeconds}");
                 AuthTimeoutSeconds = Constants.DefaultAuthTimeoutSeconds;
             }
 
             if (ModVerificationTimeoutSeconds < 1 || ModVerificationTimeoutSeconds > 120)
             {
-                Logger.Warning($"Invalid mod verification timeout {ModVerificationTimeoutSeconds}, using default {Constants.DefaultModVerificationTimeoutSeconds}");
+                DebugLog.Warning($"Invalid mod verification timeout {ModVerificationTimeoutSeconds}, using default {Constants.DefaultModVerificationTimeoutSeconds}");
                 ModVerificationTimeoutSeconds = Constants.DefaultModVerificationTimeoutSeconds;
             }
 
             if (SteamGameServerQueryPort < Constants.MinPort || SteamGameServerQueryPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid steam game server query port {SteamGameServerQueryPort}, using default {Constants.DefaultSteamGameServerQueryPort}");
+                DebugLog.Warning($"Invalid steam game server query port {SteamGameServerQueryPort}, using default {Constants.DefaultSteamGameServerQueryPort}");
                 SteamGameServerQueryPort = Constants.DefaultSteamGameServerQueryPort;
             }
 
             if (SteamP2PChannel < 0)
             {
-                Logger.Warning($"Invalid Steam P2P channel {SteamP2PChannel}, using channel 0");
+                DebugLog.Warning($"Invalid Steam P2P channel {SteamP2PChannel}, using channel 0");
                 SteamP2PChannel = 0;
             }
 
             if (SteamP2PMaxPayloadBytes < 256 || SteamP2PMaxPayloadBytes > Constants.MaxMessageSize)
             {
-                Logger.Warning($"Invalid Steam P2P max payload {SteamP2PMaxPayloadBytes}, using 1200");
+                DebugLog.Warning($"Invalid Steam P2P max payload {SteamP2PMaxPayloadBytes}, using 1200");
                 SteamP2PMaxPayloadBytes = 1200;
             }
 
             // Validate auto-save interval
             if (AutoSaveIntervalMinutes < 0 || AutoSaveIntervalMinutes > Constants.MaxAutoSaveIntervalMinutes)
             {
-                Logger.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Constants.DefaultAutoSaveIntervalMinutes}");
+                DebugLog.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Constants.DefaultAutoSaveIntervalMinutes}");
                 AutoSaveIntervalMinutes = Constants.DefaultAutoSaveIntervalMinutes;
             }
 
             // Validate target framerate
             if (TargetFrameRate < -1 || TargetFrameRate > 300)
             {
-                Logger.Warning($"Invalid target framerate {TargetFrameRate}, using default 60");
+                DebugLog.Warning($"Invalid target framerate {TargetFrameRate}, using default 60");
                 TargetFrameRate = 60;
             }
 
             // Validate VSync
             if (VSyncCount < 0 || VSyncCount > 2)
             {
-                Logger.Warning($"Invalid VSync count {VSyncCount}, using default 0");
+                DebugLog.Warning($"Invalid VSync count {VSyncCount}, using default 0");
                 VSyncCount = 0;
             }
 
             // Validate TCP console max connections
             if (TcpConsoleMaxConnections < 1)
             {
-                Logger.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Constants.DefaultTcpConsoleMaxConnections}");
+                DebugLog.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Constants.DefaultTcpConsoleMaxConnections}");
                 TcpConsoleMaxConnections = Constants.DefaultTcpConsoleMaxConnections;
             }
 
             if (WebPanelPort < Constants.MinPort || WebPanelPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid web panel port {WebPanelPort}, using default {Constants.DefaultWebPanelPort}");
+                DebugLog.Warning($"Invalid web panel port {WebPanelPort}, using default {Constants.DefaultWebPanelPort}");
                 WebPanelPort = Constants.DefaultWebPanelPort;
             }
 
             if (WebPanelSessionMinutes < 1 || WebPanelSessionMinutes > 1440)
             {
-                Logger.Warning($"Invalid web panel session duration {WebPanelSessionMinutes}, using default {Constants.DefaultWebPanelSessionMinutes}");
+                DebugLog.Warning($"Invalid web panel session duration {WebPanelSessionMinutes}, using default {Constants.DefaultWebPanelSessionMinutes}");
                 WebPanelSessionMinutes = Constants.DefaultWebPanelSessionMinutes;
             }
 
             // Validate names
             if (ServerName.Length > Constants.MaxServerNameLength)
             {
-                Logger.Warning($"Server name exceeds max length, truncating");
+                DebugLog.Warning("Server name exceeds max length, truncating");
                 ServerName = ServerName.Substring(0, Constants.MaxServerNameLength);
             }
 
             if (ServerDescription.Length > Constants.MaxServerDescriptionLength)
             {
-                Logger.Warning($"Server description exceeds max length, truncating");
+                DebugLog.Warning("Server description exceeds max length, truncating");
                 ServerDescription = ServerDescription.Substring(0, Constants.MaxServerDescriptionLength);
             }
 
@@ -1033,14 +1033,14 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 if (AuthProvider == AuthenticationProvider.SteamWebApi && string.IsNullOrWhiteSpace(SteamWebApiKey))
                 {
-                    Logger.Warning("Auth provider is SteamWebApi but steamWebApiKey is empty. Authentication will fail until configured.");
+                    DebugLog.Warning("Auth provider is SteamWebApi but steamWebApiKey is empty. Authentication will fail until configured.");
                 }
 
                 if (AuthProvider == AuthenticationProvider.SteamGameServer &&
                     !SteamGameServerLogOnAnonymous &&
                     string.IsNullOrWhiteSpace(SteamGameServerToken))
                 {
-                    Logger.Warning("Auth provider is SteamGameServer with anonymous login disabled, but steamGameServerToken is empty.");
+                    DebugLog.Warning("Auth provider is SteamGameServer with anonymous login disabled, but steamGameServerToken is empty.");
                 }
             }
         }
@@ -1074,7 +1074,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     return true;
                 default:
                     value = AuthenticationProvider.None;
-                    Logger.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_web_api, steam_game_server.");
+                    DebugLog.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_web_api, steam_game_server.");
                     return false;
             }
         }
@@ -1138,7 +1138,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     value = MessagingBackendType.SteamNetworkingSockets;
                     return true;
                 default:
-                    Logger.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p, steam_networking_sockets.");
+                    DebugLog.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p, steam_networking_sockets.");
                     value = MessagingBackendType.FishNetRpc;
                     return false;
             }

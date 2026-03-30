@@ -1,20 +1,19 @@
 using DedicatedServerMod.API.Configuration;
 using DedicatedServerMod.API.Toml;
-using MelonLoader;
 using MelonLoader.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Shared.Configuration
 {
     /// <summary>
     /// Provides server-specific configuration storage orchestration.
     /// </summary>
-    internal sealed class ServerConfigStore(MelonLogger.Instance logger, string configPath, bool configPathWasExplicit)
+    internal sealed class ServerConfigStore(string configPath, bool configPathWasExplicit)
     {
         private const string LegacyPermissionsSectionName = "permissions";
 
-        private readonly MelonLogger.Instance _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly string _configPath = Path.GetFullPath(configPath ?? throw new ArgumentNullException(nameof(configPath)));
 
         public string ConfigFilePath => _configPath;
@@ -145,14 +144,14 @@ namespace DedicatedServerMod.Shared.Configuration
                 string location = diagnostic.LineNumber > 0 ? $" line {diagnostic.LineNumber}" : string.Empty;
                 string sectionLabel = string.IsNullOrWhiteSpace(diagnostic.TableName) ? "root" : diagnostic.TableName;
                 string keyLabel = string.IsNullOrWhiteSpace(diagnostic.Key) ? string.Empty : $" key '{diagnostic.Key}'";
-                _logger.Warning($"Config warning in section '{sectionLabel}'{keyLabel}{location}: {diagnostic.Message}");
+                DebugLog.Warning($"Config warning in section '{sectionLabel}'{keyLabel}{location}: {diagnostic.Message}");
             }
 
             foreach (TomlConfigValidationIssue issue in loadResult.ValidationIssues)
             {
                 string sectionLabel = string.IsNullOrWhiteSpace(issue.Section) ? "root" : issue.Section;
                 string keyLabel = string.IsNullOrWhiteSpace(issue.Key) ? string.Empty : $" key '{issue.Key}'";
-                _logger.Warning($"Config binding warning in section '{sectionLabel}'{keyLabel}: {issue.Message}");
+                DebugLog.Warning($"Config binding warning in section '{sectionLabel}'{keyLabel}: {issue.Message}");
             }
         }
 

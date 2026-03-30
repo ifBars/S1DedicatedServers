@@ -1,6 +1,7 @@
 using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using Il2CppFishNet;
@@ -46,7 +47,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Networking
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Warning($"LoadManager.StartGame transport prep failed: {ex.Message}");
+                DebugLog.Warning($"LoadManager.StartGame transport prep failed: {ex.Message}");
             }
         }
     }

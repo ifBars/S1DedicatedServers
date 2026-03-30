@@ -1,5 +1,5 @@
 using HarmonyLib;
-using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Object.Synchronizing;
 using EnvironmentManagerType = Il2CppScheduleOne.Weather.EnvironmentManager;
@@ -39,7 +39,7 @@ namespace DedicatedServerMod.Shared.Patches
                 }
             }
 
-            MelonLogger.Warning(message);
+            DebugLog.Warning(message);
         }
     }
 

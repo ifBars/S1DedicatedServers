@@ -4,6 +4,7 @@ using Il2CppFishNet;
 using FishNet;
 #endif
 using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Quests;
@@ -28,30 +29,27 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientQuestManager
     {
-        private readonly MelonLogger.Instance logger;
-        
         // Quest system state
         private bool questSystemInitialized = false;
         private QuestManager questManagerInstance;
 
-        internal ClientQuestManager(MelonLogger.Instance logger)
+        internal ClientQuestManager()
         {
-            this.logger = logger;
         }
 
         internal void Initialize()
         {
             try
             {
-                logger.Msg("Initializing ClientQuestManager");
+                DebugLog.Info("Initializing ClientQuestManager");
                 
                 // Quest system initialization will happen when main scene loads
                 
-                logger.Msg("ClientQuestManager initialized");
+                DebugLog.Info("ClientQuestManager initialized");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize ClientQuestManager: {ex}");
+                DebugLog.Error($"Failed to initialize ClientQuestManager: {ex}");
             }
         }
 
@@ -64,13 +62,13 @@ namespace DedicatedServerMod.Client.Managers
             {
                 if (sceneName == "Main" && ClientConnectionManager.IsTugboatMode)
                 {
-                    logger.Msg("Main scene loaded in dedicated server mode - ensuring quest initialization");
+                    DebugLog.Info("Main scene loaded in dedicated server mode - ensuring quest initialization");
                     MelonCoroutines.Start(EnsureQuestInitialization());
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error handling quest scene load: {ex}");
+                DebugLog.Error($"Error handling quest scene load: {ex}");
             }
         }
 
@@ -86,7 +84,7 @@ namespace DedicatedServerMod.Client.Managers
             questManagerInstance = NetworkSingleton<QuestManager>.Instance;
             if (questManagerInstance != null)
             {
-                logger.Msg("QuestManager found - ensuring proper quest initialization");
+                DebugLog.Info("QuestManager found - ensuring proper quest initialization");
                 
                 // Wait for local player to be available
                 yield return MelonCoroutines.Start(WaitForLocalPlayer());
@@ -97,16 +95,16 @@ namespace DedicatedServerMod.Client.Managers
                     yield return MelonCoroutines.Start(SynchronizeQuestSystem(Player.Local));
                     
                     questSystemInitialized = true;
-                    logger.Msg("Quest system initialization completed");
+                    DebugLog.Info("Quest system initialization completed");
                 }
                 else
                 {
-                    logger.Warning("Local player not available for quest initialization");
+                    DebugLog.Warning("Local player not available for quest initialization");
                 }
             }
             else
             {
-                logger.Warning("QuestManager not found - quest initialization may be delayed");
+                DebugLog.Warning("QuestManager not found - quest initialization may be delayed");
             }
         }
 
@@ -126,11 +124,11 @@ namespace DedicatedServerMod.Client.Managers
             
             if (Player.Local == null)
             {
-                logger.Warning($"Local player not found after {timeout}s timeout");
+                DebugLog.Warning($"Local player not found after {timeout}s timeout");
             }
             else
             {
-                logger.Msg("Local player found for quest initialization");
+                DebugLog.Info("Local player found for quest initialization");
             }
         }
 
@@ -139,7 +137,7 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         private IEnumerator SynchronizeQuestSystem(Player player)
         {
-            logger.Msg("Synchronizing quest system for dedicated server client");
+            DebugLog.Info("Synchronizing quest system for dedicated server client");
             
             // Wait a moment for networking to settle
             yield return new WaitForSeconds(1f);
@@ -148,7 +146,7 @@ namespace DedicatedServerMod.Client.Managers
             // but we can ensure proper synchronization by triggering a save
             if (questManagerInstance != null)
             {
-                logger.Msg("QuestManager available - triggering quest synchronization");
+                DebugLog.Info("QuestManager available - triggering quest synchronization");
                 
                 // Request player save to ensure quest data is persisted
                 player.RequestSavePlayer();
@@ -158,7 +156,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             else
             {
-                logger.Warning("QuestManager not available for synchronization");
+                DebugLog.Warning("QuestManager not available for synchronization");
             }
         }
 
@@ -174,13 +172,13 @@ namespace DedicatedServerMod.Client.Managers
             // This is handled automatically by the QuestManager's networking
             // but we log for debugging purposes
             
-            logger.Msg("Quest data validation completed");
+            DebugLog.Info("Quest data validation completed");
             
             // Force another save to ensure everything is persisted
             yield return new WaitForSeconds(1f);
             player.RequestSavePlayer();
             
-            logger.Msg("Quest synchronization save requested");
+            DebugLog.Info("Quest synchronization save requested");
         }
 
         /// <summary>
@@ -190,7 +188,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                logger.Msg($"Quest completed on dedicated server client: {questId}");
+                DebugLog.Info($"Quest completed on dedicated server client: {questId}");
                 
                 // Ensure quest completion is properly saved
                 if (Player.Local != null)
@@ -200,7 +198,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Error($"Error handling quest completion: {ex}");
+                DebugLog.Error($"Error handling quest completion: {ex}");
             }
         }
 
@@ -211,14 +209,14 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                logger.Msg($"Quest progressed on dedicated server client: {questId} ({progress:P})");
+                DebugLog.Info($"Quest progressed on dedicated server client: {questId} ({progress:P})");
                 
                 // Quest progression is handled automatically by the networking system
                 // This is just for logging/debugging
             }
             catch (Exception ex)
             {
-                logger.Error($"Error handling quest progression: {ex}");
+                DebugLog.Error($"Error handling quest progression: {ex}");
             }
         }
 
@@ -233,13 +231,13 @@ namespace DedicatedServerMod.Client.Managers
             {
                 if (Player.Local != null)
                 {
-                    logger.Msg("Requesting delayed save after quest event");
+                    DebugLog.Info("Requesting delayed save after quest event");
                     Player.Local.RequestSavePlayer();
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in delayed quest save: {ex}");
+                DebugLog.Error($"Error in delayed quest save: {ex}");
             }
         }
 
@@ -250,7 +248,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                logger.Msg("Forcing quest system resynchronization");
+                DebugLog.Info("Forcing quest system resynchronization");
                 
                 if (Player.Local != null && questManagerInstance != null)
                 {
@@ -258,12 +256,12 @@ namespace DedicatedServerMod.Client.Managers
                 }
                 else
                 {
-                    logger.Warning("Cannot force quest resync - player or quest manager not available");
+                    DebugLog.Warning("Cannot force quest resync - player or quest manager not available");
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error forcing quest resync: {ex}");
+                DebugLog.Error($"Error forcing quest resync: {ex}");
             }
         }
 
@@ -301,16 +299,16 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                logger.Msg("Cleaning up quest system for player disconnection");
+                DebugLog.Info("Cleaning up quest system for player disconnection");
                 
                 questSystemInitialized = false;
                 questManagerInstance = null;
                 
-                logger.Msg("Quest system cleanup completed");
+                DebugLog.Info("Quest system cleanup completed");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error during quest system cleanup: {ex}");
+                DebugLog.Error($"Error during quest system cleanup: {ex}");
             }
         }
 
@@ -323,11 +321,11 @@ namespace DedicatedServerMod.Client.Managers
             {
                 questSystemInitialized = false;
                 questManagerInstance = null;
-                logger.Msg("Quest system state reset");
+                DebugLog.Info("Quest system state reset");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error resetting quest system: {ex}");
+                DebugLog.Error($"Error resetting quest system: {ex}");
             }
         }
 

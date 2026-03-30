@@ -1,5 +1,6 @@
 using HarmonyLib;
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppScheduleOne.DevUtilities;
@@ -77,7 +78,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             if (patched)
             {
-                DedicatedServerPatchCommon.Logger.Msg("Patched TimeManager coroutines to use WaitForFixedUpdate for batchmode compatibility");
+                DebugLog.Info("Patched TimeManager coroutines to use WaitForFixedUpdate for batchmode compatibility");
             }
 
             return codes;

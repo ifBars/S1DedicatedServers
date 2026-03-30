@@ -1,6 +1,5 @@
 using System;
 using HarmonyLib;
-using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.UI;
@@ -20,13 +19,11 @@ namespace DedicatedServerMod.Client.Patches
     /// </summary>
     internal static class SleepPatches
     {
-        private static MelonLogger.Instance _logger;
         private static bool _ignoreGhostHostForSleep = true;
 
-        public static void Initialize(MelonLogger.Instance logger)
+        public static void Initialize()
         {
-            _logger = logger;
-            _logger.Msg("Sleep patches initialized");
+            DebugLog.StartupDebug("Sleep patches initialized");
         }
 
         public static bool IgnoreGhostHostForSleep
@@ -35,7 +32,7 @@ namespace DedicatedServerMod.Client.Patches
             set
             {
                 _ignoreGhostHostForSleep = value;
-                _logger?.Msg($"SleepPatches: Ignore ghost host set to: {_ignoreGhostHostForSleep}");
+                DebugLog.Debug($"SleepPatches: Ignore ghost host set to: {_ignoreGhostHostForSleep}");
             }
         }
 
@@ -85,7 +82,7 @@ namespace DedicatedServerMod.Client.Patches
             }
             catch (Exception ex)
             {
-                _logger?.Error($"Error in AreAllPlayersReadyToSleep patch: {ex}");
+                DebugLog.Error($"Error in AreAllPlayersReadyToSleep patch: {ex}");
                 return true;
             }
         }
@@ -102,7 +99,7 @@ namespace DedicatedServerMod.Client.Patches
                 {
                     if (!Managers.ServerDataStore.AllowSleeping)
                     {
-                        _logger?.Msg("Server has disabled sleeping; suppressing SleepCanvas open");
+                        DebugLog.Debug("Server has disabled sleeping; suppressing SleepCanvas open");
                         return false;
                     }
                 }
@@ -110,7 +107,7 @@ namespace DedicatedServerMod.Client.Patches
             }
             catch (Exception ex)
             {
-                _logger?.Warning($"SleepCanvas_SetIsOpen_Prefix error: {ex.Message}");
+                DebugLog.Warning($"SleepCanvas_SetIsOpen_Prefix error: {ex.Message}");
                 return true;
             }
         }

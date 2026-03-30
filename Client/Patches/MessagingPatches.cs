@@ -11,7 +11,7 @@ using FishNet.Serializing;
 using FishNet.Transporting;
 #endif
 using HarmonyLib;
-using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.UI;
@@ -33,11 +33,6 @@ namespace DedicatedServerMod.Client.Patches
     internal static class MessagingPatches
     {
         /// <summary>
-        /// The logger instance for this patch class.
-        /// </summary>
-        private static MelonLogger.Instance _logger;
-
-        /// <summary>
         /// The custom message ID used for RPC registration.
         /// </summary>
         private const uint MESSAGE_ID = 105u;
@@ -45,11 +40,9 @@ namespace DedicatedServerMod.Client.Patches
         /// <summary>
         /// Initialize the messaging patches with a logger instance.
         /// </summary>
-        /// <param name="logger">The logger instance to use</param>
-        public static void Initialize(MelonLogger.Instance logger)
+        public static void Initialize()
         {
-            _logger = logger;
-            _logger.Msg("Messaging patches initialized (using attribute-based patching)");
+            DebugLog.StartupDebug("Messaging patches initialized (using attribute-based patching)");
         }
 
         #region DailySummary.Awake Patch
@@ -71,11 +64,11 @@ namespace DedicatedServerMod.Client.Patches
                 try
                 {
                     Shared.Networking.CustomMessaging.DailySummaryAwakePostfix(__instance);
-                    _logger?.Msg("Client: DailySummary RPC registration delegated to CustomMessaging");
+                    DebugLog.Debug("Client: DailySummary RPC registration delegated to CustomMessaging");
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error($"Failed to register custom RPCs: {ex}");
+                    DebugLog.Error($"Failed to register custom RPCs: {ex}");
                 }
             }
         }

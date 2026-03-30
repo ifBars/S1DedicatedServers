@@ -176,7 +176,6 @@ namespace DedicatedServerMod.Shared.Permissions
 #endif
         }
 
-        private static MelonLogger.Instance _logger;
 #if SERVER
         private static Action<string> _operatorAdded;
         private static Action<string> _operatorRemoved;
@@ -192,15 +191,12 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         internal static ServerConfig Config => ServerConfig.Instance;
 
-        private static MelonLogger.Instance Logger => _logger ?? new MelonLogger.Instance("PermissionManager");
-
         /// <summary>
         /// Initializes the compatibility facade.
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         public static void Initialize(MelonLogger.Instance logger)
         {
-            _logger = logger;
             DebugLog.StartupDebug("PermissionManager compatibility facade initialized");
         }
 
@@ -596,7 +592,7 @@ namespace DedicatedServerMod.Shared.Permissions
                 message += $" | Args: {args}";
             }
 
-            Logger.Msg(message);
+            DebugLog.Info(message);
             DebugLog.WriteToAdminLog(message);
         }
 
@@ -625,7 +621,7 @@ namespace DedicatedServerMod.Shared.Permissions
 
         private static void WarnServerOnlyEventSubscription(string eventName)
         {
-            Logger.Warning(string.Format(ServerOnlyEventMessage, eventName));
+            DebugLog.Warning(string.Format(ServerOnlyEventMessage, eventName));
         }
 
 #if SERVER

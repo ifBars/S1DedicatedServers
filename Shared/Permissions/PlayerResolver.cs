@@ -21,20 +21,6 @@ namespace DedicatedServerMod.Shared.Permissions
     /// </remarks>
     public static class PlayerResolver
     {
-        #region Private Fields
-
-        /// <summary>
-        /// Reference to the logger.
-        /// </summary>
-        private static MelonLogger.Instance Logger => _logger ?? new MelonLogger.Instance("PlayerResolver");
-
-        /// <summary>
-        /// Cached logger instance.
-        /// </summary>
-        private static MelonLogger.Instance _logger;
-
-        #endregion
-
         #region Initialization
 
         /// <summary>
@@ -43,7 +29,6 @@ namespace DedicatedServerMod.Shared.Permissions
         /// <param name="logger">The logger to use for player resolution messages</param>
         public static void Initialize(MelonLogger.Instance logger)
         {
-            _logger = logger;
             DebugLog.StartupDebug("PlayerResolver initialized");
         }
 
@@ -122,7 +107,7 @@ namespace DedicatedServerMod.Shared.Permissions
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warning($"PlayerResolver: ServerBootstrap lookup failed: {ex.Message}");
+                    DebugLog.Warning($"PlayerResolver: ServerBootstrap lookup failed: {ex.Message}");
                 }
 #endif
 
@@ -136,18 +121,18 @@ namespace DedicatedServerMod.Shared.Permissions
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warning($"PlayerResolver: Failed local SteamID read: {ex.Message}");
+                        DebugLog.Warning($"PlayerResolver: Failed local SteamID read: {ex.Message}");
                     }
                 }
 
                 // Strategy 4: Fallback to FishNet ClientId (NOT a real SteamID)
                 string fallbackId = player.Owner.ClientId.ToString();
-                Logger.Warning($"PlayerResolver: Falling back to ClientId (not a SteamID): {fallbackId}");
+                DebugLog.Warning($"PlayerResolver: Falling back to ClientId (not a SteamID): {fallbackId}");
                 return fallbackId;
             }
             catch (Exception ex)
             {
-                Logger.Error($"PlayerResolver.GetSteamId error: {ex}");
+                DebugLog.Error($"PlayerResolver.GetSteamId error: {ex}");
                 return null;
             }
         }
@@ -173,7 +158,7 @@ namespace DedicatedServerMod.Shared.Permissions
                     return player;
             }
 
-            Logger.Warning($"GetPlayerBySteamId: No player found for steamId {steamId}");
+            DebugLog.Warning($"GetPlayerBySteamId: No player found for steamId {steamId}");
             return null;
         }
 
@@ -186,7 +171,7 @@ namespace DedicatedServerMod.Shared.Permissions
         {
             if (connection == null)
             {
-                Logger.Warning("GetPlayerByConnection: Connection is null");
+                DebugLog.Warning("GetPlayerByConnection: Connection is null");
                 return null;
             }
 
@@ -198,7 +183,7 @@ namespace DedicatedServerMod.Shared.Permissions
                 }
             }
 
-            Logger.Warning($"GetPlayerByConnection: No player found for connection {connection.ClientId}");
+            DebugLog.Warning($"GetPlayerByConnection: No player found for connection {connection.ClientId}");
             return null;
         }
 
@@ -221,7 +206,7 @@ namespace DedicatedServerMod.Shared.Permissions
                 }
             }
 
-            Logger.Warning($"GetPlayerByName: No player found for name {name}");
+            DebugLog.Warning($"GetPlayerByName: No player found for name {name}");
             return null;
         }
 
@@ -244,13 +229,13 @@ namespace DedicatedServerMod.Shared.Permissions
                 }
                 else
                 {
-                    Logger.Warning("GetLocalPlayerSteamId: Steam not initialized");
+                    DebugLog.Warning("GetLocalPlayerSteamId: Steam not initialized");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error($"GetLocalPlayerSteamId error: {ex}");
+                DebugLog.Error($"GetLocalPlayerSteamId error: {ex}");
                 return null;
             }
         }
@@ -266,16 +251,16 @@ namespace DedicatedServerMod.Shared.Permissions
                 string steamId = GetLocalPlayerSteamId();
                 if (string.IsNullOrEmpty(steamId))
                 {
-                    Logger.Warning("AddLocalPlayerAsOperator: Could not get local Steam ID");
+                    DebugLog.Warning("AddLocalPlayerAsOperator: Could not get local Steam ID");
                     return false;
                 }
 
-                Logger.Msg($"AddLocalPlayerAsOperator: Adding local player {steamId} as operator");
+                DebugLog.Info($"AddLocalPlayerAsOperator: Adding local player {steamId} as operator");
                 return PermissionManager.AddOperator(steamId);
             }
             catch (Exception ex)
             {
-                Logger.Error($"AddLocalPlayerAsOperator error: {ex}");
+                DebugLog.Error($"AddLocalPlayerAsOperator error: {ex}");
                 return false;
             }
         }
@@ -305,27 +290,8 @@ namespace DedicatedServerMod.Shared.Permissions
                 logMessage += $" | Args: {args}";
             }
 
-            Logger.Msg(logMessage);
-            WriteToAdminLog(logMessage);
-        }
-
-        /// <summary>
-        /// Writes a message to the admin actions log file.
-        /// </summary>
-        /// <param name="message">The message to write</param>
-        private static void WriteToAdminLog(string message)
-        {
-            try
-            {
-                string logPath = Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.AdminLOGFileName);
-                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n";
-                File.AppendAllText(logPath, logEntry);
-                Logger.Msg($"LogAdminAction: Wrote to admin log file: {logPath}");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"LogAdminAction: Failed to write to admin log: {ex}");
-            }
+            DebugLog.Info(logMessage);
+            DebugLog.WriteToAdminLog(logMessage);
         }
 
         #endregion

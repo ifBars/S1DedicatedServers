@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DedicatedServerMod.Client.Permissions;
-using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 #else
@@ -38,17 +38,13 @@ namespace DedicatedServerMod.Client.Managers
             "listadmins"
         };
 
-        private static MelonLogger.Instance _logger;
-
         /// <summary>
         /// Initializes the local permission snapshot facade.
         /// </summary>
-        /// <param name="loggerInstance">The logger instance.</param>
-        internal static void Initialize(MelonLogger.Instance loggerInstance)
+        internal static void Initialize()
         {
-            _logger = loggerInstance;
-            PermissionSnapshotStore.Initialize(loggerInstance);
-            _logger?.Msg("AdminStatusManager initialized from permission snapshots");
+            PermissionSnapshotStore.Initialize();
+            DebugLog.StartupDebug("AdminStatusManager initialized from permission snapshots");
         }
 
         /// <summary>

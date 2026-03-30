@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using MelonLoader;
+using DedicatedServerMod.Utils;
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Managers
@@ -12,8 +13,6 @@ namespace DedicatedServerMod.Client.Managers
     public class MenuAnimationController
     {
         #region Private Fields
-
-        private readonly MelonLogger.Instance logger;
 
         // Main menu (left side - Bank buttons)
         private GameObject mainMenuHome;
@@ -45,9 +44,8 @@ namespace DedicatedServerMod.Client.Managers
 
         #region Constructor
 
-        public MenuAnimationController(MelonLogger.Instance logger)
+        public MenuAnimationController()
         {
-            this.logger = logger;
         }
 
         #endregion
@@ -96,7 +94,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Error($"Error toggling menu visibility: {ex}");
+                DebugLog.Error($"Error toggling menu visibility: {ex}");
             }
         }
 
@@ -139,7 +137,7 @@ namespace DedicatedServerMod.Client.Managers
             var mainMenu = GameObject.Find("MainMenu");
             if (mainMenu == null)
             {
-                logger.Warning("MenuAnimationController: MainMenu not found");
+                DebugLog.Warning("MenuAnimationController: MainMenu not found");
                 return;
             }
 

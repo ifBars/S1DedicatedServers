@@ -3,8 +3,8 @@ using DedicatedServerMod.API;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Shared.ModVerification;
 using DedicatedServerMod.Shared.Networking;
+using DedicatedServerMod.Utils;
 using Newtonsoft.Json;
-using MelonLoader;
 
 namespace DedicatedServerMod.Client.Managers
 {
@@ -13,17 +13,13 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     internal sealed class ClientModVerificationManager
     {
-        private readonly MelonLogger.Instance _logger;
-
         private bool _isVerified;
 
         /// <summary>
         /// Initializes a new client mod verification manager.
         /// </summary>
-        /// <param name="logger">Logger instance.</param>
-        internal ClientModVerificationManager(MelonLogger.Instance logger)
+        internal ClientModVerificationManager()
         {
-            _logger = logger;
         }
 
         /// <summary>
@@ -79,7 +75,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (JsonException ex)
             {
-                _logger.Warning($"Failed to parse mod verification challenge: {ex.Message}");
+                DebugLog.Warning($"Failed to parse mod verification challenge: {ex.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnModVerificationFailed("Failed to parse the server's mod verification challenge.");
                 return;
             }
@@ -105,11 +101,11 @@ namespace DedicatedServerMod.Client.Managers
                     return;
                 }
 
-                _logger.Msg($"Client mod verification report submitted ({report.Mods.Count} mods, policy={challenge.PolicyHash})");
+                DebugLog.Info($"Client mod verification report submitted ({report.Mods.Count} mods, policy={challenge.PolicyHash})");
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Failed to build mod verification report: {ex.Message}");
+                DebugLog.Warning($"Failed to build mod verification report: {ex.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnModVerificationFailed("Failed to build the client mod verification report.");
             }
         }
@@ -123,7 +119,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (JsonException ex)
             {
-                _logger.Warning($"Failed to parse mod verification result: {ex.Message}");
+                DebugLog.Warning($"Failed to parse mod verification result: {ex.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnModVerificationFailed("Failed to parse the server's mod verification result.");
                 return;
             }
@@ -138,12 +134,12 @@ namespace DedicatedServerMod.Client.Managers
 
             if (result.Success)
             {
-                _logger.Msg($"Client mod verification succeeded: {result.Message}");
+                DebugLog.Info($"Client mod verification succeeded: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnModVerificationSucceeded(result.Message);
             }
             else
             {
-                _logger.Warning($"Client mod verification failed: {result.Message}");
+                DebugLog.Warning($"Client mod verification failed: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnModVerificationFailed(result.Message);
             }
         }

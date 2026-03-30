@@ -1,5 +1,6 @@
 using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using Il2CppFishNet.Transporting;
@@ -24,7 +25,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Networking
                 if (tugboat == null)
                 {
                     tugboat = __instance.gameObject.AddComponent<Tugboat>();
-                    DedicatedServerPatchCommon.Logger.Msg("Added Tugboat component to Multipass for server");
+                    DebugLog.Info("Added Tugboat component to Multipass for server");
 
                     var transportsField = typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (transportsField?.GetValue(__instance) is List<Transport> transports && !transports.Contains(tugboat))
@@ -35,7 +36,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Networking
             }
             catch (Exception ex)
             {
-                DedicatedServerPatchCommon.Logger.Error($"Error in Multipass.Initialize patch: {ex}");
+                DebugLog.Error($"Error in Multipass.Initialize patch: {ex}");
             }
         }
     }

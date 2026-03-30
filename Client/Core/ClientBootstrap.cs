@@ -210,7 +210,7 @@ namespace DedicatedServerMod.Client.Core
 
                 // Initialize MessageRouter for client-side message handling
                 Shared.Networking.MessageRouter.Initialize();
-                PermissionSnapshotStore.Initialize(_logger);
+                PermissionSnapshotStore.Initialize();
 
                 // Initialize messaging service (backend selection)
                 Shared.Networking.CustomMessaging.Initialize();
@@ -257,9 +257,9 @@ namespace DedicatedServerMod.Client.Core
             {
                 // Initialize attribute-based patches with logger
                 // MelonLoader will automatically apply patches marked with [HarmonyPatch]
-                Patches.SleepPatches.Initialize(_logger);
-                Patches.MessagingPatches.Initialize(_logger);
-                Patches.LoadingScreenPatches.Initialize(_logger);
+                Patches.SleepPatches.Initialize();
+                Patches.MessagingPatches.Initialize();
+                Patches.LoadingScreenPatches.Initialize();
 
                 // Apply transport patches (runtime patching needed for flexibility)
                 _transportPatcher = new ClientTransportPatcher(_logger);
@@ -290,19 +290,19 @@ namespace DedicatedServerMod.Client.Core
             _connectionManager.Initialize();
 
             // Initialize authentication manager
-            _authManager = new ClientAuthManager(_logger);
+            _authManager = new ClientAuthManager();
             _authManager.Initialize();
 
             // Initialize client mod verification manager
-            _modVerificationManager = new ClientModVerificationManager(_logger);
+            _modVerificationManager = new ClientModVerificationManager();
             _modVerificationManager.Initialize();
 
             // Initialize console manager (for admin console access)
-            _consoleManager = new ClientConsoleManager(_logger);
+            _consoleManager = new ClientConsoleManager();
             _consoleManager.Initialize();
 
             // Initialize quest manager
-            _questManager = new ClientQuestManager(_logger);
+            _questManager = new ClientQuestManager();
             _questManager.Initialize();
 
             // Initialize loopback handler
@@ -310,7 +310,7 @@ namespace DedicatedServerMod.Client.Core
             _loopbackHandler.Initialize();
 
             // Initialize UI manager (depends on connection manager)
-            _uiManager = new ClientUIManager(_logger, _connectionManager);
+            _uiManager = new ClientUIManager(_connectionManager);
             _uiManager.Initialize();
         }
 

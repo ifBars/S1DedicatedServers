@@ -1,4 +1,5 @@
 using HarmonyLib;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppScheduleOne.DevUtilities;
@@ -35,7 +36,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             if (__instance.transform.position.y < -100f)
             {
-                DedicatedServerMod.Server.Game.Patches.Common.DedicatedServerPatchCommon.Logger.Warning("Trash item fell below the world. Destroying.");
+                DebugLog.Warning("Trash item fell below the world. Destroying.");
                 __instance.DestroyTrash();
             }
 

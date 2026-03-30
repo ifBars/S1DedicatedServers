@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DedicatedServerMod.Shared.Permissions;
-using MelonLoader;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Client.Permissions
 {
@@ -10,7 +10,6 @@ namespace DedicatedServerMod.Client.Permissions
     /// </summary>
     internal static class PermissionSnapshotStore
     {
-        private static MelonLogger.Instance _logger;
         private static PermissionCapabilitySnapshot _current;
 
         /// <summary>
@@ -26,10 +25,8 @@ namespace DedicatedServerMod.Client.Permissions
         /// <summary>
         /// Initializes the snapshot store.
         /// </summary>
-        /// <param name="logger">The logger to use.</param>
-        public static void Initialize(MelonLogger.Instance logger)
+        public static void Initialize()
         {
-            _logger = logger;
             Reset();
         }
 
@@ -44,7 +41,7 @@ namespace DedicatedServerMod.Client.Permissions
                 AllowedRemoteCommands = new List<string>()
             };
 
-            _logger?.Msg($"Permission capability snapshot updated: open={_current.CanOpenConsole}, remote={_current.CanUseRemoteConsole}");
+            DebugLog.Debug($"Permission capability snapshot updated: open={_current.CanOpenConsole}, remote={_current.CanUseRemoteConsole}");
             SnapshotUpdated?.Invoke(_current);
         }
 

@@ -1,4 +1,4 @@
-using MelonLoader;
+using DedicatedServerMod.Utils;
 using System.IO.Compression;
 using System.Reflection;
 #if IL2CPP
@@ -28,7 +28,7 @@ namespace DedicatedServerMod.Server.Persistence
 		/// - Sets PlayerCode in Player.json
 		/// - Ensures Game.json and Metadata.json exist with sane defaults (PlayTutorial=false)
 		/// </summary>
-		public static void EnsureSavePrepared(string saveFolderPath, string organisationName, string serverPlayerCode, MelonLogger.Instance logger = null)
+		public static void EnsureSavePrepared(string saveFolderPath, string organisationName, string serverPlayerCode)
 		{
 			if (string.IsNullOrWhiteSpace(saveFolderPath))
 				throw new ArgumentException("Save path is null or empty", nameof(saveFolderPath));
@@ -39,14 +39,14 @@ namespace DedicatedServerMod.Server.Persistence
 			bool needsTemplate = NeedsDefaultTemplate(saveFolderPath);
 			if (needsTemplate)
 			{
-				TryCopyDefaultSaveToFolder(saveFolderPath, logger);
+				TryCopyDefaultSaveToFolder(saveFolderPath);
 			}
 
 			// Extract Player_0.zip into Players
-			TryExtractEmbeddedPlayerZip(Path.Combine(saveFolderPath, "Players"), logger);
+			TryExtractEmbeddedPlayerZip(Path.Combine(saveFolderPath, "Players"));
 
 			// Ensure Player.json's loopback identity and intro-complete state are normalized.
-			TryNormalizeLoopbackPlayer(Path.Combine(saveFolderPath, "Players", "Player_0", "Player.json"), serverPlayerCode, logger);
+			TryNormalizeLoopbackPlayer(Path.Combine(saveFolderPath, "Players", "Player_0", "Player.json"), serverPlayerCode);
 
 			// Ensure Game.json exists
 			var gameJsonPath = Path.Combine(saveFolderPath, "Game.json");
@@ -62,7 +62,7 @@ namespace DedicatedServerMod.Server.Persistence
 					GameVersion = Application.version
 				};
 				File.WriteAllText(gameJsonPath, gameData.GetJson());
-				logger?.Msg($"Wrote default Game.json to {gameJsonPath}");
+				DebugLog.Info($"Wrote default Game.json to {gameJsonPath}");
 			}
 
 			// Ensure Metadata.json exists with PlayTutorial=false
@@ -78,7 +78,7 @@ namespace DedicatedServerMod.Server.Persistence
 				metadata = new MetaData(new(now), new(now), Application.version, Application.version, false);
 #endif
 				File.WriteAllText(metaJsonPath, metadata.GetJson());
-				logger?.Msg($"Wrote default Metadata.json to {metaJsonPath}");
+				DebugLog.Info($"Wrote default Metadata.json to {metaJsonPath}");
 			}
 			else
 			{
@@ -101,7 +101,7 @@ namespace DedicatedServerMod.Server.Persistence
 				}
 				catch (Exception ex)
 				{
-					logger?.Warning($"Failed to update Metadata.json (disabling tutorial): {ex.Message}");
+					DebugLog.Warning($"Failed to update Metadata.json (disabling tutorial): {ex.Message}");
 				}
 			}
 		}
@@ -115,17 +115,17 @@ namespace DedicatedServerMod.Server.Persistence
 			return !(hasGame && hasMeta && hasPlayers);
 		}
 
-		private static void TryCopyDefaultSaveToFolder(string destinationDir, MelonLogger.Instance logger)
+		private static void TryCopyDefaultSaveToFolder(string destinationDir)
 		{
 			try
 			{
 				string sourceDir = Path.Combine(Application.streamingAssetsPath, "DefaultSave");
 				CopyDirectory(sourceDir, destinationDir, true);
-				logger?.Msg($"Copied DefaultSave to {destinationDir}");
+				DebugLog.Info($"Copied DefaultSave to {destinationDir}");
 			}
 			catch (Exception ex)
 			{
-				logger?.Warning($"Failed to copy DefaultSave: {ex.Message}");
+				DebugLog.Warning($"Failed to copy DefaultSave: {ex.Message}");
 			}
 		}
 
@@ -153,7 +153,7 @@ namespace DedicatedServerMod.Server.Persistence
 			}
 		}
 
-		private static void TryExtractEmbeddedPlayerZip(string playersDir, MelonLogger.Instance logger)
+		private static void TryExtractEmbeddedPlayerZip(string playersDir)
 		{
 			try
 			{
@@ -170,11 +170,11 @@ namespace DedicatedServerMod.Server.Persistence
 
 				using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
 				archive.ExtractToDirectory(playersDir);
-				logger?.Msg($"Extracted Player_0.zip to {playersDir}");
+				DebugLog.Info($"Extracted Player_0.zip to {playersDir}");
 			}
 			catch (Exception ex)
 			{
-				logger?.Warning($"Failed to extract embedded Player_0.zip: {ex.Message}");
+				DebugLog.Warning($"Failed to extract embedded Player_0.zip: {ex.Message}");
 			}
 		}
 
@@ -193,7 +193,7 @@ namespace DedicatedServerMod.Server.Persistence
 			return name != null ? asm.GetManifestResourceStream(name) : null;
 		}
 
-		private static void TryNormalizeLoopbackPlayer(string playerJsonPath, string serverPlayerCode, MelonLogger.Instance logger)
+		private static void TryNormalizeLoopbackPlayer(string playerJsonPath, string serverPlayerCode)
 		{
 			try
 			{
@@ -222,11 +222,11 @@ namespace DedicatedServerMod.Server.Persistence
 				}
 
 				File.WriteAllText(playerJsonPath, data.GetJson());
-				logger?.Msg("Normalized loopback Player.json (PlayerCode + IntroCompleted).");
+				DebugLog.Info("Normalized loopback Player.json (PlayerCode + IntroCompleted).");
 			}
 			catch (Exception ex)
 			{
-				logger?.Warning($"Failed to normalize loopback Player.json: {ex.Message}");
+				DebugLog.Warning($"Failed to normalize loopback Player.json: {ex.Message}");
 			}
 		}
 

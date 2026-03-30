@@ -1,5 +1,6 @@
 using HarmonyLib;
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using AmbientOneShotType = Il2CppScheduleOne.Audio.AmbientOneShot;
 #else
@@ -26,7 +27,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Audio
 
             if (!_loggedSkip)
             {
-                DedicatedServerPatchCommon.Logger.Msg("Skipping AmbientOneShot startup on dedicated headless server.");
+                DebugLog.Info("Skipping AmbientOneShot startup on dedicated headless server.");
                 _loggedSkip = true;
             }
 

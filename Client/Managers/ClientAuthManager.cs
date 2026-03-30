@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Shared.Networking;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppFishNet.Transporting;
@@ -10,7 +11,6 @@ using Il2CppFishNet.Transporting;
 using FishNet;
 using FishNet.Transporting;
 #endif
-using MelonLoader;
 #if IL2CPP
 using Newtonsoft.Json;
 using Il2CppSteamworks;
@@ -29,8 +29,6 @@ namespace DedicatedServerMod.Client.Managers
     {
         private static readonly TimeSpan HandshakeRetryDelay = TimeSpan.FromSeconds(1);
 
-        private readonly MelonLogger.Instance _logger;
-
         private HAuthTicket _activeAuthTicket;
         private bool _isAuthenticated;
         private bool _isHandshakeStarted;
@@ -43,10 +41,8 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Initializes a new client auth manager.
         /// </summary>
-        /// <param name="logger">Logger instance.</param>
-        internal ClientAuthManager(MelonLogger.Instance logger)
+        internal ClientAuthManager()
         {
-            _logger = logger;
             _activeAuthTicket = HAuthTicket.Invalid;
             _nextHandshakeAttemptUtc = DateTime.MinValue;
 #if MONO
@@ -67,7 +63,7 @@ namespace DedicatedServerMod.Client.Managers
             CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
             CustomMessaging.EndpointReady += OnMessagingEndpointReady;
             TryHookConnectionState();
-            _logger.Msg("Client auth manager initialized");
+            DebugLog.Info("Client auth manager initialized");
         }
 
         /// <summary>
@@ -113,7 +109,7 @@ namespace DedicatedServerMod.Client.Managers
 
             _isHandshakeStarted = true;
             _nextHandshakeAttemptUtc = DateTime.MinValue;
-            _logger.Msg("Authentication hello sent to server");
+            DebugLog.Info("Authentication hello sent to server");
         }
 
         /// <summary>
@@ -186,19 +182,19 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (JsonException ex)
             {
-                _logger.Warning($"Failed to parse auth challenge: {ex.Message}");
+                DebugLog.Warning($"Failed to parse auth challenge: {ex.Message}");
                 return;
             }
 
             if (challenge == null)
             {
-                _logger.Warning("Received null auth challenge payload");
+                DebugLog.Warning("Received null auth challenge payload");
                 return;
             }
 
             if (!string.Equals(challenge.Provider, "steam_game_server", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.Warning($"Unsupported auth provider challenge: {challenge.Provider}");
+                DebugLog.Warning($"Unsupported auth provider challenge: {challenge.Provider}");
                 return;
             }
 
@@ -209,7 +205,7 @@ namespace DedicatedServerMod.Client.Managers
 
             if (!TryCreateAuthSessionTicket(out string steamId, out string ticketHex))
             {
-                _logger.Warning("Failed to create Steam auth ticket for challenge");
+                DebugLog.Warning("Failed to create Steam auth ticket for challenge");
                 return;
             }
 
@@ -227,11 +223,11 @@ namespace DedicatedServerMod.Client.Managers
             {
                 _isHandshakeStarted = false;
                 _nextHandshakeAttemptUtc = DateTime.UtcNow + HandshakeRetryDelay;
-                _logger.Warning("Authentication ticket send failed; retrying handshake shortly");
+                DebugLog.Warning("Authentication ticket send failed; retrying handshake shortly");
                 return;
             }
 
-            _logger.Msg("Authentication ticket submitted to server");
+            DebugLog.Info("Authentication ticket submitted to server");
         }
 
         private void HandleAuthResult(string data)
@@ -243,7 +239,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (JsonException ex)
             {
-                _logger.Warning($"Failed to parse auth result: {ex.Message}");
+                DebugLog.Warning($"Failed to parse auth result: {ex.Message}");
                 return;
             }
 
@@ -257,12 +253,12 @@ namespace DedicatedServerMod.Client.Managers
 
             if (result.Success)
             {
-                _logger.Msg($"Authentication succeeded: {result.Message}");
+                DebugLog.Info($"Authentication succeeded: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnAuthenticationSucceeded(result.Message);
             }
             else
             {
-                _logger.Warning($"Authentication failed: {result.Message}");
+                DebugLog.Warning($"Authentication failed: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnAuthenticationFailed(result.Message);
             }
         }
@@ -299,7 +295,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Error creating auth session ticket: {ex.Message}");
+                DebugLog.Warning($"Error creating auth session ticket: {ex.Message}");
                 return false;
             }
         }
@@ -317,7 +313,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Failed to cancel auth ticket: {ex.Message}");
+                DebugLog.Warning($"Failed to cancel auth ticket: {ex.Message}");
             }
             finally
             {
@@ -334,7 +330,7 @@ namespace DedicatedServerMod.Client.Managers
 
 #if IL2CPP
             _isConnectionStateHooked = true;
-            _logger.Msg("Skipping direct client connection state hook on IL2CPP runtime");
+            DebugLog.Info("Skipping direct client connection state hook on IL2CPP runtime");
 #else
             InstanceFinder.ClientManager.OnClientConnectionState += _connectionStateHandler;
             _isConnectionStateHooked = true;

@@ -1,5 +1,6 @@
 using HarmonyLib;
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using EnvironmentManagerType = Il2CppScheduleOne.Weather.EnvironmentManager;
@@ -31,7 +32,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
 
             if (!_loggedSkip)
             {
-                DedicatedServerPatchCommon.Logger.Msg("Skipping weather mask compute initialization on dedicated headless server.");
+                DebugLog.Info("Skipping weather mask compute initialization on dedicated headless server.");
                 _loggedSkip = true;
             }
 
@@ -103,7 +104,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
 
             if (!_loggedFallback)
             {
-                DedicatedServerPatchCommon.Logger.Warning("Weather cover checks are running without a generated height map on the dedicated headless server. Falling back to uncovered weather entities.");
+                DebugLog.Warning("Weather cover checks are running without a generated height map on the dedicated headless server. Falling back to uncovered weather entities.");
                 _loggedFallback = true;
             }
 

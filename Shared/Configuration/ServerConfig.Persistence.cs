@@ -1,5 +1,6 @@
-using MelonLoader;
 using MelonLoader.Utils;
+using MelonLoader;
+using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Shared.Configuration
 {
@@ -8,11 +9,6 @@ namespace DedicatedServerMod.Shared.Configuration
     /// </summary>
     public sealed partial class ServerConfig
     {
-        /// <summary>
-        /// The MelonLogger instance for configuration logging.
-        /// </summary>
-        private static MelonLogger.Instance _logger;
-
         /// <summary>
         /// The configured path to the configuration file.
         /// </summary>
@@ -75,11 +71,20 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Initializes the server configuration system.
         /// Should be called during server startup.
         /// </summary>
-        /// <param name="loggerInstance">The logger instance to use.</param>
+        /// <param name="loggerInstance">Unused legacy logger parameter retained for compatibility.</param>
         /// <param name="configFilePath">Optional custom path for the config file.</param>
         public static void Initialize(MelonLogger.Instance loggerInstance, string configFilePath = null)
         {
-            _logger = loggerInstance;
+            Initialize(configFilePath);
+        }
+
+        /// <summary>
+        /// Initializes the server configuration system.
+        /// Should be called during server startup.
+        /// </summary>
+        /// <param name="configFilePath">Optional custom path for the config file.</param>
+        public static void Initialize(string configFilePath = null)
+        {
             _configPathWasExplicit = !string.IsNullOrWhiteSpace(configFilePath);
             _configPath = _configPathWasExplicit
                 ? Path.GetFullPath(configFilePath)
@@ -87,11 +92,6 @@ namespace DedicatedServerMod.Shared.Configuration
 
             LoadConfig();
         }
-
-        /// <summary>
-        /// Gets the logger instance for configuration operations.
-        /// </summary>
-        private static MelonLogger.Instance Logger => _logger ?? new MelonLogger.Instance("ServerConfig");
 
         /// <summary>
         /// Loads the server configuration from disk.
@@ -108,7 +108,7 @@ namespace DedicatedServerMod.Shared.Configuration
                 LastLoadedFromPath = loadResult.LoadedFromPath;
                 LastLoadedFromLegacyJson = IsJsonConfigPath(loadResult.LoadedFromPath);
 
-                Logger.Msg($"Server configuration loaded successfully from {loadResult.LoadedFromPath}");
+                DebugLog.Info($"Server configuration loaded successfully from {loadResult.LoadedFromPath}");
 
                 if (loadResult.ShouldWriteNormalizedFile)
                 {
@@ -116,13 +116,13 @@ namespace DedicatedServerMod.Shared.Configuration
 
                     if (!string.IsNullOrWhiteSpace(loadResult.RewriteReason))
                     {
-                        Logger.Msg(loadResult.RewriteReason);
+                        DebugLog.Info(loadResult.RewriteReason);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error($"Failed to load server config: {ex}");
+                DebugLog.Error($"Failed to load server config: {ex}");
                 _instance = new ServerConfig();
                 SaveConfig();
             }
@@ -137,12 +137,12 @@ namespace DedicatedServerMod.Shared.Configuration
             {
                 string configPath = ConfigFilePath;
                 CreateStore().Save(_instance ?? new ServerConfig());
-                Logger.Msg($"Server configuration saved successfully to {configPath}");
+                DebugLog.Info($"Server configuration saved successfully to {configPath}");
                 Saved?.Invoke();
             }
             catch (Exception ex)
             {
-                Logger.Error($"Failed to save server config: {ex}");
+                DebugLog.Error($"Failed to save server config: {ex}");
             }
         }
 
@@ -151,7 +151,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         public static void ReloadConfig()
         {
-            Logger.Msg("Reloading server configuration...");
+            DebugLog.Info("Reloading server configuration...");
             LoadConfig();
             Reloaded?.Invoke();
         }
@@ -162,7 +162,6 @@ namespace DedicatedServerMod.Shared.Configuration
         public static void Reset()
         {
             _instance = null;
-            _logger = null;
             _configPath = null;
             _configPathWasExplicit = false;
             LastLoadedFromPath = null;
@@ -186,7 +185,7 @@ namespace DedicatedServerMod.Shared.Configuration
 
         private static ServerConfigStore CreateStore(string configPath, bool configPathWasExplicit)
         {
-            return new ServerConfigStore(Logger, configPath, configPathWasExplicit);
+            return new ServerConfigStore(configPath, configPathWasExplicit);
         }
 
         private static string GetDefaultConfigFilePath()
