@@ -15,13 +15,15 @@ namespace DedicatedServerMod.Utils
 
         /// <summary>
         /// The full version string of the mod (semantic versioning with prerelease tag).
+        /// Keep this delegated to <see cref="DedicatedServerMod.API.Version"/> so
+        /// runtime metadata and public API metadata stay in sync.
         /// </summary>
-        public const string ModVersion = "0.2.1-beta";
+        public const string ModVersion = DedicatedServerMod.API.Version.ModVersion;
 
         /// <summary>
         /// The API version for compatibility checking.
         /// </summary>
-        public const string APIVersion = "0.2.0";
+        public const string APIVersion = DedicatedServerMod.API.Version.APIVersion;
 
         /// <summary>
         /// Gets the full version string including API version.
@@ -31,7 +33,7 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// The author/creator of the mod.
         /// </summary>
-        public const string Author = "Ghost";
+        public const string Author = "Bars";
 
         #endregion
 
@@ -151,16 +153,6 @@ namespace DedicatedServerMod.Utils
         /// </summary>
         public const string AdminLOGFileName = "admin_actions.log";
 
-        /// <summary>
-        /// Default save file name pattern (without extension).
-        /// </summary>
-        public const string SaveFileName = "DedicatedServerSave";
-
-        /// <summary>
-        /// Maximum number of backup saves to retain.
-        /// </summary>
-        public const int MaxBackupSaves = 5;
-
         #endregion
 
         #region Time and Gameplay
@@ -168,7 +160,7 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// Default auto-save interval in minutes.
         /// </summary>
-        public const float DefaultAutoSaveIntervalMinutes = 10f;
+        public const float DefaultAutoSaveIntervalMinutes = 15f;
 
         /// <summary>
         /// Maximum auto-save interval in minutes.
@@ -184,11 +176,6 @@ namespace DedicatedServerMod.Utils
         /// Maximum time progression multiplier.
         /// </summary>
         public const float MaxTimeMultiplier = 100.0f;
-
-        /// <summary>
-        /// Grace period (seconds) before considering a player disconnected.
-        /// </summary>
-        public const int PlayerDisconnectGracePeriod = 30;
 
         #endregion
 

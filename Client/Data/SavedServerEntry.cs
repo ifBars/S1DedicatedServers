@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 
 namespace DedicatedServerMod.Client.Data
 {
@@ -19,7 +20,11 @@ namespace DedicatedServerMod.Client.Data
 
         public string ServerDescription { get; set; } = string.Empty;
 
-        public int PingMilliseconds { get; set; } = -1;
+        [JsonProperty("PingMilliseconds")]
+        public int StatusQueryMilliseconds { get; set; } = -1;
+
+        [JsonProperty("GameplayPingMilliseconds")]
+        public int GameplayPingMilliseconds { get; set; } = -1;
 
         public int CurrentPlayers { get; set; }
 

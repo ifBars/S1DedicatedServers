@@ -12,6 +12,8 @@ namespace DedicatedServerMod.Server.WebPanel
         public int ServerPort { get; set; }
         public int CurrentPlayers { get; set; }
         public int MaxPlayers { get; set; }
+        public double FramesPerSecond { get; set; }
+        public double FrameTimeMilliseconds { get; set; }
         public double UptimeSeconds { get; set; }
         public string UptimeDisplay { get; set; } = string.Empty;
         public string AuthProvider { get; set; } = string.Empty;

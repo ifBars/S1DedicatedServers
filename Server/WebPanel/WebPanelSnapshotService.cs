@@ -13,12 +13,14 @@ namespace DedicatedServerMod.Server.WebPanel
         NetworkManager networkManager,
         PlayerManager playerManager,
         ServerPermissionService permissionService,
-        PersistenceManager persistenceManager)
+        PersistenceManager persistenceManager,
+        WebPanelPerformanceMetrics performanceMetrics)
     {
         private readonly NetworkManager _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));
         private readonly PlayerManager _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
         private readonly ServerPermissionService _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         private readonly PersistenceManager _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
+        private readonly WebPanelPerformanceMetrics _performanceMetrics = performanceMetrics ?? throw new ArgumentNullException(nameof(performanceMetrics));
 
         public ServerDashboardSnapshot CreateOverview()
         {
@@ -37,6 +39,8 @@ namespace DedicatedServerMod.Server.WebPanel
                 ServerPort = config.ServerPort,
                 CurrentPlayers = playerStats.ConnectedPlayers,
                 MaxPlayers = config.MaxPlayers,
+                FramesPerSecond = _performanceMetrics.FramesPerSecond,
+                FrameTimeMilliseconds = _performanceMetrics.FrameTimeMilliseconds,
                 UptimeSeconds = uptime.TotalSeconds,
                 UptimeDisplay = uptime.ToString(@"dd\.hh\:mm\:ss"),
                 AuthProvider = config.AuthenticationEnabled ? config.AuthProvider.ToString() : "Disabled",

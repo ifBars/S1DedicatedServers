@@ -13,6 +13,8 @@ export type Overview = {
   serverPort: number
   currentPlayers: number
   maxPlayers: number
+  framesPerSecond: number
+  frameTimeMilliseconds: number
   uptimeSeconds: number
   uptimeDisplay: string
   authProvider: string

@@ -11,7 +11,7 @@ using DedicatedServerMod.Client.Managers;
 using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
 
-[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", "0.2.1-beta", "Bars")]
+[assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonOptionalDependencies("MLVScan.MelonLoader")]
 
@@ -390,6 +390,7 @@ namespace DedicatedServerMod.Client.Core
             {
                 // Handle UI input
                 _uiManager?.HandleInput();
+                _uiManager?.Update();
 
                 // Handle auth updates
                 _authManager?.Update();

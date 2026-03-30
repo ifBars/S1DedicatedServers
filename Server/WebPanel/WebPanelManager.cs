@@ -8,6 +8,7 @@ using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Utils;
 using MelonLoader;
+using UnityEngine;
 
 namespace DedicatedServerMod.Server.WebPanel
 {
@@ -16,6 +17,8 @@ namespace DedicatedServerMod.Server.WebPanel
     /// </summary>
     internal sealed class WebPanelManager : IDisposable
     {
+        private const float OverviewRefreshIntervalSeconds = 1f;
+
         private readonly MelonLogger.Instance _logger;
         private readonly PlayerManager _playerManager;
         private readonly ServerPermissionService _permissionService;
@@ -24,6 +27,10 @@ namespace DedicatedServerMod.Server.WebPanel
         private readonly WebPanelEventStream _eventStream;
         private readonly WebPanelSessionService _sessionService;
         private readonly WebPanelHttpHost _httpHost;
+        private readonly WebPanelPerformanceMetrics _performanceMetrics;
+
+        private bool _isActive;
+        private float _overviewRefreshElapsedSeconds;
 
         public WebPanelManager(
             MelonLogger.Instance logger,
@@ -42,8 +49,9 @@ namespace DedicatedServerMod.Server.WebPanel
             _logBuffer = new WebPanelLogBuffer(capacity: 200);
             _eventStream = new WebPanelEventStream();
             _sessionService = new WebPanelSessionService(ServerConfig.Instance.WebPanelSessionMinutes);
+            _performanceMetrics = new WebPanelPerformanceMetrics();
 
-            WebPanelSnapshotService snapshotService = new WebPanelSnapshotService(networkManager, _playerManager, _permissionService, _persistenceManager);
+            WebPanelSnapshotService snapshotService = new WebPanelSnapshotService(networkManager, _playerManager, _permissionService, _persistenceManager, _performanceMetrics);
             WebPanelStaticFileProvider staticFileProvider = new WebPanelStaticFileProvider();
             WebPanelCommandBridge commandBridge = new WebPanelCommandBridge(commandManager, _eventStream, _logBuffer);
             _httpHost = new WebPanelHttpHost(
@@ -70,6 +78,7 @@ namespace DedicatedServerMod.Server.WebPanel
             try
             {
                 _httpHost.Start();
+                _isActive = true;
             }
             catch
             {
@@ -86,8 +95,34 @@ namespace DedicatedServerMod.Server.WebPanel
 
         public void Dispose()
         {
+            _isActive = false;
             Unsubscribe();
             _httpHost.Dispose();
+        }
+
+        public void Tick()
+        {
+            if (!_isActive)
+            {
+                return;
+            }
+
+            float deltaSeconds = Time.unscaledDeltaTime;
+            if (deltaSeconds <= 0f)
+            {
+                return;
+            }
+
+            _performanceMetrics.Tick(deltaSeconds);
+            _overviewRefreshElapsedSeconds += deltaSeconds;
+
+            if (_overviewRefreshElapsedSeconds < OverviewRefreshIntervalSeconds)
+            {
+                return;
+            }
+
+            _overviewRefreshElapsedSeconds = 0f;
+            _eventStream.Publish("overview.changed", new { reason = "timer" });
         }
 
         private void Subscribe()

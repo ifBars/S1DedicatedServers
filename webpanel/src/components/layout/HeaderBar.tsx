@@ -1,5 +1,5 @@
 import type { BootstrapPayload, Overview } from "@/lib/panel-api"
-import { formatRelativeTime } from "@/lib/format"
+import { formatFrameRate, formatRelativeTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { Surface } from "@/components/panel/Surface"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +62,7 @@ export function HeaderBar({
 
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="outline">Port {overview.serverPort}</Badge>
+              <Badge variant="outline">{formatFrameRate(overview.framesPerSecond)}</Badge>
               <Badge variant="outline">{overview.authProvider}</Badge>
               <Badge variant="outline">{boot.version}</Badge>
             </div>

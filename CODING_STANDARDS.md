@@ -345,7 +345,7 @@ public void ProcessPlayer(Player player)
 // Constants (prefer Constants class over scattered const)
 public static class Constants
 {
-    public const string MOD_VERSION = "0.2.1-beta";
+    public const string MOD_VERSION = "0.3.0-beta";
     public const int DEFAULT_PORT = 38465;
 }
 

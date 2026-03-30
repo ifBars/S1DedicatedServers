@@ -118,11 +118,11 @@ namespace DedicatedServerMod.Client.Data
             return Clone(existing);
         }
 
-        internal void UpdateMetadata(string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers, int pingMilliseconds)
+        internal void UpdateStatusQueryMetadata(string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers, int statusQueryMilliseconds)
         {
             string normalizedHost = NormalizeHost(host);
-            bool changed = UpdateListMetadata(_state.Favorites, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers, pingMilliseconds);
-            changed |= UpdateListMetadata(_state.History, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers, pingMilliseconds);
+            bool changed = UpdateListMetadata(_state.Favorites, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers, statusQueryMilliseconds);
+            changed |= UpdateListMetadata(_state.History, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers, statusQueryMilliseconds);
 
             if (changed)
             {
@@ -130,11 +130,11 @@ namespace DedicatedServerMod.Client.Data
             }
         }
 
-        internal void MarkPingUnavailable(string host, int port)
+        internal void UpdateServerMetadata(string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers)
         {
             string normalizedHost = NormalizeHost(host);
-            bool changed = UpdatePingUnavailable(_state.Favorites, normalizedHost, port);
-            changed |= UpdatePingUnavailable(_state.History, normalizedHost, port);
+            bool changed = UpdateServerMetadata(_state.Favorites, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers);
+            changed |= UpdateServerMetadata(_state.History, normalizedHost, port, serverName, serverDescription, currentPlayers, maxPlayers);
 
             if (changed)
             {
@@ -142,7 +142,31 @@ namespace DedicatedServerMod.Client.Data
             }
         }
 
-        private static bool UpdateListMetadata(List<SavedServerEntry> entries, string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers, int pingMilliseconds)
+        internal void UpdateGameplayPing(string host, int port, int gameplayPingMilliseconds)
+        {
+            string normalizedHost = NormalizeHost(host);
+            bool changed = UpdateGameplayPing(_state.Favorites, normalizedHost, port, gameplayPingMilliseconds);
+            changed |= UpdateGameplayPing(_state.History, normalizedHost, port, gameplayPingMilliseconds);
+
+            if (changed)
+            {
+                Persist();
+            }
+        }
+
+        internal void MarkStatusQueryUnavailable(string host, int port)
+        {
+            string normalizedHost = NormalizeHost(host);
+            bool changed = UpdateStatusQueryUnavailable(_state.Favorites, normalizedHost, port);
+            changed |= UpdateStatusQueryUnavailable(_state.History, normalizedHost, port);
+
+            if (changed)
+            {
+                Persist();
+            }
+        }
+
+        private static bool UpdateListMetadata(List<SavedServerEntry> entries, string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers, int statusQueryMilliseconds)
         {
             SavedServerEntry existing = FindByEndpoint(entries, host, port);
             if (existing == null)
@@ -178,9 +202,9 @@ namespace DedicatedServerMod.Client.Data
                 changed = true;
             }
 
-            if (existing.PingMilliseconds != pingMilliseconds)
+            if (existing.StatusQueryMilliseconds != statusQueryMilliseconds)
             {
-                existing.PingMilliseconds = pingMilliseconds;
+                existing.StatusQueryMilliseconds = statusQueryMilliseconds;
                 changed = true;
             }
 
@@ -192,15 +216,80 @@ namespace DedicatedServerMod.Client.Data
             return changed;
         }
 
-        private static bool UpdatePingUnavailable(List<SavedServerEntry> entries, string host, int port)
+        private static bool UpdateServerMetadata(List<SavedServerEntry> entries, string host, int port, string serverName, string serverDescription, int currentPlayers, int maxPlayers)
         {
             SavedServerEntry existing = FindByEndpoint(entries, host, port);
-            if (existing == null || existing.PingMilliseconds == -1)
+            if (existing == null)
             {
                 return false;
             }
 
-            existing.PingMilliseconds = -1;
+            bool changed = false;
+            string normalizedServerName = NormalizeDescription(serverName);
+            string normalizedServerDescription = NormalizeDescription(serverDescription);
+            int normalizedCurrentPlayers = Math.Max(0, currentPlayers);
+            int normalizedMaxPlayers = Math.Max(0, maxPlayers);
+
+            if (!string.Equals(existing.ServerName, normalizedServerName, StringComparison.Ordinal))
+            {
+                existing.ServerName = normalizedServerName;
+                changed = true;
+            }
+
+            if (!string.Equals(existing.ServerDescription, normalizedServerDescription, StringComparison.Ordinal))
+            {
+                existing.ServerDescription = normalizedServerDescription;
+                changed = true;
+            }
+
+            if (existing.CurrentPlayers != normalizedCurrentPlayers)
+            {
+                existing.CurrentPlayers = normalizedCurrentPlayers;
+                changed = true;
+            }
+
+            if (existing.MaxPlayers != normalizedMaxPlayers)
+            {
+                existing.MaxPlayers = normalizedMaxPlayers;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                existing.LastMetadataRefreshUtc = DateTime.UtcNow;
+            }
+
+            return changed;
+        }
+
+        private static bool UpdateGameplayPing(List<SavedServerEntry> entries, string host, int port, int gameplayPingMilliseconds)
+        {
+            SavedServerEntry existing = FindByEndpoint(entries, host, port);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            int normalizedGameplayPing = gameplayPingMilliseconds < 0 ? -1 : Math.Min(gameplayPingMilliseconds, 9999);
+            if (existing.GameplayPingMilliseconds == normalizedGameplayPing)
+            {
+                return false;
+            }
+
+            existing.GameplayPingMilliseconds = normalizedGameplayPing;
+            existing.LastMetadataRefreshUtc = DateTime.UtcNow;
+            return true;
+        }
+
+        private static bool UpdateStatusQueryUnavailable(List<SavedServerEntry> entries, string host, int port)
+        {
+            SavedServerEntry existing = FindByEndpoint(entries, host, port);
+            if (existing == null || existing.StatusQueryMilliseconds == -1)
+            {
+                return false;
+            }
+
+            existing.StatusQueryMilliseconds = -1;
             existing.LastMetadataRefreshUtc = DateTime.UtcNow;
             return true;
         }
@@ -259,7 +348,8 @@ namespace DedicatedServerMod.Client.Data
                 entry.Name = NormalizeName(entry.Name, entry.Host, entry.Port);
                 entry.ServerName = NormalizeDescription(entry.ServerName);
                 entry.ServerDescription = NormalizeDescription(entry.ServerDescription);
-                entry.PingMilliseconds = entry.PingMilliseconds < -1 ? -1 : entry.PingMilliseconds;
+                entry.StatusQueryMilliseconds = entry.StatusQueryMilliseconds < -1 ? -1 : entry.StatusQueryMilliseconds;
+                entry.GameplayPingMilliseconds = entry.GameplayPingMilliseconds < -1 ? -1 : entry.GameplayPingMilliseconds;
                 entry.CurrentPlayers = Math.Max(0, entry.CurrentPlayers);
                 entry.MaxPlayers = Math.Max(0, entry.MaxPlayers);
 
@@ -381,7 +471,8 @@ namespace DedicatedServerMod.Client.Data
                 Host = entry.Host,
                 Port = entry.Port,
                 ServerDescription = entry.ServerDescription,
-                PingMilliseconds = entry.PingMilliseconds,
+                StatusQueryMilliseconds = entry.StatusQueryMilliseconds,
+                GameplayPingMilliseconds = entry.GameplayPingMilliseconds,
                 CurrentPlayers = entry.CurrentPlayers,
                 MaxPlayers = entry.MaxPlayers,
                 LastMetadataRefreshUtc = entry.LastMetadataRefreshUtc,

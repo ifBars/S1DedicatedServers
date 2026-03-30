@@ -6,8 +6,10 @@ using DedicatedServerMod.Assets;
 using DedicatedServerMod.Client.Data;
 using DedicatedServerMod.Utils;
 #if IL2CPP
+using Il2CppFishNet;
 using Il2CppTMPro;
 #else
+using FishNet;
 using TMPro;
 #endif
 using UnityEngine;
@@ -77,6 +79,7 @@ namespace DedicatedServerMod.Client.Managers
         private readonly ServerStatusQueryService serverStatusQueryService = new ServerStatusQueryService();
         private readonly HashSet<string> statusQueriesInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private ServerBrowserTab activeTab = ServerBrowserTab.Favorites;
+        private float gameplayPingSampleTimer;
 
         // Menu animation controller
         private MenuAnimationController menuAnimationController;
@@ -110,6 +113,7 @@ namespace DedicatedServerMod.Client.Managers
                 serverListRepository.Changed += OnServerListRepositoryChanged;
                 connectionManager.DedicatedServerConnected += OnDedicatedServerConnected;
                 ServerDataStore.OnUpdated += OnServerDataUpdated;
+                gameplayPingSampleTimer = 0f;
                 
                 // Initialize menu animation controller
                 menuAnimationController = new MenuAnimationController();
@@ -677,6 +681,18 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
+        internal void Update()
+        {
+            try
+            {
+                SampleGameplayPing();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error($"Error updating client server browser metrics: {ex}");
+            }
+        }
+
         private bool HasLiveMenuUi()
         {
             return serversButton != null || dsServerBrowserPanel != null || dsAddServerPanel != null || serverMenuPanel != null;
@@ -1186,7 +1202,7 @@ namespace DedicatedServerMod.Client.Managers
             if (task.IsFaulted || task.IsCanceled)
             {
                 DebugLog.Warning($"Status query failed for {host}:{port}: {task.Exception?.GetBaseException().Message}");
-                serverListRepository.MarkPingUnavailable(host, port);
+                serverListRepository.MarkStatusQueryUnavailable(host, port);
                 if (updateAddServerStatus)
                 {
                     SetAddServerStatus("Saved, but the server did not answer its status query yet.");
@@ -1195,18 +1211,18 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             ServerStatusQueryResult result = task.Result;
-            serverListRepository.UpdateMetadata(
+            serverListRepository.UpdateStatusQueryMetadata(
                 host,
                 port,
                 result.Snapshot.ServerName,
                 result.Snapshot.ServerDescription,
                 result.Snapshot.CurrentPlayers,
                 result.Snapshot.MaxPlayers,
-                result.PingMilliseconds);
+                result.StatusQueryMilliseconds);
 
             if (updateAddServerStatus)
             {
-                SetAddServerStatus($"Saved. {result.Snapshot.CurrentPlayers}/{result.Snapshot.MaxPlayers} players, {result.PingMilliseconds}ms ping.");
+                SetAddServerStatus($"Saved. {result.Snapshot.CurrentPlayers}/{result.Snapshot.MaxPlayers} players, {result.StatusQueryMilliseconds}ms ping.");
             }
         }
 
@@ -1255,16 +1271,18 @@ namespace DedicatedServerMod.Client.Managers
                 : !string.IsNullOrWhiteSpace(entry.ServerName)
                     ? entry.ServerName
                     : $"{entry.Host}:{entry.Port}";
+            bool isCurrentConnection = IsCurrentConnection(entry);
+            bool hasResponsiveQuery = entry.StatusQueryMilliseconds >= 0;
             string description = BuildDescriptionText(entry, favorite);
-            string pingText = entry.PingMilliseconds >= 0 ? $"{entry.PingMilliseconds}ms" : "N/A";
-            string playerCountText = entry.MaxPlayers > 0 ? $"{entry.CurrentPlayers}/{entry.MaxPlayers}" : "-/-";
+            string pingText = BuildLatencyText(entry, isCurrentConnection);
+            string playerCountText = BuildPlayerCountText(entry, isCurrentConnection, hasResponsiveQuery);
 
             SetText(entryRoot, "ServerName", primaryName);
             SetText(entryRoot, "ServerIP", $"{entry.Host}:{entry.Port}");
             SetText(entryRoot, "ServerDescription", description);
             SetText(entryRoot, "Ping", pingText);
             SetText(entryRoot, "PlayerCount", playerCountText);
-            ApplyPingState(entryRoot, entry.PingMilliseconds >= 0);
+            ApplyPingState(entryRoot, isCurrentConnection || hasResponsiveQuery);
 
             Button joinButton = FindDeepChild(entryRoot, "JoinServerButton")?.GetComponent<Button>();
             if (joinButton != null)
@@ -1325,6 +1343,46 @@ namespace DedicatedServerMod.Client.Managers
             return favorite ? "Saved favorite server" : $"Joined {entry.LastJoinedUtc.ToLocalTime():MMM d, HH:mm}";
         }
 
+        private string BuildLatencyText(SavedServerEntry entry, bool isCurrentConnection)
+        {
+            if (entry == null)
+            {
+                return "N/A";
+            }
+
+            if (isCurrentConnection && entry.GameplayPingMilliseconds >= 0)
+            {
+                return $"{entry.GameplayPingMilliseconds}ms";
+            }
+
+            if (entry.StatusQueryMilliseconds >= 0)
+            {
+                return $"{entry.StatusQueryMilliseconds}ms";
+            }
+
+            return "N/A";
+        }
+
+        private static string BuildPlayerCountText(SavedServerEntry entry, bool isCurrentConnection, bool hasResponsiveQuery)
+        {
+            if (entry == null)
+            {
+                return "-/-";
+            }
+
+            if (entry.MaxPlayers <= 0)
+            {
+                return "-/-";
+            }
+
+            if (isCurrentConnection || hasResponsiveQuery)
+            {
+                return $"{entry.CurrentPlayers}/{entry.MaxPlayers}";
+            }
+
+            return "-/-";
+        }
+
         private static string NormalizeUiText(string value)
         {
             return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
@@ -1333,6 +1391,17 @@ namespace DedicatedServerMod.Client.Managers
         private static string BuildEndpointKey(string host, int port)
         {
             return $"{(host ?? string.Empty).Trim().ToLowerInvariant()}:{port}";
+        }
+
+        private bool IsCurrentConnection(SavedServerEntry entry)
+        {
+            if (entry == null || !connectionManager.IsConnectedToDedicatedServer)
+            {
+                return false;
+            }
+
+            var target = ClientConnectionManager.GetTargetServer();
+            return string.Equals(BuildEndpointKey(entry.Host, entry.Port), BuildEndpointKey(target.ip, target.port), StringComparison.OrdinalIgnoreCase);
         }
 
         private void ApplyPingState(Transform entryRoot, bool isOnline)
@@ -1381,33 +1450,86 @@ namespace DedicatedServerMod.Client.Managers
         private void OnDedicatedServerConnected(string host, int port)
         {
             serverListRepository.RecordJoinedServer(host, port, pendingHistoryName);
-            serverListRepository.UpdateMetadata(
+            serverListRepository.UpdateServerMetadata(
                 host,
                 port,
                 ServerDataStore.Current?.ServerName,
                 ServerDataStore.Current?.ServerDescription,
                 ServerDataStore.Current?.CurrentPlayers ?? 0,
-                ServerDataStore.Current?.MaxPlayers ?? 0,
-                -1);
+                ServerDataStore.Current?.MaxPlayers ?? 0);
+            UpdateGameplayPingForCurrentServer();
             pendingHistoryName = null;
         }
 
         private void OnServerDataUpdated(Shared.ServerData data)
         {
             var target = ClientConnectionManager.GetTargetServer();
-            serverListRepository.UpdateMetadata(
+            serverListRepository.UpdateServerMetadata(
                 target.ip,
                 target.port,
                 data?.ServerName,
                 data?.ServerDescription,
                 data?.CurrentPlayers ?? 0,
-                data?.MaxPlayers ?? 0,
-                -1);
+                data?.MaxPlayers ?? 0);
+            UpdateGameplayPingForCurrentServer();
         }
 
         private void OnServerListRepositoryChanged()
         {
             RefreshServerLists();
+        }
+
+        private void SampleGameplayPing()
+        {
+            if (!connectionManager.IsConnectedToDedicatedServer)
+            {
+                gameplayPingSampleTimer = 0f;
+                return;
+            }
+
+            gameplayPingSampleTimer -= Time.unscaledDeltaTime;
+            if (gameplayPingSampleTimer > 0f)
+            {
+                return;
+            }
+
+            gameplayPingSampleTimer = 1f;
+            UpdateGameplayPingForCurrentServer();
+        }
+
+        private void UpdateGameplayPingForCurrentServer()
+        {
+            if (!connectionManager.IsConnectedToDedicatedServer)
+            {
+                return;
+            }
+
+            int gameplayPingMilliseconds = GetCurrentGameplayPingMilliseconds();
+            if (gameplayPingMilliseconds < 0)
+            {
+                return;
+            }
+
+            var target = ClientConnectionManager.GetTargetServer();
+            serverListRepository.UpdateGameplayPing(target.ip, target.port, gameplayPingMilliseconds);
+        }
+
+        private static int GetCurrentGameplayPingMilliseconds()
+        {
+            try
+            {
+                var timeManager = InstanceFinder.TimeManager;
+                if (timeManager == null)
+                {
+                    return -1;
+                }
+
+                return (int)Math.Min(timeManager.RoundTripTime, 9999L);
+            }
+            catch
+            {
+                return -1;
+            }
         }
 
         private void ApplyCapturedFonts(Transform root)

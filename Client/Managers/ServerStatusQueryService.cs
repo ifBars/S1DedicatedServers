@@ -23,13 +23,13 @@ namespace DedicatedServerMod.Client.Managers
 
         private static ServerStatusQueryResult Query(string host, int port)
         {
-            var stopwatch = Stopwatch.StartNew();
-
             using (var client = new TcpClient())
             {
                 client.SendTimeout = 2500;
                 client.ReceiveTimeout = 2500;
+                var connectStopwatch = Stopwatch.StartNew();
                 client.Connect(host, port);
+                connectStopwatch.Stop();
 
                 using (NetworkStream stream = client.GetStream())
                 using (var writer = new StreamWriter(stream, new UTF8Encoding(false), 1024, true) { AutoFlush = true })
@@ -43,8 +43,7 @@ namespace DedicatedServerMod.Client.Managers
                         throw new InvalidOperationException("Server returned an empty status response.");
                     }
 
-                    stopwatch.Stop();
-                    return new ServerStatusQueryResult(snapshot, (int)Math.Max(0, stopwatch.ElapsedMilliseconds));
+                    return new ServerStatusQueryResult(snapshot, (int)Math.Max(0, connectStopwatch.ElapsedMilliseconds));
                 }
             }
         }
@@ -52,14 +51,14 @@ namespace DedicatedServerMod.Client.Managers
 
     internal sealed class ServerStatusQueryResult
     {
-        internal ServerStatusQueryResult(ServerStatusSnapshot snapshot, int pingMilliseconds)
+        internal ServerStatusQueryResult(ServerStatusSnapshot snapshot, int statusQueryMilliseconds)
         {
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
-            PingMilliseconds = pingMilliseconds;
+            StatusQueryMilliseconds = statusQueryMilliseconds;
         }
 
         internal ServerStatusSnapshot Snapshot { get; }
 
-        internal int PingMilliseconds { get; }
+        internal int StatusQueryMilliseconds { get; }
     }
 }

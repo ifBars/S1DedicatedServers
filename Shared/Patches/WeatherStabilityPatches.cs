@@ -41,6 +41,11 @@ namespace DedicatedServerMod.Shared.Patches
 
             DebugLog.Warning(message);
         }
+
+        internal static bool IsHeadlessRuntime()
+        {
+            return Application.isBatchMode;
+        }
     }
 
     [HarmonyPatch(typeof(WheelType), "Awake")]
@@ -64,6 +69,7 @@ namespace DedicatedServerMod.Shared.Patches
     internal static class WheelOnWeatherChangePatches
     {
         private static bool Prefix(
+            WheelType __instance,
             WeatherConditionsType newConditions,
             WheelDataType ____defaultData,
             WheelOverrideDataType ____rainOverrideData,
@@ -73,6 +79,7 @@ namespace DedicatedServerMod.Shared.Patches
             VehicleSettingsType resolvedSettings = ____defaultData?.Settings?.Clone()
                 ?? ____settings?.Clone()
                 ?? new VehicleSettingsType();
+            LandVehicleType resolvedVehicle = ___vehicle ?? __instance?.GetComponentInParent<LandVehicleType>();
 
             if (newConditions == null)
             {
@@ -84,8 +91,8 @@ namespace DedicatedServerMod.Shared.Patches
             }
 
             bool canApplyRainOverride = newConditions.Rainy > 0f
-                && ___vehicle != null
-                && !___vehicle.IsUnderCover
+                && resolvedVehicle != null
+                && !resolvedVehicle.IsUnderCover
                 && ____rainOverrideData?.Settings != null;
 
             if (canApplyRainOverride)
@@ -99,7 +106,7 @@ namespace DedicatedServerMod.Shared.Patches
                     "A wheel is missing rain override data after the weather update; using default friction settings.");
             }
 
-            if (___vehicle == null)
+            if (resolvedVehicle == null && !WeatherStabilityLog.IsHeadlessRuntime())
             {
                 WeatherStabilityLog.WarningOnce(
                     "wheel-missing-vehicle",

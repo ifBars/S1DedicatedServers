@@ -13,7 +13,7 @@ using DedicatedServerMod.Server.HostConsole;
 using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Server.WebPanel;
 
-[assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", "1.0.0", "Bars")]
+[assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace DedicatedServerMod.Server.Core
@@ -242,6 +242,15 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Messaging service tick error: {ex.Message}");
+            }
+
+            try
+            {
+                _webPanelManager?.Tick();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Web panel tick error: {ex.Message}");
             }
         }
 

@@ -1,6 +1,12 @@
 import type { PanelPageId } from "@/app/routes"
 import type { PanelCommonProps } from "@/app/runtimeTypes"
-import { formatRelativeTime, formatTimestamp, getLogTone } from "@/lib/format"
+import {
+  formatFrameRate,
+  formatFrameTime,
+  formatRelativeTime,
+  formatTimestamp,
+  getLogTone,
+} from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { SectionHeader } from "@/components/layout/SectionHeader"
 import { EmptyState } from "@/components/panel/EmptyState"
@@ -44,7 +50,7 @@ export function OverviewPage({
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Surface padding="sm" variant="inset">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Players
@@ -62,6 +68,17 @@ export function OverviewPage({
             {overview.uptimeDisplay}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Port {overview.serverPort}</p>
+        </Surface>
+        <Surface padding="sm" variant="inset">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            FPS
+          </p>
+          <p className="mt-2 text-lg font-semibold text-foreground">
+            {formatFrameRate(overview.framesPerSecond)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatFrameTime(overview.frameTimeMilliseconds)}
+          </p>
         </Surface>
         <Surface padding="sm" variant="inset">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">

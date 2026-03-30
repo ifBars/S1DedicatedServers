@@ -50,6 +50,22 @@ export function formatRelativeTime(value: string | null) {
   return `${Math.floor(deltaHours / 24)}d ago`
 }
 
+export function formatFrameRate(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "Sampling"
+  }
+
+  return `${value.toFixed(1)} FPS`
+}
+
+export function formatFrameTime(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "Waiting for samples"
+  }
+
+  return `${value.toFixed(1)} ms/frame`
+}
+
 export type LogTone = "info" | "debug" | "success" | "warning" | "error"
 
 export function getLogTone(level: string): LogTone {

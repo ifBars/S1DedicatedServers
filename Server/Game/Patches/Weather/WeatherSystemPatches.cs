@@ -104,7 +104,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
 
             if (!_loggedFallback)
             {
-                DebugLog.Warning("Weather cover checks are running without a generated height map on the dedicated headless server. Falling back to uncovered weather entities.");
+                DebugLog.Info("Dedicated headless server is running weather cover checks without a generated height map. Weather entities will be treated as uncovered.");
                 _loggedFallback = true;
             }
 

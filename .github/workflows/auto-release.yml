@@ -1,0 +1,262 @@
+name: Auto Release on Version Change
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "API/Version.cs"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (leave empty to use API/Version.cs)"
+        required: false
+        type: string
+      assembly_branch:
+        description: "Assembly branch to use (main/master or beta)"
+        required: false
+        default: "main"
+        type: choice
+        options:
+          - main
+          - master
+          - beta
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      new-version: ${{ steps.check.outputs.version }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+      make-latest: ${{ steps.check.outputs.make_latest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check if version needs release
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --tags
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.version }}" ]]; then
+            current_version="${{ inputs.version }}"
+            echo "Manual trigger with version: $current_version"
+          else
+            current_version=$(grep -oP 'public const string ModVersion = "\K[^"]+' API/Version.cs | head -n 1)
+            if [[ -z "$current_version" ]]; then
+              echo "Failed to determine version from API/Version.cs" >&2
+              exit 1
+            fi
+            echo "Current version from API/Version.cs: $current_version"
+          fi
+
+          if git rev-parse "v$current_version" >/dev/null 2>&1; then
+            echo "Tag v$current_version already exists, skipping release"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag v$current_version does not exist, creating release"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "version=$current_version" >> "$GITHUB_OUTPUT"
+
+          if [[ "$current_version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  create-release:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout DedicatedServerMod
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Determine Assembly Branch
+        id: assembly-branch
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
+            requested_branch="${{ inputs.assembly_branch }}"
+          else
+            requested_branch="master"
+          fi
+
+          case "$requested_branch" in
+            main|master)
+              resolved_branch="main"
+              ;;
+            beta)
+              resolved_branch="beta"
+              ;;
+            *)
+              echo "Unsupported assembly branch: $requested_branch"
+              exit 1
+              ;;
+          esac
+
+          echo "branch=$resolved_branch" >> "$GITHUB_OUTPUT"
+          echo "Using $resolved_branch assemblies (requested: $requested_branch)"
+
+      - name: Create Assembly Directory Structure
+        shell: bash
+        run: |
+          mkdir -p ScheduleOneAssemblies/Managed
+          mkdir -p ScheduleOneAssemblies/MelonLoader
+
+      - name: Restore Game Assemblies from Cache
+        id: cache-assemblies
+        uses: actions/cache/restore@v4
+        with:
+          path: ScheduleOneAssemblies
+          key: game-assemblies-release-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          restore-keys: |
+            game-assemblies-release-v1-${{ steps.assembly-branch.outputs.branch }}-
+
+      - name: Checkout Game Assemblies
+        if: steps.cache-assemblies.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.GAME_ASSEMBLIES_REPO }}
+          token: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
+          ref: ${{ steps.assembly-branch.outputs.branch }}
+          path: game-assemblies
+          fetch-depth: 1
+
+      - name: Copy Game Assemblies
+        if: steps.cache-assemblies.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/
+          cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/
+
+      - name: Verify Assemblies
+        shell: bash
+        run: |
+          test -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll"
+          test -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll"
+
+      - name: Create CI Build Properties
+        shell: bash
+        run: |
+          cat > ci.build.props << 'EOF'
+          <Project>
+              <PropertyGroup>
+                  <AutomateLocalDeployment>false</AutomateLocalDeployment>
+                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
+                  <MonoAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/Managed</MonoAssembliesPath>
+              </PropertyGroup>
+          </Project>
+          EOF
+
+      - name: Restore Dependencies
+        run: dotnet restore DedicatedServerMod.csproj
+
+      - name: Build Mono Server
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Server -v minimal
+
+      - name: Build Mono Client
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v minimal
+
+      - name: Prepare Release Packages
+        shell: pwsh
+        run: |
+          $releaseRoot = Join-Path $PWD 'release'
+          $serverRoot = Join-Path $releaseRoot 'Server'
+          $clientRoot = Join-Path $releaseRoot 'Client'
+
+          Remove-Item $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path (Join-Path $serverRoot 'Mods') -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $clientRoot 'Mods') -Force | Out-Null
+
+          Copy-Item 'bin/Mono_Server/netstandard2.1/DedicatedServerMod_Mono_Server.dll' (Join-Path $serverRoot 'Mods/DedicatedServerMod_Mono_Server.dll')
+          Copy-Item 'bin/Mono_Client/netstandard2.1/DedicatedServerMod_Mono_Client.dll' (Join-Path $clientRoot 'Mods/DedicatedServerMod_Mono_Client.dll')
+          Copy-Item 'packaging/Server/start_server.bat' (Join-Path $serverRoot 'start_server.bat')
+
+          Compress-Archive -Path (Join-Path $serverRoot '*') -DestinationPath (Join-Path $releaseRoot 'Server.zip') -Force
+          Compress-Archive -Path (Join-Path $clientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Client.zip') -Force
+
+      - name: Generate Release Notes
+        shell: pwsh
+        run: |
+          $version = '${{ needs.check-version.outputs.new-version }}'
+          $lastTag = (git for-each-ref refs/tags --sort=-creatordate --format='%(refname:strip=2)' | Select-Object -First 1)
+
+          if ($lastTag) {
+            $commits = git log "$lastTag..HEAD" --pretty=format:"- %s (%h)" --no-merges
+            $compareLine = "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$lastTag...v$version"
+          } else {
+            $commits = git log --pretty=format:"- %s (%h)" --no-merges -n 10
+            $compareLine = "**Repository**: https://github.com/${{ github.repository }}/releases"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($commits)) {
+            $commits = "- Packaging-only release"
+          }
+
+          @"
+          ## DedicatedServerMod v$version
+
+          ### Changes
+
+          $commits
+
+          ---
+
+          $compareLine
+          "@ | Set-Content 'release_notes.md'
+
+      - name: Save Game Assemblies to Cache
+        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ScheduleOneAssemblies
+          key: game-assemblies-release-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.check-version.outputs.new-version }}
+          name: DedicatedServerMod v${{ needs.check-version.outputs.new-version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ needs.check-version.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.check-version.outputs.make_latest }}
+          files: |
+            release/Server.zip
+            release/Client.zip
+
+      - name: Summary
+        shell: pwsh
+        run: |
+          Add-Content $env:GITHUB_STEP_SUMMARY "### Release Created Successfully"
+          Add-Content $env:GITHUB_STEP_SUMMARY ""
+          Add-Content $env:GITHUB_STEP_SUMMARY "**Version:** v${{ needs.check-version.outputs.new-version }}"
+          Add-Content $env:GITHUB_STEP_SUMMARY "**Prerelease:** ${{ needs.check-version.outputs.prerelease }}"
+          Add-Content $env:GITHUB_STEP_SUMMARY ""
+          Add-Content $env:GITHUB_STEP_SUMMARY "**Artifacts:**"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Server.zip"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Client.zip"
