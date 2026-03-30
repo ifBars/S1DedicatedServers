@@ -6,6 +6,7 @@ Key docs:
 
 - [Installation](home/installation.md)
 - [Configuration](configuration.md)
+- [Web Panel](configuration/web-panel.md)
 - [Permissions](configuration/permissions.md)
 - [Host Console](host-console.md)
 - [Client Mod Verification](configuration/client-mod-verification.md)

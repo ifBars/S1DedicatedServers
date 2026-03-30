@@ -12,6 +12,8 @@
     href: configuration/authentication.md
   - name: Client Mod Verification
     href: configuration/client-mod-verification.md
+  - name: Web Panel
+    href: configuration/web-panel.md
   - name: Messaging Backends
     href: configuration/messaging-backends.md
   - name: Save Path

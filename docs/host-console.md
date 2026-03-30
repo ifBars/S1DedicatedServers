@@ -5,6 +5,8 @@ DedicatedServerMod supports two host console transports:
 - TCP console for direct socket-based remote administration
 - stdio host console for platforms that inject commands through process stdin and capture logs from stdout/stderr
 
+The optional localhost web panel is a separate surface intended for local operators. Hosted panels should usually keep it disabled and rely on stdio instead.
+
 ### Recommended mode
 
 Use:

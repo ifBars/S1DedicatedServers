@@ -5,6 +5,7 @@ This guide helps contributors set up their local development environment for the
 ## Prerequisites
 
 - .NET SDK (for netstandard2.1)
+- Bun
 - Visual Studio, Rider, or VS Code with C# support
 - Schedule I game installed
 
@@ -46,6 +47,16 @@ The project uses Krafs.Publicizer to automatically publicize the Assembly-CSharp
 dotnet restore
 ```
 
+### 4. Install Web Panel Dependencies
+
+The embedded web panel lives in `webpanel` and uses Bun exclusively.
+
+```bash
+cd webpanel
+bun install
+cd ..
+```
+
 ## Build Configurations
 
 The project has four build configurations:
@@ -65,6 +76,16 @@ dotnet build -c Mono_Server
 dotnet build
 ```
 
+### Building the embedded web panel
+
+```bash
+cd webpanel
+bun run typecheck
+bun run build
+```
+
+`bun run build` writes the static frontend bundle into `Server/WebPanel/Static`, which is what the dedicated server serves at runtime.
+
 ## How It Works
 
 ### Assembly Publicization
@@ -81,6 +102,7 @@ Previously, contributors needed to manually create `Assembly-CSharp-publicized.d
 - **local.build.props**: Your personal game installation paths (git-ignored)
 - **local.build.props.example**: Template with example paths (committed to git)
 - **.csproj**: References `$(MonoGamePath)` and `$(Il2CppGamePath)` from your local.build.props
+- **webpanel/**: Bun-managed React workspace for the embedded localhost panel
 
 ## Troubleshooting
 
@@ -107,6 +129,7 @@ When contributing:
 1. **Never commit** your `local.build.props` file (it's git-ignored)
 2. **Do commit** changes to `local.build.props.example` if you add new path properties
 3. Test your changes with both Mono and IL2CPP configurations when possible
+4. Use Bun for the frontend workspace; do not use npm or pnpm
 
 ## Additional Resources
 

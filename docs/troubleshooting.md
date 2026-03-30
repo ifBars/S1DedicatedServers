@@ -20,6 +20,12 @@
 - Run `reloadpermissions` or restart the server after editing the file.
 - See [Permissions](configuration/permissions.md) for the live file format.
 
+### Web panel does not open
+- Confirm `[webPanel] webPanelEnabled = true` in `server_config.toml`.
+- Check the server log for the localhost launch URL. Browser auto-open is best-effort only.
+- Confirm `webPanelBindAddress` is still `127.0.0.1` and the configured `webPanelPort` is not already occupied.
+- If you are running under a hosted panel, leave the web panel disabled and use the stdio host console path instead.
+
 ### Connection/port problems
 - Confirm that you forwarded the correct port in `serverPort` in `server_config.toml`.
 - Confirm port in `serverPort` is open on firewall/NAT.

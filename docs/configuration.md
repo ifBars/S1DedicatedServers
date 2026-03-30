@@ -163,6 +163,27 @@ tcpConsolePassword = ''
 - Use a password before exposing it remotely
 - Keep the listener bound narrowly unless you really need remote administration
 
+### Web Panel
+
+Enable the integrated localhost web panel only when you want a browser-based operator UI on the same machine as the server:
+
+```toml
+[webPanel]
+webPanelEnabled = true
+webPanelBindAddress = '127.0.0.1'
+webPanelPort = 4051
+webPanelOpenBrowserOnStart = true
+webPanelSessionMinutes = 120
+webPanelExposeLogs = true
+```
+
+- `webPanelEnabled` defaults to `false`
+- v1 is loopback-only and intended for local/home-hosted administration
+- hosted providers should usually leave it disabled and use the stdio host console path instead
+- if enabled, the server can attempt to open the launch URL automatically and falls back to logging the URL when that is not possible
+
+See [Web Panel](configuration/web-panel.md) for behavior, security model, and deployment guidance.
+
 ### Host Console
 
 Enable panel-friendly stdin/stdout console support:

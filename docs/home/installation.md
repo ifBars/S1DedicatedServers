@@ -21,6 +21,13 @@ Download the latest release from [GitHub Releases](https://github.com/ifBars/S1D
 5. Edit `server_config.toml` and set `saveGamePath`.
 6. Restart with `start_server.bat`.
 
+The integrated localhost web panel is generated with the server build but remains disabled by default. If you want the browser UI on a local or home-hosted machine, enable it in `server_config.toml`:
+
+```toml
+[webPanel]
+webPanelEnabled = true
+```
+
 For save path details, see [Save Path](../configuration/save-path.md).
 
 ## Run fully headless
@@ -36,6 +43,8 @@ If you want the server to run without the MelonLoader console window:
 Use the TCP console or log files for monitoring once the local console window is hidden.
 
 For panel-hosted environments that control the process through stdin/stdout, prefer the stdio host console and launch with `-logFile -` so logs are emitted to stdout. See [Host Console](../host-console.md).
+
+For home-hosted environments where you want a browser-based operator UI on the same machine, see [Web Panel](../configuration/web-panel.md).
 
 ## Prepare a client installation
 
