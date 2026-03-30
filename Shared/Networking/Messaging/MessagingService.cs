@@ -1,4 +1,3 @@
-using System;
 using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Connection;

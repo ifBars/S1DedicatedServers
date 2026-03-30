@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using DedicatedServerMod.Server.Player;
-using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Shared.Permissions;
 using DedicatedServerMod.Utils;
@@ -68,7 +64,7 @@ namespace DedicatedServerMod.Server.Permissions
             RegisterBuiltInDefinitions();
             _data = LoadOrCreatePermissionData();
             _lastTemporarySweepUtc = DateTime.UtcNow;
-            _logger.Msg("Server permission service initialized.");
+            DebugLog.StartupDebug("Server permission service initialized.");
         }
 
         public void AttachPlayerManager(PlayerManager playerManager)

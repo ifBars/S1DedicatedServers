@@ -6,17 +6,12 @@ using Il2CppFishNet.Transporting.Multipass;
 using Il2CppFishNet.Transporting.Tugboat;
 #else
 using FishNet;
-using FishNet.Managing;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
-using FishNet.Transporting.Tugboat;
 #endif
 using MelonLoader;
-using System;
 using System.Collections;
 using System.Reflection;
-using UnityEngine;
-using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Utils;
 
@@ -56,7 +51,6 @@ namespace DedicatedServerMod.Server.Network
             try
             {
                 MelonCoroutines.Start(WaitAndRegisterHooks());
-                logger.Msg("Network manager initialized");
             }
             catch (Exception ex)
             {

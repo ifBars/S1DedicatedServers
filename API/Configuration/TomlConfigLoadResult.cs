@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using DedicatedServerMod.API.Toml;
 
 namespace DedicatedServerMod.API.Configuration

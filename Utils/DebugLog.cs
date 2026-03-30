@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using MelonLoader;
 using MelonLoader.Utils;
 
@@ -64,8 +62,6 @@ namespace DedicatedServerMod.Utils
 
             _logger = logger;
             _initialized = true;
-
-            Info("DebugLog system initialized");
         }
 
         /// <summary>

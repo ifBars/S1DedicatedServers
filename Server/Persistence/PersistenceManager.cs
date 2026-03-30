@@ -1,5 +1,4 @@
 using MelonLoader;
-using System;
 using System.Collections;
 #if IL2CPP
 using Il2CppFishNet;
@@ -9,7 +8,6 @@ using FishNet;
 using ScheduleOne.Persistence;
 #endif
 using UnityEngine;
-using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Persistence
@@ -289,7 +287,7 @@ namespace DedicatedServerMod.Server.Persistence
                     var waitTime = DateTime.Now.AddSeconds(5);
                     while (saveInProgress && DateTime.Now < waitTime)
                     {
-                        System.Threading.Thread.Sleep(100);
+                        Thread.Sleep(100);
                     }
                 }
 

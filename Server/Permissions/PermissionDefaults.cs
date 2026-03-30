@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.Shared.Permissions;
 
 namespace DedicatedServerMod.Server.Permissions
@@ -201,23 +198,19 @@ namespace DedicatedServerMod.Server.Permissions
                 .ToList();
         }
 
-        private sealed class BuiltInGroupTemplate
+        private sealed class BuiltInGroupTemplate(
+            string name,
+            int priority,
+            IReadOnlyList<string> inherits,
+            IReadOnlyList<string> allow)
         {
-            public BuiltInGroupTemplate(string name, int priority, IReadOnlyList<string> inherits, IReadOnlyList<string> allow)
-            {
-                Name = name;
-                Priority = priority;
-                Inherits = inherits ?? Array.Empty<string>();
-                Allow = allow ?? Array.Empty<string>();
-            }
+            public string Name { get; } = name;
 
-            public string Name { get; }
+            public int Priority { get; } = priority;
 
-            public int Priority { get; }
+            public IReadOnlyList<string> Inherits { get; } = inherits ?? Array.Empty<string>();
 
-            public IReadOnlyList<string> Inherits { get; }
-
-            public IReadOnlyList<string> Allow { get; }
+            public IReadOnlyList<string> Allow { get; } = allow ?? Array.Empty<string>();
         }
     }
 }

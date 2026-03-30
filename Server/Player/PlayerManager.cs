@@ -7,7 +7,6 @@ using PlayerScript = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet;
 using FishNet.Connection;
-using FishNet.Managing.Server;
 using ScheduleOne.DevUtilities;
 using PlayerScript = ScheduleOne.PlayerScripts.Player;
 using LoadManagerType = ScheduleOne.Persistence.LoadManager;
@@ -20,14 +19,9 @@ using Il2CppScheduleOne.PlayerScripts;
 using LoadManagerType = Il2CppScheduleOne.Persistence.LoadManager;
 using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
 #else
-using ScheduleOne.PlayerScripts;
 #endif
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using DedicatedServerMod;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Server.Core;
 #if IL2CPP
@@ -69,7 +63,7 @@ namespace DedicatedServerMod.Server.Player
         {
             logger = loggerInstance;
             connectedPlayers = new Dictionary<NetworkConnection, ConnectedPlayerInfo>();
-            authentication = new PlayerAuthentication(logger);
+            authentication = new PlayerAuthentication();
             modVerification = new ClientModVerificationManager(logger);
             permissions = new PlayerPermissions(logger);
         }
@@ -107,7 +101,6 @@ namespace DedicatedServerMod.Server.Player
                 modVerification.Initialize();
                 modVerification.VerificationCompleted += OnModVerificationCompleted;
                 permissions.Initialize();
-                logger.Msg("Player manager initialized");
             }
             catch (Exception ex)
             {
@@ -566,7 +559,7 @@ namespace DedicatedServerMod.Server.Player
             try
             {
                 var cfg = ServerConfig.Instance;
-                var serverData = new DedicatedServerMod.Shared.ServerData
+                var serverData = new Shared.ServerData
                 {
                     ServerName = cfg.ServerName,
                     ServerDescription = cfg.ServerDescription,
@@ -1037,7 +1030,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (noticeDelayMilliseconds > 0)
             {
-                System.Threading.Thread.Sleep(noticeDelayMilliseconds);
+                Thread.Sleep(noticeDelayMilliseconds);
             }
 
             foreach (var player in playersToKick)

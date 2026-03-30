@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Shared.Permissions;
 using MelonLoader;
@@ -136,13 +135,13 @@ namespace DedicatedServerMod.Server.Player
                 return PermissionLevel.None;
             }
 
-            if (ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Operator, System.StringComparer.OrdinalIgnoreCase) == true)
+            if (ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Operator, StringComparer.OrdinalIgnoreCase) == true)
             {
                 return PermissionLevel.Operator;
             }
 
-            if (ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Administrator, System.StringComparer.OrdinalIgnoreCase) == true ||
-                ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Moderator, System.StringComparer.OrdinalIgnoreCase) == true)
+            if (ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Administrator, StringComparer.OrdinalIgnoreCase) == true ||
+                ServerBootstrap.Permissions?.GetEffectiveGroups(steamId).Contains(PermissionBuiltIns.Groups.Moderator, StringComparer.OrdinalIgnoreCase) == true)
             {
                 return PermissionLevel.Administrator;
             }

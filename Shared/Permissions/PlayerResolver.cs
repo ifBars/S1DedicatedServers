@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using DedicatedServerMod.Utils;
 using MelonLoader;
 using MelonLoader.Utils;

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DedicatedServerMod.API.Toml;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Permissions;
@@ -19,9 +15,9 @@ namespace DedicatedServerMod.Server.Permissions
     {
         private static readonly string[] LegacyConfigPermissionKeys =
         {
-            Utils.Constants.ConfigKeys.Operators,
-            Utils.Constants.ConfigKeys.Admins,
-            Utils.Constants.ConfigKeys.BannedPlayers,
+            Constants.ConfigKeys.Operators,
+            Constants.ConfigKeys.Admins,
+            Constants.ConfigKeys.BannedPlayers,
             "enableConsoleForOps",
             "enableConsoleForAdmins",
             "enableConsoleForPlayers",

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 
 namespace DedicatedServerMod.Shared.ModVerification

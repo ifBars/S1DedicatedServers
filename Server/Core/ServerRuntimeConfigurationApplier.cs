@@ -1,5 +1,5 @@
-using System;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 using MelonLoader;
 using UnityEngine;
 
@@ -40,7 +40,7 @@ namespace DedicatedServerMod.Server.Core
             QualitySettings.vSyncCount = _config.VSyncCount;
             Application.runInBackground = true;
 
-            _logger.Msg($"✓ Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}, Background={Application.runInBackground}");
+            DebugLog.StartupDebug($"Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}, Background={Application.runInBackground}");
         }
 
         private void LogResolvedSavePath()

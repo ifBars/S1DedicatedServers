@@ -81,6 +81,49 @@ DedicatedServerMod/
 └── Utils/                  # Utility classes
 ```
 
+### Type-to-File Mapping
+
+Prefer one top-level type per file. The filename should match the primary top-level type defined in that file so contributors can find implementations quickly.
+
+Examples:
+
+```csharp
+// Good: PlayerManager.cs
+namespace DedicatedServerMod.Server.Player
+{
+    internal sealed class PlayerManager
+    {
+    }
+}
+```
+
+```csharp
+// Bad: PlayerManager.cs
+namespace DedicatedServerMod.Server.Player
+{
+    internal sealed class PlayerManager
+    {
+    }
+
+    internal sealed class PlayerSession
+    {
+    }
+
+    internal sealed class PlayerLookupCache
+    {
+    }
+}
+```
+
+Guidelines:
+- Do not pack multiple unrelated top-level classes into one file just because they are small
+- If a file is named after one class, avoid hiding additional peer classes in that same file; move those classes to their own files named after the types
+- Nested helper types are acceptable when they are truly implementation details of the owning type and are not useful on their own
+- Multiple top-level types in one file are only acceptable for tightly coupled constructs such as `enum`/`delegate` companions, tiny helper abstractions that are only meaningful together, or deliberate partial-type splits
+- If a file needs regions or long comment dividers just to separate many peer classes, split the file instead
+
+The goal is discoverability first: when a contributor searches for `PlayerSession`, there should usually be a `PlayerSession.cs` to open.
+
 ### Conditional Compilation
 
 Use `#if SERVER` and `#if CLIENT` for side-specific code:

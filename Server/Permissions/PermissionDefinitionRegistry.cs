@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.Shared.Permissions;
 
 namespace DedicatedServerMod.Server.Permissions

@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;

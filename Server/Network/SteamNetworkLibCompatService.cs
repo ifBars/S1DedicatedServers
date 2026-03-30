@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared.Networking;
-using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else
@@ -65,8 +61,6 @@ namespace DedicatedServerMod.Server.Network
             _playerManager.OnPlayerJoined += OnPlayerJoined;
             _playerManager.OnPlayerLeft += OnPlayerLeft;
             _initialized = true;
-
-            _logger.Msg("SteamNetworkLib compatibility service initialized");
         }
 
         /// <summary>

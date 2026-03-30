@@ -1,6 +1,3 @@
-using System;
-using MelonLoader;
-using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.API

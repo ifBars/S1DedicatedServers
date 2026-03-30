@@ -1,4 +1,3 @@
-using System;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else

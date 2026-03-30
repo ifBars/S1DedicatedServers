@@ -1,5 +1,4 @@
 using MelonLoader;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace DedicatedServerMod.Utils
@@ -8,10 +7,9 @@ namespace DedicatedServerMod.Utils
     /// Records timestamped milestones during the client join sequence.
     /// Produces a compact one-line-per-step log and a final summary.
     /// </summary>
-    public class JoinTimeline
+    public class JoinTimeline(MelonLogger.Instance logger)
     {
-        private readonly MelonLogger.Instance logger;
-        private readonly float startTime;
+        private readonly float startTime = Time.realtimeSinceStartup;
         private readonly List<Entry> entries = new List<Entry>();
 
         private struct Entry
@@ -19,12 +17,6 @@ namespace DedicatedServerMod.Utils
             public string Step;
             public string Detail;
             public float Elapsed;
-        }
-
-        public JoinTimeline(MelonLogger.Instance logger)
-        {
-            this.logger = logger;
-            startTime = Time.realtimeSinceStartup;
         }
 
         public void Mark(string step, string detail = null)

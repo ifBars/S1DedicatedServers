@@ -1,8 +1,5 @@
 using MelonLoader;
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Reflection;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
@@ -10,7 +7,6 @@ using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.Persistence.Datas;
 #else
 using ScheduleOne.DevUtilities;
-using ScheduleOne.Persistence;
 using ScheduleOne.Persistence.Datas;
 #endif
 using UnityEngine;

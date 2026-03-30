@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using HarmonyLib;
 using MelonLoader;
 #if IL2CPP

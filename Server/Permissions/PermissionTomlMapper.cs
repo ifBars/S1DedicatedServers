@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using DedicatedServerMod.API.Toml;
 using DedicatedServerMod.Shared.Permissions;
 
@@ -465,20 +462,16 @@ namespace DedicatedServerMod.Server.Permissions
             }
         }
 
-        private sealed class PermissionTableDefinition
+        private sealed class PermissionTableDefinition(
+            string name,
+            IReadOnlyList<string> managedKeys,
+            Action<TomlTable> apply)
         {
-            public PermissionTableDefinition(string name, IReadOnlyList<string> managedKeys, Action<TomlTable> apply)
-            {
-                Name = name;
-                ManagedKeys = managedKeys ?? Array.Empty<string>();
-                Apply = apply ?? throw new ArgumentNullException(nameof(apply));
-            }
+            public string Name { get; } = name;
 
-            public string Name { get; }
+            public IReadOnlyList<string> ManagedKeys { get; } = managedKeys ?? Array.Empty<string>();
 
-            public IReadOnlyList<string> ManagedKeys { get; }
-
-            public Action<TomlTable> Apply { get; }
+            public Action<TomlTable> Apply { get; } = apply ?? throw new ArgumentNullException(nameof(apply));
         }
     }
 }

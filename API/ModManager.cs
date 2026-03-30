@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Shared.ModVerification;
 using DedicatedServerMod.Utils;
@@ -581,7 +578,7 @@ namespace DedicatedServerMod.API
             if (_serverMsgWired) return;
             try
             {
-                DedicatedServerMod.Shared.Networking.CustomMessaging.ServerMessageReceived += (conn, cmd, data) =>
+                CustomMessaging.ServerMessageReceived += (conn, cmd, data) =>
                 {
                     // Best-effort sender id
                     string senderId = null;

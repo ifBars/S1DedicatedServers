@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.API.Configuration;
 using DedicatedServerMod.API.Toml;
 
@@ -10,14 +7,9 @@ namespace DedicatedServerMod.Shared.Toml.Binding
     /// Synchronizes typed configuration schemas into TOML documents.
     /// </summary>
     /// <typeparam name="TConfig">The configuration type.</typeparam>
-    internal sealed class TomlConfigDocumentUpdater<TConfig>
+    internal sealed class TomlConfigDocumentUpdater<TConfig>(TomlConfigSchema<TConfig> schema)
     {
-        private readonly TomlConfigSchema<TConfig> _schema;
-
-        public TomlConfigDocumentUpdater(TomlConfigSchema<TConfig> schema)
-        {
-            _schema = schema ?? throw new ArgumentNullException(nameof(schema));
-        }
+        private readonly TomlConfigSchema<TConfig> _schema = schema ?? throw new ArgumentNullException(nameof(schema));
 
         public void Update(TomlDocument document, TConfig config)
         {

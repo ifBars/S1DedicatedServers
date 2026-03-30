@@ -1,9 +1,6 @@
-using System;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using MelonLoader;
 using Newtonsoft.Json;
 using DedicatedServerMod.Server.Player;
@@ -15,21 +12,15 @@ namespace DedicatedServerMod.Server.Network
     /// <summary>
     /// Hosts a lightweight TCP status endpoint for server browser metadata queries.
     /// </summary>
-    public sealed class ServerStatusQueryService
+    public sealed class ServerStatusQueryService(MelonLogger.Instance logger, PlayerManager playerManager)
     {
         private const string StatusRequestCommand = "DS_STATUS";
 
-        private readonly MelonLogger.Instance _logger;
-        private readonly PlayerManager _playerManager;
+        private readonly MelonLogger.Instance _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly PlayerManager _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
         private TcpListener _listener;
         private Thread _listenerThread;
         private CancellationTokenSource _cancellation;
-
-        public ServerStatusQueryService(MelonLogger.Instance logger, PlayerManager playerManager)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
-        }
 
         public void Start()
         {

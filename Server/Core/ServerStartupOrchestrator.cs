@@ -1,6 +1,4 @@
-using System;
 using System.Collections;
-using System.IO;
 using System.Reflection;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Shared.Configuration;
@@ -56,7 +54,7 @@ namespace DedicatedServerMod.Server.Core
             for (int i = 0; i < 10; i++)
                 yield return null;
             
-            DebugLog.StartupDebug($"Current scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+            DebugLog.StartupDebug($"Current scene: {SceneManager.GetActiveScene().name}");
             
             // Step 2: Ensure Multipass/Tugboat and configure transport
             FishNet.Managing.NetworkManager networkManager = null;
@@ -158,7 +156,7 @@ namespace DedicatedServerMod.Server.Core
                 try
                 {
                     var orgName = new DirectoryInfo(configuredPath).Name;
-                    DedicatedServerMod.Server.Persistence.SaveInitializer.EnsureSavePrepared(
+                    Persistence.SaveInitializer.EnsureSavePrepared(
                         configuredPath,
                         orgName,
                         "DedicatedServerHost",
@@ -459,7 +457,7 @@ namespace DedicatedServerMod.Server.Core
 #endif
 
             var loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
-            var loadRequests = loadRequestsField?.GetValue(loadManager) as System.Collections.Generic.List<LoadRequest>;
+            var loadRequests = loadRequestsField?.GetValue(loadManager) as List<LoadRequest>;
             if (loadRequests != null)
             {
                 while (loadRequests.Count > 0)
@@ -546,7 +544,7 @@ namespace DedicatedServerMod.Server.Core
                 if (questManager.DefaultQuests != null && questManager.DefaultQuests.Length > 0)
                 {
                     // Prefer the welcome quest if present
-                    ScheduleOne.Quests.Quest welcomeQuest = null;
+                    Quest welcomeQuest = null;
                     foreach (var q in questManager.DefaultQuests)
                     {
                         if (q == null) continue;

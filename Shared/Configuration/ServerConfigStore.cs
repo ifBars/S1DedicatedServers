@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using DedicatedServerMod.API.Configuration;
 using DedicatedServerMod.API.Toml;
 using MelonLoader;
@@ -12,20 +10,12 @@ namespace DedicatedServerMod.Shared.Configuration
     /// <summary>
     /// Provides server-specific configuration storage orchestration.
     /// </summary>
-    internal sealed class ServerConfigStore
+    internal sealed class ServerConfigStore(MelonLogger.Instance logger, string configPath, bool configPathWasExplicit)
     {
         private const string LegacyPermissionsSectionName = "permissions";
 
-        private readonly MelonLogger.Instance _logger;
-        private readonly string _configPath;
-        private readonly bool _configPathWasExplicit;
-
-        public ServerConfigStore(MelonLogger.Instance logger, string configPath, bool configPathWasExplicit)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _configPath = Path.GetFullPath(configPath ?? throw new ArgumentNullException(nameof(configPath)));
-            _configPathWasExplicit = configPathWasExplicit;
-        }
+        private readonly MelonLogger.Instance _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly string _configPath = Path.GetFullPath(configPath ?? throw new ArgumentNullException(nameof(configPath)));
 
         public string ConfigFilePath => _configPath;
 
@@ -33,7 +23,7 @@ namespace DedicatedServerMod.Shared.Configuration
 
         public ServerConfigStoreLoadResult Load()
         {
-            if (_configPathWasExplicit)
+            if (configPathWasExplicit)
             {
                 if (File.Exists(_configPath))
                 {
@@ -109,8 +99,8 @@ namespace DedicatedServerMod.Shared.Configuration
                 return new ServerConfigStoreLoadResult(
                     config,
                     path,
-                    shouldWriteNormalizedFile: _configPathWasExplicit && needsRewrite,
-                    rewriteReason: _configPathWasExplicit && needsRewrite
+                    shouldWriteNormalizedFile: configPathWasExplicit && needsRewrite,
+                    rewriteReason: configPathWasExplicit && needsRewrite
                         ? "Server configuration updated with normalized and newly added options."
                         : null);
             }
@@ -217,23 +207,19 @@ namespace DedicatedServerMod.Shared.Configuration
             TomlWriter.WriteFile(readResult.Document, path);
         }
 
-        internal sealed class ServerConfigStoreLoadResult
+        internal sealed class ServerConfigStoreLoadResult(
+            ServerConfig config,
+            string loadedFromPath,
+            bool shouldWriteNormalizedFile,
+            string rewriteReason)
         {
-            public ServerConfigStoreLoadResult(ServerConfig config, string loadedFromPath, bool shouldWriteNormalizedFile, string rewriteReason)
-            {
-                Config = config;
-                LoadedFromPath = loadedFromPath;
-                ShouldWriteNormalizedFile = shouldWriteNormalizedFile;
-                RewriteReason = rewriteReason;
-            }
+            public ServerConfig Config { get; } = config;
 
-            public ServerConfig Config { get; }
+            public string LoadedFromPath { get; } = loadedFromPath;
 
-            public string LoadedFromPath { get; }
+            public bool ShouldWriteNormalizedFile { get; set; } = shouldWriteNormalizedFile;
 
-            public bool ShouldWriteNormalizedFile { get; set; }
-
-            public string RewriteReason { get; set; }
+            public string RewriteReason { get; set; } = rewriteReason;
         }
     }
 }

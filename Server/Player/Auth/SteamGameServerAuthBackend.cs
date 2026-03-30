@@ -1,13 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else
 using FishNet.Connection;
 #endif
-using MelonLoader;
 #if IL2CPP
 using Il2CppSteamworks;
 #else
@@ -21,7 +19,6 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// </summary>
     public sealed class SteamGameServerAuthBackend : IPlayerAuthBackend
     {
-        private readonly MelonLogger.Instance _logger;
         private readonly Dictionary<ulong, NetworkConnection> _pendingBySteamId;
         private readonly Dictionary<ulong, NetworkConnection> _activeBySteamId;
         private readonly List<AuthCompletion> _completionBuffer;
@@ -37,10 +34,8 @@ namespace DedicatedServerMod.Server.Player.Auth
         /// <summary>
         /// Initializes a new steam game server authentication backend.
         /// </summary>
-        /// <param name="logger">Logger used by this backend.</param>
-        public SteamGameServerAuthBackend(MelonLogger.Instance logger)
+        public SteamGameServerAuthBackend()
         {
-            _logger = logger;
             _pendingBySteamId = new Dictionary<ulong, NetworkConnection>();
             _activeBySteamId = new Dictionary<ulong, NetworkConnection>();
             _completionBuffer = new List<AuthCompletion>();
@@ -100,12 +95,12 @@ namespace DedicatedServerMod.Server.Player.Auth
                 if (config.SteamGameServerLogOnAnonymous)
                 {
                     SteamGameServer.LogOnAnonymous();
-                    _logger.Msg("Steam game server auth backend logging on anonymously");
+                    DebugLog.AuthenticationDebug("Steam game server auth backend logging on anonymously");
                 }
                 else
                 {
                     SteamGameServer.LogOn(config.SteamGameServerToken ?? string.Empty);
-                    _logger.Msg("Steam game server auth backend logging on using token");
+                    DebugLog.AuthenticationDebug("Steam game server auth backend logging on using token");
                 }
 
                 TrySetAdvertiseServerActive(true);
@@ -120,7 +115,7 @@ namespace DedicatedServerMod.Server.Player.Auth
             }
             catch (Exception ex)
             {
-                _logger.Error($"Steam game server auth backend initialization failed: {ex}");
+                DebugLog.Error("Steam game server auth backend initialization failed", ex);
                 return new AuthenticationResult
                 {
                     IsSuccessful = false,
@@ -269,7 +264,7 @@ namespace DedicatedServerMod.Server.Player.Auth
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Steam game server callback pump failed: {ex.Message}");
+                DebugLog.Error($"Steam game server callback pump failed", ex);
             }
         }
 
@@ -305,7 +300,7 @@ namespace DedicatedServerMod.Server.Player.Auth
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Failed to end auth session for {steamId}: {ex.Message}");
+                DebugLog.Error($"Failed to end auth session for {steamId}", ex);
             }
 
             _pendingBySteamId.Remove(steamIdValue);
@@ -354,7 +349,7 @@ namespace DedicatedServerMod.Server.Player.Auth
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Steam game server auth backend shutdown encountered an error: {ex.Message}");
+                DebugLog.Error($"Steam game server auth backend shutdown encountered an error", ex);
             }
             finally
             {
@@ -380,19 +375,19 @@ namespace DedicatedServerMod.Server.Player.Auth
 
         private void OnSteamServersConnected(SteamServersConnected_t _)
         {
-            _logger.Msg("Steam game server connected to Steam backend");
+            DebugLog.AuthenticationDebug("Steam game server connected to Steam backend");
             TrySetAdvertiseServerActive(true);
         }
 
         private void OnSteamServerConnectFailure(SteamServerConnectFailure_t data)
         {
-            _logger.Warning($"Steam game server connection failure: {data.m_eResult}");
+            DebugLog.Error($"Steam game server connection failure: {data.m_eResult}");
         }
 
         private void OnSteamServersDisconnected(SteamServersDisconnected_t data)
         {
             _isAdvertisingActive = false;
-            _logger.Warning($"Steam game server disconnected from Steam backend: {data.m_eResult}");
+            DebugLog.Error($"Steam game server disconnected from Steam backend: {data.m_eResult}");
         }
 
         private void TrySetAdvertiseServerActive(bool active)
@@ -401,11 +396,11 @@ namespace DedicatedServerMod.Server.Player.Auth
             {
                 SteamGameServer.SetAdvertiseServerActive(active);
                 _isAdvertisingActive = active;
-                _logger.Msg($"Steam server advertising {(active ? "enabled" : "disabled")}");
+                DebugLog.AuthenticationDebug($"Steam server advertising {(active ? "enabled" : "disabled")}");
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Failed to set Steam server advertising to {active}: {ex.Message}");
+                DebugLog.Error($"Failed to set Steam server advertising to {active}", ex);
             }
         }
 
@@ -431,7 +426,7 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             if (connection == null)
             {
-                _logger.Warning($"Received auth callback for unknown SteamID {steamIdValue}");
+                DebugLog.Warning($"Received auth callback for unknown SteamID {steamIdValue}");
                 return;
             }
 

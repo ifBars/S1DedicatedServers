@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using DedicatedServerMod.Shared.Toml.Binding;
@@ -428,20 +425,16 @@ namespace DedicatedServerMod.API.Configuration
         }
     }
 
-    internal sealed class TomlConfigSectionDefinition<TConfig>
+    internal sealed class TomlConfigSectionDefinition<TConfig>(
+        string name,
+        IReadOnlyList<string> comments,
+        IReadOnlyList<TomlConfigOptionDefinition<TConfig>> options)
     {
-        public TomlConfigSectionDefinition(string name, IReadOnlyList<string> comments, IReadOnlyList<TomlConfigOptionDefinition<TConfig>> options)
-        {
-            Name = name;
-            Comments = comments ?? Array.Empty<string>();
-            Options = options ?? Array.Empty<TomlConfigOptionDefinition<TConfig>>();
-        }
+        public string Name { get; } = name;
 
-        public string Name { get; }
+        public IReadOnlyList<string> Comments { get; } = comments ?? Array.Empty<string>();
 
-        public IReadOnlyList<string> Comments { get; }
-
-        public IReadOnlyList<TomlConfigOptionDefinition<TConfig>> Options { get; }
+        public IReadOnlyList<TomlConfigOptionDefinition<TConfig>> Options { get; } = options ?? Array.Empty<TomlConfigOptionDefinition<TConfig>>();
     }
 
     internal sealed class TomlConfigOptionDefinition<TConfig>

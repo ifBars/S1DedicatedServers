@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 #if SERVER
 using DedicatedServerMod.Server.Core;
 #endif
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
@@ -203,7 +201,7 @@ namespace DedicatedServerMod.Shared.Permissions
         public static void Initialize(MelonLogger.Instance logger)
         {
             _logger = logger;
-            Logger.Msg("PermissionManager compatibility facade initialized");
+            DebugLog.StartupDebug("PermissionManager compatibility facade initialized");
         }
 
         /// <summary>
@@ -599,7 +597,7 @@ namespace DedicatedServerMod.Shared.Permissions
             }
 
             Logger.Msg(message);
-            Utils.DebugLog.WriteToAdminLog(message);
+            DebugLog.WriteToAdminLog(message);
         }
 
         /// <summary>
@@ -613,7 +611,7 @@ namespace DedicatedServerMod.Shared.Permissions
         public static string GetPermissionSummary()
         {
 #if SERVER
-            DedicatedServerMod.Shared.Permissions.PermissionSummary summary = ServerBootstrap.Permissions?.GetSummary();
+            PermissionSummary summary = ServerBootstrap.Permissions?.GetSummary();
             if (summary == null)
             {
                 return "Permissions unavailable";

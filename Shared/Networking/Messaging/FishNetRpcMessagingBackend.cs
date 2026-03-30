@@ -1,4 +1,3 @@
-using System;
 using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
@@ -23,8 +22,6 @@ using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.UI;
 #else
 using Newtonsoft.Json;
-using ScheduleOne;
-using ScheduleOne.DevUtilities;
 using ScheduleOne.UI;
 #endif
 

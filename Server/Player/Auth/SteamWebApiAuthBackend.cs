@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else
 using FishNet.Connection;
 #endif
-using MelonLoader;
 
 namespace DedicatedServerMod.Server.Player.Auth
 {
@@ -19,15 +17,11 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// </remarks>
     public sealed class SteamWebApiAuthBackend : IPlayerAuthBackend
     {
-        private readonly MelonLogger.Instance _logger;
-
         /// <summary>
         /// Initializes a web API auth backend placeholder.
         /// </summary>
-        /// <param name="logger">Logger instance.</param>
-        public SteamWebApiAuthBackend(MelonLogger.Instance logger)
+        public SteamWebApiAuthBackend()
         {
-            _logger = logger;
         }
 
         /// <inheritdoc />
@@ -40,7 +34,7 @@ namespace DedicatedServerMod.Server.Player.Auth
         public AuthenticationResult Initialize()
         {
             IsInitialized = true;
-            _logger.Warning("SteamWebApi auth backend is not implemented yet; authentication will reject joins when selected.");
+            DebugLog.Warning("SteamWebApi auth backend is not implemented yet; authentication will reject joins when selected.");
 
             return new AuthenticationResult
             {

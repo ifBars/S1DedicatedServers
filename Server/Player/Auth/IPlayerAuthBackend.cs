@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using DedicatedServerMod.API;
@@ -8,9 +5,7 @@ using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ModVerification;
 using DedicatedServerMod.Shared.Permissions;
-using DedicatedServerMod.Utils;
 using MelonLoader;
-using MelonLoader.Utils;
 using Newtonsoft.Json;
 
 namespace DedicatedServerMod.Server.Player

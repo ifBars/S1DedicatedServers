@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.Server.Player.Auth;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
@@ -10,7 +7,6 @@ using Il2CppFishNet.Connection;
 #else
 using FishNet.Connection;
 #endif
-using MelonLoader;
 #if IL2CPP
 using Il2CppSteamworks;
 #else
@@ -24,7 +20,6 @@ namespace DedicatedServerMod.Server.Player
     /// </summary>
     public class PlayerAuthentication
     {
-        private readonly MelonLogger.Instance _logger;
         private readonly Dictionary<NetworkConnection, PendingAuthenticationState> _pendingAuthentications;
 
         private IPlayerAuthBackend _backend;
@@ -32,10 +27,8 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// Initializes a new player authentication coordinator.
         /// </summary>
-        /// <param name="loggerInstance">Logger instance used by this coordinator.</param>
-        public PlayerAuthentication(MelonLogger.Instance loggerInstance)
+        public PlayerAuthentication()
         {
-            _logger = loggerInstance;
             _pendingAuthentications = new Dictionary<NetworkConnection, PendingAuthenticationState>();
         }
 
@@ -58,11 +51,11 @@ namespace DedicatedServerMod.Server.Player
             AuthenticationResult initResult = _backend.Initialize();
             if (!initResult.IsSuccessful)
             {
-                _logger.Error($"Authentication backend initialization failed: {initResult.Message}");
+                DebugLog.Error($"Authentication backend initialization failed: {initResult.Message}");
             }
             else
             {
-                _logger.Msg($"Player authentication system initialized with provider {ActiveProvider}");
+                DebugLog.AuthenticationDebug($"Player authentication system initialized with provider {ActiveProvider}");
             }
         }
 
@@ -450,12 +443,12 @@ namespace DedicatedServerMod.Server.Player
             switch (provider)
             {
                 case AuthenticationProvider.None:
-                    return new NoAuthenticationBackend(_logger);
+                    return new NoAuthenticationBackend();
                 case AuthenticationProvider.SteamWebApi:
-                    return new SteamWebApiAuthBackend(_logger);
+                    return new SteamWebApiAuthBackend();
                 case AuthenticationProvider.SteamGameServer:
                 default:
-                    return new SteamGameServerAuthBackend(_logger);
+                    return new SteamGameServerAuthBackend();
             }
         }
 
@@ -481,7 +474,7 @@ namespace DedicatedServerMod.Server.Player
             {
                 if (!playerInfo.IsLoopbackConnection && IsSyntheticLoopbackSteamId(result.ExtractedSteamId))
                 {
-                    _logger.Warning($"Ignoring synthetic loopback SteamID '{result.ExtractedSteamId}' for non-loopback ClientId {playerInfo.ClientId} during authentication.");
+                    DebugLog.Warning($"Ignoring synthetic loopback SteamID '{result.ExtractedSteamId}' for non-loopback ClientId {playerInfo.ClientId} during authentication.");
                     result.ExtractedSteamId = string.Empty;
                 }
 
@@ -505,7 +498,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in AuthenticationCompleted event handler: {ex}");
+                DebugLog.Error($"Error in AuthenticationCompleted event handler", ex);
             }
         }
 
@@ -537,7 +530,7 @@ namespace DedicatedServerMod.Server.Player
 
         private static bool IsSyntheticLoopbackSteamId(string steamId)
         {
-            return string.Equals(steamId, DedicatedServerMod.Utils.Constants.GhostHostSyntheticSteamId, StringComparison.Ordinal);
+            return string.Equals(steamId, Utils.Constants.GhostHostSyntheticSteamId, StringComparison.Ordinal);
         }
 
         private static bool IsProviderPayloadCompatible(string providerWireValue, AuthenticationProvider activeProvider)

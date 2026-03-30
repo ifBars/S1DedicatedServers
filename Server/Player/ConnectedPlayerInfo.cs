@@ -5,9 +5,7 @@ using Il2CppScheduleOne.PlayerScripts;
 #else
 using FishNet;
 using FishNet.Connection;
-using ScheduleOne.PlayerScripts;
 #endif
-using System;
 using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Server.Player

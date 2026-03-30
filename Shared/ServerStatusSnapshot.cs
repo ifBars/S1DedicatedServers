@@ -1,5 +1,3 @@
-using System;
-
 namespace DedicatedServerMod.Shared
 {
     /// <summary>

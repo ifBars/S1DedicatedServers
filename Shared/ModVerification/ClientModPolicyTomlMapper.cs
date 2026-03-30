@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.API.Toml;
 
 namespace DedicatedServerMod.Shared.ModVerification
@@ -344,20 +341,16 @@ namespace DedicatedServerMod.Shared.ModVerification
             }
         }
 
-        private sealed class ClientModPolicyTableDefinition
+        private sealed class ClientModPolicyTableDefinition(
+            string name,
+            IReadOnlyList<string> managedKeys,
+            Action<TomlTable> apply)
         {
-            public ClientModPolicyTableDefinition(string name, IReadOnlyList<string> managedKeys, Action<TomlTable> apply)
-            {
-                Name = name;
-                ManagedKeys = managedKeys ?? Array.Empty<string>();
-                Apply = apply ?? throw new ArgumentNullException(nameof(apply));
-            }
+            public string Name { get; } = name;
 
-            public string Name { get; }
+            public IReadOnlyList<string> ManagedKeys { get; } = managedKeys ?? Array.Empty<string>();
 
-            public IReadOnlyList<string> ManagedKeys { get; }
-
-            public Action<TomlTable> Apply { get; }
+            public Action<TomlTable> Apply { get; } = apply ?? throw new ArgumentNullException(nameof(apply));
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 
 namespace DedicatedServerMod.Shared.Toml.Binding
@@ -6,17 +5,11 @@ namespace DedicatedServerMod.Shared.Toml.Binding
     /// <summary>
     /// Wraps reflected property access for typed TOML binding.
     /// </summary>
-    internal sealed class TomlPropertyAccessor
+    internal sealed class TomlPropertyAccessor(PropertyInfo property)
     {
-        public TomlPropertyAccessor(PropertyInfo property)
-        {
-            Property = property ?? throw new ArgumentNullException(nameof(property));
-            DeclaredType = property.PropertyType;
-        }
+        public PropertyInfo Property { get; } = property ?? throw new ArgumentNullException(nameof(property));
 
-        public PropertyInfo Property { get; }
-
-        public Type DeclaredType { get; }
+        public Type DeclaredType { get; } = property.PropertyType;
 
         public string Name => Property.Name;
 

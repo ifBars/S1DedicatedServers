@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else
 using FishNet.Connection;
 #endif
-using MelonLoader;
 
 namespace DedicatedServerMod.Server.Player.Auth
 {
@@ -15,15 +13,11 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// </summary>
     public sealed class NoAuthenticationBackend : IPlayerAuthBackend
     {
-        private readonly MelonLogger.Instance _logger;
-
         /// <summary>
         /// Initializes a no-op auth backend.
         /// </summary>
-        /// <param name="logger">Logger instance.</param>
-        public NoAuthenticationBackend(MelonLogger.Instance logger)
+        public NoAuthenticationBackend()
         {
-            _logger = logger;
         }
 
         /// <inheritdoc />
@@ -78,7 +72,7 @@ namespace DedicatedServerMod.Server.Player.Auth
         {
             if (IsInitialized)
             {
-                _logger.Msg("No-auth backend shutdown");
+                DebugLog.AuthenticationDebug("No-auth backend shutdown");
             }
 
             IsInitialized = false;

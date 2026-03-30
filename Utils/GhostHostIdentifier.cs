@@ -5,7 +5,6 @@ using Il2CppScheduleOne.PlayerScripts;
 using FishNet.Object;
 using ScheduleOne.PlayerScripts;
 #endif
-using System;
 using UnityEngine;
 
 namespace DedicatedServerMod.Utils
