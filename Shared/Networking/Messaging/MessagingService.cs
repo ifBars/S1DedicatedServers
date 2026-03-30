@@ -67,7 +67,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             try
             {
-                MessagingBackendType backendType = DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.MessagingBackend;
+                MessagingBackendType backendType = Configuration.ServerConfig.Instance.MessagingBackend;
                 DebugLog.MessagingBackendDebug($"Initializing messaging service with backend: {backendType}");
 
                 _backend = CreateBackend(backendType);

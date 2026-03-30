@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Shared.Networking
     {
         private static MelonLogger.Instance _logger = new MelonLogger.Instance("CustomMessaging");
         private static bool _eventsWired;
-        private static readonly System.Collections.Generic.List<DeferredClientMessage> DeferredClientMessages = new System.Collections.Generic.List<DeferredClientMessage>();
+        private static readonly List<DeferredClientMessage> DeferredClientMessages = new List<DeferredClientMessage>();
 
         private sealed class DeferredClientMessage
         {
@@ -227,7 +227,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// Critical for dedicated servers where Console.Awake may not run.
         /// </summary>
         /// <param name="commands">The commands dictionary to populate</param>
-        public static void InitializeConsoleCommands(System.Collections.Generic.Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
+        public static void InitializeConsoleCommands(Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
         {
             MessageRouter.Initialize(_logger);
         }
@@ -280,7 +280,7 @@ namespace DedicatedServerMod.Shared.Networking
                 return;
             }
 
-            var pending = new System.Collections.Generic.List<DeferredClientMessage>(DeferredClientMessages);
+            var pending = new List<DeferredClientMessage>(DeferredClientMessages);
             DeferredClientMessages.Clear();
 
             for (int i = 0; i < pending.Count; i++)

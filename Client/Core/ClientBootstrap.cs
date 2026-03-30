@@ -334,7 +334,7 @@ namespace DedicatedServerMod.Client.Core
                             var serverData = Newtonsoft.Json.JsonConvert.DeserializeObject<Shared.ServerData>(data);
                             if (serverData != null)
                             {
-                                Managers.ServerDataStore.Update(serverData);
+                                ServerDataStore.Update(serverData);
                             }
                         }
                         else if (cmd == Utils.Constants.Messages.PermissionSnapshot)

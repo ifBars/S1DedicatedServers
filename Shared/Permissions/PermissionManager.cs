@@ -20,45 +20,174 @@ namespace DedicatedServerMod.Shared.Permissions
     /// <remarks>
     /// This static facade preserves the existing permission call sites during the transition
     /// release while delegating runtime authority to <c>permissions.toml</c> on the server.
+    /// Permission mutation events exposed by this facade are authoritative on server builds only.
+    /// Most permission queries and mutation helpers also remain server-authoritative. Client builds
+    /// expose compatibility stubs for API stability, but those members return fallback values such as
+    /// <see langword="false"/>, empty collections, or <c>"Permissions unavailable"</c> instead of
+    /// authoritative permission state.
     /// </remarks>
     public static class PermissionManager
     {
-        /// <summary>
-        /// Raised when an operator is added.
-        /// </summary>
-        public static event Action<string> OperatorAdded;
+        private const string ServerOnlyEventMessage =
+            "PermissionManager.{0} is server-only. Client-side subscriptions are ignored because permission mutations are authoritative on the dedicated server.";
 
         /// <summary>
-        /// Raised when an operator is removed.
+        /// Raised on the server when an operator is added.
         /// </summary>
-        public static event Action<string> OperatorRemoved;
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.OperatorAdded is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action<string> OperatorAdded
+        {
+#if SERVER
+            add => _operatorAdded += value;
+            remove => _operatorAdded -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(OperatorAdded));
+            remove { }
+#endif
+        }
 
         /// <summary>
-        /// Raised when an admin is added.
+        /// Raised on the server when an operator is removed.
         /// </summary>
-        public static event Action<string> AdminAdded;
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.OperatorRemoved is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action<string> OperatorRemoved
+        {
+#if SERVER
+            add => _operatorRemoved += value;
+            remove => _operatorRemoved -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(OperatorRemoved));
+            remove { }
+#endif
+        }
 
         /// <summary>
-        /// Raised when an admin is removed.
+        /// Raised on the server when an administrator is added.
         /// </summary>
-        public static event Action<string> AdminRemoved;
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.AdminAdded is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action<string> AdminAdded
+        {
+#if SERVER
+            add => _adminAdded += value;
+            remove => _adminAdded -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(AdminAdded));
+            remove { }
+#endif
+        }
 
         /// <summary>
-        /// Raised when a player is banned.
+        /// Raised on the server when an administrator is removed.
         /// </summary>
-        public static event Action<string> PlayerBanned;
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.AdminRemoved is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action<string> AdminRemoved
+        {
+#if SERVER
+            add => _adminRemoved += value;
+            remove => _adminRemoved -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(AdminRemoved));
+            remove { }
+#endif
+        }
 
         /// <summary>
-        /// Raised when a ban is removed.
+        /// Raised on the server when a player is banned.
         /// </summary>
-        public static event Action<string> BanRemoved;
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.PlayerBanned is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action<string> PlayerBanned
+        {
+#if SERVER
+            add => _playerBanned += value;
+            remove => _playerBanned -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(PlayerBanned));
+            remove { }
+#endif
+        }
 
         /// <summary>
-        /// Raised when permissions change.
+        /// Raised on the server when a ban is removed.
         /// </summary>
-        public static event Action PermissionsChanged;
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.BanRemoved is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action<string> BanRemoved
+        {
+#if SERVER
+            add => _banRemoved += value;
+            remove => _banRemoved -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(BanRemoved));
+            remove { }
+#endif
+        }
+
+        /// <summary>
+        /// Raised on the server when permissions change.
+        /// </summary>
+        /// <remarks>
+        /// This event is only raised in server builds. Client builds do not receive permission
+        /// mutation callbacks and ignore subscriptions to this event.
+        /// </remarks>
+#if CLIENT
+        [Obsolete("PermissionManager.PermissionsChanged is server-only. Client builds do not raise permission mutation events.", false)]
+#endif
+        public static event Action PermissionsChanged
+        {
+#if SERVER
+            add => _permissionsChanged += value;
+            remove => _permissionsChanged -= value;
+#else
+            add => WarnServerOnlyEventSubscription(nameof(PermissionsChanged));
+            remove { }
+#endif
+        }
 
         private static MelonLogger.Instance _logger;
+#if SERVER
+        private static Action<string> _operatorAdded;
+        private static Action<string> _operatorRemoved;
+        private static Action<string> _adminAdded;
+        private static Action<string> _adminRemoved;
+        private static Action<string> _playerBanned;
+        private static Action<string> _banRemoved;
+        private static Action _permissionsChanged;
+#endif
 
         /// <summary>
         /// Gets the server configuration instance.
@@ -82,6 +211,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the subject is an operator.</returns>
+        /// <remarks>
+        /// This check is authoritative on the server. Client builds return <see langword="false"/>
+        /// because group membership is not resolved locally by this compatibility facade.
+        /// </remarks>
         public static bool IsOperator(string steamId)
         {
 #if SERVER
@@ -96,6 +229,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="player">The player to check.</param>
         /// <returns><see langword="true"/> if the player is an operator.</returns>
+        /// <remarks>
+        /// This overload delegates to <see cref="IsOperator(string)"/>. Client builds therefore
+        /// also return <see langword="false"/>.
+        /// </remarks>
         public static bool IsOperator(Player player)
         {
             return IsOperator(PlayerResolver.GetSteamId(player));
@@ -106,6 +243,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the subject is an administrator.</returns>
+        /// <remarks>
+        /// This check is authoritative on the server. Client builds return <see langword="false"/>
+        /// because administrator group membership is not resolved locally by this compatibility facade.
+        /// </remarks>
         public static bool IsAdmin(string steamId)
         {
 #if SERVER
@@ -120,6 +261,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="player">The player to check.</param>
         /// <returns><see langword="true"/> if the player is an administrator.</returns>
+        /// <remarks>
+        /// This overload delegates to <see cref="IsAdmin(string)"/>. Client builds therefore also
+        /// return <see langword="false"/>.
+        /// </remarks>
         public static bool IsAdmin(Player player)
         {
             return IsAdmin(PlayerResolver.GetSteamId(player));
@@ -130,14 +275,18 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the operator assignment changed.</returns>
+        /// <remarks>
+        /// Mutations are server-only. Client builds ignore this request and return
+        /// <see langword="false"/>.
+        /// </remarks>
         public static bool AddOperator(string steamId)
         {
 #if SERVER
             bool changed = ServerBootstrap.Permissions?.AssignGroup(null, steamId, PermissionBuiltIns.Groups.Operator, "compat_add_operator") == true;
             if (changed)
             {
-                OperatorAdded?.Invoke(steamId);
-                PermissionsChanged?.Invoke();
+                _operatorAdded?.Invoke(steamId);
+                _permissionsChanged?.Invoke();
             }
 
             return changed;
@@ -151,14 +300,18 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the operator assignment changed.</returns>
+        /// <remarks>
+        /// Mutations are server-only. Client builds ignore this request and return
+        /// <see langword="false"/>.
+        /// </remarks>
         public static bool RemoveOperator(string steamId)
         {
 #if SERVER
             bool changed = ServerBootstrap.Permissions?.UnassignGroup(null, steamId, PermissionBuiltIns.Groups.Operator, "compat_remove_operator") == true;
             if (changed)
             {
-                OperatorRemoved?.Invoke(steamId);
-                PermissionsChanged?.Invoke();
+                _operatorRemoved?.Invoke(steamId);
+                _permissionsChanged?.Invoke();
             }
 
             return changed;
@@ -172,14 +325,18 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the administrator assignment changed.</returns>
+        /// <remarks>
+        /// Mutations are server-only. Client builds ignore this request and return
+        /// <see langword="false"/>.
+        /// </remarks>
         public static bool AddAdmin(string steamId)
         {
 #if SERVER
             bool changed = ServerBootstrap.Permissions?.AssignGroup(null, steamId, PermissionBuiltIns.Groups.Administrator, "compat_add_admin") == true;
             if (changed)
             {
-                AdminAdded?.Invoke(steamId);
-                PermissionsChanged?.Invoke();
+                _adminAdded?.Invoke(steamId);
+                _permissionsChanged?.Invoke();
             }
 
             return changed;
@@ -193,14 +350,18 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the administrator assignment changed.</returns>
+        /// <remarks>
+        /// Mutations are server-only. Client builds ignore this request and return
+        /// <see langword="false"/>.
+        /// </remarks>
         public static bool RemoveAdmin(string steamId)
         {
 #if SERVER
             bool changed = ServerBootstrap.Permissions?.UnassignGroup(null, steamId, PermissionBuiltIns.Groups.Administrator, "compat_remove_admin") == true;
             if (changed)
             {
-                AdminRemoved?.Invoke(steamId);
-                PermissionsChanged?.Invoke();
+                _adminRemoved?.Invoke(steamId);
+                _permissionsChanged?.Invoke();
             }
 
             return changed;
@@ -213,6 +374,9 @@ namespace DedicatedServerMod.Shared.Permissions
         /// Gets all directly assigned operators.
         /// </summary>
         /// <returns>The operator identifiers.</returns>
+        /// <remarks>
+        /// This list is only available on the server. Client builds return an empty collection.
+        /// </remarks>
         public static IReadOnlyList<string> GetAllOperators()
         {
 #if SERVER
@@ -226,6 +390,9 @@ namespace DedicatedServerMod.Shared.Permissions
         /// Gets all directly assigned administrators.
         /// </summary>
         /// <returns>The administrator identifiers.</returns>
+        /// <remarks>
+        /// This list is only available on the server. Client builds return an empty collection.
+        /// </remarks>
         public static IReadOnlyList<string> GetAllAdmins()
         {
 #if SERVER
@@ -240,6 +407,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if banned.</returns>
+        /// <remarks>
+        /// Ban state is authoritative on the server. Client builds return <see langword="false"/>
+        /// because they do not maintain the authoritative ban list through this facade.
+        /// </remarks>
         public static bool IsBanned(string steamId)
         {
 #if SERVER
@@ -254,14 +425,18 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the ban changed.</returns>
+        /// <remarks>
+        /// Mutations are server-only. Client builds ignore this request and return
+        /// <see langword="false"/>.
+        /// </remarks>
         public static bool AddBan(string steamId)
         {
 #if SERVER
             bool changed = ServerBootstrap.Permissions?.AddBan(null, steamId, "compat_add_ban") == true;
             if (changed)
             {
-                PlayerBanned?.Invoke(steamId);
-                PermissionsChanged?.Invoke();
+                _playerBanned?.Invoke(steamId);
+                _permissionsChanged?.Invoke();
             }
 
             return changed;
@@ -275,14 +450,18 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if the ban changed.</returns>
+        /// <remarks>
+        /// Mutations are server-only. Client builds ignore this request and return
+        /// <see langword="false"/>.
+        /// </remarks>
         public static bool RemoveBan(string steamId)
         {
 #if SERVER
             bool changed = ServerBootstrap.Permissions?.RemoveBan(null, steamId, "compat_remove_ban") == true;
             if (changed)
             {
-                BanRemoved?.Invoke(steamId);
-                PermissionsChanged?.Invoke();
+                _banRemoved?.Invoke(steamId);
+                _permissionsChanged?.Invoke();
             }
 
             return changed;
@@ -295,6 +474,9 @@ namespace DedicatedServerMod.Shared.Permissions
         /// Gets all banned subject identifiers.
         /// </summary>
         /// <returns>The banned identifiers.</returns>
+        /// <remarks>
+        /// This list is only available on the server. Client builds return an empty collection.
+        /// </remarks>
         public static IReadOnlyList<string> GetAllBanned()
         {
 #if SERVER
@@ -312,6 +494,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="player">The player to evaluate.</param>
         /// <returns><see langword="true"/> if the player can open the console.</returns>
+        /// <remarks>
+        /// Permission-node evaluation is authoritative on the server. Client builds return
+        /// <see langword="false"/> because this facade does not mirror those permission nodes locally.
+        /// </remarks>
         public static bool CanUseConsole(Player player)
         {
 #if SERVER
@@ -327,6 +513,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// <param name="player">The player to evaluate.</param>
         /// <param name="command">The command word.</param>
         /// <returns><see langword="true"/> if the command is permitted.</returns>
+        /// <remarks>
+        /// This overload delegates to <see cref="CanUseCommand(string, string)"/>. Client builds
+        /// therefore also return <see langword="false"/>.
+        /// </remarks>
         public static bool CanUseCommand(Player player, string command)
         {
             return CanUseCommand(PlayerResolver.GetSteamId(player), command);
@@ -338,6 +528,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// <param name="steamId">The subject identifier.</param>
         /// <param name="command">The command word.</param>
         /// <returns><see langword="true"/> if the command is permitted.</returns>
+        /// <remarks>
+        /// Permission-node evaluation is authoritative on the server. Client builds return
+        /// <see langword="false"/> because command permissions are not resolved locally by this facade.
+        /// </remarks>
         public static bool CanUseCommand(string steamId, string command)
         {
 #if SERVER
@@ -358,6 +552,11 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="player">The player to evaluate.</param>
         /// <returns><see langword="true"/> if allowed.</returns>
+        /// <remarks>
+        /// This overload delegates to <see cref="CanPlayerConnect(string)"/>. On client builds the
+        /// compatibility facade does not have authoritative ban state, so this method defaults to
+        /// <see langword="true"/> for non-null players.
+        /// </remarks>
         public static bool CanPlayerConnect(Player player)
         {
             return player != null && CanPlayerConnect(PlayerResolver.GetSteamId(player));
@@ -368,6 +567,11 @@ namespace DedicatedServerMod.Shared.Permissions
         /// </summary>
         /// <param name="steamId">The subject identifier.</param>
         /// <returns><see langword="true"/> if allowed.</returns>
+        /// <remarks>
+        /// Server builds deny subjects that are present in the authoritative ban list. Client builds
+        /// do not have that authoritative state through this facade and therefore default to
+        /// <see langword="true"/>.
+        /// </remarks>
         public static bool CanPlayerConnect(string steamId)
         {
             return !IsBanned(steamId);
@@ -402,6 +606,10 @@ namespace DedicatedServerMod.Shared.Permissions
         /// Gets a formatted permission summary.
         /// </summary>
         /// <returns>The permission summary text.</returns>
+        /// <remarks>
+        /// Summary data is only available on the server. Client builds return
+        /// <c>"Permissions unavailable"</c>.
+        /// </remarks>
         public static string GetPermissionSummary()
         {
 #if SERVER
@@ -415,6 +623,11 @@ namespace DedicatedServerMod.Shared.Permissions
 #else
             return "Permissions unavailable";
 #endif
+        }
+
+        private static void WarnServerOnlyEventSubscription(string eventName)
+        {
+            Logger.Warning(string.Format(ServerOnlyEventMessage, eventName));
         }
 
 #if SERVER

@@ -150,7 +150,7 @@ namespace DedicatedServerMod.Shared.Configuration
 
         private void LogDiagnostics(TomlConfigLoadResult<ServerConfig> loadResult)
         {
-            foreach (API.Toml.TomlDiagnostic diagnostic in loadResult.Diagnostics)
+            foreach (TomlDiagnostic diagnostic in loadResult.Diagnostics)
             {
                 string location = diagnostic.LineNumber > 0 ? $" line {diagnostic.LineNumber}" : string.Empty;
                 string sectionLabel = string.IsNullOrWhiteSpace(diagnostic.TableName) ? "root" : diagnostic.TableName;

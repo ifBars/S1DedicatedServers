@@ -68,7 +68,7 @@ namespace DedicatedServerMod.API
             /// <summary>
             /// Access to server configuration
             /// </summary>
-            public static DedicatedServerMod.Shared.Configuration.ServerConfig Config => DedicatedServerMod.Shared.Configuration.ServerConfig.Instance;
+            public static ServerConfig Config => ServerConfig.Instance;
 
             /// <summary>
             /// Checks if server config is loaded

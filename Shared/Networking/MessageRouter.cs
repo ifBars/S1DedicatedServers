@@ -531,9 +531,9 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var commandsField = typeof(ScheduleOne.Console).GetField("commands",
+                var commandsField = typeof(Console).GetField("commands",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                var commands = commandsField?.GetValue(null) as Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
+                var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
 
                 if (commands == null)
                 {
@@ -596,16 +596,16 @@ namespace DedicatedServerMod.Shared.Networking
                 if (!parseResult.Success)
                 {
                     _logger.Warning($"HandleClientConsoleCommand: Parse error: {parseResult.ErrorMessage}");
-                    ScheduleOne.Console.LogCommandError(parseResult.ErrorMessage);
+                    Console.LogCommandError(parseResult.ErrorMessage);
                     return;
                 }
 
                 ParsedCommandLine parsedCommand = parseResult.CommandLine;
                 string cmd = parsedCommand.CommandWord;
 
-                var commandsField = typeof(ScheduleOne.Console).GetField("commands",
+                var commandsField = typeof(Console).GetField("commands",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                var commands = commandsField?.GetValue(null) as Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
+                var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
 
                 if (commands == null)
                 {
@@ -616,7 +616,7 @@ namespace DedicatedServerMod.Shared.Networking
                 if (!commands.ContainsKey(cmd))
                 {
                     _logger.Warning($"HandleClientConsoleCommand: Command '{cmd}' not found on client");
-                    ScheduleOne.Console.LogCommandError($"Command '{cmd}' not found.");
+                    Console.LogCommandError($"Command '{cmd}' not found.");
                     return;
                 }
 
@@ -650,7 +650,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var config = Shared.Configuration.ServerConfig.Instance;
+                var config = Configuration.ServerConfig.Instance;
                 var serverData = new DedicatedServerMod.Shared.ServerData
                 {
                     ServerName = config.ServerName,
@@ -680,7 +680,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// Ensures core console commands are registered (critical for dedicated servers).
         /// </summary>
-        private static void EnsureCoreCommandsExist(Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
+        private static void EnsureCoreCommandsExist(Dictionary<string, Console.ConsoleCommand> commands)
         {
             try
             {
@@ -808,7 +808,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                ScheduleOne.Console.LogCommandError(message);
+                Console.LogCommandError(message);
             }
             catch
             {

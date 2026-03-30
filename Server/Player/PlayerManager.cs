@@ -2,16 +2,23 @@
 using Il2CppFishNet;
 using Il2CppFishNet.Connection;
 using Il2CppFishNet.Managing.Server;
+using Il2CppScheduleOne.DevUtilities;
 using PlayerScript = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing.Server;
+using ScheduleOne.DevUtilities;
 using PlayerScript = ScheduleOne.PlayerScripts.Player;
+using LoadManagerType = ScheduleOne.Persistence.LoadManager;
+using TimeManagerType = ScheduleOne.GameTime.TimeManager;
 #endif
+using HarmonyLib;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
+using LoadManagerType = Il2CppScheduleOne.Persistence.LoadManager;
+using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
 #else
 using ScheduleOne.PlayerScripts;
 #endif
@@ -19,6 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using DedicatedServerMod;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Server.Core;
@@ -43,6 +51,13 @@ namespace DedicatedServerMod.Server.Player
     public sealed class PlayerManager
     {
         private static readonly TimeSpan PendingConnectionGracePeriod = TimeSpan.FromSeconds(15);
+        private const int InitialTimeReplayAttempts = 4;
+        private const float InitialTimeReplayFirstDelaySeconds = 0.35f;
+        private const float InitialTimeReplayIntervalSeconds = 0.75f;
+        private static readonly MethodInfo SetTimeDataClientMethod = AccessTools.Method(
+            typeof(TimeManagerType),
+            "SetTimeData_Client",
+            new[] { typeof(NetworkConnection), typeof(int), typeof(int), typeof(uint) });
 
         private readonly MelonLogger.Instance logger;
         private readonly Dictionary<NetworkConnection, ConnectedPlayerInfo> connectedPlayers;
@@ -433,6 +448,7 @@ namespace DedicatedServerMod.Server.Player
             try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
 
             SendInitialServerDataToClient(playerInfo.Connection);
+            MelonCoroutines.Start(ReplayInitialTimeDataToClient(playerInfo));
         }
 
         private void TryFinalizePlayerJoin(ConnectedPlayerInfo playerInfo, string reason)
@@ -565,6 +581,62 @@ namespace DedicatedServerMod.Server.Player
             catch (Exception ex)
             {
                 logger.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
+            }
+        }
+
+        // Replays the native time snapshot after join finalization because the reconnecting client
+        // can receive the first minute RPC before its initial SetTimeData target RPC has landed.
+        private IEnumerator ReplayInitialTimeDataToClient(ConnectedPlayerInfo playerInfo)
+        {
+            if (playerInfo == null || playerInfo.IsLoopbackConnection)
+            {
+                yield break;
+            }
+
+            if (SetTimeDataClientMethod == null)
+            {
+                logger.Warning("Unable to replay authoritative time because TimeManager.SetTimeData_Client could not be resolved.");
+                yield break;
+            }
+
+            yield return new WaitForSecondsRealtime(InitialTimeReplayFirstDelaySeconds);
+
+            for (int attempt = 1; attempt <= InitialTimeReplayAttempts; attempt++)
+            {
+                if (!IsTrackedPlayerActive(playerInfo))
+                {
+                    yield break;
+                }
+
+                LoadManagerType loadManager = Singleton<LoadManagerType>.Instance;
+                TimeManagerType timeManager = NetworkSingleton<TimeManagerType>.Instance;
+                if (loadManager != null && timeManager != null && !loadManager.IsLoading && loadManager.IsGameLoaded)
+                {
+                    try
+                    {
+                        SetTimeDataClientMethod.Invoke(timeManager, new object[]
+                        {
+                            playerInfo.Connection,
+                            timeManager.ElapsedDays,
+                            timeManager.CurrentTime,
+                            0u
+                        });
+
+                        DebugLog.PlayerLifecycleDebug(
+                            $"Replayed authoritative time to ClientId {playerInfo.ClientId} " +
+                            $"attempt {attempt}/{InitialTimeReplayAttempts}: day={timeManager.ElapsedDays}, time={timeManager.CurrentTime:D4}");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning($"Failed to replay authoritative time to ClientId {playerInfo.ClientId}: {ex.Message}");
+                        yield break;
+                    }
+                }
+
+                if (attempt < InitialTimeReplayAttempts)
+                {
+                    yield return new WaitForSecondsRealtime(InitialTimeReplayIntervalSeconds);
+                }
             }
         }
 

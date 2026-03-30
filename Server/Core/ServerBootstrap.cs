@@ -116,11 +116,11 @@ namespace DedicatedServerMod.Server.Core
         {
             AudioListener.volume = 0;
             
-            _logger.Msg("Initializing server subsystems...");
+            DebugLog.StartupDebug("Initializing server subsystems...");
             
             // Step 1: Initialize existing ServerConfig system (must be first)
             ServerConfig.Initialize(_logger);
-            _logger.Msg("✓ Configuration system initialized");
+            DebugLog.StartupDebug("Configuration system initialized");
             
             // Step 2: Parse command line arguments early
             ParseCommandLineArguments();
@@ -276,7 +276,7 @@ namespace DedicatedServerMod.Server.Core
                         case "--dedicated-server":
                         case "--server":
                             _autoStartServer = true;
-                            _logger.Msg("Dedicated server mode enabled via command line");
+                            DebugLog.StartupDebug("Dedicated server mode enabled via command line");
                             break;
                     }
                 }
@@ -409,7 +409,7 @@ namespace DedicatedServerMod.Server.Core
             {
                 _webPanelManager = new WebPanelManager(_logger, _networkManager, _playerManager, _permissionService, _commandManager, _persistenceManager);
                 _webPanelManager.Start();
-                _logger.Msg("✓ Web panel initialized");
+                DebugLog.StartupDebug("Web panel initialized");
             }
             catch (Exception ex)
             {

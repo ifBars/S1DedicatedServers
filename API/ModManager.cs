@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Shared.ModVerification;
+using DedicatedServerMod.Utils;
 using MelonLoader;
 
 namespace DedicatedServerMod.API
@@ -23,13 +24,13 @@ namespace DedicatedServerMod.API
         {
             if (_initialized) return;
 
-            MelonLogger.Msg("Initializing ModManager...");
+            DebugLog.StartupDebug("Initializing ModManager...");
 
             // Discover and register mods from loaded MelonMods
             DiscoverMods();
 
             _initialized = true;
-            MelonLogger.Msg($"ModManager initialized. Found {_serverMods.Count} server mods and {_clientMods.Count} client mods.");
+            DebugLog.StartupDebug($"ModManager initialized. Found {_serverMods.Count} server mods and {_clientMods.Count} client mods.");
         }
 
         /// <summary>
@@ -540,8 +541,13 @@ namespace DedicatedServerMod.API
         #endif
         #endregion
 
+#if CLIENT
         private static bool _clientMsgWired;
+#endif
+
+#if SERVER
         private static bool _serverMsgWired;
+#endif
 
         #if CLIENT
         private static void WireClientMessageForwarding()
@@ -549,7 +555,7 @@ namespace DedicatedServerMod.API
             if (_clientMsgWired) return;
             try
             {
-                Shared.Networking.CustomMessaging.ClientMessageReceived += (cmd, data) =>
+                CustomMessaging.ClientMessageReceived += (cmd, data) =>
                 {
                     foreach (var mod in _clientMods.ToList())
                     {

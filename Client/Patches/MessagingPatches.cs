@@ -95,7 +95,7 @@ namespace DedicatedServerMod.Client.Patches
         /// Event raised when a custom message is received from the server.
         /// Delegates to Shared.Networking.CustomMessaging.ClientMessageReceived.
         /// </summary>
-        public static event System.Action<string, string> ClientMessageReceived
+        public static event Action<string, string> ClientMessageReceived
         {
             add => Shared.Networking.CustomMessaging.ClientMessageReceived += value;
             remove => Shared.Networking.CustomMessaging.ClientMessageReceived -= value;
@@ -105,7 +105,7 @@ namespace DedicatedServerMod.Client.Patches
         /// Event raised when a custom message is received from a client.
         /// Delegates to Shared.Networking.CustomMessaging.ServerMessageReceived.
         /// </summary>
-        public static event System.Action<FishNet.Connection.NetworkConnection, string, string> ServerMessageReceived
+        public static event Action<FishNet.Connection.NetworkConnection, string, string> ServerMessageReceived
         {
             add => Shared.Networking.CustomMessaging.ServerMessageReceived += value;
             remove => Shared.Networking.CustomMessaging.ServerMessageReceived -= value;

@@ -159,7 +159,7 @@ namespace DedicatedServerMod.Server.Network
                 {
                     Key = request.Key,
                     OldValue = oldValue ?? string.Empty,
-                    NewValue = request.Value,
+                    NewValue = request.Value ?? string.Empty,
                     ChangedBySteamId = senderSteamId
                 };
 
@@ -202,7 +202,7 @@ namespace DedicatedServerMod.Server.Network
                     MemberSteamId = memberSteamId,
                     Key = request.Key,
                     OldValue = oldValue ?? string.Empty,
-                    NewValue = request.Value
+                    NewValue = request.Value ?? string.Empty
                 };
 
                 BroadcastToMembers(DSConstants.Messages.SnlDedicatedMemberDataChanged, payload, excludeSteamId: null);
@@ -243,7 +243,7 @@ namespace DedicatedServerMod.Server.Network
             {
                 if (!string.IsNullOrWhiteSpace(request.TargetSteamId))
                 {
-                    NetworkConnection targetConn = ResolveConnectionBySteamId(request.TargetSteamId);
+                    NetworkConnection? targetConn = ResolveConnectionBySteamId(request.TargetSteamId);
                     if (targetConn != null)
                     {
                         CustomMessaging.SendToClient(targetConn, DSConstants.Messages.SnlDedicatedP2PMessage, JsonConvert.SerializeObject(payload));
@@ -401,7 +401,7 @@ namespace DedicatedServerMod.Server.Network
                     continue;
                 }
 
-                NetworkConnection conn = kvp.Value.Connection;
+                NetworkConnection? conn = kvp.Value.Connection;
                 if (conn == null || !conn.IsActive)
                 {
                     continue;
@@ -551,21 +551,21 @@ namespace DedicatedServerMod.Server.Network
         private sealed class SetLobbyDataRequest
         {
             public string Key { get; set; } = string.Empty;
-            public string Value { get; set; } = string.Empty;
+            public string? Value { get; set; }
         }
 
         [Serializable]
         private sealed class SetMemberDataRequest
         {
             public string Key { get; set; } = string.Empty;
-            public string Value { get; set; } = string.Empty;
+            public string? Value { get; set; }
         }
 
         [Serializable]
         private sealed class P2PSendRequest
         {
-            public string TargetSteamId { get; set; } = string.Empty;
-            public string DataBase64 { get; set; } = string.Empty;
+            public string? TargetSteamId { get; set; }
+            public string? DataBase64 { get; set; }
         }
 
         [Serializable]

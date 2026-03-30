@@ -228,6 +228,8 @@ namespace DedicatedServerMod.Server.Commands
             RegisterCommand(new ServerInfoCommand(logger, playerManager, networkManager));
             RegisterCommand(new ReloadConfigCommand(logger, playerManager));
             RegisterCommand(new SaveCommand(logger, playerManager));
+            RegisterCommand(new SetTimeCommand(logger, playerManager));
+            RegisterCommand(new SetTimeScaleCommand(logger, playerManager));
             RegisterCommand(new ShutdownCommand(logger, playerManager));
 
             logger.Msg($"Registered {serverCommands.Count} server commands");

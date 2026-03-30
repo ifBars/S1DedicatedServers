@@ -46,7 +46,7 @@ namespace DedicatedServerMod.Shared.Permissions
         public static void Initialize(MelonLogger.Instance logger)
         {
             _logger = logger;
-            Logger.Msg("PlayerResolver initialized");
+            DebugLog.StartupDebug("PlayerResolver initialized");
         }
 
         #endregion

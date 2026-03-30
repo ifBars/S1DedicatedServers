@@ -108,7 +108,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             try
             {
-                var config = DedicatedServerMod.Shared.Configuration.ServerConfig.Instance;
+                var config = Configuration.ServerConfig.Instance;
                 _allowRelay = config.SteamP2PAllowRelay;
                 _channel = Math.Max(0, config.SteamP2PChannel);
                 _maxPayloadBytes = Math.Max(256, config.SteamP2PMaxPayloadBytes);
@@ -521,7 +521,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 return;
             }
 
-            string configuredSteamId = DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.SteamP2PServerSteamId;
+            string configuredSteamId = Configuration.ServerConfig.Instance.SteamP2PServerSteamId;
             if (TryParseSteamId(configuredSteamId, out ulong parsedFromConfig))
             {
                 _serverSteamId = parsedFromConfig;

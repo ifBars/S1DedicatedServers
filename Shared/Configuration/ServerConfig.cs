@@ -7,7 +7,7 @@ using Newtonsoft.Json.Converters;
 using MelonLoader.Utils;
 using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Utils;
-
+using UnityEngine;
 using JsonProp = Newtonsoft.Json.JsonPropertyAttribute;
 using JsonConv = Newtonsoft.Json.JsonConverterAttribute;
 
@@ -30,38 +30,38 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// The public name of the server as displayed in server lists.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.ServerName)]
+        [JsonProp(Constants.ConfigKeys.ServerName)]
         public string ServerName { get; set; } = "Schedule One Dedicated Server";
 
         /// <summary>
         /// A description of the server displayed in server lists.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.ServerDescription)]
+        [JsonProp(Constants.ConfigKeys.ServerDescription)]
         public string ServerDescription { get; set; } = "A dedicated server for Schedule One";
 
         /// <summary>
         /// Maximum number of players allowed to connect.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.MaxPlayers)]
-        public int MaxPlayers { get; set; } = Utils.Constants.DefaultMaxPlayers;
+        [JsonProp(Constants.ConfigKeys.MaxPlayers)]
+        public int MaxPlayers { get; set; } = Constants.DefaultMaxPlayers;
 
         /// <summary>
         /// The network port the server listens on.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.ServerPort)]
-        public int ServerPort { get; set; } = Utils.Constants.DefaultServerPort;
+        [JsonProp(Constants.ConfigKeys.ServerPort)]
+        public int ServerPort { get; set; } = Constants.DefaultServerPort;
 
         /// <summary>
         /// Password required to connect. Empty string = no password.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.ServerPassword)]
+        [JsonProp(Constants.ConfigKeys.ServerPassword)]
         public string ServerPassword { get; set; } = string.Empty;
 
         /// <summary>
         /// Authentication provider used for dedicated-server client validation.
         /// Set to <see cref="AuthenticationProvider.None"/> to disable authentication entirely.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.AuthProvider)]
+        [JsonProp(Constants.ConfigKeys.AuthProvider)]
         [JsonConv(typeof(StringEnumConverter))]
         public AuthenticationProvider AuthProvider { get; set; } = AuthenticationProvider.None;
 
@@ -69,7 +69,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Legacy compatibility shim for old configs that still persist <c>requireAuthentication</c>.
         /// This is no longer serialized and only influences <see cref="AuthProvider"/> during load.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.RequireAuthentication)]
+        [JsonProp(Constants.ConfigKeys.RequireAuthentication)]
         private bool? LegacyRequireAuthentication
         {
             set => _legacyRequireAuthentication = value;
@@ -106,13 +106,13 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Timeout in seconds for authentication handshake completion.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.AuthTimeoutSeconds)]
-        public int AuthTimeoutSeconds { get; set; } = Utils.Constants.DefaultAuthTimeoutSeconds;
+        [JsonProp(Constants.ConfigKeys.AuthTimeoutSeconds)]
+        public int AuthTimeoutSeconds { get; set; } = Constants.DefaultAuthTimeoutSeconds;
 
         /// <summary>
         /// Whether loopback/local ghost connections bypass authentication requirements.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.AuthAllowLoopbackBypass)]
+        [JsonProp(Constants.ConfigKeys.AuthAllowLoopbackBypass)]
         public bool AuthAllowLoopbackBypass { get; set; } = true;
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Enabled by default. When enabled, authenticated players must complete the dedicated
         /// client mod verification handshake before their join flow is finalized.
         /// </remarks>
-        [JsonProp(Utils.Constants.ConfigKeys.ModVerificationEnabled)]
+        [JsonProp(Constants.ConfigKeys.ModVerificationEnabled)]
         public bool ModVerificationEnabled { get; set; } = true;
 
         /// <summary>
@@ -132,8 +132,8 @@ namespace DedicatedServerMod.Shared.Configuration
         /// This timeout begins after authentication succeeds or is bypassed. Clients that do not
         /// return a verification report in time are disconnected before normal gameplay traffic is allowed.
         /// </remarks>
-        [JsonProp(Utils.Constants.ConfigKeys.ModVerificationTimeoutSeconds)]
-        public int ModVerificationTimeoutSeconds { get; set; } = Utils.Constants.DefaultModVerificationTimeoutSeconds;
+        [JsonProp(Constants.ConfigKeys.ModVerificationTimeoutSeconds)]
+        public int ModVerificationTimeoutSeconds { get; set; } = Constants.DefaultModVerificationTimeoutSeconds;
 
         /// <summary>
         /// Whether to reject clients that match the embedded risky client mod catalog.
@@ -142,7 +142,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// This is enabled by default and is intended to catch known high-risk tools such as
         /// runtime inspectors or mutation utilities even when unpaired client-only mods are otherwise allowed.
         /// </remarks>
-        [JsonProp(Utils.Constants.ConfigKeys.BlockKnownRiskyClientMods)]
+        [JsonProp(Constants.ConfigKeys.BlockKnownRiskyClientMods)]
         public bool BlockKnownRiskyClientMods { get; set; } = true;
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// This defaults to <see langword="true"/> for usability. Disable it only when you want
         /// the server to reject client-only mods that are not paired with an installed server mod.
         /// </remarks>
-        [JsonProp(Utils.Constants.ConfigKeys.AllowUnpairedClientMods)]
+        [JsonProp(Constants.ConfigKeys.AllowUnpairedClientMods)]
         public bool AllowUnpairedClientMods { get; set; } = true;
 
         /// <summary>
@@ -163,38 +163,38 @@ namespace DedicatedServerMod.Shared.Configuration
         /// approved unpaired client-only mods. It is intended for hardened or private servers and
         /// can cause startup validation failures when required companions do not provide strict hashes.
         /// </remarks>
-        [JsonProp(Utils.Constants.ConfigKeys.StrictClientModMode)]
+        [JsonProp(Constants.ConfigKeys.StrictClientModMode)]
         public bool StrictClientModMode { get; set; } = false;
 
         /// <summary>
         /// Whether to log in with Steam game server anonymous account mode.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerLogOnAnonymous)]
+        [JsonProp(Constants.ConfigKeys.SteamGameServerLogOnAnonymous)]
         public bool SteamGameServerLogOnAnonymous { get; set; } = true;
 
         /// <summary>
         /// Steam game server login token. Used only when anonymous login is disabled.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerToken)]
+        [JsonProp(Constants.ConfigKeys.SteamGameServerToken)]
         public string SteamGameServerToken { get; set; } = string.Empty;
 
         /// <summary>
         /// Query port used by Steam server browser and status ping.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerQueryPort)]
-        public int SteamGameServerQueryPort { get; set; } = Utils.Constants.DefaultSteamGameServerQueryPort;
+        [JsonProp(Constants.ConfigKeys.SteamGameServerQueryPort)]
+        public int SteamGameServerQueryPort { get; set; } = Constants.DefaultSteamGameServerQueryPort;
 
         /// <summary>
         /// Game server version string announced to Steam.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerVersion)]
-        public string SteamGameServerVersion { get; set; } = Utils.Constants.ModVersion;
+        [JsonProp(Constants.ConfigKeys.SteamGameServerVersion)]
+        public string SteamGameServerVersion { get; set; } = Constants.ModVersion;
 
         /// <summary>
         /// Steam game server API mode announced to Steam.
         /// This does not disable DedicatedServerMod auth by itself; use <see cref="AuthProvider"/> = <see cref="AuthenticationProvider.None"/> for that.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamGameServerMode)]
+        [JsonProp(Constants.ConfigKeys.SteamGameServerMode)]
         [JsonConv(typeof(StringEnumConverter))]
         public SteamGameServerAuthenticationMode SteamGameServerMode { get; set; } = SteamGameServerAuthenticationMode.Authentication;
 
@@ -204,45 +204,45 @@ namespace DedicatedServerMod.Shared.Configuration
         /// SteamP2P uses legacy Steam P2P packets.
         /// SteamNetworkingSockets uses modern Steam sockets and is dedicated-server compatible.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.MessagingBackend)]
+        [JsonProp(Constants.ConfigKeys.MessagingBackend)]
         [JsonConv(typeof(StringEnumConverter))]
         public MessagingBackendType MessagingBackend { get; set; } = MessagingBackendType.FishNetRpc;
 
         /// <summary>
         /// Whether to allow Steam relay (SDR) for P2P messaging.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamP2PAllowRelay)]
+        [JsonProp(Constants.ConfigKeys.SteamP2PAllowRelay)]
         public bool SteamP2PAllowRelay { get; set; } = true;
 
         /// <summary>
         /// Steam P2P channel for messaging.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamP2PChannel)]
+        [JsonProp(Constants.ConfigKeys.SteamP2PChannel)]
         public int SteamP2PChannel { get; set; } = 0;
 
         /// <summary>
         /// Steam P2P max payload size in bytes.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamP2PMaxPayloadBytes)]
+        [JsonProp(Constants.ConfigKeys.SteamP2PMaxPayloadBytes)]
         public int SteamP2PMaxPayloadBytes { get; set; } = 1200;
 
         /// <summary>
         /// Target server SteamID for client-side Steam P2P message routing.
         /// Optional when server is discovered from inbound packets.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamP2PServerSteamId)]
+        [JsonProp(Constants.ConfigKeys.SteamP2PServerSteamId)]
         public string SteamP2PServerSteamId { get; set; } = string.Empty;
 
         /// <summary>
         /// Steam Web API key for web API ticket validation mode.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamWebApiKey)]
+        [JsonProp(Constants.ConfigKeys.SteamWebApiKey)]
         public string SteamWebApiKey { get; set; } = string.Empty;
 
         /// <summary>
         /// Steam Web API identity string used with web API auth tickets.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.SteamWebApiIdentity)]
+        [JsonProp(Constants.ConfigKeys.SteamWebApiIdentity)]
         public string SteamWebApiIdentity { get; set; } = "DedicatedServerMod";
 
         #endregion
@@ -252,7 +252,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether the TCP console server is enabled.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.TcpConsoleEnabled)]
+        [JsonProp(Constants.ConfigKeys.TcpConsoleEnabled)]
         public bool TcpConsoleEnabled { get; set; } = false;
 
         /// <summary>
@@ -260,20 +260,20 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Use "127.0.0.1" for local-only, "0.0.0.0" for all interfaces.
         /// </summary>
         [JsonProp("tcpConsoleBindAddress")]
-        public string TcpConsoleBindAddress { get; set; } = Utils.Constants.DefaultTcpConsoleBindAddress;
+        public string TcpConsoleBindAddress { get; set; } = Constants.DefaultTcpConsoleBindAddress;
 
         /// <summary>
         /// Port for the TCP console server.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.TcpConsolePort)]
-        public int TcpConsolePort { get; set; } = Utils.Constants.DefaultTcpConsolePort;
+        [JsonProp(Constants.ConfigKeys.TcpConsolePort)]
+        public int TcpConsolePort { get; set; } = Constants.DefaultTcpConsolePort;
 
         /// <summary>
         /// Maximum number of concurrent TCP console clients.
         /// Keep this low because the console is intended for trusted administration rather than broad remote access.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.TcpConsoleMaxConnections)]
-        public int TcpConsoleMaxConnections { get; set; } = Utils.Constants.DefaultTcpConsoleMaxConnections;
+        [JsonProp(Constants.ConfigKeys.TcpConsoleMaxConnections)]
+        public int TcpConsoleMaxConnections { get; set; } = Constants.DefaultTcpConsoleMaxConnections;
 
         /// <summary>
         /// Whether authentication is required for TCP console.
@@ -291,44 +291,44 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Whether the integrated localhost web panel is enabled.
         /// Defaults to <see langword="false"/> so hosted and service-style deployments do not expose it unless explicitly opted in.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.WebPanelEnabled)]
+        [JsonProp(Constants.ConfigKeys.WebPanelEnabled)]
         public bool WebPanelEnabled { get; set; } = false;
 
         /// <summary>
         /// IP address to bind the web panel to.
         /// Use "127.0.0.1" for local-only access.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.WebPanelBindAddress)]
-        public string WebPanelBindAddress { get; set; } = Utils.Constants.DefaultTcpConsoleBindAddress;
+        [JsonProp(Constants.ConfigKeys.WebPanelBindAddress)]
+        public string WebPanelBindAddress { get; set; } = Constants.DefaultTcpConsoleBindAddress;
 
         /// <summary>
         /// Port for the integrated web panel.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.WebPanelPort)]
-        public int WebPanelPort { get; set; } = Utils.Constants.DefaultWebPanelPort;
+        [JsonProp(Constants.ConfigKeys.WebPanelPort)]
+        public int WebPanelPort { get; set; } = Constants.DefaultWebPanelPort;
 
         /// <summary>
         /// Whether the server should attempt to open the web panel in the default browser on startup.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.WebPanelOpenBrowserOnStart)]
+        [JsonProp(Constants.ConfigKeys.WebPanelOpenBrowserOnStart)]
         public bool WebPanelOpenBrowserOnStart { get; set; } = true;
 
         /// <summary>
         /// Duration in minutes for localhost web panel sessions.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.WebPanelSessionMinutes)]
-        public int WebPanelSessionMinutes { get; set; } = Utils.Constants.DefaultWebPanelSessionMinutes;
+        [JsonProp(Constants.ConfigKeys.WebPanelSessionMinutes)]
+        public int WebPanelSessionMinutes { get; set; } = Constants.DefaultWebPanelSessionMinutes;
 
         /// <summary>
         /// Whether recent logs are exposed to the localhost web panel.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.WebPanelExposeLogs)]
+        [JsonProp(Constants.ConfigKeys.WebPanelExposeLogs)]
         public bool WebPanelExposeLogs { get; set; } = true;
 
         /// <summary>
         /// Controls activation of the stdio host console transport.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.StdioConsoleMode)]
+        [JsonProp(Constants.ConfigKeys.StdioConsoleMode)]
         [JsonConv(typeof(StringEnumConverter))]
         public StdioConsoleMode StdioConsoleMode { get; set; } = StdioConsoleMode.Auto;
 
@@ -345,19 +345,19 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Multiplier for time progression (1.0 = real-time).
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.TimeMultiplier)]
-        public float TimeProgressionMultiplier { get; set; } = Utils.Constants.DefaultTimeMultiplier;
+        [JsonProp(Constants.ConfigKeys.TimeMultiplier)]
+        public float TimeProgressionMultiplier { get; set; } = Constants.DefaultTimeMultiplier;
 
         /// <summary>
         /// Whether players are allowed to sleep to advance time.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.AllowSleeping)]
+        [JsonProp(Constants.ConfigKeys.AllowSleeping)]
         public bool AllowSleeping { get; set; } = true;
 
         /// <summary>
         /// Whether to pause the game when no players are connected.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.PauseEmpty)]
+        [JsonProp(Constants.ConfigKeys.PauseEmpty)]
         public bool PauseGameWhenEmpty { get; set; } = false;
 
         #endregion
@@ -367,14 +367,14 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether automatic saving is enabled.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.AutoSaveEnabled)]
+        [JsonProp(Constants.ConfigKeys.AutoSaveEnabled)]
         public bool AutoSaveEnabled { get; set; } = true;
 
         /// <summary>
         /// Interval in minutes between automatic saves.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.AutoSaveInterval)]
-        public float AutoSaveIntervalMinutes { get; set; } = Utils.Constants.DefaultAutoSaveIntervalMinutes;
+        [JsonProp(Constants.ConfigKeys.AutoSaveInterval)]
+        public float AutoSaveIntervalMinutes { get; set; } = Constants.DefaultAutoSaveIntervalMinutes;
 
         /// <summary>
         /// Whether to save when a player joins.
@@ -395,19 +395,19 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// List of Steam IDs with operator privileges.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.Operators)]
+        [JsonProp(Constants.ConfigKeys.Operators)]
         public HashSet<string> Operators { get; set; } = new HashSet<string>();
 
         /// <summary>
         /// List of Steam IDs with admin privileges.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.Admins)]
+        [JsonProp(Constants.ConfigKeys.Admins)]
         public HashSet<string> Admins { get; set; } = new HashSet<string>();
 
         /// <summary>
         /// List of banned Steam IDs.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.BannedPlayers)]
+        [JsonProp(Constants.ConfigKeys.BannedPlayers)]
         public HashSet<string> BannedPlayers { get; set; } = new HashSet<string>();
 
         /// <summary>
@@ -485,13 +485,13 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether debug mode is enabled (additional logging).
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.DebugMode)]
+        [JsonProp(Constants.ConfigKeys.DebugMode)]
         public bool DebugMode { get; set; } = false;
 
         /// <summary>
         /// Whether verbose logging is enabled (trace-level).
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.VerboseLogging)]
+        [JsonProp(Constants.ConfigKeys.VerboseLogging)]
         public bool VerboseLogging { get; set; } = false;
 
         /// <summary>
@@ -510,49 +510,49 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Whether to enable additional debug logging across shared networking systems.
         /// This acts as an umbrella switch for routing and transport/backend debug logs.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogNetworkingDebug)]
+        [JsonProp(Constants.ConfigKeys.LogNetworkingDebug)]
         public bool LogNetworkingDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed debug logging for message routing decisions.
         /// When false, normal warnings and errors still log.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogMessageRoutingDebug)]
+        [JsonProp(Constants.ConfigKeys.LogMessageRoutingDebug)]
         public bool LogMessageRoutingDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed debug logging for messaging backend send/receive activity.
         /// When false, normal warnings and errors still log.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogMessagingBackendDebug)]
+        [JsonProp(Constants.ConfigKeys.LogMessagingBackendDebug)]
         public bool LogMessagingBackendDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed startup orchestration and initialization tracing.
         /// When false, only important startup milestones, warnings, and errors remain visible.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogStartupDebug)]
+        [JsonProp(Constants.ConfigKeys.LogStartupDebug)]
         public bool LogStartupDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed server transport and network lifecycle tracing.
         /// When false, only important online/offline and failure logs remain visible.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogServerNetworkDebug)]
+        [JsonProp(Constants.ConfigKeys.LogServerNetworkDebug)]
         public bool LogServerNetworkDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed player lifecycle tracing for connections, spawns, identities, and shutdown cleanup.
         /// When false, important join, leave, kick, and ban logs remain visible.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogPlayerLifecycleDebug)]
+        [JsonProp(Constants.ConfigKeys.LogPlayerLifecycleDebug)]
         public bool LogPlayerLifecycleDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed authentication tracing for handshake and auth state transitions.
         /// When false, only common authentication failures remain visible.
         /// </summary>
-        [JsonProp(Utils.Constants.ConfigKeys.LogAuthenticationDebug)]
+        [JsonProp(Constants.ConfigKeys.LogAuthenticationDebug)]
         public bool LogAuthenticationDebug { get; set; } = false;
 
         #endregion
@@ -618,7 +618,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </param>
         public static void ParseCommandLineArgs(string[] args, bool persistChanges = false)
         {
-            Logger.Msg("Parsing command line arguments for server config...");
+            DebugLog.StartupDebug("Parsing command line arguments for server config...");
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -635,7 +635,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     case "--max-players":
                         if (i + 1 < args.Length && int.TryParse(args[i + 1], out int maxPlayers))
                         {
-                            Instance.MaxPlayers = Math.Min(maxPlayers, Utils.Constants.MaxAllowedPlayers);
+                            Instance.MaxPlayers = Math.Min(maxPlayers, Constants.MaxAllowedPlayers);
                             Logger.Msg($"Max players set to: {Instance.MaxPlayers}");
                         }
                         break;
@@ -654,7 +654,7 @@ namespace DedicatedServerMod.Shared.Configuration
                         {
                             Instance.AuthProvider = AuthenticationProvider.SteamGameServer;
                         }
-                        Logger.Msg($"Authentication enabled using provider: {Instance.AuthProvider}");
+                        Logger.Msg($"Authentication enabled");
                         break;
 
                     case "--disable-authentication":
@@ -922,48 +922,48 @@ namespace DedicatedServerMod.Shared.Configuration
         public void Validate()
         {
             // Validate port
-            if (ServerPort < Utils.Constants.MinPort || ServerPort > Utils.Constants.MaxPort)
+            if (ServerPort < Constants.MinPort || ServerPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid server port {ServerPort}, using default {Utils.Constants.DefaultServerPort}");
-                ServerPort = Utils.Constants.DefaultServerPort;
+                Logger.Warning($"Invalid server port {ServerPort}, using default {Constants.DefaultServerPort}");
+                ServerPort = Constants.DefaultServerPort;
             }
 
             // Validate max players
             if (MaxPlayers < 1)
             {
-                Logger.Warning($"Invalid max players {MaxPlayers}, using default {Utils.Constants.DefaultMaxPlayers}");
-                MaxPlayers = Utils.Constants.DefaultMaxPlayers;
+                Logger.Warning($"Invalid max players {MaxPlayers}, using default {Constants.DefaultMaxPlayers}");
+                MaxPlayers = Constants.DefaultMaxPlayers;
             }
-            else if (MaxPlayers > Utils.Constants.MaxAllowedPlayers)
+            else if (MaxPlayers > Constants.MaxAllowedPlayers)
             {
-                Logger.Warning($"Max players {MaxPlayers} exceeds limit {Utils.Constants.MaxAllowedPlayers}");
-                MaxPlayers = Utils.Constants.MaxAllowedPlayers;
+                Logger.Warning($"Max players {MaxPlayers} exceeds limit {Constants.MaxAllowedPlayers}");
+                MaxPlayers = Constants.MaxAllowedPlayers;
             }
 
             // Validate time multiplier
-            if (TimeProgressionMultiplier < 0 || TimeProgressionMultiplier > Utils.Constants.MaxTimeMultiplier)
+            if (TimeProgressionMultiplier < 0 || TimeProgressionMultiplier > Constants.MaxTimeMultiplier)
             {
-                Logger.Warning($"Invalid time multiplier {TimeProgressionMultiplier}, using default {Utils.Constants.DefaultTimeMultiplier}");
-                TimeProgressionMultiplier = Utils.Constants.DefaultTimeMultiplier;
+                Logger.Warning($"Invalid time multiplier {TimeProgressionMultiplier}, using default {Constants.DefaultTimeMultiplier}");
+                TimeProgressionMultiplier = Constants.DefaultTimeMultiplier;
             }
 
             // Validate auth timeout
             if (AuthTimeoutSeconds < 1 || AuthTimeoutSeconds > 120)
             {
-                Logger.Warning($"Invalid auth timeout {AuthTimeoutSeconds}, using default {Utils.Constants.DefaultAuthTimeoutSeconds}");
-                AuthTimeoutSeconds = Utils.Constants.DefaultAuthTimeoutSeconds;
+                Logger.Warning($"Invalid auth timeout {AuthTimeoutSeconds}, using default {Constants.DefaultAuthTimeoutSeconds}");
+                AuthTimeoutSeconds = Constants.DefaultAuthTimeoutSeconds;
             }
 
             if (ModVerificationTimeoutSeconds < 1 || ModVerificationTimeoutSeconds > 120)
             {
-                Logger.Warning($"Invalid mod verification timeout {ModVerificationTimeoutSeconds}, using default {Utils.Constants.DefaultModVerificationTimeoutSeconds}");
-                ModVerificationTimeoutSeconds = Utils.Constants.DefaultModVerificationTimeoutSeconds;
+                Logger.Warning($"Invalid mod verification timeout {ModVerificationTimeoutSeconds}, using default {Constants.DefaultModVerificationTimeoutSeconds}");
+                ModVerificationTimeoutSeconds = Constants.DefaultModVerificationTimeoutSeconds;
             }
 
-            if (SteamGameServerQueryPort < Utils.Constants.MinPort || SteamGameServerQueryPort > Utils.Constants.MaxPort)
+            if (SteamGameServerQueryPort < Constants.MinPort || SteamGameServerQueryPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid steam game server query port {SteamGameServerQueryPort}, using default {Utils.Constants.DefaultSteamGameServerQueryPort}");
-                SteamGameServerQueryPort = Utils.Constants.DefaultSteamGameServerQueryPort;
+                Logger.Warning($"Invalid steam game server query port {SteamGameServerQueryPort}, using default {Constants.DefaultSteamGameServerQueryPort}");
+                SteamGameServerQueryPort = Constants.DefaultSteamGameServerQueryPort;
             }
 
             if (SteamP2PChannel < 0)
@@ -972,17 +972,17 @@ namespace DedicatedServerMod.Shared.Configuration
                 SteamP2PChannel = 0;
             }
 
-            if (SteamP2PMaxPayloadBytes < 256 || SteamP2PMaxPayloadBytes > Utils.Constants.MaxMessageSize)
+            if (SteamP2PMaxPayloadBytes < 256 || SteamP2PMaxPayloadBytes > Constants.MaxMessageSize)
             {
                 Logger.Warning($"Invalid Steam P2P max payload {SteamP2PMaxPayloadBytes}, using 1200");
                 SteamP2PMaxPayloadBytes = 1200;
             }
 
             // Validate auto-save interval
-            if (AutoSaveIntervalMinutes < 0 || AutoSaveIntervalMinutes > Utils.Constants.MaxAutoSaveIntervalMinutes)
+            if (AutoSaveIntervalMinutes < 0 || AutoSaveIntervalMinutes > Constants.MaxAutoSaveIntervalMinutes)
             {
-                Logger.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Utils.Constants.DefaultAutoSaveIntervalMinutes}");
-                AutoSaveIntervalMinutes = Utils.Constants.DefaultAutoSaveIntervalMinutes;
+                Logger.Warning($"Invalid auto-save interval {AutoSaveIntervalMinutes}, using default {Constants.DefaultAutoSaveIntervalMinutes}");
+                AutoSaveIntervalMinutes = Constants.DefaultAutoSaveIntervalMinutes;
             }
 
             // Validate target framerate
@@ -1002,33 +1002,33 @@ namespace DedicatedServerMod.Shared.Configuration
             // Validate TCP console max connections
             if (TcpConsoleMaxConnections < 1)
             {
-                Logger.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Utils.Constants.DefaultTcpConsoleMaxConnections}");
-                TcpConsoleMaxConnections = Utils.Constants.DefaultTcpConsoleMaxConnections;
+                Logger.Warning($"Invalid TCP console max connections {TcpConsoleMaxConnections}, using default {Constants.DefaultTcpConsoleMaxConnections}");
+                TcpConsoleMaxConnections = Constants.DefaultTcpConsoleMaxConnections;
             }
 
-            if (WebPanelPort < Utils.Constants.MinPort || WebPanelPort > Utils.Constants.MaxPort)
+            if (WebPanelPort < Constants.MinPort || WebPanelPort > Constants.MaxPort)
             {
-                Logger.Warning($"Invalid web panel port {WebPanelPort}, using default {Utils.Constants.DefaultWebPanelPort}");
-                WebPanelPort = Utils.Constants.DefaultWebPanelPort;
+                Logger.Warning($"Invalid web panel port {WebPanelPort}, using default {Constants.DefaultWebPanelPort}");
+                WebPanelPort = Constants.DefaultWebPanelPort;
             }
 
             if (WebPanelSessionMinutes < 1 || WebPanelSessionMinutes > 1440)
             {
-                Logger.Warning($"Invalid web panel session duration {WebPanelSessionMinutes}, using default {Utils.Constants.DefaultWebPanelSessionMinutes}");
-                WebPanelSessionMinutes = Utils.Constants.DefaultWebPanelSessionMinutes;
+                Logger.Warning($"Invalid web panel session duration {WebPanelSessionMinutes}, using default {Constants.DefaultWebPanelSessionMinutes}");
+                WebPanelSessionMinutes = Constants.DefaultWebPanelSessionMinutes;
             }
 
             // Validate names
-            if (ServerName.Length > Utils.Constants.MaxServerNameLength)
+            if (ServerName.Length > Constants.MaxServerNameLength)
             {
                 Logger.Warning($"Server name exceeds max length, truncating");
-                ServerName = ServerName.Substring(0, Utils.Constants.MaxServerNameLength);
+                ServerName = ServerName.Substring(0, Constants.MaxServerNameLength);
             }
 
-            if (ServerDescription.Length > Utils.Constants.MaxServerDescriptionLength)
+            if (ServerDescription.Length > Constants.MaxServerDescriptionLength)
             {
                 Logger.Warning($"Server description exceeds max length, truncating");
-                ServerDescription = ServerDescription.Substring(0, Utils.Constants.MaxServerDescriptionLength);
+                ServerDescription = ServerDescription.Substring(0, Constants.MaxServerDescriptionLength);
             }
 
             NormalizeAuthenticationConfiguration();
