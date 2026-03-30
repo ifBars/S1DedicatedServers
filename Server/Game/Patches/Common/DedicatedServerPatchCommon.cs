@@ -19,6 +19,11 @@ namespace DedicatedServerMod.Server.Game.Patches.Common
             return !InstanceFinder.IsServer && !UnityEngine.Application.isBatchMode;
         }
 
+        internal static bool ShouldRunClientPresentationAudio()
+        {
+            return !InstanceFinder.IsServer && !UnityEngine.Application.isBatchMode;
+        }
+
         internal static int CountSleepEligiblePlayers()
         {
             var list = PlayerType.PlayerList;
