@@ -1,17 +1,11 @@
 using MelonLoader;
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Commands;
 using DedicatedServerMod.Server.Persistence;
 using DedicatedServerMod.Server.Game;
-using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Permissions;
-using HarmonyLib;
 using DedicatedServerMod.API;
 using UnityEngine;
 using DedicatedServerMod.Utils;
@@ -94,7 +88,7 @@ namespace DedicatedServerMod.Server.Core
         {
             _logger = LoggerInstance;
             DebugLog.Initialize(_logger);
-            _logger.Msg("=== Dedicated Server Bootstrap Starting ===");
+            DebugLog.Info("=== Dedicated Server Starting ===");
             
             try
             {
@@ -104,7 +98,7 @@ namespace DedicatedServerMod.Server.Core
             }
             catch (Exception ex)
             {
-                _logger.Error($"Critical error during server initialization: {ex}");
+                DebugLog.Error($"Critical error during server initialization: {ex}");
                 throw;
             }
         }
@@ -132,44 +126,44 @@ namespace DedicatedServerMod.Server.Core
             runtimeConfigurationApplier.Apply();
             _permissionService = new ServerPermissionService(_logger);
             _permissionService.Initialize();
-            _logger.Msg("✓ Permission service initialized");
+            DebugLog.StartupDebug("Permission service initialized");
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
             
             // Step 4: Network Manager
             _networkManager = new NetworkManager(_logger);
             _networkManager.Initialize();
-            _logger.Msg("✓ Network manager initialized");
+            DebugLog.StartupDebug("Network manager initialized");
             
             // Step 5: Player Manager
             _playerManager = new PlayerManager(_logger);
             _playerManager.Initialize();
             _permissionService.AttachPlayerManager(_playerManager);
-            _logger.Msg("✓ Player manager initialized");
+            DebugLog.StartupDebug("Player manager initialized");
 
             // Step 5a: Messaging Service (required for custom server-client communication)
             Shared.Networking.CustomMessaging.Initialize();
-            _logger.Msg("✓ Messaging service initialized");
+            DebugLog.StartupDebug("Messaging service initialized");
 
             // Step 5b: SteamNetworkLib dedicated compatibility layer
             _steamNetworkLibCompatService = new SteamNetworkLibCompatService(_logger, _playerManager);
             _steamNetworkLibCompatService.Initialize();
-            _logger.Msg("✓ SteamNetworkLib compatibility service initialized");
+            DebugLog.StartupDebug("SteamNetworkLib compatibility service initialized");
 
             // Step 6: Command Manager
-            _commandManager = new CommandManager(_logger, _playerManager, _networkManager);
+            _commandManager = new CommandManager(_playerManager, _networkManager);
             _commandManager.Initialize();
-            _logger.Msg("✓ Command manager initialized");
+            DebugLog.StartupDebug("Command manager initialized");
             
             // Step 7: Persistence Manager
             _persistenceManager = new PersistenceManager(_logger);
             _persistenceManager.Initialize();
-            _logger.Msg("✓ Persistence manager initialized");
+            DebugLog.StartupDebug("Persistence manager initialized");
             
             // Step 8: Game System Manager
             _gameSystemManager = new GameSystemManager(_logger);
             _gameSystemManager.Initialize();
-            _logger.Msg("✓ Game system manager initialized");
+            DebugLog.StartupDebug("Game system manager initialized");
             
             _hostConsoleManager = new HostConsoleManager(_commandManager, _logger);
             _hostConsoleManager.Start();
@@ -180,7 +174,7 @@ namespace DedicatedServerMod.Server.Core
             WirePlayerEvents();
             
             _isInitialized = true;
-            _logger.Msg("=== Dedicated Server Bootstrap Complete ===");
+            DebugLog.StartupDebug("=== Dedicated Server Bootstrap Complete ===");
 
             // Notify API mods: server initialized and running
             ModManager.NotifyServerInitialize();
@@ -282,11 +276,11 @@ namespace DedicatedServerMod.Server.Core
                 }
                 
                 // Let ServerConfig handle its own command line arguments
-                Shared.Configuration.ServerConfig.ParseCommandLineArgs(args, persistChanges: false);
+                ServerConfig.ParseCommandLineArgs(args, persistChanges: false);
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Error processing command line arguments: {ex.Message}");
+                DebugLog.Warning($"Error processing command line arguments: {ex.Message}");
             }
         }
 
@@ -314,14 +308,12 @@ namespace DedicatedServerMod.Server.Core
                     {
                         if (player != null && player.IsLoopbackConnection)
                         {
-                            _logger.Msg("Skipping auto-save for dedicated server loopback host leave.");
+                            DebugLog.PlayerLifecycleDebug("Skipping auto-save for dedicated server loopback host leave.");
                             return;
                         }
 
                         _persistenceManager.OnPlayerLeft(player.DisplayName);
                     };
-                    
-                    _logger.Msg("Player events wired to persistence system");
                 }
             }
             catch (Exception ex)
@@ -395,11 +387,11 @@ namespace DedicatedServerMod.Server.Core
             {
                 _serverStatusQueryService = new ServerStatusQueryService(_logger, _playerManager);
                 _serverStatusQueryService.Start();
-                _logger.Msg("✓ Status query service initialized");
+                DebugLog.StartupDebug("Status query service initialized");
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Status query service failed to start: {ex.Message}");
+                DebugLog.Warning($"Status query service failed to start: {ex.Message}");
             }
         }
 
@@ -413,7 +405,7 @@ namespace DedicatedServerMod.Server.Core
             }
             catch (Exception ex)
             {
-                _logger.Warning($"Web panel failed to start: {ex.Message}");
+                DebugLog.Warning($"Web panel failed to start: {ex.Message}");
             }
         }
 

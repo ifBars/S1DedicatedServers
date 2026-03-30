@@ -1,5 +1,3 @@
-using System;
-
 namespace DedicatedServerMod.Server.HostConsole
 {
     /// <summary>

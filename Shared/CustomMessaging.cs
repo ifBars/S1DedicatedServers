@@ -1,4 +1,3 @@
-using System;
 using DedicatedServerMod.Shared.Networking.Messaging;
 using DedicatedServerMod.Utils;
 #if IL2CPP
@@ -229,7 +228,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="commands">The commands dictionary to populate</param>
         public static void InitializeConsoleCommands(Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
         {
-            MessageRouter.Initialize(_logger);
+            MessageRouter.Initialize();
         }
 
         #endregion

@@ -204,9 +204,13 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 ### Creating a Harmony Patch
 
 1. Create patch class in appropriate folder:
-   - Server patches: `Server/Game/`
+   - Server patches: `Server/Game/Patches/<Concern>/`
    - Client patches: `Client/Patches/`
    - Shared patches: `Shared/Patches/`
+
+   Server patch folders should be organized by concern rather than by a flat list of target types. Current server patch concerns include `Console`, `Gameplay`, `Networking`, `Player`, `UI`, `Visual`, `Weather`, and `Common`.
+   Keep public managers such as `GamePatchManager`, `GameSystemManager`, `TimeSystemManager`, and `SleepSystemManager` outside the patch folders unless you are intentionally changing supported surface area.
+   Namespace must match the folder, for example `DedicatedServerMod.Server.Game.Patches.Visual`.
 
 2. Use attributes or manual patching:
    ```csharp

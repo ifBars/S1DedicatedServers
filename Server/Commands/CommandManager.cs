@@ -1,20 +1,21 @@
-using System;
-using System.Collections.Generic;
 using System.Reflection;
-using DedicatedServerMod.Server.Commands.Admin;
-using DedicatedServerMod.Server.Commands.Server;
+using DedicatedServerMod.Server.Commands.BuiltIn.Gameplay;
+using DedicatedServerMod.Server.Commands.BuiltIn.Moderation;
+using DedicatedServerMod.Server.Commands.BuiltIn.Permissions;
+using DedicatedServerMod.Server.Commands.BuiltIn.System;
+using DedicatedServerMod.Server.Commands.Contracts;
+using DedicatedServerMod.Server.Commands.Execution;
+using DedicatedServerMod.Server.Commands.Output;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Permissions;
-using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Shared.Networking;
-using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppScheduleOne;
 using Console = Il2CppScheduleOne.Console;
 #else
-using ScheduleOne;
 using Console = ScheduleOne.Console;
 #endif
 
@@ -25,7 +26,6 @@ namespace DedicatedServerMod.Server.Commands
     /// </summary>
     public class CommandManager
     {
-        private readonly MelonLogger.Instance logger;
         private readonly PlayerManager playerManager;
         private readonly NetworkManager networkManager;
         private readonly ServerPermissionService permissionService;
@@ -34,12 +34,11 @@ namespace DedicatedServerMod.Server.Commands
         /// <summary>
         /// Initializes a new command manager.
         /// </summary>
-        public CommandManager(MelonLogger.Instance loggerInstance, PlayerManager playerMgr, NetworkManager networkMgr)
+        public CommandManager(PlayerManager playerMgr, NetworkManager networkMgr)
         {
-            logger = loggerInstance;
             playerManager = playerMgr;
             networkManager = networkMgr;
-            permissionService = DedicatedServerMod.Server.Core.ServerBootstrap.Permissions;
+            permissionService = Core.ServerBootstrap.Permissions;
             serverCommands = new Dictionary<string, IServerCommand>();
         }
 
@@ -52,11 +51,11 @@ namespace DedicatedServerMod.Server.Commands
             {
                 RegisterServerCommands();
                 IntegrateWithGameConsole();
-                logger.Msg("Command manager initialized");
+                DebugLog.StartupDebug("Command manager initialized");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize command manager: {ex}");
+                DebugLog.Error("Failed to initialize command manager", ex);
                 throw;
             }
         }
@@ -104,7 +103,7 @@ namespace DedicatedServerMod.Server.Commands
 
             if (!CanExecuteCommand(executor, command, commandLine.Arguments))
             {
-                logger.Warning($"Player {executor?.DisplayName ?? "Console"} lacks permission for command '{commandLine.CommandWord}'");
+                DebugLog.Warning($"Player {executor?.DisplayName ?? "Console"} lacks permission for command '{commandLine.CommandWord}'");
                 CommandExecutionResult result = new CommandExecutionResult(
                     CommandExecutionStatus.Unauthorized,
                     commandLine.CommandWord,
@@ -119,7 +118,6 @@ namespace DedicatedServerMod.Server.Commands
                 {
                     Executor = executor,
                     Arguments = new List<string>(commandLine.Arguments),
-                    Logger = logger,
                     PlayerManager = playerManager,
                     Permissions = permissionService,
                     Output = output
@@ -130,7 +128,7 @@ namespace DedicatedServerMod.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error($"Error executing command '{commandLine.CommandWord}': {ex}");
+                DebugLog.Error($"Error executing command '{commandLine.CommandWord}'", ex);
                 CommandExecutionResult result = new CommandExecutionResult(
                     CommandExecutionStatus.ExecutionFailed,
                     commandLine.CommandWord,
@@ -206,33 +204,32 @@ namespace DedicatedServerMod.Server.Commands
         public void Shutdown()
         {
             serverCommands.Clear();
-            logger.Msg("Command manager shutdown");
         }
 
         private void RegisterServerCommands()
         {
-            RegisterCommand(new ReloadPermissionsCommand(logger, playerManager));
-            RegisterCommand(new PermissionCommand(logger, playerManager));
-            RegisterCommand(new GroupCommand(logger, playerManager));
-            RegisterCommand(new OpCommand(logger, playerManager));
-            RegisterCommand(new DeopCommand(logger, playerManager));
-            RegisterCommand(new AdminCommand(logger, playerManager));
-            RegisterCommand(new DeadminCommand(logger, playerManager));
-            RegisterCommand(new ListOpsCommand(logger, playerManager));
-            RegisterCommand(new ListAdminsCommand(logger, playerManager));
-            RegisterCommand(new KickCommand(logger, playerManager));
-            RegisterCommand(new BanCommand(logger, playerManager));
-            RegisterCommand(new UnbanCommand(logger, playerManager));
-            RegisterCommand(new ListPlayersCommand(logger, playerManager));
-            RegisterCommand(new HelpCommand(logger, playerManager, this));
-            RegisterCommand(new ServerInfoCommand(logger, playerManager, networkManager));
-            RegisterCommand(new ReloadConfigCommand(logger, playerManager));
-            RegisterCommand(new SaveCommand(logger, playerManager));
-            RegisterCommand(new SetTimeCommand(logger, playerManager));
-            RegisterCommand(new SetTimeScaleCommand(logger, playerManager));
-            RegisterCommand(new ShutdownCommand(logger, playerManager));
+            RegisterCommand(new ReloadPermissionsCommand(playerManager));
+            RegisterCommand(new PermissionCommand(playerManager));
+            RegisterCommand(new GroupCommand(playerManager));
+            RegisterCommand(new OpCommand(playerManager));
+            RegisterCommand(new DeopCommand(playerManager));
+            RegisterCommand(new AdminCommand(playerManager));
+            RegisterCommand(new DeadminCommand(playerManager));
+            RegisterCommand(new ListOpsCommand(playerManager));
+            RegisterCommand(new ListAdminsCommand(playerManager));
+            RegisterCommand(new KickCommand(playerManager));
+            RegisterCommand(new BanCommand(playerManager));
+            RegisterCommand(new UnbanCommand(playerManager));
+            RegisterCommand(new ListPlayersCommand(playerManager));
+            RegisterCommand(new HelpCommand(playerManager, this));
+            RegisterCommand(new ServerInfoCommand(playerManager, networkManager));
+            RegisterCommand(new ReloadConfigCommand(playerManager));
+            RegisterCommand(new SaveCommand(playerManager));
+            RegisterCommand(new SetTimeCommand(playerManager));
+            RegisterCommand(new SetTimeScaleCommand(playerManager));
+            RegisterCommand(new ShutdownCommand(playerManager));
 
-            logger.Msg($"Registered {serverCommands.Count} server commands");
+            DebugLog.StartupDebug($"Registered {serverCommands.Count} server commands");
         }
 
         private void RegisterCommand(IServerCommand command)
@@ -241,16 +238,16 @@ namespace DedicatedServerMod.Server.Commands
             {
                 if (serverCommands.ContainsKey(command.CommandWord))
                 {
-                    logger.Warning($"Command '{command.CommandWord}' already registered, skipping");
+                    DebugLog.Warning($"Command '{command.CommandWord}' already registered, skipping");
                     return;
                 }
 
                 serverCommands[command.CommandWord] = command;
-                logger.Msg($"Registered command: {command.CommandWord}");
+                DebugLog.StartupDebug($"Registered command: {command.CommandWord}");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error registering command '{command?.CommandWord}': {ex}");
+                DebugLog.Error($"Error registering command '{command?.CommandWord}'", ex);
             }
         }
 
@@ -265,7 +262,7 @@ namespace DedicatedServerMod.Server.Commands
                     if (!gameCommands.ContainsKey("settime") || !gameCommands.ContainsKey("give"))
                     {
                         CustomMessaging.InitializeConsoleCommands(gameCommands);
-                        logger.Msg("Initialized base game console commands");
+                        DebugLog.StartupDebug("Initialized base game console commands");
                     }
 
                     foreach (IServerCommand serverCommand in serverCommands.Values)
@@ -275,17 +272,15 @@ namespace DedicatedServerMod.Server.Commands
                             gameCommands[serverCommand.CommandWord] = new ConsoleCommandAdapter(this, serverCommand);
                         }
                     }
-
-                    logger.Msg("Integrated server commands with game console");
                 }
                 else
                 {
-                    logger.Warning("Could not access game console commands dictionary");
+                    DebugLog.Warning("Could not access game console commands dictionary");
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error integrating with game console: {ex}");
+                DebugLog.Error("Error integrating with game console", ex);
             }
         }
 
@@ -328,68 +323,5 @@ namespace DedicatedServerMod.Server.Commands
 
             return playerManager.Permissions.CanExecuteCommand(player, requiredPermissionNode);
         }
-    }
-
-    /// <summary>
-    /// Adapter to integrate server commands with the game's console system.
-    /// </summary>
-    public class ConsoleCommandAdapter : Console.ConsoleCommand
-    {
-        private readonly CommandManager _commandManager;
-        private readonly IServerCommand _serverCommand;
-
-        /// <summary>
-        /// Initializes a new game console adapter.
-        /// </summary>
-        public ConsoleCommandAdapter(CommandManager commandManager, IServerCommand serverCommand)
-        {
-            _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
-            _serverCommand = serverCommand ?? throw new ArgumentNullException(nameof(serverCommand));
-        }
-
-        /// <inheritdoc />
-        public override string CommandWord => _serverCommand.CommandWord;
-
-        /// <inheritdoc />
-        public override string CommandDescription => _serverCommand.Description;
-
-        /// <inheritdoc />
-        public override string ExampleUsage => _serverCommand.Usage;
-
-        private void ExecuteCore(List<string> args)
-        {
-            try
-            {
-                ParsedCommandLine commandLine = new ParsedCommandLine(CommandWord.ToLowerInvariant(), args ?? new List<string>());
-                _commandManager.ExecuteConsoleLine(commandLine, new GameConsoleCommandOutput());
-            }
-            catch (Exception ex)
-            {
-                Console.LogError($"Error executing command '{CommandWord}': {ex.Message}");
-            }
-        }
-
-#if IL2CPP
-        /// <inheritdoc />
-        public override void Execute(Il2CppSystem.Collections.Generic.List<string> args)
-        {
-            List<string> managedArgs = new List<string>();
-            if (args != null)
-            {
-                for (int i = 0; i < args.Count; i++)
-                {
-                    managedArgs.Add(args[i]);
-                }
-            }
-
-            ExecuteCore(managedArgs);
-        }
-#else
-        /// <inheritdoc />
-        public override void Execute(List<string> args)
-        {
-            ExecuteCore(args ?? new List<string>());
-        }
-#endif
     }
 }

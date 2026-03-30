@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
 using System.Reflection;
+using DedicatedServerMod.Shared.Configuration;
 #if SERVER
 using DedicatedServerMod.Server.Commands;
+using DedicatedServerMod.Server.Commands.Execution;
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Player;
-using DedicatedServerMod.Shared.Configuration;
+using UnityEngine;
 using ServerPlayerManager = DedicatedServerMod.Server.Player.PlayerManager;
 using ServerPlayerInfo = DedicatedServerMod.Server.Player.ConnectedPlayerInfo;
 #endif
@@ -18,14 +18,12 @@ using Il2CppFishNet.Object;
 using Il2CppFishNet.Serializing;
 using Il2CppFishNet.Transporting;
 #else
-using FishNet;
 using FishNet.Connection;
-using FishNet.Object;
-using FishNet.Serializing;
-using FishNet.Transporting;
 #endif
-using MelonLoader;
 using DedicatedServerMod.Shared.ConsoleSupport;
+using DedicatedServerMod.Shared.ModVerification;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Vehicles;
 #if IL2CPP
 using Newtonsoft.Json;
 using Il2CppScheduleOne;
@@ -35,19 +33,13 @@ using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.Vehicles;
 #else
 using Newtonsoft.Json;
-using ScheduleOne;
-using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
-using ScheduleOne.UI;
-using ScheduleOne.Vehicles;
 #endif
-using UnityEngine;
 #if IL2CPP
 using Console = Il2CppScheduleOne.Console;
 #else
 using Console = ScheduleOne.Console;
 #endif
-using DedicatedServerMod.Shared.ModVerification;
 
 namespace DedicatedServerMod.Shared.Networking
 {
@@ -63,17 +55,10 @@ namespace DedicatedServerMod.Shared.Networking
     public static class MessageRouter
     {
         /// <summary>
-        /// The logger instance for this router.
-        /// </summary>
-        private static MelonLogger.Instance _logger;
-
-        /// <summary>
         /// Initializes the message router with a logger.
         /// </summary>
-        /// <param name="logger">The logger to use</param>
-        public static void Initialize(MelonLogger.Instance logger)
+        public static void Initialize()
         {
-            _logger = logger;
         }
 
         #region Server Message Routing
@@ -89,7 +74,7 @@ namespace DedicatedServerMod.Shared.Networking
 #if SERVER
             if (conn == null)
             {
-                _logger.Warning("RouteServerMessage: Connection is null");
+                DebugLog.Warning("RouteServerMessage: Connection is null");
                 return;
             }
 
@@ -97,7 +82,7 @@ namespace DedicatedServerMod.Shared.Networking
 
             if (!IsCommandAllowedForConnection(conn, command))
             {
-                _logger.Warning($"RouteServerMessage: rejecting unauthenticated command '{command}' from ClientId {conn.ClientId}");
+                DebugLog.Warning($"RouteServerMessage: rejecting unauthenticated command '{command}' from ClientId {conn.ClientId}");
                 return;
             }
 
@@ -193,7 +178,7 @@ namespace DedicatedServerMod.Shared.Networking
                 ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
                 if (playerInfo == null)
                 {
-                    _logger.Warning($"HandleAuthHello: no player tracked for ClientId {conn.ClientId}");
+                    DebugLog.Warning($"HandleAuthHello: no player tracked for ClientId {conn.ClientId}");
                     return;
                 }
 
@@ -219,7 +204,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleAuthHello error: {ex}");
+                DebugLog.Error($"HandleAuthHello threw an exception", ex);
             }
         }
 
@@ -231,7 +216,7 @@ namespace DedicatedServerMod.Shared.Networking
                 ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
                 if (playerInfo == null)
                 {
-                    _logger.Warning($"HandleAuthTicket: no player tracked for ClientId {conn.ClientId}");
+                    DebugLog.Warning($"HandleAuthTicket: no player tracked for ClientId {conn.ClientId}");
                     return;
                 }
 
@@ -242,7 +227,7 @@ namespace DedicatedServerMod.Shared.Networking
                 }
                 catch (JsonException ex)
                 {
-                    _logger.Warning($"HandleAuthTicket: invalid payload from ClientId {conn.ClientId}: {ex.Message}");
+                    DebugLog.Error($"HandleAuthTicket: invalid payload from ClientId {conn.ClientId}", ex);
                     conn.Disconnect(true);
                     return;
                 }
@@ -255,7 +240,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleAuthTicket error: {ex}");
+                DebugLog.Error("HandleAuthTicket threw an exception", ex);
             }
         }
 
@@ -274,7 +259,7 @@ namespace DedicatedServerMod.Shared.Networking
                 return false;
             }
 
-            bool authenticationRequired = DedicatedServerMod.Shared.Configuration.ServerConfig.Instance.AuthenticationEnabled &&
+            bool authenticationRequired = ServerConfig.Instance.AuthenticationEnabled &&
                                           !playerManager.Authentication.ShouldBypassAuthentication(playerInfo);
             if (authenticationRequired && !playerInfo.IsAuthenticated)
             {
@@ -303,7 +288,7 @@ namespace DedicatedServerMod.Shared.Networking
                 ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
                 if (playerInfo == null)
                 {
-                    _logger.Warning($"HandleModVerificationReport: no player tracked for ClientId {conn.ClientId}");
+                    DebugLog.Warning($"HandleModVerificationReport: no player tracked for ClientId {conn.ClientId}");
                     return;
                 }
 
@@ -314,7 +299,7 @@ namespace DedicatedServerMod.Shared.Networking
                 }
                 catch (JsonException ex)
                 {
-                    _logger.Warning($"HandleModVerificationReport: invalid payload from ClientId {conn.ClientId}: {ex.Message}");
+                    DebugLog.Error($"HandleModVerificationReport: invalid payload from ClientId {conn.ClientId}", ex);
                     playerManager.NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", "Client mod verification payload was invalid.");
                     return;
                 }
@@ -323,7 +308,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleModVerificationReport error: {ex}");
+                DebugLog.Error($"HandleModVerificationReport threw an exception", ex);
             }
         }
 
@@ -344,7 +329,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleSteamNetworkLibRegister error: {ex}");
+                DebugLog.Error($"HandleSteamNetworkLibRegister threw an exception", ex);
             }
         }
 
@@ -357,7 +342,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleSteamNetworkLibSetLobbyData error: {ex}");
+                DebugLog.Error($"HandleSteamNetworkLibSetLobbyData threw an exception", ex);
             }
         }
 
@@ -370,7 +355,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleSteamNetworkLibSetMemberData error: {ex}");
+                DebugLog.Error($"HandleSteamNetworkLibSetMemberData threw an exception", ex);
             }
         }
 
@@ -383,11 +368,9 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleSteamNetworkLibP2PSend error: {ex}");
+                DebugLog.Error($"HandleSteamNetworkLibP2PSend threw an exception", ex);
             }
         }
-
-#endif
 
         /// <summary>
         /// Handles an admin console command from a client.
@@ -396,33 +379,32 @@ namespace DedicatedServerMod.Shared.Networking
         /// <param name="data">The command data</param>
         private static void HandleAdminConsoleCommand(NetworkConnection conn, string data)
         {
-#if SERVER
             try
             {
                 ServerPlayerInfo playerInfo = ServerBootstrap.Players?.GetPlayer(conn);
                 var player = FindPlayerByConnection(conn);
                 if (player == null || playerInfo == null)
                 {
-                    _logger.Warning("HandleAdminConsoleCommand: Could not find player for connection");
+                    DebugLog.Warning("HandleAdminConsoleCommand: Could not find player for connection");
                     return;
                 }
 
                 if (ServerBootstrap.Permissions?.CanOpenConsole(playerInfo.TrustedUniqueId) != true)
                 {
-                    _logger.Warning($"HandleAdminConsoleCommand: Player {playerInfo.DisplayName} not permitted to use admin console.");
+                    DebugLog.Warning($"HandleAdminConsoleCommand: Player {playerInfo.DisplayName} not permitted to use admin console.");
                     return;
                 }
 
                 CommandLineParseResult parseResult = CommandLineParser.TryParse(data);
                 if (parseResult.IsEmpty)
                 {
-                    _logger.Warning("HandleAdminConsoleCommand: No command parts found");
+                    DebugLog.Warning("HandleAdminConsoleCommand: No command parts found");
                     return;
                 }
 
                 if (!parseResult.Success)
                 {
-                    _logger.Warning($"HandleAdminConsoleCommand: Parse error: {parseResult.ErrorMessage}");
+                    DebugLog.Warning($"HandleAdminConsoleCommand: Parse error: {parseResult.ErrorMessage}");
                     LogCommandError(parseResult.ErrorMessage);
                     return;
                 }
@@ -445,7 +427,7 @@ namespace DedicatedServerMod.Shared.Networking
 
                 if (ServerBootstrap.Permissions?.CanExecuteRemoteConsoleCommand(playerInfo.TrustedUniqueId, cmd) != true)
                 {
-                    _logger.Warning($"HandleAdminConsoleCommand: Player {playerInfo.DisplayName} not permitted to run remote console command '{cmd}'.");
+                    DebugLog.Warning($"HandleAdminConsoleCommand: Player {playerInfo.DisplayName} not permitted to run remote console command '{cmd}'.");
                     return;
                 }
 
@@ -460,9 +442,8 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleAdminConsoleCommand: Error executing admin console command: {ex}");
+                DebugLog.Error("HandleAdminConsoleCommand: Error executing admin console command", ex);
             }
-#endif
         }
 
         /// <summary>
@@ -482,7 +463,7 @@ namespace DedicatedServerMod.Shared.Networking
                 var vm = NetworkSingleton<VehicleManager>.Instance;
                 if (vm == null)
                 {
-                    _logger.Error("HandleSpawnVehicleCommand: VehicleManager instance not found on server");
+                    DebugLog.Error("HandleSpawnVehicleCommand: VehicleManager instance not found on server");
                     return;
                 }
 
@@ -498,24 +479,19 @@ namespace DedicatedServerMod.Shared.Networking
 
                 if (spawned != null)
                 {
-                    try
-                    {
-                        spawned.NetworkObject.GiveOwnership(player.Owner);
-                    }
-                    catch { }
-
-                    _logger.Msg($"Spawned vehicle '{vehicleCode}' for player {player.PlayerName}");
+                    DebugLog.MessageRoutingDebug($"Spawned vehicle '{vehicleCode}' for player {player.PlayerName}");
                 }
                 else
                 {
-                    _logger.Warning("HandleSpawnVehicleCommand: SpawnAndReturnVehicle returned null");
+                    DebugLog.Warning("HandleSpawnVehicleCommand: SpawnAndReturnVehicle returned null");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleSpawnVehicleCommand: Error spawning vehicle server-side: {ex}");
+                DebugLog.Error($"HandleSpawnVehicleCommand: Error spawning vehicle server-side: {ex}");
             }
         }
+#endif
 
         /// <summary>
         /// Relays a console command to the specific client so Player.Local refers to their player.
@@ -537,7 +513,7 @@ namespace DedicatedServerMod.Shared.Networking
 
                 if (commands == null)
                 {
-                    _logger.Error("ExecuteConsoleCommandRelay: Could not access Console.commands field");
+                    DebugLog.Error("ExecuteConsoleCommandRelay: Could not access Console.commands field");
                     return;
                 }
 
@@ -558,7 +534,7 @@ namespace DedicatedServerMod.Shared.Networking
                 }
                 else
                 {
-                    _logger.Warning($"ExecuteConsoleCommandRelay: Command '{parsedCommand.CommandWord}' not found in available commands");
+                    DebugLog.Warning($"ExecuteConsoleCommandRelay: Command '{parsedCommand.CommandWord}' not found in available commands");
                     LogCommandError($"Command '{parsedCommand.CommandWord}' not found.");
 #if SERVER
                     ServerBootstrap.Permissions?.LogCommand(playerInfo, parsedCommand.CommandWord, succeeded: false, "command_not_found");
@@ -567,7 +543,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"ExecuteConsoleCommandRelay: Error: {ex}");
+                DebugLog.Error("ExecuteConsoleCommandRelay threw an exception", ex);
 #if SERVER
                 ServerBootstrap.Permissions?.LogCommand(playerInfo, parsedCommand.CommandWord, succeeded: false, ex.Message);
 #endif
@@ -589,13 +565,13 @@ namespace DedicatedServerMod.Shared.Networking
                 CommandLineParseResult parseResult = CommandLineParser.TryParse(data);
                 if (parseResult.IsEmpty)
                 {
-                    _logger.Warning("HandleClientConsoleCommand: No command parts found");
+                    DebugLog.Warning("HandleClientConsoleCommand: No command parts found");
                     return;
                 }
 
                 if (!parseResult.Success)
                 {
-                    _logger.Warning($"HandleClientConsoleCommand: Parse error: {parseResult.ErrorMessage}");
+                    DebugLog.Warning($"HandleClientConsoleCommand: Parse error: {parseResult.ErrorMessage}");
                     Console.LogCommandError(parseResult.ErrorMessage);
                     return;
                 }
@@ -609,13 +585,13 @@ namespace DedicatedServerMod.Shared.Networking
 
                 if (commands == null)
                 {
-                    _logger.Error("HandleClientConsoleCommand: Could not access Console.commands on client");
+                    DebugLog.Error("HandleClientConsoleCommand: Could not access Console.commands on client");
                     return;
                 }
 
                 if (!commands.ContainsKey(cmd))
                 {
-                    _logger.Warning($"HandleClientConsoleCommand: Command '{cmd}' not found on client");
+                    DebugLog.Warning($"HandleClientConsoleCommand: Command '{cmd}' not found on client");
                     Console.LogCommandError($"Command '{cmd}' not found.");
                     return;
                 }
@@ -634,7 +610,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleClientConsoleCommand error: {ex}");
+                DebugLog.Error("HandleClientConsoleCommand error", ex);
             }
         }
 
@@ -650,7 +626,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var config = Configuration.ServerConfig.Instance;
+                var config = ServerConfig.Instance;
                 var serverData = new DedicatedServerMod.Shared.ServerData
                 {
                     ServerName = config.ServerName,
@@ -669,7 +645,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"HandleServerDataRequest: Error: {ex}");
+                DebugLog.Error($"HandleServerDataRequest threw an exception", ex);
             }
         }
 
@@ -772,7 +748,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error($"EnsureCoreCommandsExist: Error: {ex}");
+                DebugLog.Error($"EnsureCoreCommandsExist threw an exception", ex);
             }
         }
 
@@ -787,7 +763,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             if (conn == null)
             {
-                _logger.Warning("FindPlayerByConnection: Connection is null");
+                DebugLog.Warning("FindPlayerByConnection: Connection is null");
                 return null;
             }
 
@@ -797,7 +773,7 @@ namespace DedicatedServerMod.Shared.Networking
                     return p;
             }
 
-            _logger.Warning($"FindPlayerByConnection: No player found for connection {conn.ClientId}");
+            DebugLog.Warning($"FindPlayerByConnection: No player found for connection {conn.ClientId}");
             return null;
         }
 
@@ -812,7 +788,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
             catch
             {
-                _logger.Warning(message);
+                DebugLog.Warning(message);
             }
         }
 

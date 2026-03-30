@@ -1,5 +1,3 @@
-using System;
-using DedicatedServerMod;
 using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
 

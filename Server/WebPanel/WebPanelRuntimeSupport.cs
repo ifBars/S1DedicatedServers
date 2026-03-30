@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using MelonLoader;
+using DedicatedServerMod.Server.Commands;
+using DedicatedServerMod.Server.Commands.Execution;
+using DedicatedServerMod.Server.Commands.Output;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -30,16 +29,11 @@ namespace DedicatedServerMod.Server.WebPanel
     /// <summary>
     /// Stores recent browser-panel logs in memory for quick bootstrap hydration.
     /// </summary>
-    internal sealed class WebPanelLogBuffer
+    internal sealed class WebPanelLogBuffer(int capacity)
     {
         private readonly object _sync = new object();
         private readonly LinkedList<WebPanelLogEntry> _entries = new LinkedList<WebPanelLogEntry>();
-        private readonly int _capacity;
-
-        public WebPanelLogBuffer(int capacity)
-        {
-            _capacity = Math.Max(10, capacity);
-        }
+        private readonly int _capacity = Math.Max(10, capacity);
 
         public void Add(WebPanelLogEntry entry)
         {
@@ -358,7 +352,7 @@ namespace DedicatedServerMod.Server.WebPanel
                 return false;
             }
 
-            using (System.IO.Stream resourceStream = typeof(WebPanelStaticFileProvider).Assembly.GetManifestResourceStream(resourceName))
+            using (Stream resourceStream = typeof(WebPanelStaticFileProvider).Assembly.GetManifestResourceStream(resourceName))
             {
                 if (resourceStream == null)
                 {
@@ -367,7 +361,7 @@ namespace DedicatedServerMod.Server.WebPanel
                     return false;
                 }
 
-                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream())
+                using (MemoryStream memoryStream = new MemoryStream())
                 {
                     resourceStream.CopyTo(memoryStream);
                     content = memoryStream.ToArray();
@@ -403,23 +397,19 @@ namespace DedicatedServerMod.Server.WebPanel
     /// <summary>
     /// Executes server commands for browser-panel callers and captures line output.
     /// </summary>
-    internal sealed class WebPanelCommandBridge
+    internal sealed class WebPanelCommandBridge(
+        CommandManager commandManager,
+        WebPanelEventStream eventStream,
+        WebPanelLogBuffer logBuffer)
     {
-        private readonly Commands.CommandManager _commandManager;
-        private readonly WebPanelEventStream _eventStream;
-        private readonly WebPanelLogBuffer _logBuffer;
-
-        public WebPanelCommandBridge(Commands.CommandManager commandManager, WebPanelEventStream eventStream, WebPanelLogBuffer logBuffer)
-        {
-            _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
-            _eventStream = eventStream ?? throw new ArgumentNullException(nameof(eventStream));
-            _logBuffer = logBuffer ?? throw new ArgumentNullException(nameof(logBuffer));
-        }
+        private readonly CommandManager _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
+        private readonly WebPanelEventStream _eventStream = eventStream ?? throw new ArgumentNullException(nameof(eventStream));
+        private readonly WebPanelLogBuffer _logBuffer = logBuffer ?? throw new ArgumentNullException(nameof(logBuffer));
 
         public WebPanelCommandResult Execute(string commandLine)
         {
             BrowserCommandOutput output = new BrowserCommandOutput(_eventStream, _logBuffer);
-            Commands.CommandExecutionResult executionResult = _commandManager.ExecuteConsoleLine(commandLine ?? string.Empty, output);
+            CommandExecutionResult executionResult = _commandManager.ExecuteConsoleLine(commandLine ?? string.Empty, output);
 
             return new WebPanelCommandResult
             {
@@ -431,19 +421,10 @@ namespace DedicatedServerMod.Server.WebPanel
             };
         }
 
-        private sealed class BrowserCommandOutput : Commands.ICommandOutput
+        private sealed class BrowserCommandOutput(WebPanelEventStream eventStream, WebPanelLogBuffer logBuffer)
+            : ICommandOutput
         {
-            private readonly WebPanelEventStream _eventStream;
-            private readonly WebPanelLogBuffer _logBuffer;
-
-            public BrowserCommandOutput(WebPanelEventStream eventStream, WebPanelLogBuffer logBuffer)
-            {
-                _eventStream = eventStream;
-                _logBuffer = logBuffer;
-                Lines = new List<WebPanelCommandOutputLine>();
-            }
-
-            public List<WebPanelCommandOutputLine> Lines { get; }
+            public List<WebPanelCommandOutputLine> Lines { get; } = new();
 
             public void WriteInfo(string message)
             {
@@ -478,9 +459,9 @@ namespace DedicatedServerMod.Server.WebPanel
                     Source = "console"
                 };
 
-                _logBuffer.Add(logEntry);
-                _eventStream.Publish("log.append", logEntry);
-                _eventStream.Publish("console.output", line);
+                logBuffer.Add(logEntry);
+                eventStream.Publish("log.append", logEntry);
+                eventStream.Publish("console.output", line);
             }
         }
     }

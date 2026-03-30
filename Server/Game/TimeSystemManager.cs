@@ -1,4 +1,3 @@
-using System;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;

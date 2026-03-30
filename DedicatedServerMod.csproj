@@ -724,6 +724,8 @@
 	  <None Remove="FishNet-Docs\**" />
 	  <EmbeddedResource Remove="Docker\**" />
 	  <None Remove="Docker\**" />
+	  <Content Remove="webpanel\**" />
+	  <None Remove="webpanel\**" />
 	  <None Remove="FishNet.Runtime.xml" />
 	  <None Remove="Assets\Player_0.zip.old" />
 	  <EmbeddedResource Remove="_site\**" />
@@ -826,8 +828,10 @@
 		
 		<!-- Command system -->
 		<Compile Include="Server\Commands\*.cs" />
-		<Compile Include="Server\Commands\Admin\*.cs" />
-		<Compile Include="Server\Commands\Server\*.cs" />
+		<Compile Include="Server\Commands\Contracts\*.cs" />
+		<Compile Include="Server\Commands\Execution\*.cs" />
+		<Compile Include="Server\Commands\BuiltIn\**\*.cs" />
+		<Compile Include="Server\Commands\Output\*.cs" />
 		<Compile Include="Server\Permissions\*.cs" />
 		
 		<!-- Persistence system -->
@@ -835,25 +839,12 @@
 		<Compile Include="Server\Persistence\SaveInitializer.cs" />
 		
 		<!-- Game systems -->
-		<Compile Include="Server\Game\ConsolePatches.cs" />
-		<Compile Include="Server\Game\DailySummaryPatches.cs" />
-		<Compile Include="Server\Game\ClientVisualPatches.cs" />
-		<Compile Include="Server\Game\DedicatedServerPatchCommon.cs" />
-		<Compile Include="Server\Game\GameManagerPatches.cs" />
-		<Compile Include="Server\Game\GodRaysRenderPassPatches.cs" />
-		<Compile Include="Server\Game\HeatmapManagerPatches.cs" />
-		<Compile Include="Server\Game\IconGeneratorPatches.cs" />
-		<Compile Include="Server\Game\LoadManagerPatches.cs" />
-		<Compile Include="Server\Game\MultipassPatches.cs" />
-		<Compile Include="Server\Game\PlayerPatches.cs" />
-		<Compile Include="Server\Game\ProductIconManagerPatches.cs" />
-		<Compile Include="Server\Game\SleepCanvasPatches.cs" />
-		<Compile Include="Server\Game\TimeManagerPatches.cs" />
-		<Compile Include="Server\Game\WeatherSystemPatches.cs" />
 		<Compile Include="Server\Game\GameSystemManager.cs" />
 		<Compile Include="Server\Game\TimeSystemManager.cs" />
 		<Compile Include="Server\Game\SleepSystemManager.cs" />
 		<Compile Include="Server\Game\GamePatchManager.cs" />
+		<Compile Include="Server\Game\PatchInfo.cs" />
+		<Compile Include="Server\Game\Patches\**\*.cs" />
 		<Compile Include="API\S1DS.Server.cs" />
 	</ItemGroup>
 

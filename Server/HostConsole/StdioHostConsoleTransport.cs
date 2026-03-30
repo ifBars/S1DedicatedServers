@@ -1,6 +1,5 @@
-using System;
-using System.Threading;
 using DedicatedServerMod.Server.Commands;
+using DedicatedServerMod.Server.Commands.Output;
 using MelonLoader;
 
 namespace DedicatedServerMod.Server.HostConsole
@@ -58,7 +57,7 @@ namespace DedicatedServerMod.Server.HostConsole
             {
                 while (_isRunning)
                 {
-                    string line = System.Console.In.ReadLine();
+                    string line = Console.In.ReadLine();
                     if (line == null)
                     {
                         _logger.Msg("stdio host console detached (EOF received).");

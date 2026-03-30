@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using DedicatedServerMod.Server.Commands;
 using DedicatedServerMod.Shared.Configuration;
 using MelonLoader;
@@ -120,7 +118,7 @@ namespace DedicatedServerMod.Server.HostConsole
         {
             try
             {
-                return System.Console.IsInputRedirected;
+                return Console.IsInputRedirected;
             }
             catch (Exception ex)
             {

@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Server.Persistence;
 using DedicatedServerMod.Server.Permissions;
@@ -21,43 +16,31 @@ namespace DedicatedServerMod.Server.WebPanel
     /// <summary>
     /// Hosts the localhost-only browser panel API and static SPA assets.
     /// </summary>
-    internal sealed class WebPanelHttpHost : IDisposable
+    internal sealed class WebPanelHttpHost(
+        MelonLogger.Instance logger,
+        WebPanelSnapshotService snapshotService,
+        WebPanelSessionService sessionService,
+        WebPanelEventStream eventStream,
+        WebPanelStaticFileProvider staticFileProvider,
+        WebPanelCommandBridge commandBridge,
+        WebPanelLogBuffer logBuffer,
+        ServerPermissionService permissionService,
+        PersistenceManager persistenceManager)
+        : IDisposable
     {
-        private readonly MelonLogger.Instance _logger;
-        private readonly WebPanelSnapshotService _snapshotService;
-        private readonly WebPanelSessionService _sessionService;
-        private readonly WebPanelEventStream _eventStream;
-        private readonly WebPanelStaticFileProvider _staticFileProvider;
-        private readonly WebPanelCommandBridge _commandBridge;
-        private readonly WebPanelLogBuffer _logBuffer;
-        private readonly ServerPermissionService _permissionService;
-        private readonly PersistenceManager _persistenceManager;
+        private readonly MelonLogger.Instance _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly WebPanelSnapshotService _snapshotService = snapshotService ?? throw new ArgumentNullException(nameof(snapshotService));
+        private readonly WebPanelSessionService _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
+        private readonly WebPanelEventStream _eventStream = eventStream ?? throw new ArgumentNullException(nameof(eventStream));
+        private readonly WebPanelStaticFileProvider _staticFileProvider = staticFileProvider ?? throw new ArgumentNullException(nameof(staticFileProvider));
+        private readonly WebPanelCommandBridge _commandBridge = commandBridge ?? throw new ArgumentNullException(nameof(commandBridge));
+        private readonly WebPanelLogBuffer _logBuffer = logBuffer ?? throw new ArgumentNullException(nameof(logBuffer));
+        private readonly ServerPermissionService _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
+        private readonly PersistenceManager _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
 
         private TcpListener _listener;
         private Thread _listenerThread;
         private volatile bool _isRunning;
-
-        public WebPanelHttpHost(
-            MelonLogger.Instance logger,
-            WebPanelSnapshotService snapshotService,
-            WebPanelSessionService sessionService,
-            WebPanelEventStream eventStream,
-            WebPanelStaticFileProvider staticFileProvider,
-            WebPanelCommandBridge commandBridge,
-            WebPanelLogBuffer logBuffer,
-            ServerPermissionService permissionService,
-            PersistenceManager persistenceManager)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _snapshotService = snapshotService ?? throw new ArgumentNullException(nameof(snapshotService));
-            _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
-            _eventStream = eventStream ?? throw new ArgumentNullException(nameof(eventStream));
-            _staticFileProvider = staticFileProvider ?? throw new ArgumentNullException(nameof(staticFileProvider));
-            _commandBridge = commandBridge ?? throw new ArgumentNullException(nameof(commandBridge));
-            _logBuffer = logBuffer ?? throw new ArgumentNullException(nameof(logBuffer));
-            _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-            _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
-        }
 
         public string LaunchUrl { get; private set; } = string.Empty;
 

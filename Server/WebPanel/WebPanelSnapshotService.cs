@@ -1,33 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DedicatedServerMod.Server.Network;
 using DedicatedServerMod.Server.Persistence;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Shared.Configuration;
-using DedicatedServerMod.Shared.Permissions;
-using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Server.WebPanel
 {
     /// <summary>
     /// Builds browser-panel DTOs from the existing dedicated server subsystems.
     /// </summary>
-    internal sealed class WebPanelSnapshotService
+    internal sealed class WebPanelSnapshotService(
+        NetworkManager networkManager,
+        PlayerManager playerManager,
+        ServerPermissionService permissionService,
+        PersistenceManager persistenceManager)
     {
-        private readonly NetworkManager _networkManager;
-        private readonly PlayerManager _playerManager;
-        private readonly ServerPermissionService _permissionService;
-        private readonly PersistenceManager _persistenceManager;
-
-        public WebPanelSnapshotService(NetworkManager networkManager, PlayerManager playerManager, ServerPermissionService permissionService, PersistenceManager persistenceManager)
-        {
-            _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));
-            _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
-            _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
-            _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
-        }
+        private readonly NetworkManager _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));
+        private readonly PlayerManager _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
+        private readonly ServerPermissionService _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
+        private readonly PersistenceManager _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
 
         public ServerDashboardSnapshot CreateOverview()
         {

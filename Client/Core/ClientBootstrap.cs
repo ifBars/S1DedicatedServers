@@ -209,7 +209,7 @@ namespace DedicatedServerMod.Client.Core
                 Utils.DebugLog.Initialize(_logger);
 
                 // Initialize MessageRouter for client-side message handling
-                Shared.Networking.MessageRouter.Initialize(_logger);
+                Shared.Networking.MessageRouter.Initialize();
                 PermissionSnapshotStore.Initialize(_logger);
 
                 // Initialize messaging service (backend selection)

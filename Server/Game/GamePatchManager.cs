@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using DedicatedServerMod;
+using DedicatedServerMod.Server.Game.Patches.Console;
+using DedicatedServerMod.Server.Game.Patches.Player;
 using DedicatedServerMod.Shared.Configuration;
 using HarmonyLib;
 using MelonLoader;
@@ -283,44 +281,4 @@ namespace DedicatedServerMod.Server.Game
         }
     }
 
-    /// <summary>
-    /// Patch information
-    /// </summary>
-    public class PatchInfo
-    {
-        public int TotalPatches { get; set; }
-        public List<string> AppliedPatches { get; set; }
-        public string HarmonyId { get; set; }
-
-        public override string ToString()
-        {
-            return $"Patches: {TotalPatches} applied | Harmony ID: {HarmonyId}";
-        }
-    }
-
-    // Example patch classes (these would be implemented with actual game methods)
-    
-    /// <summary>
-    /// Example time system patch
-    /// </summary>
-    public static class TimePatch
-    {
-        public static bool Prefix()
-        {
-            // Patch logic here
-            return true; // Allow original method to run
-        }
-    }
-
-    /// <summary>
-    /// Example sleep system patch
-    /// </summary>
-    public static class SleepPatch
-    {
-        public static bool Prefix()
-        {
-            // Patch logic here
-            return true; // Allow original method to run
-        }
-    }
 }
