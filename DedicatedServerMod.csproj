@@ -730,6 +730,8 @@
 	  <None Remove="Assets\Player_0.zip.old" />
 	  <EmbeddedResource Remove="_site\**" />
 	  <None Remove="_site\**" />
+	  <EmbeddedResource Remove="packaging\**" />
+	  <None Remove="packaging\**" />
 	</ItemGroup>
 	
 	<!-- Utility infrastructure (shared by all builds) -->
