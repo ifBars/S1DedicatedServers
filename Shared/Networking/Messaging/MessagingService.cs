@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         /// <summary>
         /// Gets whether the active messaging endpoint is ready for traffic.
         /// </summary>
-        public static bool IsEndpointReady => _isInitialized && _isEndpointReady;
+        public static bool IsEndpointReady => _isInitialized && _backend?.IsEndpointReady == true;
 
         /// <summary>
         /// Gets the currently active backend type.
@@ -95,6 +95,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
                 _isInitialized = true;
                 _isEndpointReady = false;
+                RefreshEndpointReadyState();
                 DebugLog.MessagingBackendDebug($"Messaging service initialized with backend: {backendType}");
                 return true;
             }
@@ -148,6 +149,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             try
             {
                 _backend.Tick();
+                RefreshEndpointReadyState();
             }
             catch (Exception ex)
             {
@@ -170,7 +172,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             try
             {
                 _backend.OnDailySummaryAwake(instance);
-                MarkEndpointReady();
+                RefreshEndpointReadyState();
             }
             catch (Exception ex)
             {
@@ -178,17 +180,23 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             }
         }
 
-        private static void MarkEndpointReady()
+        private static void RefreshEndpointReadyState()
         {
-            if (_isEndpointReady)
+            bool endpointReady = _isInitialized && _backend?.IsEndpointReady == true;
+            if (_isEndpointReady == endpointReady)
             {
                 return;
             }
 
-            _isEndpointReady = true;
+            _isEndpointReady = endpointReady;
+            if (!_isEndpointReady)
+            {
+                return;
+            }
 
             try
             {
+                DebugLog.MessagingBackendDebug($"Messaging endpoint is ready via backend {_backend?.BackendType}.");
                 EndpointReady?.Invoke();
             }
             catch (Exception ex)

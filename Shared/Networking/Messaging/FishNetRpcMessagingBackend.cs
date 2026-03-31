@@ -44,6 +44,17 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         public bool IsInitialized => _isInitialized;
 
         /// <inheritdoc />
+        public bool IsEndpointReady
+        {
+            get
+            {
+                return _isInitialized &&
+                       TryGetDailySummaryNetworkBehaviour(out NetworkBehaviour networkBehaviour) &&
+                       networkBehaviour.IsSpawned;
+            }
+        }
+
+        /// <inheritdoc />
         public bool IsAvailable => true; // Always available on both Mono and IL2CPP
 
         /// <inheritdoc />
@@ -132,17 +143,15 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             try
             {
-                var ds = DailySummary.Instance;
-                if (ds == null)
+                if (!TryGetDailySummaryNetworkBehaviour(out NetworkBehaviour networkBehaviour))
                 {
                     DebugLog.MessagingBackendDebug($"SendToServer deferred: DailySummary instance not ready for cmd='{command}'");
                     return false;
                 }
 
-                var nb = (NetworkBehaviour)ds;
-                if (!nb.IsSpawned)
+                if (!networkBehaviour.IsSpawned)
                 {
-                    _logger?.Warning($"SendToServer skipped: DailySummary not spawned yet for cmd='{command}'");
+                    DebugLog.MessagingBackendDebug($"SendToServer deferred: DailySummary not spawned yet for cmd='{command}'");
                     return false;
                 }
 
@@ -151,7 +160,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
                 PooledWriter writer = WriterPool.Retrieve();
                 ((Writer)writer).WriteString(raw);
-                nb.SendServerRpc(_messageId, writer, Channel.Reliable, DataOrderType.Default);
+                networkBehaviour.SendServerRpc(_messageId, writer, Channel.Reliable, DataOrderType.Default);
                 writer.Store();
 
                 DebugLog.MessagingBackendDebug($"SendToServer cmd='{command}' len={data?.Length ?? 0}");
@@ -181,10 +190,15 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             try
             {
-                var ds = DailySummary.Instance;
-                if (ds == null)
+                if (!TryGetDailySummaryNetworkBehaviour(out NetworkBehaviour networkBehaviour))
                 {
                     DebugLog.MessagingBackendDebug($"SendToClient deferred: DailySummary instance not ready for cmd='{command}'");
+                    return false;
+                }
+
+                if (!networkBehaviour.IsSpawned)
+                {
+                    DebugLog.MessagingBackendDebug($"SendToClient deferred: DailySummary not spawned yet for cmd='{command}'");
                     return false;
                 }
 
@@ -193,7 +207,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
                 PooledWriter writer = WriterPool.Retrieve();
                 ((Writer)writer).WriteString(raw);
-                ((NetworkBehaviour)ds).SendTargetRpc(_messageId, writer, Channel.Reliable, DataOrderType.Default, conn, false, true);
+                networkBehaviour.SendTargetRpc(_messageId, writer, Channel.Reliable, DataOrderType.Default, conn, false, true);
                 writer.Store();
 
                 DebugLog.MessagingBackendDebug($"SendToClient cmd='{command}' len={data?.Length ?? 0} to={conn.ClientId}");
@@ -261,9 +275,8 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             try
             {
-                var ds = DailySummary.Instance;
-                bool hasDailySummary = ds != null;
-                bool isSpawned = hasDailySummary && ((NetworkBehaviour)ds).IsSpawned;
+                bool hasDailySummary = TryGetDailySummaryNetworkBehaviour(out NetworkBehaviour networkBehaviour);
+                bool isSpawned = hasDailySummary && networkBehaviour.IsSpawned;
 
                 return $"DailySummary: {(hasDailySummary ? (isSpawned ? "Spawned" : "Exists") : "Missing")}, MessageID: {_messageId}";
             }
@@ -277,6 +290,12 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         public void SetServerPeerHint(string serverSteamId)
         {
             // FishNet backend does not require server SteamID hints.
+        }
+
+        private static bool TryGetDailySummaryNetworkBehaviour(out NetworkBehaviour networkBehaviour)
+        {
+            networkBehaviour = DailySummary.Instance as NetworkBehaviour;
+            return networkBehaviour != null;
         }
 
         private void OnClientMessageReceived(PooledReader reader, Channel channel)

@@ -23,6 +23,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         bool IsInitialized { get; }
 
         /// <summary>
+        /// Gets whether the backend can currently send messages through its active endpoint.
+        /// </summary>
+        bool IsEndpointReady { get; }
+
+        /// <summary>
         /// Gets whether this backend is available on the current platform/build.
         /// </summary>
         bool IsAvailable { get; }

@@ -68,6 +68,22 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         public bool IsInitialized => _isInitialized;
 
         /// <inheritdoc />
+        public bool IsEndpointReady
+        {
+            get
+            {
+#if SERVER
+                return _isInitialized;
+#else
+                return _isInitialized &&
+                       ((_bootstrapBackend?.IsEndpointReady ?? false) ||
+                        !IsInvalid(_serverConnection) ||
+                        ResolveServerSteamId() != 0);
+#endif
+            }
+        }
+
+        /// <inheritdoc />
         public bool IsAvailable
         {
             get
