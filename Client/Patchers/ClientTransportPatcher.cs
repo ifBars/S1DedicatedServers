@@ -23,6 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using DedicatedServerMod.Client.Managers;
+using DedicatedServerMod.Utils;
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Patchers
@@ -33,7 +34,6 @@ namespace DedicatedServerMod.Client.Patchers
     /// </summary>
     internal class ClientTransportPatcher
     {
-        private readonly MelonLogger.Instance logger;
         private static bool isExiting = false;
 
         private static readonly FieldInfo ClientTransportField =
@@ -41,24 +41,6 @@ namespace DedicatedServerMod.Client.Patchers
 
         private static readonly FieldInfo TransportsListField =
             typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        internal ClientTransportPatcher(MelonLogger.Instance logger)
-        {
-            this.logger = logger;
-        }
-
-        internal void Initialize()
-        {
-            try
-            {
-                logger.Msg("Initializing ClientTransportPatcher");
-                logger.Msg("ClientTransportPatcher initialized (using attribute-based patching)");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Failed to initialize ClientTransportPatcher: {ex}");
-            }
-        }
 
         [HarmonyPatch]
         private static class StartConnectionPatch
@@ -87,7 +69,6 @@ namespace DedicatedServerMod.Client.Patchers
 
                 try
                 {
-                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
                     var (serverIP, serverPort) = ClientConnectionManager.GetTargetServer();
 
                     var multipass = InstanceFinder.NetworkManager?.TransportManager?.Transport as Multipass;
@@ -102,13 +83,12 @@ namespace DedicatedServerMod.Client.Patchers
                     tugboat.SetPort((ushort)serverPort);
                     SetMultipassClientTransport(multipass, tugboat);
 
-                    logger.Msg($"StartConnectionPrefix: configured Tugboat fallback to {serverIP}:{serverPort}");
+                    DebugLog.ServerNetworkDebug($"StartConnectionPrefix: configured Tugboat fallback to {serverIP}:{serverPort}");
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                    logger.Error($"Error in StartConnectionPrefix: {ex}");
+                    DebugLog.Error("Error in StartConnectionPrefix", ex);
                     return true;
                 }
             }
@@ -127,14 +107,11 @@ namespace DedicatedServerMod.Client.Patchers
                     {
                         tugboat = __instance.gameObject.AddComponent<Tugboat>();
                         AddTugboatToTransportsList(__instance, tugboat);
-                        var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                        logger.Msg("Added Tugboat component to Multipass");
                     }
                 }
                 catch (Exception ex)
                 {
-                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                    logger.Error($"Error in Multipass Initialize patch: {ex}");
+                    DebugLog.Error("Error in Multipass Initialize patch", ex);
                 }
             }
         }
@@ -149,8 +126,6 @@ namespace DedicatedServerMod.Client.Patchers
                 {
                     if (ClientConnectionManager.IsTugboatMode && !isExiting)
                     {
-                        var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                        logger.Msg("ConfirmExit in Tugboat mode - initiating save and disconnect");
                         isExiting = true;
                         MelonCoroutines.Start(SaveAndDisconnectCoroutine());
                         return false;
@@ -160,8 +135,7 @@ namespace DedicatedServerMod.Client.Patchers
                 }
                 catch (Exception ex)
                 {
-                    var logger = new MelonLogger.Instance("ClientTransportPatcher");
-                    logger.Error($"Error in ConfirmExit patch: {ex}");
+                    DebugLog.Error("Error in ConfirmExit patch", ex);
                     return true;
                 }
             }
@@ -182,24 +156,22 @@ namespace DedicatedServerMod.Client.Patchers
                 }
                 catch (Exception ex)
                 {
-                    logger.Error($"Error sending save request: {ex}");
+                    DebugLog.Error("Error sending save request", ex);
                 }
             }
 
             if (saveRequested)
             {
-                logger.Msg("Waiting for save request to complete...");
                 yield return new WaitForSeconds(2f);
             }
 
             try
             {
                 Core.ClientBootstrap.Instance?.ConnectionManager?.DisconnectFromDedicatedServer();
-                logger.Msg("Dedicated server disconnection redirected to menu flow");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error during disconnection: {ex}");
+                DebugLog.Error("Error during disconnection", ex);
             }
             finally
             {

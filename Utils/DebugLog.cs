@@ -176,7 +176,7 @@ namespace DedicatedServerMod.Utils
         }
 
         /// <summary>
-        /// Gets whether messaging backend debug logging is enabled.
+        /// Gets whether custom messaging debug logging is enabled.
         /// </summary>
         public static bool IsMessagingBackendDebugLoggingEnabled
         {
@@ -577,7 +577,7 @@ namespace DedicatedServerMod.Utils
         }
 
         /// <summary>
-        /// Logs a messaging backend debug entry when backend debug logging is enabled.
+        /// Logs a custom messaging debug entry when custom messaging debug logging is enabled.
         /// </summary>
         /// <param name="message">The message to log.</param>
         public static void MessagingBackendDebug(string message)

@@ -439,7 +439,7 @@ namespace DedicatedServerMod.API
         {
             if (!S1DS.IsClient) return;
 
-            MelonLogger.Msg("Notifying client mods of initialization...");
+            DebugLog.StartupDebug("Notifying client mods of initialization...");
             foreach (var mod in _clientMods.ToList())
             {
                 try
@@ -448,7 +448,7 @@ namespace DedicatedServerMod.API
                 }
                 catch (Exception ex)
                 {
-                    MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnClientInitialize(): {ex.Message}");
+                    DebugLog.Error($"Error in client mod {mod.GetType().Name}.OnClientInitialize(): {ex.Message}", ex);
                 }
             }
         }
@@ -460,7 +460,7 @@ namespace DedicatedServerMod.API
         {
             if (!S1DS.IsClient) return;
 
-            MelonLogger.Msg("Notifying client mods of shutdown...");
+            DebugLog.Info("Notifying client mods of shutdown...");
             foreach (var mod in _clientMods.ToList())
             {
                 try
@@ -469,7 +469,7 @@ namespace DedicatedServerMod.API
                 }
                 catch (Exception ex)
                 {
-                    MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnClientShutdown(): {ex.Message}");
+                    DebugLog.Error($"Error in client mod {mod.GetType().Name}.OnClientShutdown(): {ex.Message}", ex);
                 }
             }
         }
@@ -491,7 +491,7 @@ namespace DedicatedServerMod.API
                 }
                 catch (Exception ex)
                 {
-                    MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnConnectedToServer(): {ex.Message}");
+                    DebugLog.Error($"Error in client mod {mod.GetType().Name}.OnConnectedToServer(): {ex.Message}", ex);
                 }
             }
         }
@@ -511,7 +511,7 @@ namespace DedicatedServerMod.API
                 }
                 catch (Exception ex)
                 {
-                    MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnClientPlayerReady(): {ex.Message}");
+                    DebugLog.Error($"Error in client mod {mod.GetType().Name}.OnClientPlayerReady(): {ex.Message}", ex);
                 }
             }
         }
@@ -531,7 +531,7 @@ namespace DedicatedServerMod.API
                 }
                 catch (Exception ex)
                 {
-                    MelonLogger.Error($"Error in client mod {mod.GetType().Name}.OnDisconnectedFromServer(): {ex.Message}");
+                    DebugLog.Error($"Error in client mod {mod.GetType().Name}.OnDisconnectedFromServer(): {ex.Message}", ex);
                 }
             }
         }
@@ -563,11 +563,11 @@ namespace DedicatedServerMod.API
                     }
                 };
                 _clientMsgWired = true;
-                MelonLogger.Msg("Client message forwarding wired");
+                DebugLog.StartupDebug("Client message forwarding wired");
             }
             catch (Exception ex)
             {
-                MelonLogger.Error($"Error wiring client message forwarding: {ex.Message}");
+                DebugLog.Error($"Error wiring client message forwarding: {ex.Message}", ex);
             }
         }
         #endif
@@ -598,11 +598,11 @@ namespace DedicatedServerMod.API
                     }
                 };
                 _serverMsgWired = true;
-                MelonLogger.Msg("Server message forwarding wired");
+                DebugLog.StartupDebug("Server message forwarding wired");
             }
             catch (Exception ex)
             {
-                MelonLogger.Error($"Error wiring server message forwarding: {ex.Message}");
+                DebugLog.Error($"Error wiring server message forwarding: {ex.Message}", ex);
             }
         }
         #endif

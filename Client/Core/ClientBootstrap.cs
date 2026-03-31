@@ -46,8 +46,6 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         private MelonLogger.Instance _logger;
 
-
-
         /// <summary>
         /// The connection manager for server communication.
         /// </summary>
@@ -82,11 +80,7 @@ namespace DedicatedServerMod.Client.Core
         /// The loopback handler for ghost player management.
         /// </summary>
         private ClientLoopbackHandler _loopbackHandler;
-
-        /// <summary>
-        /// The transport patcher for network transport modifications.
-        /// </summary>
-        private ClientTransportPatcher _transportPatcher;
+        
 
         /// <summary>
         /// Whether to ignore the ghost host when checking sleep readiness.
@@ -161,11 +155,6 @@ namespace DedicatedServerMod.Client.Core
         internal ClientLoopbackHandler LoopbackHandler => _loopbackHandler;
 
         /// <summary>
-        /// Gets the transport patcher that adapts networking for dedicated-server connectivity.
-        /// </summary>
-        internal ClientTransportPatcher TransportPatcher => _transportPatcher;
-
-        /// <summary>
         /// Gets a value indicating whether the client bootstrap finished creating the managers that API mods depend on.
         /// </summary>
         internal bool IsApiModsReady => _apiModsReady;
@@ -188,8 +177,6 @@ namespace DedicatedServerMod.Client.Core
         }
 
         #endregion
-        
-        
 
         #region Initialization
 
@@ -261,10 +248,6 @@ namespace DedicatedServerMod.Client.Core
                 Patches.MessagingPatches.Initialize();
                 Patches.LoadingScreenPatches.Initialize();
 
-                // Apply transport patches (runtime patching needed for flexibility)
-                _transportPatcher = new ClientTransportPatcher(_logger);
-                _transportPatcher.Initialize();
-
                 _logger.Msg("All client patches initialized");
             }
             catch (Exception ex)
@@ -282,9 +265,6 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         private void InitializeManagers()
         {
-            // Initialize transport patcher first (needed for connection patching)
-            _transportPatcher?.Initialize();
-
             // Initialize connection manager
             _connectionManager = new ClientConnectionManager(_logger);
             _connectionManager.Initialize();
@@ -306,7 +286,7 @@ namespace DedicatedServerMod.Client.Core
             _questManager.Initialize();
 
             // Initialize loopback handler
-            _loopbackHandler = new ClientLoopbackHandler(_logger);
+            _loopbackHandler = new ClientLoopbackHandler();
             _loopbackHandler.Initialize();
 
             // Initialize UI manager (depends on connection manager)

@@ -43,19 +43,17 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                DebugLog.Info("Initializing ClientConsoleManager");
-                
                 // Initialize admin status manager
                 AdminStatusManager.Initialize();
                 
                 harmony = new HarmonyLib.Harmony("DedicatedServerMod.ClientConsoleManager");
                 ApplyConsolePatches();
                 
-                DebugLog.Info("ClientConsoleManager initialized successfully");
+                DebugLog.StartupDebug("ClientConsoleManager initialized");
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Failed to initialize ClientConsoleManager: {ex}");
+                DebugLog.Error($"Failed to initialize ClientConsoleManager", ex);
             }
         }
 
@@ -78,11 +76,11 @@ namespace DedicatedServerMod.Client.Managers
                 // Hook client console submit to send to server via custom messaging as well
                 // so servers without our Console.SubmitCommand server patch can still receive text.
                 
-                DebugLog.Info("Console patches applied successfully");
+                DebugLog.StartupDebug("Console patches applied successfully");
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Failed to apply console patches: {ex}");
+                DebugLog.Error($"Failed to apply console patches", ex);
             }
         }
 
@@ -100,7 +98,7 @@ namespace DedicatedServerMod.Client.Managers
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleEnabledPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(consoleEnabledProperty.GetGetMethod(), new HarmonyMethod(prefixMethod));
-                DebugLog.Info("Patched ConsoleUI.IS_CONSOLE_ENABLED");
+                DebugLog.StartupDebug("Patched ConsoleUI.IS_CONSOLE_ENABLED");
             }
             else
             {
@@ -122,7 +120,7 @@ namespace DedicatedServerMod.Client.Managers
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleSetIsOpenPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(setIsOpenMethod, new HarmonyMethod(prefixMethod));
-                DebugLog.Info("Patched ConsoleUI.SetIsOpen");
+                DebugLog.StartupDebug("Patched ConsoleUI.SetIsOpen");
             }
             else
             {
@@ -144,7 +142,7 @@ namespace DedicatedServerMod.Client.Managers
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleSubmitCommandPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(submitCommandMethod, new HarmonyMethod(prefixMethod));
-                DebugLog.Info("Patched Console.SubmitCommand for client validation");
+                DebugLog.StartupDebug("Patched Console.SubmitCommand for client validation");
             }
             else
             {
@@ -174,7 +172,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error in ConsoleEnabled patch: {ex}");
+                DebugLog.Error($"Error in ConsoleEnabled patch", ex);
                 return true; // Let original method run as fallback
             }
         }
@@ -198,7 +196,7 @@ namespace DedicatedServerMod.Client.Managers
 
                     if (open)
                     {
-                        DebugLog.Info($"Opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
+                        DebugLog.Debug($"Opening console on dedicated server ({AdminStatusManager.GetPermissionInfo()})");
                     }
                     
                     var canvas = __instance.canvas;
@@ -234,7 +232,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error in ConsoleSetIsOpen patch: {ex}");
+                DebugLog.Error($"Error in ConsoleSetIsOpen patch", ex);
                 return true; // Let original method run as fallback
             }
         }
@@ -257,7 +255,7 @@ namespace DedicatedServerMod.Client.Managers
                         return false;
                     }
 
-                    DebugLog.Info($"Submitting command to server: {args}");
+                    DebugLog.Debug($"Submitting command to server: {args}");
                     CustomMessaging.SendToServer("admin_console", args);
                     return false; // Prevent local execution to avoid duplication; server will handle and relay if needed
                 }

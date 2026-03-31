@@ -23,25 +23,18 @@ namespace DedicatedServerMod.Client.Patchers
     /// </summary>
     internal class ClientLoopbackHandler
     {
-        private readonly MelonLogger.Instance logger;
         private bool eventHooksSetup = false;
-
-        internal ClientLoopbackHandler(MelonLogger.Instance logger)
-        {
-            this.logger = logger;
-        }
 
         internal void Initialize()
         {
             try
             {
-                logger.Msg("Initializing ClientLoopbackHandler");
                 SetupPlayerSpawnHooks();
-                logger.Msg("ClientLoopbackHandler initialized");
+                DebugLog.StartupDebug("ClientLoopbackHandler initialized");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize ClientLoopbackHandler: {ex}");
+                DebugLog.Error("Failed to initialize ClientLoopbackHandler", ex);
             }
         }
 
@@ -51,21 +44,16 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
-#if MONO
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Combine(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
-#else
-                logger.Msg("Skipping direct player spawn hook wiring on IL2CPP runtime");
-#endif
 
                 eventHooksSetup = true;
-                logger.Msg("Client-side loopback hiding hooks active");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error setting up player spawn hooks: {ex}");
+                DebugLog.Error("Error setting up player spawn hooks", ex);
             }
         }
 
@@ -87,7 +75,7 @@ namespace DedicatedServerMod.Client.Patchers
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in player spawn loopback check: {ex}");
+                DebugLog.Error("Error in player spawn loopback check", ex);
             }
         }
 
@@ -95,21 +83,16 @@ namespace DedicatedServerMod.Client.Patchers
         {
             try
             {
-                logger.Msg($"Hiding ghost host player: {player.PlayerName ?? "Unknown"}");
+                DebugLog.Debug($"Hiding ghost host player: {player.PlayerName ?? "Unknown"}");
 
                 player.SetVisibleToLocalPlayer(false);
 
                 if (player.Avatar != null)
-                {
                     player.Avatar.SetVisible(false);
-                    logger.Msg("Hidden loopback player avatar");
-                }
-
-                logger.Msg("Server loopback player hidden successfully");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error hiding loopback player: {ex}");
+                DebugLog.Error("Error hiding loopback player", ex);
             }
         }
 
@@ -123,14 +106,11 @@ namespace DedicatedServerMod.Client.Patchers
             try
             {
                 if (GhostHostIdentifier.IsGhostHost(player))
-                {
-                    logger.Msg("Delayed check: identified ghost host player");
                     HideLoopbackPlayer(player);
-                }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in delayed loopback check: {ex}");
+                DebugLog.Error("Error in delayed loopback check", ex);
             }
         }
 
@@ -143,11 +123,11 @@ namespace DedicatedServerMod.Client.Patchers
                 player.SetVisibleToLocalPlayer(true);
                 if (player.Avatar != null)
                     player.Avatar.SetVisible(true);
-                logger.Msg($"Loopback player made visible: {player.PlayerName ?? "Unknown"}");
+                DebugLog.Debug($"Loopback player made visible: {player.PlayerName ?? "Unknown"}");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error showing loopback player: {ex}");
+                DebugLog.Error($"Error showing loopback player", ex);
             }
         }
 
@@ -189,11 +169,11 @@ namespace DedicatedServerMod.Client.Patchers
                     if (player != null && !InstanceFinder.IsServer)
                         OnPlayerSpawned_CheckLoopback(player);
                 }
-                logger.Msg($"Force check completed for {Player.PlayerList.Count} players");
+                DebugLog.Debug($"Force check completed for {Player.PlayerList.Count} players");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in force check: {ex}");
+                DebugLog.Error($"Error in force check: {ex}");
             }
         }
 
@@ -203,16 +183,13 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
-#if MONO
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
-#endif
                 eventHooksSetup = false;
-                logger.Msg("Loopback handler event hooks removed");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error during loopback handler cleanup: {ex}");
+                DebugLog.Error($"Error during loopback handler cleanup", ex);
             }
         }
     }
