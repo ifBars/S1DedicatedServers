@@ -453,13 +453,10 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                // ESC - Close server browser panels
-                if (Input.GetKeyDown(KeyCode.Escape))
+                bool backPressed = Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1);
+                if (backPressed && IsServerBrowserOpen())
                 {
-                    if (IsServerBrowserOpen())
-                    {
-                        CloseServerBrowser();
-                    }
+                    HandleBackNavigation();
                 }
             }
             catch (Exception ex)
@@ -479,6 +476,23 @@ namespace DedicatedServerMod.Client.Managers
         private void CloseServerBrowser()
         {
             ToggleServerMenu(false);
+        }
+
+        private void HandleBackNavigation()
+        {
+            if (IsSecondaryServerBrowserViewOpen())
+            {
+                ShowServerBrowserView(ServerBrowserView.Browser);
+                return;
+            }
+
+            CloseServerBrowser();
+        }
+
+        private bool IsSecondaryServerBrowserViewOpen()
+        {
+            return (dsDirectConnectPanel != null && dsDirectConnectPanel.gameObject.activeSelf) ||
+                   (dsAddServerPanel != null && dsAddServerPanel.activeSelf);
         }
 
         /// <summary>
@@ -1157,9 +1171,8 @@ namespace DedicatedServerMod.Client.Managers
         {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            for (int i = 0; i < serverListRepository.Favorites.Count; i++)
+            foreach (var entry in serverListRepository.Favorites)
             {
-                SavedServerEntry entry = serverListRepository.Favorites[i];
                 string key = BuildEndpointKey(entry.Host, entry.Port);
                 if (seen.Add(key))
                 {
@@ -1167,9 +1180,8 @@ namespace DedicatedServerMod.Client.Managers
                 }
             }
 
-            for (int i = 0; i < serverListRepository.History.Count; i++)
+            foreach (var entry in serverListRepository.History)
             {
-                SavedServerEntry entry = serverListRepository.History[i];
                 string key = BuildEndpointKey(entry.Host, entry.Port);
                 if (seen.Add(key))
                 {
@@ -1201,7 +1213,7 @@ namespace DedicatedServerMod.Client.Managers
 
             if (task.IsFaulted || task.IsCanceled)
             {
-                DebugLog.Warning($"Status query failed for {host}:{port}: {task.Exception?.GetBaseException().Message}");
+                // DebugLog.Warning($"Status query failed for {host}:{port}: {task.Exception?.GetBaseException().Message}");
                 serverListRepository.MarkStatusQueryUnavailable(host, port);
                 if (updateAddServerStatus)
                 {
