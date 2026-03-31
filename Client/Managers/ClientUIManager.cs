@@ -292,19 +292,29 @@ namespace DedicatedServerMod.Client.Managers
 
             newButton.transform.SetSiblingIndex(continueButton.GetSiblingIndex());
 
+            RectTransform parentRect = parent.GetComponent<RectTransform>();
             LayoutGroup layoutGroup = parent.GetComponent<LayoutGroup>();
             if (layoutGroup != null)
             {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(parent as RectTransform);
+                if (parentRect != null)
+                {
+                    LayoutRebuilder.MarkLayoutForRebuild(parentRect);
+                }
+
                 return;
             }
 
-            RectTransform continueRect = continueButton as RectTransform;
+            RectTransform continueRect = continueButton.GetComponent<RectTransform>();
             RectTransform newRect = newButton.GetComponent<RectTransform>();
             if (continueRect == null || newRect == null)
             {
                 return;
             }
+
+            newRect.anchorMin = continueRect.anchorMin;
+            newRect.anchorMax = continueRect.anchorMax;
+            newRect.pivot = continueRect.pivot;
+            newRect.sizeDelta = continueRect.sizeDelta;
 
             float verticalSpacing = continueRect.rect.height + 12f;
             newRect.anchoredPosition = continueRect.anchoredPosition + new Vector2(0f, verticalSpacing);

@@ -44,10 +44,15 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
+#if IL2CPP
+                Player.onPlayerSpawned -= new Action<Player>(OnPlayerSpawned_CheckLoopback);
+                Player.onPlayerSpawned += new Action<Player>(OnPlayerSpawned_CheckLoopback);
+#else
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Combine(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
+#endif
 
                 eventHooksSetup = true;
             }
@@ -183,8 +188,12 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
+#if IL2CPP
+                Player.onPlayerSpawned -= new Action<Player>(OnPlayerSpawned_CheckLoopback);
+#else
                 Player.onPlayerSpawned = (Action<Player>)Delegate.Remove(
                     Player.onPlayerSpawned, new Action<Player>(OnPlayerSpawned_CheckLoopback));
+#endif
                 eventHooksSetup = false;
             }
             catch (Exception ex)

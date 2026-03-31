@@ -4,7 +4,7 @@ This guide helps contributors set up their local development environment for the
 
 ## Prerequisites
 
-- .NET SDK (for netstandard2.1)
+- .NET SDK with support for both `netstandard2.1` and `net6.0`
 - Bun
 - Visual Studio, Rider, or VS Code with C# support
 - Schedule I game installed
@@ -65,6 +65,8 @@ The project has four build configurations:
 - **Mono_Server**: Mono build for server-side
 - **Il2cpp_Client**: IL2CPP build for client-side testing
 - **Il2cpp_Server**: IL2CPP build for server-side
+
+Mono configurations target `netstandard2.1`. IL2CPP configurations target `net6.0`, matching the MelonLoader `net6` runtime used by the IL2CPP game build.
 
 ### Building
 

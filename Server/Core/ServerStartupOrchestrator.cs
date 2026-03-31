@@ -2,6 +2,7 @@ using System.Collections;
 using System.Reflection;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
@@ -20,6 +21,7 @@ using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.Persistence.Datas;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Quests;
 #else
@@ -105,10 +107,9 @@ namespace DedicatedServerMod.Server.Core
 
             var transportManager = networkManager.TransportManager;
             var transport = transportManager.Transport;
-            var multipass = transport as Multipass;
-            if (multipass == null)
+            if (!MultipassTransportResolver.TryResolve(transport, out var multipass))
             {
-                DebugLog.Error("Multipass transport not found");
+                DebugLog.Error($"Multipass transport not found. {MultipassTransportResolver.Describe(transport)}");
                 yield break;
             }
 

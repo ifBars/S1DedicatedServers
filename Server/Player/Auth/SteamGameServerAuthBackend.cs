@@ -30,6 +30,9 @@ namespace DedicatedServerMod.Server.Player.Auth
 
         private bool _isInitialized;
         private bool _isAdvertisingActive;
+        private bool _ownsGameServerInitialization;
+        private bool _ownsGameServerLogin;
+        private SteamAuthApiMode _apiMode;
 
         /// <summary>
         /// Initializes a new steam game server authentication backend.
@@ -64,53 +67,68 @@ namespace DedicatedServerMod.Server.Player.Auth
                 ServerConfig config = ServerConfig.Instance;
                 EServerMode serverMode = ToSteamServerMode(config.SteamGameServerMode);
 
-                bool initialized = GameServer.Init(
-                    0u,
-                    (ushort)config.ServerPort,
-                    (ushort)config.SteamGameServerQueryPort,
-                    serverMode,
-                    config.SteamGameServerVersion);
-
-                if (!initialized)
+                if (!TryEnsureSteamApiContext(config, serverMode, out string initFailureMessage))
                 {
                     return new AuthenticationResult
                     {
                         IsSuccessful = false,
-                        Message = "Failed to initialize Steam game server API"
+                        Message = initFailureMessage
                     };
                 }
 
-                RegisterCallbacks();
-                
-                SteamGameServer.SetProduct(GetSteamProductString());
-                SteamGameServer.SetDedicatedServer(true);
-                SteamGameServer.SetServerName(config.ServerName);
-                SteamGameServer.SetGameDescription("Schedule I");
-                SteamGameServer.SetModDir("Schedule I");
-                SteamGameServer.SetMapName("Main");
-                SteamGameServer.SetMaxPlayerCount(config.MaxPlayers);
-                SteamGameServer.SetPasswordProtected(!string.IsNullOrEmpty(config.ServerPassword));
-                SteamGameServer.SetGameTags($"ver:{config.SteamGameServerVersion}");
-
-                if (config.SteamGameServerLogOnAnonymous)
+                if (!RegisterCallbacks())
                 {
-                    SteamGameServer.LogOnAnonymous();
-                    DebugLog.AuthenticationDebug("Steam game server auth backend logging on anonymously");
+                    return new AuthenticationResult
+                    {
+                        IsSuccessful = false,
+                        Message = "Failed to register Steam game server callbacks"
+                    };
+                }
+                
+                string initMessage;
+                if (_apiMode == SteamAuthApiMode.GameServer)
+                {
+                    SteamGameServer.SetProduct(GetSteamProductString());
+                    SteamGameServer.SetDedicatedServer(true);
+                    SteamGameServer.SetServerName(config.ServerName);
+                    SteamGameServer.SetGameDescription("Schedule I");
+                    SteamGameServer.SetModDir("Schedule I");
+                    SteamGameServer.SetMapName("Main");
+                    SteamGameServer.SetMaxPlayerCount(config.MaxPlayers);
+                    SteamGameServer.SetPasswordProtected(!string.IsNullOrEmpty(config.ServerPassword));
+                    SteamGameServer.SetGameTags($"ver:{config.SteamGameServerVersion}");
+
+                    if (SteamGameServer.BLoggedOn())
+                    {
+                        DebugLog.AuthenticationDebug("Steam game server auth backend detected an existing logged-on Steam server session");
+                    }
+                    else if (config.SteamGameServerLogOnAnonymous)
+                    {
+                        SteamGameServer.LogOnAnonymous();
+                        _ownsGameServerLogin = true;
+                        DebugLog.AuthenticationDebug("Steam game server auth backend logging on anonymously");
+                    }
+                    else
+                    {
+                        SteamGameServer.LogOn(config.SteamGameServerToken ?? string.Empty);
+                        _ownsGameServerLogin = true;
+                        DebugLog.AuthenticationDebug("Steam game server auth backend logging on using token");
+                    }
+
+                    TrySetAdvertiseServerActive(true);
+                    initMessage = "Steam game server auth backend initialized";
                 }
                 else
                 {
-                    SteamGameServer.LogOn(config.SteamGameServerToken ?? string.Empty);
-                    DebugLog.AuthenticationDebug("Steam game server auth backend logging on using token");
+                    initMessage = "Steam game server auth backend initialized using Steam user API fallback";
                 }
-
-                TrySetAdvertiseServerActive(true);
 
                 _isInitialized = true;
 
                 return new AuthenticationResult
                 {
                     IsSuccessful = true,
-                    Message = "Steam game server auth backend initialized"
+                    Message = initMessage
                 };
             }
             catch (Exception ex)
@@ -141,7 +159,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                 };
             }
 
-            if (!SteamGameServer.BLoggedOn())
+            if (!IsAuthApiLoggedOn())
             {
                 return new AuthBeginResult
                 {
@@ -149,7 +167,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                     ImmediateResult = new AuthenticationResult
                     {
                         IsSuccessful = false,
-                        Message = "Steam game server is not logged on yet; retrying is allowed",
+                        Message = BuildNotLoggedOnMessage(),
                         ShouldDisconnect = false
                     }
                 };
@@ -226,7 +244,7 @@ namespace DedicatedServerMod.Server.Player.Auth
             }
 
             CSteamID steamId = new CSteamID(steamIdValue);
-            EBeginAuthSessionResult beginResult = SteamGameServer.BeginAuthSession(ticketBytes, ticketBytes.Length, steamId);
+            EBeginAuthSessionResult beginResult = BeginAuthSession(ticketBytes, steamId);
 
             if (beginResult != EBeginAuthSessionResult.k_EBeginAuthSessionResultOK)
             {
@@ -256,10 +274,18 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             try
             {
-                GameServer.RunCallbacks();
-                if (SteamGameServer.BLoggedOn() && !_isAdvertisingActive)
+                PumpCallbacks();
+                GC.KeepAlive(_validateAuthCallback);
+                if (_apiMode == SteamAuthApiMode.GameServer)
                 {
-                    TrySetAdvertiseServerActive(true);
+                    GC.KeepAlive(_serversConnectedCallback);
+                    GC.KeepAlive(_serverConnectFailureCallback);
+                    GC.KeepAlive(_serversDisconnectedCallback);
+
+                    if (SteamGameServer.BLoggedOn() && !_isAdvertisingActive)
+                    {
+                        TrySetAdvertiseServerActive(true);
+                    }
                 }
             }
             catch (Exception ex)
@@ -296,7 +322,7 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             try
             {
-                SteamGameServer.EndAuthSession(new CSteamID(steamIdValue));
+                EndAuthSession(new CSteamID(steamIdValue));
             }
             catch (Exception ex)
             {
@@ -321,7 +347,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                 {
                     try
                     {
-                        SteamGameServer.EndAuthSession(new CSteamID(steamId));
+                        EndAuthSession(new CSteamID(steamId));
                     }
                     catch
                     {
@@ -332,7 +358,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                 {
                     try
                     {
-                        SteamGameServer.EndAuthSession(new CSteamID(steamId));
+                        EndAuthSession(new CSteamID(steamId));
                     }
                     catch
                     {
@@ -344,8 +370,15 @@ namespace DedicatedServerMod.Server.Player.Auth
                 _completionBuffer.Clear();
 
                 TrySetAdvertiseServerActive(false);
-                SteamGameServer.LogOff();
-                GameServer.Shutdown();
+                if (_ownsGameServerLogin)
+                {
+                    SteamGameServer.LogOff();
+                }
+
+                if (_ownsGameServerInitialization)
+                {
+                    GameServer.Shutdown();
+                }
             }
             catch (Exception ex)
             {
@@ -358,18 +391,219 @@ namespace DedicatedServerMod.Server.Player.Auth
                 _serverConnectFailureCallback = null;
                 _serversDisconnectedCallback = null;
                 _isInitialized = false;
+                _ownsGameServerInitialization = false;
+                _ownsGameServerLogin = false;
+                _apiMode = SteamAuthApiMode.None;
             }
         }
 
-        private void RegisterCallbacks()
+        private bool RegisterCallbacks()
         {
-#if MONO
-            _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.CreateGameServer(new Callback<ValidateAuthTicketResponse_t>.DispatchDelegate(OnValidateAuthTicketResponse));
-            _serversConnectedCallback = Callback<SteamServersConnected_t>.CreateGameServer(new Callback<SteamServersConnected_t>.DispatchDelegate(OnSteamServersConnected));
-            _serverConnectFailureCallback = Callback<SteamServerConnectFailure_t>.CreateGameServer(new Callback<SteamServerConnectFailure_t>.DispatchDelegate(OnSteamServerConnectFailure));
-            _serversDisconnectedCallback = Callback<SteamServersDisconnected_t>.CreateGameServer(new Callback<SteamServersDisconnected_t>.DispatchDelegate(OnSteamServersDisconnected));
+            try
+            {
+                if (_apiMode == SteamAuthApiMode.GameServer)
+                {
+                    _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.CreateGameServer(CreateValidateAuthTicketResponseDelegate());
+                    _serversConnectedCallback = Callback<SteamServersConnected_t>.CreateGameServer(CreateSteamServersConnectedDelegate());
+                    _serverConnectFailureCallback = Callback<SteamServerConnectFailure_t>.CreateGameServer(CreateSteamServerConnectFailureDelegate());
+                    _serversDisconnectedCallback = Callback<SteamServersDisconnected_t>.CreateGameServer(CreateSteamServersDisconnectedDelegate());
+                }
+                else if (_apiMode == SteamAuthApiMode.SteamUser)
+                {
+                    _validateAuthCallback = Callback<ValidateAuthTicketResponse_t>.Create(CreateValidateAuthTicketResponseDelegate());
+                    _serversConnectedCallback = null;
+                    _serverConnectFailureCallback = null;
+                    _serversDisconnectedCallback = null;
+                }
+                else
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error("Steam game server callback registration failed", ex);
+                _validateAuthCallback = null;
+                _serversConnectedCallback = null;
+                _serverConnectFailureCallback = null;
+                _serversDisconnectedCallback = null;
+                return false;
+            }
+        }
+
+        private bool TryEnsureSteamApiContext(ServerConfig config, EServerMode serverMode, out string failureMessage)
+        {
+            failureMessage = string.Empty;
+            _apiMode = SteamAuthApiMode.None;
+
+            bool initialized = GameServer.Init(
+                0u,
+                (ushort)config.ServerPort,
+                (ushort)config.SteamGameServerQueryPort,
+                serverMode,
+                config.SteamGameServerVersion);
+
+            if (initialized)
+            {
+                _ownsGameServerInitialization = true;
+                _apiMode = SteamAuthApiMode.GameServer;
+                return true;
+            }
+
+            if (TryReuseExistingGameServerContext())
+            {
+                _apiMode = SteamAuthApiMode.GameServer;
+                DebugLog.AuthenticationDebug("Steam game server auth backend reusing existing Steam game server API context");
+                return true;
+            }
+
+            if (TryEnsureSteamUserContext(out ulong localSteamId))
+            {
+                _apiMode = SteamAuthApiMode.SteamUser;
+                DebugLog.Warning(
+                    $"Steam game server API is unavailable; using the active Steam user API context for auth fallback (localSteamId={localSteamId.ToString(CultureInfo.InvariantCulture)}).");
+                return true;
+            }
+
+            failureMessage =
+                $"Failed to initialize Steam game server API (gamePort={config.ServerPort}, queryPort={config.SteamGameServerQueryPort}, mode={serverMode}) and no logged-in Steam user API fallback was available";
+            return false;
+        }
+
+        private static bool TryReuseExistingGameServerContext()
+        {
+            try
+            {
+                return SteamGameServer.GetSteamID().m_SteamID != 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool TryEnsureSteamUserContext(out ulong steamIdValue)
+        {
+            steamIdValue = 0;
+
+            try
+            {
+                CSteamID steamId = SteamUser.GetSteamID();
+                steamIdValue = steamId.m_SteamID;
+                return steamIdValue != 0 && SteamUser.BLoggedOn();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool IsAuthApiLoggedOn()
+        {
+            try
+            {
+                switch (_apiMode)
+                {
+                    case SteamAuthApiMode.GameServer:
+                        return SteamGameServer.BLoggedOn();
+                    case SteamAuthApiMode.SteamUser:
+                        return SteamUser.BLoggedOn();
+                    default:
+                        return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private string BuildNotLoggedOnMessage()
+        {
+            switch (_apiMode)
+            {
+                case SteamAuthApiMode.SteamUser:
+                    return "Steam user API is not logged on yet; retrying is allowed";
+                case SteamAuthApiMode.GameServer:
+                default:
+                    return "Steam game server is not logged on yet; retrying is allowed";
+            }
+        }
+
+        private EBeginAuthSessionResult BeginAuthSession(byte[] ticketBytes, CSteamID steamId)
+        {
+            switch (_apiMode)
+            {
+                case SteamAuthApiMode.GameServer:
+                    return SteamGameServer.BeginAuthSession(ticketBytes, ticketBytes.Length, steamId);
+                case SteamAuthApiMode.SteamUser:
+                    return SteamUser.BeginAuthSession(ticketBytes, ticketBytes.Length, steamId);
+                default:
+                    throw new InvalidOperationException("Steam auth backend does not have an active Steam API context.");
+            }
+        }
+
+        private void EndAuthSession(CSteamID steamId)
+        {
+            switch (_apiMode)
+            {
+                case SteamAuthApiMode.GameServer:
+                    SteamGameServer.EndAuthSession(steamId);
+                    return;
+                case SteamAuthApiMode.SteamUser:
+                    SteamUser.EndAuthSession(steamId);
+                    return;
+            }
+        }
+
+        private void PumpCallbacks()
+        {
+            switch (_apiMode)
+            {
+                case SteamAuthApiMode.GameServer:
+                    GameServer.RunCallbacks();
+                    return;
+                case SteamAuthApiMode.SteamUser:
+                    SteamAPI.RunCallbacks();
+                    return;
+            }
+        }
+
+        private Callback<ValidateAuthTicketResponse_t>.DispatchDelegate CreateValidateAuthTicketResponseDelegate()
+        {
+#if IL2CPP
+            return (Callback<ValidateAuthTicketResponse_t>.DispatchDelegate)new Action<ValidateAuthTicketResponse_t>(OnValidateAuthTicketResponse);
 #else
-            _logger.Warning("Steam game server callbacks are disabled on IL2CPP runtime.");
+            return new Callback<ValidateAuthTicketResponse_t>.DispatchDelegate(OnValidateAuthTicketResponse);
+#endif
+        }
+
+        private Callback<SteamServersConnected_t>.DispatchDelegate CreateSteamServersConnectedDelegate()
+        {
+#if IL2CPP
+            return (Callback<SteamServersConnected_t>.DispatchDelegate)new Action<SteamServersConnected_t>(OnSteamServersConnected);
+#else
+            return new Callback<SteamServersConnected_t>.DispatchDelegate(OnSteamServersConnected);
+#endif
+        }
+
+        private Callback<SteamServerConnectFailure_t>.DispatchDelegate CreateSteamServerConnectFailureDelegate()
+        {
+#if IL2CPP
+            return (Callback<SteamServerConnectFailure_t>.DispatchDelegate)new Action<SteamServerConnectFailure_t>(OnSteamServerConnectFailure);
+#else
+            return new Callback<SteamServerConnectFailure_t>.DispatchDelegate(OnSteamServerConnectFailure);
+#endif
+        }
+
+        private Callback<SteamServersDisconnected_t>.DispatchDelegate CreateSteamServersDisconnectedDelegate()
+        {
+#if IL2CPP
+            return (Callback<SteamServersDisconnected_t>.DispatchDelegate)new Action<SteamServersDisconnected_t>(OnSteamServersDisconnected);
+#else
+            return new Callback<SteamServersDisconnected_t>.DispatchDelegate(OnSteamServersDisconnected);
 #endif
         }
 
@@ -442,7 +676,7 @@ namespace DedicatedServerMod.Server.Player.Auth
 
                 try
                 {
-                    SteamGameServer.EndAuthSession(new CSteamID(steamIdValue));
+                    EndAuthSession(new CSteamID(steamIdValue));
                 }
                 catch
                 {
@@ -614,6 +848,13 @@ namespace DedicatedServerMod.Server.Player.Auth
                 ShouldDisconnect = true,
                 ExtractedSteamId = steamId
             };
+        }
+
+        private enum SteamAuthApiMode
+        {
+            None,
+            GameServer,
+            SteamUser
         }
     }
 }

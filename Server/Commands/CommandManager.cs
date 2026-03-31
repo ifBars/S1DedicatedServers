@@ -1,4 +1,3 @@
-using System.Reflection;
 using DedicatedServerMod.Server.Commands.BuiltIn.Gameplay;
 using DedicatedServerMod.Server.Commands.BuiltIn.Moderation;
 using DedicatedServerMod.Server.Commands.BuiltIn.Permissions;
@@ -12,12 +11,6 @@ using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
-#if IL2CPP
-using Il2CppScheduleOne;
-using Console = Il2CppScheduleOne.Console;
-#else
-using Console = ScheduleOne.Console;
-#endif
 
 namespace DedicatedServerMod.Server.Commands
 {
@@ -255,13 +248,11 @@ namespace DedicatedServerMod.Server.Commands
         {
             try
             {
-                FieldInfo commandsField = typeof(Console).GetField("commands", BindingFlags.NonPublic | BindingFlags.Static);
-
-                if (commandsField?.GetValue(null) is Dictionary<string, Console.ConsoleCommand> gameCommands)
+                if (GameConsoleAccess.TryGetCommandDictionary(out var gameCommands))
                 {
                     if (!gameCommands.ContainsKey("settime") || !gameCommands.ContainsKey("give"))
                     {
-                        CustomMessaging.InitializeConsoleCommands(gameCommands);
+                        CustomMessaging.InitializeConsoleCommands();
                         DebugLog.StartupDebug("Initialized base game console commands");
                     }
 

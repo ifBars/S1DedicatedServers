@@ -4,6 +4,8 @@
 	<Import Project="local.build.props" Condition="Exists('local.build.props')" />
 	
 	<PropertyGroup>
+		<EffectiveConfiguration>$(Configuration)</EffectiveConfiguration>
+		<EffectiveConfiguration Condition="'$(EffectiveConfiguration)' == '' Or '$(EffectiveConfiguration)' == 'Debug' Or '$(EffectiveConfiguration)' == 'Release'">Documentation</EffectiveConfiguration>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>DedicatedServerMod</RootNamespace>
@@ -12,6 +14,14 @@
 		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server;Documentation</Configurations>
 		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' == 'true'">false</AutomateLocalDeployment>
 		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' != 'true'">true</AutomateLocalDeployment>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Documentation'">
+		<TargetFramework>netstandard2.1</TargetFramework>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
+		<TargetFramework>net6.0</TargetFramework>
 	</PropertyGroup>
 	
 	<!-- NuGet Package References -->
@@ -24,7 +34,7 @@
 	</ItemGroup>
 	
 	<!-- MelonLoader references (common to all configurations) -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Documentation'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Documentation'">
 		<Reference Include="MelonLoader">
 			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
 		</Reference>
@@ -33,7 +43,7 @@
 		</Reference>
 	</ItemGroup>
 	
-	<ItemGroup Condition="'$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Il2cpp_Server'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
 		<Reference Include="MelonLoader">
 			<HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
 		</Reference>
@@ -45,7 +55,7 @@
 		</Reference>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(Configuration)'=='Documentation'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Documentation'">
 		<Content Include="$(ManagedPath)\Newtonsoft.Json.dll">
 			<Link>Newtonsoft.Json.dll</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -54,7 +64,7 @@
 
 	<!-- Define paths and constants for different configurations -->
 	<!-- These use paths from local.build.props if it exists, otherwise use empty defaults -->
-	<PropertyGroup Condition="'$(Configuration)'=='Mono_Client'">
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Mono_Client'">
 		<GamePath>$(MonoGamePath)</GamePath>
 		<ManagedPath Condition="'$(MonoAssembliesPath)' != ''">$(MonoAssembliesPath)</ManagedPath>
 		<ManagedPath Condition="'$(MonoAssembliesPath)' == ''">$(GamePath)\Schedule I_Data\Managed</ManagedPath>
@@ -63,13 +73,13 @@
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>MONO;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Client</AssemblyName>
-		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
 		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
 		<DeploymentPath Condition="'$(ClientDeploymentPath)' != ''">$(ClientDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ClientDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='Mono_Server'">
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Mono_Server'">
 		<GamePath>$(MonoGamePath)</GamePath>
 		<ManagedPath Condition="'$(MonoAssembliesPath)' != ''">$(MonoAssembliesPath)</ManagedPath>
 		<ManagedPath Condition="'$(MonoAssembliesPath)' == ''">$(GamePath)\Schedule I_Data\Managed</ManagedPath>
@@ -78,13 +88,13 @@
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>MONO;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Server</AssemblyName>
-		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
 		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='Documentation'">
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Documentation'">
 		<GamePath>$(MonoGamePath)</GamePath>
 		<ManagedPath Condition="'$(MonoAssembliesPath)' != ''">$(MonoAssembliesPath)</ManagedPath>
 		<ManagedPath Condition="'$(MonoAssembliesPath)' == ''">$(GamePath)\Schedule I_Data\Managed</ManagedPath>
@@ -93,40 +103,40 @@
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>MONO;SERVER;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Documentation</AssemblyName>
-		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Client'">
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client'">
 		<GamePath>$(Il2CppGamePath)</GamePath>
 		<ManagedPath>$(GamePath)\MelonLoader\Il2CppAssemblies</ManagedPath>
 		<MelonLoaderPath>$(GamePath)\MelonLoader\net6</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>IL2CPP;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Il2cpp_Client</AssemblyName>
-		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
 		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
 		<DeploymentPath Condition="'$(ClientDeploymentPath)' != ''">$(ClientDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ClientDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='Il2cpp_Server'">
+	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Server'">
 		<GamePath>$(Il2CppGamePath)</GamePath>
 		<ManagedPath>$(GamePath)\MelonLoader\Il2CppAssemblies</ManagedPath>
 		<MelonLoaderPath>$(GamePath)\MelonLoader\net6</MelonLoaderPath>
 		<ModsPath>$(GamePath)\Mods</ModsPath>
 		<DefineConstants>IL2CPP;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Il2cpp_Server</AssemblyName>
-		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
 		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<!-- Mono references -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Documentation'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Documentation'">
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(ManagedPath)\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
@@ -417,11 +427,11 @@
 	</ItemGroup>
 
 	<!-- Il2cpp references -->
-	<ItemGroup Condition="'$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Il2cpp_Server'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(ManagedPath)\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
-		<Reference Include="Assembly-CSharp" Condition="'$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Il2cpp_Server'">
+		<Reference Include="Assembly-CSharp" Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
 			<HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
 		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
@@ -778,7 +788,7 @@
 	</ItemGroup>
 
 		<!-- Client builds include the client mod entry -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client' Or '$(Configuration)'=='Documentation'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Documentation'">
 		<None Remove="Assets\Player_0.zip" />
 		<EmbeddedResource Include="Assets\dedicatedclientui" />
 
@@ -803,7 +813,7 @@
 	</ItemGroup>
 
 	<!-- Server builds include the new organized server structure -->
-	<ItemGroup Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server' Or '$(Configuration)'=='Documentation'">
+	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Il2cpp_Server' Or '$(EffectiveConfiguration)'=='Documentation'">
 		<EmbeddedResource Include="Assets\Player_0.zip" />
 		<None Remove="Assets\dedicatedclientui" />
 
@@ -857,8 +867,8 @@
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(AutomateLocalDeployment)' == 'true'">
 		<!-- Client builds: copy to deployment path and restart game -->
-		<Exec Condition="'$(Configuration)'=='Mono_Client' Or '$(Configuration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
+		<Exec Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
 		<!-- Server builds: copy to deployment path only -->
-		<Exec Condition="'$(Configuration)'=='Mono_Server' Or '$(Configuration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
+		<Exec Condition="'$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 	</Target>
 </Project>

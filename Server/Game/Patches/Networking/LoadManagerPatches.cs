@@ -1,15 +1,18 @@
 using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using Il2CppFishNet;
+using Il2CppFishNet.Transporting;
 using Il2CppFishNet.Transporting.Multipass;
 using Il2CppFishNet.Transporting.Tugboat;
 using Il2CppScheduleOne.Persistence;
 #else
 using FishNet;
+using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
 using ScheduleOne.Persistence;
@@ -25,8 +28,8 @@ namespace DedicatedServerMod.Server.Game.Patches.Networking
             try
             {
                 var networkManager = InstanceFinder.NetworkManager;
-                var multipass = networkManager?.TransportManager?.Transport as Multipass;
-                if (multipass == null)
+                Transport transport = networkManager?.TransportManager?.Transport;
+                if (!MultipassTransportResolver.TryResolve(transport, out var multipass))
                 {
                     return;
                 }

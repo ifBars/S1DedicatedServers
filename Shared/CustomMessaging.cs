@@ -225,10 +225,19 @@ namespace DedicatedServerMod.Shared.Networking
         /// Initializes console commands if they're not already initialized.
         /// Critical for dedicated servers where Console.Awake may not run.
         /// </summary>
+        public static void InitializeConsoleCommands()
+        {
+            MessageRouter.Initialize();
+        }
+
+        /// <summary>
+        /// Initializes console commands if they're not already initialized.
+        /// Critical for dedicated servers where Console.Awake may not run.
+        /// </summary>
         /// <param name="commands">The commands dictionary to populate</param>
         public static void InitializeConsoleCommands(Dictionary<string, ScheduleOne.Console.ConsoleCommand> commands)
         {
-            MessageRouter.Initialize();
+            InitializeConsoleCommands();
         }
 
         #endregion

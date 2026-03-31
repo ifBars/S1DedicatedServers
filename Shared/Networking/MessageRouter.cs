@@ -22,8 +22,7 @@ using FishNet.Connection;
 #endif
 using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Shared.ModVerification;
-using ScheduleOne.DevUtilities;
-using ScheduleOne.Vehicles;
+
 #if IL2CPP
 using Newtonsoft.Json;
 using Il2CppScheduleOne;
@@ -32,13 +31,17 @@ using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.Vehicles;
 #else
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Vehicles;
 using Newtonsoft.Json;
 using ScheduleOne.PlayerScripts;
 #endif
 #if IL2CPP
 using Console = Il2CppScheduleOne.Console;
+using ConsoleCommandDictionary = Il2CppSystem.Collections.Generic.Dictionary<string, Il2CppScheduleOne.Console.ConsoleCommand>;
 #else
 using Console = ScheduleOne.Console;
+using ConsoleCommandDictionary = System.Collections.Generic.Dictionary<string, ScheduleOne.Console.ConsoleCommand>;
 #endif
 
 namespace DedicatedServerMod.Shared.Networking
@@ -507,13 +510,9 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var commandsField = typeof(Console).GetField("commands",
-                    BindingFlags.NonPublic | BindingFlags.Static);
-                var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
-
-                if (commands == null)
+                if (!GameConsoleAccess.TryGetCommandDictionary(out var commands))
                 {
-                    DebugLog.Error("ExecuteConsoleCommandRelay: Could not access Console.commands field");
+                    DebugLog.Error("ExecuteConsoleCommandRelay: Could not access Console command registry");
                     return;
                 }
 
@@ -579,13 +578,9 @@ namespace DedicatedServerMod.Shared.Networking
                 ParsedCommandLine parsedCommand = parseResult.CommandLine;
                 string cmd = parsedCommand.CommandWord;
 
-                var commandsField = typeof(Console).GetField("commands",
-                    BindingFlags.NonPublic | BindingFlags.Static);
-                var commands = commandsField?.GetValue(null) as Dictionary<string, Console.ConsoleCommand>;
-
-                if (commands == null)
+                if (!GameConsoleAccess.TryGetCommandDictionary(out var commands))
                 {
-                    DebugLog.Error("HandleClientConsoleCommand: Could not access Console.commands on client");
+                    DebugLog.Error("HandleClientConsoleCommand: Could not access Console command registry on client");
                     return;
                 }
 
@@ -656,7 +651,7 @@ namespace DedicatedServerMod.Shared.Networking
         /// <summary>
         /// Ensures core console commands are registered (critical for dedicated servers).
         /// </summary>
-        private static void EnsureCoreCommandsExist(Dictionary<string, Console.ConsoleCommand> commands)
+        private static void EnsureCoreCommandsExist(ConsoleCommandDictionary commands)
         {
             try
             {

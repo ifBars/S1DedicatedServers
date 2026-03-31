@@ -114,17 +114,13 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             {
                 var nb = (NetworkBehaviour)instance;
 
-#if IL2CPP
-                _logger?.Warning("FishNet RPC registration is not available on IL2CPP in this backend; using transport fallbacks.");
-#else
                 // Register server→client Target RPC
-                nb.RegisterTargetRpc(_messageId, new ClientRpcDelegate(OnClientMessageReceived));
+                nb.RegisterTargetRpc(_messageId, CreateClientRpcDelegate());
 
                 // Register client→server Server RPC
-                nb.RegisterServerRpc(_messageId, new ServerRpcDelegate(OnServerMessageReceived));
+                nb.RegisterServerRpc(_messageId, CreateServerRpcDelegate());
 
                 DebugLog.MessagingBackendDebug("Registered FishNet custom messaging RPCs on DailySummary");
-#endif
             }
             catch (Exception ex)
             {
@@ -296,6 +292,24 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         {
             networkBehaviour = DailySummary.Instance as NetworkBehaviour;
             return networkBehaviour != null;
+        }
+
+        private ClientRpcDelegate CreateClientRpcDelegate()
+        {
+#if IL2CPP
+            return (ClientRpcDelegate)new Action<PooledReader, Channel>(OnClientMessageReceived);
+#else
+            return new ClientRpcDelegate(OnClientMessageReceived);
+#endif
+        }
+
+        private ServerRpcDelegate CreateServerRpcDelegate()
+        {
+#if IL2CPP
+            return (ServerRpcDelegate)new Action<PooledReader, Channel, NetworkConnection>(OnServerMessageReceived);
+#else
+            return new ServerRpcDelegate(OnServerMessageReceived);
+#endif
         }
 
         private void OnClientMessageReceived(PooledReader reader, Channel channel)

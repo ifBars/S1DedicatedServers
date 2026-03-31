@@ -1,11 +1,12 @@
-﻿using FishNet;
-using HarmonyLib;
+﻿using HarmonyLib;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.Interaction;
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.UI;
+using Il2CppFishNet;
 #else
+using FishNet;
 using ScheduleOne.Interaction;
 using ScheduleOne.Persistence;
 using ScheduleOne.UI;

@@ -51,6 +51,20 @@ namespace DedicatedServerMod.Shared.Patches
     [HarmonyPatch(typeof(WheelType), "Awake")]
     internal static class WheelAwakePatches
     {
+#if IL2CPP
+        private static void Postfix(WheelType __instance)
+        {
+            if (__instance == null || __instance._settings != null)
+            {
+                return;
+            }
+
+            __instance._settings = __instance._defaultData?.Settings?.Clone() ?? new VehicleSettingsType();
+            WeatherStabilityLog.WarningOnce(
+                "wheel-awake-default-settings",
+                "Recovered missing wheel settings during Wheel.Awake; vehicle weather friction will use a safe fallback.");
+        }
+#else
         private static void Postfix(ref VehicleSettingsType ____settings, WheelDataType ____defaultData)
         {
             if (____settings != null)
@@ -63,11 +77,65 @@ namespace DedicatedServerMod.Shared.Patches
                 "wheel-awake-default-settings",
                 "Recovered missing wheel settings during Wheel.Awake; vehicle weather friction will use a safe fallback.");
         }
+#endif
     }
 
     [HarmonyPatch(typeof(WheelType), nameof(WheelType.OnWeatherChange))]
     internal static class WheelOnWeatherChangePatches
     {
+#if IL2CPP
+        private static bool Prefix(
+            WheelType __instance,
+            WeatherConditionsType newConditions)
+        {
+            if (__instance == null)
+            {
+                return false;
+            }
+
+            WheelDataType defaultData = __instance._defaultData;
+            WheelOverrideDataType rainOverrideData = __instance._rainOverrideData;
+            LandVehicleType resolvedVehicle = __instance.vehicle ?? __instance.GetComponentInParent<LandVehicleType>();
+            VehicleSettingsType resolvedSettings = defaultData?.Settings?.Clone()
+                ?? __instance._settings?.Clone()
+                ?? new VehicleSettingsType();
+
+            if (newConditions == null)
+            {
+                __instance._settings = resolvedSettings;
+                WeatherStabilityLog.WarningOnce(
+                    "wheel-null-weather-conditions",
+                    "Wheel.OnWeatherChange received null weather conditions; keeping default wheel settings.");
+                return false;
+            }
+
+            bool canApplyRainOverride = newConditions.Rainy > 0f
+                && resolvedVehicle != null
+                && !resolvedVehicle.IsUnderCover
+                && rainOverrideData?.Settings != null;
+
+            if (canApplyRainOverride)
+            {
+                resolvedSettings = resolvedSettings.Blend(rainOverrideData.Settings, newConditions.Rainy);
+            }
+            else if (newConditions.Rainy > 0f && rainOverrideData?.Settings == null)
+            {
+                WeatherStabilityLog.WarningOnce(
+                    "wheel-missing-rain-override",
+                    "A wheel is missing rain override data after the weather update; using default friction settings.");
+            }
+
+            if (resolvedVehicle == null && !WeatherStabilityLog.IsHeadlessRuntime())
+            {
+                WeatherStabilityLog.WarningOnce(
+                    "wheel-missing-vehicle",
+                    "A wheel could not resolve its parent vehicle during weather updates; using default friction settings.");
+            }
+
+            __instance._settings = resolvedSettings;
+            return false;
+        }
+#else
         private static bool Prefix(
             WheelType __instance,
             WeatherConditionsType newConditions,
@@ -116,6 +184,7 @@ namespace DedicatedServerMod.Shared.Patches
             ____settings = resolvedSettings;
             return false;
         }
+#endif
     }
 
     [HarmonyPatch(typeof(LandVehicleType), nameof(LandVehicleType.OnWeatherChange))]
@@ -157,6 +226,85 @@ namespace DedicatedServerMod.Shared.Patches
     {
         private static readonly AnimationCurve FallbackBlendCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
+#if IL2CPP
+        private static bool Prefix(EnvironmentManagerType __instance)
+        {
+            if (__instance == null)
+            {
+                return false;
+            }
+
+            SyncList<WeatherVolumeType> activeWeatherVolumes = __instance._activeWeatherVolumes;
+            int targetWeatherVolumeIndex = __instance._targetWeatherVolumeIndex;
+            int neighbourWeatherVolumeIndex = __instance._neighbourWeatherVolumeIndex;
+            bool hasWeatherVolumeNeighbour = __instance._hasWeatherVolumeNeighbour;
+            float targetWeatherBlendValue = __instance._targetWeatherBlendValue;
+            float neighbourWeatherBlendValue = __instance._neighbourWeatherBlendValue;
+            AnimationCurve blendCurve = __instance._blendCurve ?? FallbackBlendCurve;
+
+            if (activeWeatherVolumes == null || activeWeatherVolumes.Count == 0)
+            {
+                return false;
+            }
+
+            if (targetWeatherVolumeIndex < 0 || targetWeatherVolumeIndex >= activeWeatherVolumes.Count)
+            {
+                for (int i = 0; i < activeWeatherVolumes.Count; i++)
+                {
+                    WeatherVolumeType volume = activeWeatherVolumes[i];
+                    if (volume == null)
+                    {
+                        continue;
+                    }
+
+                    volume.SetNeighbourVolume(null);
+                    volume.BlendEffects(0f, blendCurve);
+                }
+
+                return false;
+            }
+
+            WeatherVolumeType targetVolume = activeWeatherVolumes[targetWeatherVolumeIndex];
+            WeatherVolumeType neighbourVolume = null;
+            bool hasValidNeighbour = hasWeatherVolumeNeighbour
+                && neighbourWeatherVolumeIndex >= 0
+                && neighbourWeatherVolumeIndex < activeWeatherVolumes.Count;
+
+            if (hasValidNeighbour)
+            {
+                neighbourVolume = activeWeatherVolumes[neighbourWeatherVolumeIndex];
+                hasValidNeighbour = neighbourVolume != null;
+            }
+
+            for (int i = 0; i < activeWeatherVolumes.Count; i++)
+            {
+                WeatherVolumeType volume = activeWeatherVolumes[i];
+                if (volume == null)
+                {
+                    continue;
+                }
+
+                if (i == targetWeatherVolumeIndex)
+                {
+                    volume.SetNeighbourVolume(hasValidNeighbour ? neighbourVolume : null);
+                    volume.BlendEffects(hasValidNeighbour ? Mathf.Clamp01(targetWeatherBlendValue) : 1f, blendCurve);
+                    continue;
+                }
+
+                if (hasValidNeighbour && i == neighbourWeatherVolumeIndex)
+                {
+                    volume.SetNeighbourVolume(targetVolume);
+                    volume.BlendEffects(Mathf.Clamp01(neighbourWeatherBlendValue), blendCurve);
+                    continue;
+                }
+
+                volume.SetNeighbourVolume(null);
+                volume.BlendEffects(0f, blendCurve);
+            }
+
+            return false;
+        }
+#else
         private static bool Prefix(
             SyncList<WeatherVolumeType> ____activeWeatherVolumes,
             int ____targetWeatherVolumeIndex,
@@ -230,5 +378,6 @@ namespace DedicatedServerMod.Shared.Patches
 
             return false;
         }
+#endif
     }
 }

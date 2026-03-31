@@ -520,7 +520,20 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                return SteamGameServer.GetSteamID().m_SteamID.ToString();
+                ulong gameServerSteamId = SteamGameServer.GetSteamID().m_SteamID;
+                if (gameServerSteamId != 0)
+                {
+                    return gameServerSteamId.ToString();
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                ulong userSteamId = SteamUser.GetSteamID().m_SteamID;
+                return userSteamId != 0 ? userSteamId.ToString() : string.Empty;
             }
             catch
             {

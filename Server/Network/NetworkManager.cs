@@ -13,6 +13,7 @@ using MelonLoader;
 using System.Collections;
 using System.Reflection;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Server.Network
@@ -209,10 +210,8 @@ namespace DedicatedServerMod.Server.Network
 
                 var transportManager = networkManager.TransportManager;
                 var transport = transportManager.Transport;
-                var multipass = transport as Multipass;
-
-                if (multipass == null)
-                    return "Multipass transport not found";
+                if (!MultipassTransportResolver.TryResolve(transport, out var multipass))
+                    return $"Multipass transport not found. {MultipassTransportResolver.Describe(transport)}";
 
                 var components = multipass.gameObject.GetComponents<Transport>();
                 var info = $"Available transports on Multipass: {components.Length}\n";

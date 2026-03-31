@@ -2,15 +2,14 @@ using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Console;
 using DedicatedServerMod.Server.Game.Patches.Player;
 using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Shared.ConsoleSupport;
 using HarmonyLib;
 using MelonLoader;
 #if IL2CPP
 using Il2CppFishNet.Connection;
-using ConsoleType = Il2CppScheduleOne.Console;
 using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet.Connection;
-using ConsoleType = ScheduleOne.Console;
 using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
 
@@ -204,19 +203,7 @@ namespace DedicatedServerMod.Server.Game
         {
             try
             {
-                MethodInfo target = null;
-                foreach (var mi in typeof(ConsoleType).GetMethods(BindingFlags.Public | BindingFlags.Static))
-                {
-                    if (mi.Name != "SubmitCommand") continue;
-                    var prms = mi.GetParameters();
-                    if (prms.Length == 1 && prms[0].ParameterType == typeof(List<string>))
-                    {
-                        target = mi;
-                        break;
-                    }
-                }
-
-                if (target == null)
+                if (!GameConsoleAccess.TryGetSubmitCommandArgumentListOverload(out MethodInfo target))
                 {
                     logger.Warning("Could not find ScheduleOne.Console.SubmitCommand(List<string>) for patching");
                     return;

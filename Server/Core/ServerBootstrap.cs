@@ -192,23 +192,7 @@ namespace DedicatedServerMod.Server.Core
             if (_autoStartServer)
             {
                 _logger.Msg("Auto-starting server due to command line flag (full orchestrated sequence)");
-                
-                // Use a dedicated GameObject to ensure coroutines run reliably
-                var runnerGo = GameObject.Find("DedicatedServerRoutineRunner");
-                if (runnerGo == null)
-                {
-                    runnerGo = new GameObject("DedicatedServerRoutineRunner");
-                    GameObject.DontDestroyOnLoad(runnerGo);
-                }
-                
-                var runner = runnerGo.GetComponent<RoutineRunner>();
-                if (runner == null) runner = runnerGo.AddComponent<RoutineRunner>();
-                
-#if IL2CPP
                 MelonCoroutines.Start(ServerStartupOrchestrator.StartDedicatedServer());
-#else
-                runner.StartCoroutine(ServerStartupOrchestrator.StartDedicatedServer());
-#endif
             }
         }
 
@@ -420,10 +404,5 @@ namespace DedicatedServerMod.Server.Core
 
         public static DateTime LastAutoSave => _persistenceManager?.LastAutoSave ?? DateTime.MinValue;
     }
-
-    /// <summary>
-    /// Helper MonoBehaviour to run coroutines in the scene context
-    /// </summary>
-    public class RoutineRunner : MonoBehaviour { }
 }
 

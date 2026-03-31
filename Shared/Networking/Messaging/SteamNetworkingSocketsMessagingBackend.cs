@@ -41,6 +41,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
         private MelonLogger.Instance _logger;
         private bool _isInitialized;
+        private bool _useBootstrapOnlyMode;
         private int _virtualPort;
         private int _maxPayloadBytes;
         private ulong _serverSteamId;
@@ -72,6 +73,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         {
             get
             {
+                if (_useBootstrapOnlyMode)
+                {
+                    return _isInitialized && (_bootstrapBackend?.IsEndpointReady ?? false);
+                }
+
 #if SERVER
                 return _isInitialized;
 #else
@@ -131,30 +137,33 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 _virtualPort = Math.Max(0, config.SteamP2PChannel);
                 _maxPayloadBytes = Math.Max(256, config.SteamP2PMaxPayloadBytes);
 
-#if MONO
-                _connectionStatusCallback = Callback<SteamNetConnectionStatusChangedCallback_t>.Create(new Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate(OnConnectionStatusChanged));
-#else
-                _logger.Warning("Steam sockets status callback is disabled on IL2CPP runtime.");
-#endif
-
-                _pollGroup = CreatePollGroup();
-                if (IsInvalid(_pollGroup))
+                _useBootstrapOnlyMode = !TryRegisterConnectionStatusCallback();
+                if (_useBootstrapOnlyMode)
                 {
-                    _logger.Error("Failed to create Steam sockets poll group");
-                    return false;
+                    _logger.Warning("Steam sockets connection-status callback registration failed; using FishNet RPC bootstrap fallback for all messaging.");
                 }
+
+                if (!_useBootstrapOnlyMode)
+                {
+                    _pollGroup = CreatePollGroup();
+                    if (IsInvalid(_pollGroup))
+                    {
+                        _logger.Error("Failed to create Steam sockets poll group");
+                        return false;
+                    }
 
 #if SERVER
-                SteamGameServerNetworkingUtils.InitRelayNetworkAccess();
-                _listenSocket = SteamGameServerNetworkingSockets.CreateListenSocketP2P(_virtualPort, 0, null);
-                if (IsInvalid(_listenSocket))
-                {
-                    _logger.Error($"Failed to create Steam sockets listen socket for virtual port {_virtualPort}");
-                    return false;
-                }
+                    SteamGameServerNetworkingUtils.InitRelayNetworkAccess();
+                    _listenSocket = SteamGameServerNetworkingSockets.CreateListenSocketP2P(_virtualPort, 0, null);
+                    if (IsInvalid(_listenSocket))
+                    {
+                        _logger.Error($"Failed to create Steam sockets listen socket for virtual port {_virtualPort}");
+                        return false;
+                    }
 #else
-                SteamNetworkingUtils.InitRelayNetworkAccess();
+                    SteamNetworkingUtils.InitRelayNetworkAccess();
 #endif
+                }
 
                 _bootstrapBackend = new FishNetRpcMessagingBackend();
                 if (!_bootstrapBackend.Initialize(_logger))
@@ -243,20 +252,28 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             {
                 _bootstrapBackend = null;
                 _isInitialized = false;
+                _useBootstrapOnlyMode = false;
             }
         }
 
         /// <inheritdoc />
         public void Tick()
         {
-            if (!_isInitialized || !IsAvailable)
+            if (!_isInitialized)
             {
+                return;
+            }
+
+            if (_useBootstrapOnlyMode || !IsAvailable)
+            {
+                _bootstrapBackend?.Tick();
                 return;
             }
 
             try
             {
                 RunCallbacks();
+                GC.KeepAlive(_connectionStatusCallback);
 #if SERVER
                 RefreshServerConnectionMappings();
 #endif
@@ -280,6 +297,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             if (!_isInitialized || string.IsNullOrWhiteSpace(command))
             {
                 return false;
+            }
+
+            if (_useBootstrapOnlyMode)
+            {
+                return _bootstrapBackend != null && _bootstrapBackend.SendToServer(command, data);
             }
 
             if (ShouldPreferBootstrapClientToServer(command) && _bootstrapBackend != null)
@@ -330,6 +352,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 #if !SERVER
             return false;
 #else
+            if (_useBootstrapOnlyMode)
+            {
+                return TrySendFallbackToClient(conn, command, data);
+            }
+
             if (!TryResolveSteamIdForConnection(conn, out ulong steamId))
             {
                 return TrySendFallbackToClient(conn, command, data);
@@ -369,6 +396,25 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 #if !SERVER
             return 0;
 #else
+            if (_useBootstrapOnlyMode)
+            {
+                if (_bootstrapBackend == null || InstanceFinder.ServerManager?.Clients == null)
+                {
+                    return 0;
+                }
+
+                int fallbackSent = 0;
+                foreach (var kvp in InstanceFinder.ServerManager.Clients)
+                {
+                    if (kvp.Value != null && _bootstrapBackend.SendToClient(kvp.Value, command, data))
+                    {
+                        fallbackSent++;
+                    }
+                }
+
+                return fallbackSent;
+            }
+
             RefreshServerConnectionMappings();
             int sent = 0;
             foreach (KeyValuePair<int, NetworkConnection> kvp in _clientIdToConnection)
@@ -387,6 +433,11 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         public string GetStatusInfo()
         {
             string localSteamId = GetLocalSteamIdString();
+            if (_useBootstrapOnlyMode)
+            {
+                return $"Mode=BootstrapOnly, LocalSteamId={localSteamId}, FallbackReady={(_bootstrapBackend?.IsEndpointReady ?? false)}";
+            }
+
 #if SERVER
             return $"LocalSteamId={localSteamId}, VirtualPort={_virtualPort}, ListenSocket={_listenSocket.m_HSteamListenSocket}, Peers={_steamIdToSocket.Count}";
 #else
@@ -910,6 +961,30 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             SteamGameServerNetworkingSockets.RunCallbacks();
 #else
             SteamNetworkingSockets.RunCallbacks();
+#endif
+        }
+
+        private bool TryRegisterConnectionStatusCallback()
+        {
+            try
+            {
+                _connectionStatusCallback = Callback<SteamNetConnectionStatusChangedCallback_t>.Create(CreateConnectionStatusChangedDelegate());
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Steam sockets native callback registration failed; using bootstrap fallback path instead: {ex.Message}");
+                _connectionStatusCallback = null;
+                return false;
+            }
+        }
+
+        private Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate CreateConnectionStatusChangedDelegate()
+        {
+#if IL2CPP
+            return (Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate)new Action<SteamNetConnectionStatusChangedCallback_t>(OnConnectionStatusChanged);
+#else
+            return new Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate(OnConnectionStatusChanged);
 #endif
         }
 
