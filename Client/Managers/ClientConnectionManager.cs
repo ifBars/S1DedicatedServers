@@ -556,13 +556,7 @@ namespace DedicatedServerMod.Client.Managers
                     loadManager.onPreSceneChange?.Invoke();
                 }
 
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-
-                if (Singleton<CursorManager>.InstanceExists)
-                {
-                    Singleton<CursorManager>.Instance.SetCursorAppearance(CursorManager.ECursorType.Default);
-                }
+                RestoreMenuCursorState();
             }
             catch (Exception ex)
             {
@@ -645,6 +639,29 @@ namespace DedicatedServerMod.Client.Managers
 
             ClearPendingDisconnectNotice();
             _isReturningToMenu = false;
+        }
+
+        internal void RestoreMenuCursorState()
+        {
+            try
+            {
+                if (PlayerSingleton<PlayerCamera>.InstanceExists)
+                {
+                    PlayerSingleton<PlayerCamera>.Instance.FreeMouse();
+                }
+
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+
+                if (Singleton<CursorManager>.InstanceExists)
+                {
+                    Singleton<CursorManager>.Instance.SetCursorAppearance(CursorManager.ECursorType.Default);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"Error restoring menu cursor state: {ex.Message}");
+            }
         }
 
         private void OnClientMessageReceived(string command, string data)

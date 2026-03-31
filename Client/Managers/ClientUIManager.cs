@@ -78,6 +78,7 @@ namespace DedicatedServerMod.Client.Managers
         private readonly ClientServerListRepository serverListRepository;
         private readonly ServerStatusQueryService serverStatusQueryService = new ServerStatusQueryService();
         private readonly HashSet<string> statusQueriesInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private object pendingMenuCursorRestoreCoroutine;
         private ServerBrowserTab activeTab = ServerBrowserTab.Favorites;
         private float gameplayPingSampleTimer;
 
@@ -108,7 +109,6 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                DebugLog.Info("Initializing ClientUIManager");
                 serverListRepository.Initialize();
                 serverListRepository.Changed += OnServerListRepositoryChanged;
                 connectionManager.DedicatedServerConnected += OnDedicatedServerConnected;
@@ -118,9 +118,7 @@ namespace DedicatedServerMod.Client.Managers
                 // Initialize menu animation controller
                 menuAnimationController = new MenuAnimationController();
                 
-                // UI will be setup when menu scene loads
-                
-                DebugLog.Info("ClientUIManager initialized");
+                DebugLog.StartupDebug("ClientUIManager initialized");
             }
             catch (Exception ex)
             {
@@ -137,12 +135,14 @@ namespace DedicatedServerMod.Client.Managers
             {
                 if (sceneName == "Menu")
                 {
+                    connectionManager?.RestoreMenuCursorState();
+                    StartDeferredMenuCursorRestore();
                     RefreshMenuUiReferences();
                     menuAnimationController?.Reset();
 
                     if (!menuUISetup || !HasLiveMenuUi())
                     {
-                        DebugLog.Info("Menu scene loaded - setting up prototype UI");
+                        DebugLog.StartupDebug("Menu scene loaded - setting up prototype UI");
                         MelonCoroutines.Start(SetupMenuUI());
                     }
                 }
@@ -151,6 +151,38 @@ namespace DedicatedServerMod.Client.Managers
             {
                 DebugLog.Error($"Error handling scene load ({sceneName}): {ex}");
             }
+        }
+
+        private void StartDeferredMenuCursorRestore()
+        {
+            if (pendingMenuCursorRestoreCoroutine != null)
+            {
+                MelonCoroutines.Stop(pendingMenuCursorRestoreCoroutine);
+                pendingMenuCursorRestoreCoroutine = null;
+            }
+
+            pendingMenuCursorRestoreCoroutine = MelonCoroutines.Start(DeferredMenuCursorRestore());
+        }
+
+        private IEnumerator DeferredMenuCursorRestore()
+        {
+            yield return null;
+            yield return null;
+
+            // Re-apply the menu cursor state for a short window because
+            // scene/input initialization can re-lock the cursor after disconnect.
+            for (int i = 0; i < 8; i++)
+            {
+                if (SceneManager.GetActiveScene().name != "Menu")
+                {
+                    break;
+                }
+
+                connectionManager?.RestoreMenuCursorState();
+                yield return new WaitForSeconds(0.1f);
+            }
+
+            pendingMenuCursorRestoreCoroutine = null;
         }
 
         /// <summary>
@@ -168,7 +200,7 @@ namespace DedicatedServerMod.Client.Managers
                 if (AddServersButton())
                 {
                     menuUISetup = true;
-                    DebugLog.Info("Menu UI setup completed");
+                    DebugLog.StartupDebug("Menu UI setup completed");
                 }
                 else
                 {
@@ -178,7 +210,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error setting up menu UI: {ex}");
+                DebugLog.Error("Error setting up menu UI", ex);
                 menuUISetup = false;
             }
         }
@@ -191,10 +223,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 if (serversButton != null)
-                {
-                    DebugLog.Info("Servers button already exists in current menu scene");
                     return true;
-                }
 
                 // Find main menu structure
                 var mainMenu = GameObject.Find("MainMenu");
@@ -234,12 +263,12 @@ namespace DedicatedServerMod.Client.Managers
                 // Setup button functionality
                 SetupServersButtonClick(serversButton);
 
-                DebugLog.Info("Servers button added to main menu successfully");
+                DebugLog.StartupDebug("Servers button added to main menu successfully");
                 return true;
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error adding servers button: {ex}");
+                DebugLog.Error("Error adding servers button", ex);
                 return false;
             }
         }
@@ -328,7 +357,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error stripping onClick listeners: {ex}");
+                DebugLog.Error("Error stripping onClick listeners", ex);
             }
         }
 
@@ -356,12 +385,11 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                DebugLog.Info("Servers button clicked - opening server menu");
                 ToggleServerMenu(true);
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error handling servers button click: {ex}");
+                DebugLog.Error("Error handling servers button click", ex);
             }
         }
 
@@ -383,7 +411,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error updating button state: {ex}");
+                DebugLog.Error("Error updating button state", ex);
             }
         }
 
@@ -403,49 +431,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error showing connection status: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Add debug UI elements (for development/testing)
-        /// </summary>
-        internal void AddDebugUI()
-        {
-            try
-            {
-                // This could add debug panels, status displays, etc.
-                // For now, just provide console commands via key bindings
-                DebugLog.Info("Debug UI available via console commands");
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error($"Error adding debug UI: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Handle debug key inputs for UI testing
-        /// </summary>
-        internal void HandleDebugInput()
-        {
-            try
-            {
-                // F8 - Show connection status
-                if (Input.GetKeyDown(KeyCode.F8))
-                {
-                    ShowConnectionStatus();
-                }
-
-                // F10 - Update button state
-                if (Input.GetKeyDown(KeyCode.F10))
-                {
-                    UpdateButtonState();
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error($"Error handling debug input: {ex}");
+                DebugLog.Error("Error showing connection status", ex);
             }
         }
 
@@ -461,7 +447,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error handling input: {ex}");
+                DebugLog.Error("Error handling input", ex);
             }
         }
 
@@ -547,11 +533,10 @@ namespace DedicatedServerMod.Client.Managers
                 }
 
                 menuUISetup = false;
-                DebugLog.Info("UI elements cleaned up");
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error during UI cleanup: {ex}");
+                DebugLog.Error("Error during UI cleanup", ex);
             }
         }
 
@@ -569,7 +554,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error resetting UI state: {ex}");
+                DebugLog.Error("Error resetting UI state", ex);
             }
         }
 
@@ -626,7 +611,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error toggling server menu: {ex}");
+                DebugLog.Error("Error toggling server menu", ex);
             }
         }
 
@@ -703,7 +688,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error updating client server browser metrics: {ex}");
+                DebugLog.Error("Error updating client server browser metrics", ex);
             }
         }
 
@@ -866,12 +851,12 @@ namespace DedicatedServerMod.Client.Managers
                 PrefillDedicatedDirectConnectFields();
                 ShowServerBrowserView(ServerBrowserView.Browser);
 
-                DebugLog.Info("Dedicated client UI loaded and initialized from AssetBundle");
+                DebugLog.StartupDebug("Dedicated client UI loaded and initialized from AssetBundle");
                 return true;
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error loading dedicated client UI: {ex}");
+                DebugLog.Error("Error loading dedicated client UI", ex);
                 return false;
             }
         }
@@ -884,7 +869,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error toggling DirectConnect panel: {ex}");
+                DebugLog.Error("Error toggling DirectConnect panel", ex);
             }
         }
 
@@ -1115,7 +1100,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error saving favorite server: {ex}");
+                DebugLog.Error("Error saving favorite server", ex);
                 SetAddServerStatus("Unable to save this server right now.");
             }
         }
@@ -1455,7 +1440,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error joining saved server: {ex}");
+                DebugLog.Error("Error joining saved server", ex);
             }
         }
 
@@ -1569,7 +1554,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error applying captured fonts: {ex}");
+                DebugLog.Error("Error applying captured fonts", ex);
             }
         }
 
@@ -1598,7 +1583,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error pre-filling dedicated UI fields: {ex}");
+                DebugLog.Error("Error pre-filling dedicated UI fields", ex);
             }
         }
 
@@ -1626,7 +1611,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error handling direct connect confirm: {ex}");
+                DebugLog.Error("Error handling direct connect confirm", ex);
             }
         }
 
@@ -1648,7 +1633,7 @@ namespace DedicatedServerMod.Client.Managers
                 Transform candidate = mainMenuRoot.Find(preferredPaths[i]);
                 if (candidate != null)
                 {
-                    DebugLog.Info($"Resolved Continue button at '{GetTransformPath(candidate, mainMenuRoot)}'");
+                    DebugLog.StartupDebug($"Resolved Continue button at '{GetTransformPath(candidate, mainMenuRoot)}'");
                     return candidate;
                 }
             }
@@ -1709,7 +1694,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error pre-filling server address: {ex}");
+                DebugLog.Error("Error pre-filling server address", ex);
             }
         }
 
@@ -1966,7 +1951,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error handling connect click: {ex}");
+                DebugLog.Error("Error handling connect click", ex);
             }
         }
 
@@ -1978,7 +1963,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error handling server list click: {ex}");
+                DebugLog.Error("Error handling server list click", ex);
             }
         }
 
@@ -2022,7 +2007,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                DebugLog.Error($"Error updating server menu state: {ex}");
+                DebugLog.Error("Error updating server menu state", ex);
             }
         }
 
