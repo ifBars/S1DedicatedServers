@@ -15,9 +15,11 @@ using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Networking;
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Audio;
 using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.UI.MainMenu;
 #else
+using ScheduleOne.Audio;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Networking;
 using ScheduleOne.Persistence;
@@ -553,6 +555,11 @@ namespace DedicatedServerMod.Client.Managers
                 var loadManager = Singleton<LoadManager>.Instance;
                 if (loadManager != null)
                 {
+                    if (Singleton<MusicManager>.InstanceExists)
+                    {
+                        Singleton<MusicManager>.Instance.StopAndDisableTracks();
+                    }
+
                     loadManager.LoadStatus = LoadManager.ELoadStatus.None;
                     loadManager.IsLoading = true;
                     loadManager.IsGameLoaded = false;
