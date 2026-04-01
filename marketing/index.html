@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DedicatedServerMod | Authoritative Schedule I Servers</title>
+  <meta
+    name="description"
+    content="Run reliable, authoritative Schedule I servers with DedicatedServerMod. Open-source, extensible, and built for serious communities."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#top" aria-label="DedicatedServerMod home">
+        <span class="brand-mark">S1</span>
+        <span class="brand-copy">DedicatedServerMod</span>
+      </a>
+      <nav class="main-nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#modding">Modding API</a>
+        <a href="#deploy">Deploy</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="button button-ghost" href="../docs/index.md">Read Docs</a>
+        <a class="button button-primary" href="https://github.com">Get Source</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">OPEN SOURCE DEDICATED HOSTING FOR SCHEDULE I</p>
+          <h1>Build persistent worlds on a real authoritative server.</h1>
+          <p class="hero-description">
+            DedicatedServerMod gives you a headless server runtime, configurable permissions, host console access,
+            and a production-minded mod API—so your community can scale beyond peer-hosted sessions.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="../docs/home/installation.md">Start Hosting</a>
+            <a class="button button-ghost" href="#comparison">Why Dedicated?</a>
+          </div>
+          <ul class="hero-points">
+            <li>Authoritative host with synchronization and server-owned state.</li>
+            <li>Built-in admin, moderation, and automation commands.</li>
+            <li>Server + client mod extensibility via a unified API surface.</li>
+          </ul>
+        </div>
+        <aside class="hero-panel" aria-label="Server health snapshot">
+          <h2>Live Server Pulse</h2>
+          <div class="pulse-grid">
+            <article>
+              <p class="metric">24/7</p>
+              <p>Uptime-oriented architecture</p>
+            </article>
+            <article>
+              <p class="metric">4</p>
+              <p>Runtime targets (Mono/IL2CPP × Client/Server)</p>
+            </article>
+            <article>
+              <p class="metric">10+</p>
+              <p>Built-in command categories for operations</p>
+            </article>
+            <article>
+              <p class="metric">JSON + TOML</p>
+              <p>Config pipelines for servers and addons</p>
+            </article>
+          </div>
+          <p class="panel-note">Designed for operators who want control, observability, and modding freedom.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="container">
+        <h2>Everything required to run serious communities</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Authoritative Networking</h3>
+            <p>
+              FishNet-backed server authority with loopback host handling, custom messaging channels, and predictable
+              state ownership.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Operational Control</h3>
+            <p>
+              Built-in command system for player moderation, world control, save/load operations, permission reloads,
+              and diagnostics.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Secure Access Models</h3>
+            <p>
+              Support for Steam game server authentication modes, operator/admin roles, and identity-aware resolution
+              utilities.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Modern Config Surface</h3>
+            <p>
+              Maintain runtime behavior through structured config options with explicit documentation and side-aware
+              server/client controls.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Extensible Mod API</h3>
+            <p>
+              Ship custom integrations using server and client interfaces, lifecycle hooks, companion metadata, and
+              message routing.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Web Panel Ready</h3>
+            <p>
+              Pair the framework with the web panel workflow for an approachable operations dashboard and lower admin
+              overhead.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tinted" id="workflow">
+      <div class="container">
+        <h2>From zero to live in three stages</h2>
+        <div class="steps">
+          <article>
+            <span>01</span>
+            <h3>Install and configure</h3>
+            <p>Drop the build, set your server config, and define authentication + permissions policies.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Launch and verify</h3>
+            <p>Start headless runtime, inspect logs, connect test clients, and validate sync + persistence flows.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Scale and customize</h3>
+            <p>Add mods, automate admin routines, and iterate using open docs and source-level extension points.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="comparison">
+      <div class="container comparison">
+        <h2>Dedicated architecture vs ad-hoc host sessions</h2>
+        <div class="comparison-grid">
+          <article>
+            <h3>DedicatedServerMod</h3>
+            <ul>
+              <li>Server-owned game state and progression</li>
+              <li>Persistent operations with recovery workflows</li>
+              <li>Role-based command and permissions model</li>
+              <li>Purpose-built extension API for custom tooling</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Typical peer-host flow</h3>
+            <ul>
+              <li>Host-client coupling and fragile uptime</li>
+              <li>Limited operational controls and automation</li>
+              <li>Inconsistent moderation experience</li>
+              <li>No formal integration contract for mods</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tinted" id="modding">
+      <div class="container split">
+        <div>
+          <h2>Build mods with confidence</h2>
+          <p>
+            The API includes side-aware base types, lifecycle callbacks, custom messaging, and typed TOML utilities for
+            addon configuration. Build companion client mods, server-only behavior, or both.
+          </p>
+          <a class="button button-primary" href="../docs/modding/overview.md">Explore Modding Guides</a>
+        </div>
+        <pre class="code-block"><code>// Example intent (conceptual)
+public sealed class EconomyTweaks : ServerModBase
+{
+    public override string Name => "EconomyTweaks";
+
+    public override void OnServerInitialized()
+    {
+        S1DS.Log.Info("Economy module active");
+    }
+}</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="deploy">
+      <div class="container cta-banner">
+        <div>
+          <h2>Deploy your next Schedule I world on dedicated infrastructure.</h2>
+          <p>Read the docs, bootstrap your first shard, and ship a server experience players can rely on.</p>
+        </div>
+        <div class="cta-actions">
+          <a class="button button-primary" href="../docs/home/installation.md">Install Now</a>
+          <a class="button button-ghost" href="../docs/configuration.md">View Configuration</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <p>DedicatedServerMod • Built for Schedule I server operators.</p>
+      <a href="#top">Back to top ↑</a>
+    </div>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
