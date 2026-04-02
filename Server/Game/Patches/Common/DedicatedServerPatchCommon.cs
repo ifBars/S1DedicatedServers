@@ -11,14 +11,24 @@ namespace DedicatedServerMod.Server.Game.Patches.Common
 {
     internal static class DedicatedServerPatchCommon
     {
+        internal static bool IsDedicatedHeadlessServer()
+        {
+            return true;
+        }
+
+        internal static bool IsGhostOrLoopbackPlayer(PlayerType player)
+        {
+            return player != null && GhostHostIdentifier.IsGhostHost(player);
+        }
+
         internal static bool ShouldRunClientVisuals()
         {
-            return !InstanceFinder.IsServer && !UnityEngine.Application.isBatchMode;
+            return false;
         }
 
         internal static bool ShouldRunClientPresentationAudio()
         {
-            return !InstanceFinder.IsServer && !UnityEngine.Application.isBatchMode;
+            return false;
         }
 
         internal static int CountSleepEligiblePlayers()
@@ -38,7 +48,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Common
                     continue;
                 }
 
-                if (GhostHostIdentifier.IsGhostHost(player))
+                if (IsGhostOrLoopbackPlayer(player))
                 {
                     continue;
                 }
