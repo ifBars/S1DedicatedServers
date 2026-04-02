@@ -168,7 +168,6 @@ function FieldRow({ field, value, onChange }: FieldRowProps) {
 }
 
 export function ConfigPage({
-  boot,
   draftConfig,
   runtimeActions,
   runtimeFlags,
@@ -253,10 +252,6 @@ export function ConfigPage({
               })}
             </div>
           </ScrollArea>
-
-          <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
-            {boot.configFilePath}
-          </div>
         </Surface>
 
         <Surface padding="md">

@@ -1,26 +1,27 @@
-import type { BootstrapPayload, Overview } from "@/lib/panel-api"
+import type { BootstrapPayload } from "@/lib/panel-api"
 import { cn } from "@/lib/utils"
-import { Surface } from "@/components/panel/Surface"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PANEL_ROUTE_GROUPS, type PanelPageId } from "@/app/routes"
+import sidebarLogo from "@/assets/sidebar-logo.png"
 
 export function Sidebar({
   page,
   boot,
-  overview,
   onNavigate,
 }: {
   page: PanelPageId
   boot: BootstrapPayload | null
-  overview: Overview | null
   onNavigate: (page: PanelPageId) => void
 }) {
   return (
     <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-3 px-4 py-4">
-        <div className="flex size-9 items-center justify-center rounded-md bg-muted text-foreground">
-          <span className="text-sm font-semibold">S1</span>
+        <div className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-muted/50 ring-1 ring-border/60">
+          <img
+            alt="Schedule I dedicated server"
+            className="size-full object-contain"
+            src={sidebarLogo}
+          />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">
@@ -30,28 +31,6 @@ export function Sidebar({
             Local control panel
           </p>
         </div>
-      </div>
-
-      <div className="px-3">
-        <Surface padding="sm" variant="inset">
-          {overview ? (
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {overview.serverName}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Port {overview.serverPort} | {overview.currentPlayers}/{overview.maxPlayers} online
-                </p>
-              </div>
-              <Badge variant="outline" className="shrink-0">
-                {overview.status}
-              </Badge>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No server connected.</p>
-          )}
-        </Surface>
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-2 py-4">

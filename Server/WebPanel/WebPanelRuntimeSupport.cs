@@ -321,15 +321,15 @@ namespace DedicatedServerMod.Server.WebPanel
                     continue;
                 }
 
-                if (string.Equals(relativePath, "assets.app.js", StringComparison.OrdinalIgnoreCase))
+                if (relativePath.StartsWith("assets.", StringComparison.OrdinalIgnoreCase))
                 {
-                    _resourceMap["/assets/app.js"] = resourceName;
-                    continue;
-                }
+                    string assetName = relativePath.Substring("assets.".Length);
+                    if (!string.IsNullOrWhiteSpace(assetName))
+                    {
+                        _resourceMap["/assets/" + assetName] = resourceName;
+                    }
 
-                if (string.Equals(relativePath, "assets.app.css", StringComparison.OrdinalIgnoreCase))
-                {
-                    _resourceMap["/assets/app.css"] = resourceName;
+                    continue;
                 }
             }
         }
@@ -380,6 +380,21 @@ namespace DedicatedServerMod.Server.WebPanel
 
         private static string GetContentType(string path)
         {
+            if (path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase))
+            {
+                return "image/x-icon";
+            }
+
+            if (path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                return "image/png";
+            }
+
+            if (path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+            {
+                return "image/svg+xml";
+            }
+
             if (path.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
             {
                 return "text/css; charset=utf-8";
@@ -390,7 +405,12 @@ namespace DedicatedServerMod.Server.WebPanel
                 return "application/javascript; charset=utf-8";
             }
 
-            return "text/html; charset=utf-8";
+            if (path.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || string.Equals(path, "/", StringComparison.Ordinal))
+            {
+                return "text/html; charset=utf-8";
+            }
+
+            return "application/octet-stream";
         }
     }
 
