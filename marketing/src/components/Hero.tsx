@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Download, Github } from "lucide-react";
 
 const heroModules = import.meta.glob("../assets/heros/*.{png,jpg,jpeg,webp,avif}", {
   eager: true,
@@ -53,9 +54,8 @@ const Hero = () => {
             key={heroImage}
             src={heroImage}
             alt="Schedule I town overview"
-            className={`absolute inset-0 h-full w-full object-cover will-change-transform saturate-[0.92] brightness-[0.68] contrast-[1.08] transition-opacity ease-out ${
-              index === activeHeroIndex ? "opacity-100" : "opacity-0"
-            }`}
+            className={`absolute inset-0 h-full w-full object-cover will-change-transform saturate-[0.92] brightness-[0.68] contrast-[1.08] transition-opacity ease-out ${index === activeHeroIndex ? "opacity-100" : "opacity-0"
+              }`}
             style={{
               transform: `translateY(${imgParallax}px) scale(1.1)`,
               transitionDuration: "1800ms",
@@ -95,8 +95,8 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
-          Authoritative headless servers with full admin tooling,
-          remote console, and a public mod API - built by the community.
+          Run your Schedule I world 24/7, customize the experience
+          and build the foundation for the community server you actually want.
         </motion.p>
 
         <motion.div
@@ -111,7 +111,8 @@ const Hero = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:shadow-[0_0_34px_-8px_hsl(var(--primary)/0.45)]"
           >
-            Get Started
+            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+            Download
           </a>
           <a
             href="https://github.com/ifBars/S1DedicatedServers"
@@ -119,6 +120,7 @@ const Hero = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center rounded-md border border-border/60 bg-background/35 px-7 py-3 text-sm font-medium text-foreground hover:bg-background/55 transition-colors duration-200"
           >
+            <Github className="mr-2 h-4 w-4" aria-hidden="true" />
             GitHub
           </a>
         </motion.div>

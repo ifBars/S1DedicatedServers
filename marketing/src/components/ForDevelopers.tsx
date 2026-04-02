@@ -29,7 +29,6 @@ const ForDevelopers = () => {
             <div className="relative rounded-lg overflow-hidden">
               <img
                 src={growRoom}
-                alt="Schedule I grow room"
                 className="w-full h-auto"
                 loading="lazy"
               />

@@ -79,16 +79,11 @@ const ForHosts = () => {
               <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/55 to-transparent" />
               <img
                 src={gasMart}
-                alt="Schedule I Gas-Mart at night"
                 className="aspect-[16/10] w-full object-cover"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/55 via-background/0 to-background/10" />
             </div>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Headless uptime, remote administration, and configuration control
-              in one dedicated server workflow.
-            </p>
           </motion.div>
         </div>
       </div>

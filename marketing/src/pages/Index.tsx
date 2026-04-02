@@ -3,8 +3,6 @@ import Hero from "@/components/Hero";
 import ForHosts from "@/components/ForHosts";
 import ForDevelopers from "@/components/ForDevelopers";
 import GettingStarted from "@/components/GettingStarted";
-import DocsResources from "@/components/DocsResources";
-import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 
 const Index = () => (
@@ -14,8 +12,6 @@ const Index = () => (
     <ForHosts />
     <ForDevelopers />
     <GettingStarted />
-    <DocsResources />
-    <FAQ />
     <Footer />
   </div>
 );

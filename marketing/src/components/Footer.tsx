@@ -52,7 +52,7 @@ const Footer = () => {
               Get Started
             </a>
             <a
-              href="https://github.com/ifBars/S1DedicatedServers"
+              href="https://ifbars.github.io/S1DedicatedServers/docs/index.html"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-md border border-border/50 px-7 py-3 text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors duration-200"
@@ -73,7 +73,7 @@ const Footer = () => {
             </div>
             <div className="flex items-center gap-6">
               <a href="https://github.com/ifBars/S1DedicatedServers" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">GitHub</a>
-              <a href="https://github.com/ifBars/S1DedicatedServers#readme" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Docs</a>
+              <a href="https://ifbars.github.io/S1DedicatedServers/docs/index.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Docs</a>
               <a href="https://github.com/ifBars/S1DedicatedServers/releases" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Releases</a>
             </div>
           </div>
@@ -81,7 +81,7 @@ const Footer = () => {
             <p className="text-[11px] text-muted-foreground/60 leading-relaxed max-w-2xl mx-auto text-center">
               S1DedicatedServers is an open-source, community-developed project.
               It is not affiliated with, endorsed by, or officially connected to
-              TVGS, the developers of Schedule I, or any of its publishers.
+              TVGS, the developer and publisher of Schedule I.
               All game assets and trademarks belong to their respective owners.
             </p>
           </div>

@@ -6,8 +6,7 @@ const navLinks = [
   { label: "For Hosts", href: "#for-hosts" },
   { label: "For Developers", href: "#for-developers" },
   { label: "Getting Started", href: "#getting-started" },
-  { label: "Docs", href: "#docs" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Docs", href: "https://ifbars.github.io/S1DedicatedServers/docs/index.html" },
 ];
 
 const Header = () => {
@@ -28,13 +27,12 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
           ? "bg-background/80 backdrop-blur-xl border-b border-border/30"
           : "bg-transparent"
-      }`}
+        }`}
     >
-      <div className="container flex items-center justify-between h-16 px-4 md:px-8">
+      <div className="container relative flex items-center justify-between h-16 px-4 md:px-8">
         <a href="#" className="flex items-center gap-2.5 shrink-0">
           <img src={logoIcon} alt="S1DedicatedServers" className="w-7 h-7" />
           <span className="font-semibold text-foreground text-sm tracking-tight">
@@ -42,36 +40,19 @@ const Header = () => {
           </span>
         </a>
 
-        <nav className="hidden lg:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
           {navLinks.map((l) => (
             <a
               key={l.href}
               href={l.href}
+              target={l.href.startsWith("http") ? "_blank" : undefined}
+              rel={l.href.startsWith("http") ? "noopener noreferrer" : undefined}
               className={`${desktopLinkClass} transition-colors duration-200`}
             >
               {l.label}
             </a>
           ))}
         </nav>
-
-        <div className="hidden lg:flex items-center gap-4">
-          <a
-            href="https://github.com/ifBars/S1DedicatedServers"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${desktopLinkClass} transition-colors duration-200`}
-          >
-            GitHub
-          </a>
-          <a
-            href="https://github.com/ifBars/S1DedicatedServers/releases"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-1.5 text-[13px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Get Started
-          </a>
-        </div>
 
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -88,30 +69,14 @@ const Header = () => {
             <a
               key={l.href}
               href={l.href}
+              target={l.href.startsWith("http") ? "_blank" : undefined}
+              rel={l.href.startsWith("http") ? "noopener noreferrer" : undefined}
               onClick={() => setMobileOpen(false)}
               className={`block py-2.5 ${mobileLinkClass} transition-colors duration-200`}
             >
               {l.label}
             </a>
           ))}
-          <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border/30">
-            <a
-              href="https://github.com/ifBars/S1DedicatedServers"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={mobileLinkClass}
-            >
-              GitHub
-            </a>
-            <a
-              href="https://github.com/ifBars/S1DedicatedServers/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            >
-              Get Started
-            </a>
-          </div>
         </div>
       )}
     </header>
