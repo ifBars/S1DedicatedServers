@@ -143,6 +143,9 @@
 		<Reference Include="Assembly-CSharp">
 			<HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
 		</Reference>
+		<Reference Include="AstarPathfindingProject">
+			<HintPath>$(ManagedPath)\AstarPathfindingProject.dll</HintPath>
+		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
 		<Publicize Include="Assembly-CSharp" />
 		<Reference Include="Autodesk.Fbx">
@@ -810,6 +813,8 @@
 		
 		<Compile Include="API\S1DS.Client.cs" />
 		<Compile Include="Assets\AssetBundleLoader.cs" />
+		<EmbeddedResource Remove="Server\**" />
+		<None Remove="Server\**" />
 	</ItemGroup>
 
 	<!-- Server builds include the new organized server structure -->
