@@ -5,10 +5,12 @@ using DedicatedServerMod.Utils;
 namespace DedicatedServerMod.Shared.Configuration
 {
     /// <summary>
-    /// Persistence and file-format handling for <see cref="ServerConfig"/>.
+    /// Runtime lifecycle helpers for <see cref="ServerConfig"/>.
     /// </summary>
     public sealed partial class ServerConfig
     {
+        private const string InMemoryConfigSourceLabel = "[in-memory]";
+
         /// <summary>
         /// The configured path to the configuration file.
         /// </summary>
@@ -40,12 +42,12 @@ namespace DedicatedServerMod.Shared.Configuration
         public static bool LastLoadedFromLegacyJson { get; private set; }
 
         /// <summary>
-        /// Raised after the active configuration is saved to disk.
+        /// Raised after the active configuration is saved.
         /// </summary>
         public static event Action Saved;
 
         /// <summary>
-        /// Raised after the active configuration is reloaded from disk.
+        /// Raised after the active configuration is reloaded.
         /// </summary>
         public static event Action Reloaded;
 
@@ -53,7 +55,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Gets the current server configuration instance.
         /// Loads the configuration if not already loaded.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if configuration not initialized</exception>
+        /// <exception cref="InvalidOperationException">Thrown if configuration not initialized.</exception>
         public static ServerConfig Instance
         {
             get
@@ -68,8 +70,7 @@ namespace DedicatedServerMod.Shared.Configuration
         }
 
         /// <summary>
-        /// Initializes the server configuration system.
-        /// Should be called during server startup.
+        /// Initializes the server configuration system for the active runtime.
         /// </summary>
         /// <param name="loggerInstance">Unused legacy logger parameter retained for compatibility.</param>
         /// <param name="configFilePath">Optional custom path for the config file.</param>
@@ -79,8 +80,7 @@ namespace DedicatedServerMod.Shared.Configuration
         }
 
         /// <summary>
-        /// Initializes the server configuration system.
-        /// Should be called during server startup.
+        /// Initializes the server configuration system for the active runtime.
         /// </summary>
         /// <param name="configFilePath">Optional custom path for the config file.</param>
         public static void Initialize(string configFilePath = null)
@@ -94,64 +94,36 @@ namespace DedicatedServerMod.Shared.Configuration
         }
 
         /// <summary>
-        /// Loads the server configuration from disk.
-        /// Creates a default configuration if no file exists.
+        /// Loads the active configuration for the current runtime.
+        /// Server builds persist to disk. Client builds keep the configuration in memory only.
         /// </summary>
         public static void LoadConfig()
         {
-            try
-            {
-                ServerConfigStore.ServerConfigStoreLoadResult loadResult = CreateStore().Load();
-                _instance = loadResult.Config ?? new ServerConfig();
-                _instance.NormalizeAuthenticationConfiguration();
-                _instance.Validate();
-                LastLoadedFromPath = loadResult.LoadedFromPath;
-                LastLoadedFromLegacyJson = IsJsonConfigPath(loadResult.LoadedFromPath);
-
-                DebugLog.Info($"Server configuration loaded successfully from {loadResult.LoadedFromPath}");
-
-                if (loadResult.ShouldWriteNormalizedFile)
-                {
-                    SaveConfig();
-
-                    if (!string.IsNullOrWhiteSpace(loadResult.RewriteReason))
-                    {
-                        DebugLog.Info(loadResult.RewriteReason);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error($"Failed to load server config: {ex}");
-                _instance = new ServerConfig();
-                SaveConfig();
-            }
+#if SERVER
+            LoadPersistentConfig();
+#else
+            LoadInMemoryConfig();
+#endif
         }
 
         /// <summary>
-        /// Saves the current configuration to disk.
+        /// Saves the active configuration for the current runtime.
+        /// Server builds persist to disk. Client builds update their in-memory snapshot only.
         /// </summary>
         public static void SaveConfig()
         {
-            try
-            {
-                string configPath = ConfigFilePath;
-                CreateStore().Save(_instance ?? new ServerConfig());
-                DebugLog.Info($"Server configuration saved successfully to {configPath}");
-                Saved?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error($"Failed to save server config: {ex}");
-            }
+#if SERVER
+            SavePersistentConfig();
+#else
+            SaveInMemoryConfig();
+#endif
         }
 
         /// <summary>
-        /// Reloads the configuration from disk.
+        /// Reloads the active configuration state.
         /// </summary>
         public static void ReloadConfig()
         {
-            DebugLog.Info("Reloading server configuration...");
             LoadConfig();
             Reloaded?.Invoke();
         }
@@ -168,26 +140,6 @@ namespace DedicatedServerMod.Shared.Configuration
             LastLoadedFromLegacyJson = false;
         }
 
-        /// <summary>
-        /// Loads a configuration snapshot from an explicit path without replacing the active singleton instance.
-        /// </summary>
-        /// <param name="path">The configuration file path to load.</param>
-        /// <returns>The loaded configuration snapshot.</returns>
-        internal static ServerConfig LoadConfigSnapshot(string path)
-        {
-            return CreateStore(path, configPathWasExplicit: true).LoadSnapshot(path);
-        }
-
-        private static ServerConfigStore CreateStore()
-        {
-            return CreateStore(ConfigFilePath, _configPathWasExplicit);
-        }
-
-        private static ServerConfigStore CreateStore(string configPath, bool configPathWasExplicit)
-        {
-            return new ServerConfigStore(configPath, configPathWasExplicit);
-        }
-
         private static string GetDefaultConfigFilePath()
         {
             return Path.Combine(MelonEnvironment.UserDataDirectory, Utils.Constants.ConfigFileName);
@@ -196,6 +148,51 @@ namespace DedicatedServerMod.Shared.Configuration
         private static bool IsJsonConfigPath(string path)
         {
             return string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void LoadInMemoryConfig()
+        {
+            try
+            {
+                ApplyLoadedConfig(TryLoadInMemorySeedConfig(), ResolveInMemorySourcePath());
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error($"Failed to initialize client server config in memory: {ex}");
+                ApplyLoadedConfig(new ServerConfig(), ResolveInMemorySourcePath());
+            }
+        }
+
+        private static void SaveInMemoryConfig()
+        {
+            try
+            {
+                ApplyLoadedConfig(_instance, LastLoadedFromPath ?? ResolveInMemorySourcePath());
+                Saved?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error($"Failed to update client server config in memory: {ex}");
+            }
+        }
+
+        private static ServerConfig TryLoadInMemorySeedConfig()
+        {
+            return new ServerConfig();
+        }
+
+        private static string ResolveInMemorySourcePath()
+        {
+            return InMemoryConfigSourceLabel;
+        }
+
+        private static void ApplyLoadedConfig(ServerConfig config, string sourcePath)
+        {
+            _instance = config ?? new ServerConfig();
+            _instance.NormalizeAuthenticationConfiguration();
+            _instance.Validate();
+            LastLoadedFromPath = sourcePath;
+            LastLoadedFromLegacyJson = IsJsonConfigPath(sourcePath);
         }
     }
 }

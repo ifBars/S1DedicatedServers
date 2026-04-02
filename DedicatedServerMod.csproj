@@ -826,6 +826,7 @@
 		<Compile Include="Server\Core\ServerBootstrap.cs" />
 		<Compile Include="Server\Core\ServerRuntimeConfigurationApplier.cs" />
 		<Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
+		<Compile Include="Server\Configuration\*.cs" />
 		
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />

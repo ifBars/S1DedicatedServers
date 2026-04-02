@@ -1,9 +1,9 @@
 using DedicatedServerMod.API.Configuration;
 using DedicatedServerMod.API.Toml;
+using DedicatedServerMod.Utils;
 using MelonLoader.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using DedicatedServerMod.Utils;
 
 namespace DedicatedServerMod.Shared.Configuration
 {
