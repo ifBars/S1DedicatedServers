@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 
 const capabilities = [
   { label: "24/7 uptime", detail: "Your server runs headless, always on." },
-  { label: "Admin & permissions", detail: "Granular operator roles, permission controls, kick and ban management." },
+  { label: "Admin & permissions", detail: "Group based roles, permission controls, kick and ban management." },
   { label: "Remote console", detail: "Full TCP-based console for headless management from anywhere." },
   { label: "Deep configurability", detail: "Every aspect of server behavior is adjustable through configuration files." },
   { label: "Optional web panel", detail: "A localhost panel for real-time monitoring and local operations." },
