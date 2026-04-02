@@ -148,9 +148,6 @@
 		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
 		<Publicize Include="Assembly-CSharp" />
-		<Reference Include="Autodesk.Fbx">
-			<HintPath>$(ManagedPath)\Autodesk.Fbx.dll</HintPath>
-		</Reference>
 		<Reference Include="Cinemachine">
 			<HintPath>$(ManagedPath)\Cinemachine.dll</HintPath>
 		</Reference>
@@ -159,9 +156,6 @@
 		</Reference>
 		<Reference Include="CorgiGodRays">
 			<HintPath>$(ManagedPath)\CorgiGodRays.dll</HintPath>
-		</Reference>
-		<Reference Include="FbxBuildTestAssets">
-			<HintPath>$(ManagedPath)\FbxBuildTestAssets.dll</HintPath>
 		</Reference>
 		<Reference Include="FishNet.CodeAnalysis">
 			<HintPath>$(ManagedPath)\FishNet.CodeAnalysis.dll</HintPath>
