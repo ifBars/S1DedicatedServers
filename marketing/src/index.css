@@ -1,57 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 93%;
+    --background: 0 0% 7%;
+    --foreground: 33 100% 93%;
 
-    --card: 222 44% 9%;
-    --card-foreground: 210 40% 93%;
+    --card: 285 54% 13%;
+    --card-foreground: 33 100% 93%;
 
-    --popover: 222 44% 9%;
-    --popover-foreground: 210 40% 93%;
+    --popover: 285 54% 13%;
+    --popover-foreground: 33 100% 93%;
 
-    --primary: 213 94% 58%;
-    --primary-foreground: 222 47% 6%;
+    --primary: 93 39% 57%;
+    --primary-foreground: 0 0% 7%;
 
-    --secondary: 222 40% 14%;
-    --secondary-foreground: 210 40% 93%;
+    --secondary: 283 39% 31%;
+    --secondary-foreground: 33 100% 93%;
 
-    --muted: 222 30% 16%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 95 32% 19%;
+    --muted-foreground: 92 22% 72%;
 
-    --accent: 213 94% 58%;
-    --accent-foreground: 222 47% 6%;
+    --accent: 284 100% 40%;
+    --accent-foreground: 33 100% 93%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222 30% 18%;
-    --input: 222 30% 18%;
-    --ring: 213 94% 58%;
+    --border: 285 27% 24%;
+    --input: 285 27% 24%;
+    --ring: 284 100% 40%;
 
     --radius: 0.75rem;
 
-    --status-online: 152 69% 53%;
+    --status-online: 93 39% 57%;
 
-    --glow-primary: 213 94% 58%;
-    --surface-glass: 222 44% 10%;
-    --surface-elevated: 222 40% 12%;
-    --hero-gradient: linear-gradient(135deg, hsl(222 47% 6%) 0%, hsl(222 50% 10%) 50%, hsl(213 40% 12%) 100%);
-    --text-gradient: linear-gradient(135deg, hsl(210 40% 98%), hsl(213 94% 68%));
+    --glow-primary: 284 100% 40%;
+    --surface-glass: 284 35% 10%;
+    --surface-elevated: 285 42% 12%;
+    --hero-gradient: linear-gradient(140deg, hsl(0 0% 7%) 0%, hsl(285 54% 13%) 34%, hsl(97 41% 25%) 100%);
+    --text-gradient: linear-gradient(135deg, hsl(93 39% 57%) 0%, hsl(97 41% 25%) 100%);
 
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 40% 93%;
-    --sidebar-primary: 213 94% 58%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 40% 14%;
-    --sidebar-accent-foreground: 210 40% 93%;
-    --sidebar-border: 222 30% 18%;
-    --sidebar-ring: 213 94% 58%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 33 100% 93%;
+    --sidebar-primary: 93 39% 57%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 285 54% 13%;
+    --sidebar-accent-foreground: 33 100% 93%;
+    --sidebar-border: 285 27% 24%;
+    --sidebar-ring: 284 100% 40%;
   }
 }
 

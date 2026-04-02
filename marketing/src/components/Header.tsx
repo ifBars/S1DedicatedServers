@@ -14,6 +14,12 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const desktopLinkClass = scrolled
+    ? "text-[13px] text-foreground/72 hover:text-foreground"
+    : "text-[13px] text-foreground/88 hover:text-foreground";
+
+  const mobileLinkClass = "text-sm text-foreground/82 hover:text-foreground";
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -41,7 +47,7 @@ const Header = () => {
             <a
               key={l.href}
               href={l.href}
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className={`${desktopLinkClass} transition-colors duration-200`}
             >
               {l.label}
             </a>
@@ -53,7 +59,7 @@ const Header = () => {
             href="https://github.com/ifBars/S1DedicatedServers"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+            className={`${desktopLinkClass} transition-colors duration-200`}
           >
             GitHub
           </a>
@@ -83,7 +89,7 @@ const Header = () => {
               key={l.href}
               href={l.href}
               onClick={() => setMobileOpen(false)}
-              className="block py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className={`block py-2.5 ${mobileLinkClass} transition-colors duration-200`}
             >
               {l.label}
             </a>
@@ -93,7 +99,7 @@ const Header = () => {
               href="https://github.com/ifBars/S1DedicatedServers"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted-foreground"
+              className={mobileLinkClass}
             >
               GitHub
             </a>

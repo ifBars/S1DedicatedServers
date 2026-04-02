@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import growRoom from "@/assets/grow-room.png";
+import growRoom from "@/assets/Barn.png";
 
 const apis = [
   { title: "Server & Client Mod APIs", desc: "Well-defined extension points for both server-side logic and client-side features." },

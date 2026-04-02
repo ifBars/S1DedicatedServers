@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import nightCity from "@/assets/night-city.png";
+import nightCity from "@/assets/banners/night-city.png";
 import logoIcon from "@/assets/logo-icon.png";
 
 const Footer = () => {

@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const steps = [
-  { num: "01", title: "Download", desc: "Grab the latest build from GitHub Releases. Compatible with BepInEx." },
-  { num: "02", title: "Install", desc: "Follow the setup docs for BepInEx, file placement, and initial config." },
+  { num: "01", title: "Download", desc: "Grab the latest build from GitHub Releases. Compatible with MelonLoader." },
+  { num: "02", title: "Install", desc: "Follow the setup docs for MelonLoader, file placement, and initial config." },
   { num: "03", title: "Configure", desc: "Adjust permissions, auth backends, networking, and server behavior." },
   { num: "04", title: "Launch", desc: "Start headless, connect via remote console or web panel, invite your community." },
 ];
