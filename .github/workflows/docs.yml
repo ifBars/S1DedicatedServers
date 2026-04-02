@@ -2,9 +2,9 @@ name: Build and Deploy Documentation
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ master, develop ]
+    branches: [ main, master, develop ]
   workflow_dispatch:
     inputs:
       assembly_branch:
@@ -172,7 +172,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
