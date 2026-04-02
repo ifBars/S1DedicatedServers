@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 93%;
+
+    --card: 222 44% 9%;
+    --card-foreground: 210 40% 93%;
+
+    --popover: 222 44% 9%;
+    --popover-foreground: 210 40% 93%;
+
+    --primary: 213 94% 58%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 40% 14%;
+    --secondary-foreground: 210 40% 93%;
+
+    --muted: 222 30% 16%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 213 94% 58%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 213 94% 58%;
+
+    --radius: 0.75rem;
+
+    --status-online: 152 69% 53%;
+
+    --glow-primary: 213 94% 58%;
+    --surface-glass: 222 44% 10%;
+    --surface-elevated: 222 40% 12%;
+    --hero-gradient: linear-gradient(135deg, hsl(222 47% 6%) 0%, hsl(222 50% 10%) 50%, hsl(213 40% 12%) 100%);
+    --text-gradient: linear-gradient(135deg, hsl(210 40% 98%), hsl(213 94% 68%));
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 93%;
+    --sidebar-primary: 213 94% 58%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 40% 14%;
+    --sidebar-accent-foreground: 210 40% 93%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 213 94% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: var(--text-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-panel {
+    background: hsl(var(--surface-glass) / 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 20px -5px hsl(var(--glow-primary) / 0.15);
+  }
+
+  .glow-md {
+    box-shadow: 0 0 40px -10px hsl(var(--glow-primary) / 0.2);
+  }
+
+  .surface-elevated {
+    background: hsl(var(--surface-elevated));
+  }
+}
