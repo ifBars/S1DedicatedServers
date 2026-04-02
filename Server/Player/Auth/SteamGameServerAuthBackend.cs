@@ -21,6 +21,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     {
         private readonly Dictionary<ulong, NetworkConnection> _pendingBySteamId;
         private readonly Dictionary<ulong, NetworkConnection> _activeBySteamId;
+        private readonly HashSet<ulong> _endedSessionSteamIds;
         private readonly List<AuthCompletion> _completionBuffer;
 
         private Callback<ValidateAuthTicketResponse_t> _validateAuthCallback;
@@ -41,6 +42,7 @@ namespace DedicatedServerMod.Server.Player.Auth
         {
             _pendingBySteamId = new Dictionary<ulong, NetworkConnection>();
             _activeBySteamId = new Dictionary<ulong, NetworkConnection>();
+            _endedSessionSteamIds = new HashSet<ulong>();
             _completionBuffer = new List<AuthCompletion>();
         }
 
@@ -215,6 +217,8 @@ namespace DedicatedServerMod.Server.Player.Auth
                 };
             }
 
+            _endedSessionSteamIds.Remove(steamIdValue);
+
             if (!TryDecodeHex(ticketMessage.TicketHex, out byte[] ticketBytes))
             {
                 return new AuthBeginResult
@@ -274,7 +278,11 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             try
             {
-                PumpCallbacks();
+                if (_apiMode == SteamAuthApiMode.GameServer)
+                {
+                    PumpCallbacks();
+                }
+
                 GC.KeepAlive(_validateAuthCallback);
                 if (_apiMode == SteamAuthApiMode.GameServer)
                 {
@@ -331,6 +339,7 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             _pendingBySteamId.Remove(steamIdValue);
             _activeBySteamId.Remove(steamIdValue);
+            _endedSessionSteamIds.Add(steamIdValue);
         }
 
         /// <inheritdoc />
@@ -367,6 +376,7 @@ namespace DedicatedServerMod.Server.Player.Auth
 
                 _activeBySteamId.Clear();
                 _pendingBySteamId.Clear();
+                _endedSessionSteamIds.Clear();
                 _completionBuffer.Clear();
 
                 TrySetAdvertiseServerActive(false);
@@ -660,9 +670,17 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             if (connection == null)
             {
+                if (_endedSessionSteamIds.Remove(steamIdValue))
+                {
+                    DebugLog.AuthenticationDebug($"Ignoring late auth callback for closed Steam session {steamIdValue}");
+                    return;
+                }
+
                 DebugLog.Warning($"Received auth callback for unknown SteamID {steamIdValue}");
                 return;
             }
+
+            _endedSessionSteamIds.Remove(steamIdValue);
 
             AuthenticationResult result = BuildValidateResult(callbackData.m_eAuthSessionResponse, steamIdValue);
 
