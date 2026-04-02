@@ -195,6 +195,9 @@ namespace DedicatedServerMod.Client.Core
                 // Initialize the debug log system
                 Utils.DebugLog.Initialize(_logger);
 
+                // Client builds keep server config state in memory only.
+                Shared.Configuration.ServerConfig.Initialize();
+
                 // Initialize MessageRouter for client-side message handling
                 Shared.Networking.MessageRouter.Initialize();
                 PermissionSnapshotStore.Initialize();

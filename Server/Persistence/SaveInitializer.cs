@@ -159,18 +159,20 @@ namespace DedicatedServerMod.Server.Persistence
 			{
 				Directory.CreateDirectory(playersDir);
 
-				// If Player_0 already exists, do not overwrite
+				// The embedded archive contains flat player files, so extract into Player_0 explicitly.
 				string player0Dir = Path.Combine(playersDir, "Player_0");
 				if (Directory.Exists(player0Dir))
 					return;
+
+				Directory.CreateDirectory(player0Dir);
 
 				using Stream stream = GetEmbeddedPlayerZipStream();
 				if (stream == null)
 					throw new FileNotFoundException("Embedded resource Player_0.zip not found");
 
 				using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-				archive.ExtractToDirectory(playersDir);
-				DebugLog.Info($"Extracted Player_0.zip to {playersDir}");
+				archive.ExtractToDirectory(player0Dir);
+				DebugLog.Info($"Extracted Player_0.zip to {player0Dir}");
 			}
 			catch (Exception ex)
 			{
@@ -216,13 +218,19 @@ namespace DedicatedServerMod.Server.Persistence
 					changed = true;
 				}
 
+				if (!string.Equals(data.GameVersion, Application.version, StringComparison.Ordinal))
+				{
+					data.GameVersion = Application.version;
+					changed = true;
+				}
+
 				if (!changed)
 				{
 					return;
 				}
 
 				File.WriteAllText(playerJsonPath, data.GetJson());
-				DebugLog.Info("Normalized loopback Player.json (PlayerCode + IntroCompleted).");
+				DebugLog.Info("Normalized loopback Player.json (PlayerCode + IntroCompleted + GameVersion).");
 			}
 			catch (Exception ex)
 			{

@@ -27,7 +27,6 @@ export function AppShell({
   page,
   boot,
   overview,
-  error,
   isBusy,
   onNavigate,
   onSaveWorld,
@@ -38,7 +37,6 @@ export function AppShell({
   page: PanelPageId
   boot: BootstrapPayload
   overview: Overview
-  error: string | null
   isBusy: boolean
   onNavigate: (page: PanelPageId) => void
   onSaveWorld: () => void
@@ -57,12 +55,7 @@ export function AppShell({
         <div className="mx-auto grid min-h-svh grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
             <div className="sticky top-0 h-svh">
-              <Sidebar
-                boot={boot}
-                onNavigate={onNavigate}
-                overview={overview}
-                page={page}
-              />
+              <Sidebar boot={boot} onNavigate={onNavigate} page={page} />
             </div>
           </aside>
 
@@ -92,7 +85,6 @@ export function AppShell({
                         onNavigate(next)
                         setSidebarOpen(false)
                       }}
-                      overview={overview}
                       page={page}
                     />
                   </SheetContent>
@@ -103,12 +95,6 @@ export function AppShell({
               onRequestShutdown={() => setShutdownOpen(true)}
               onSaveWorld={onSaveWorld}
             />
-
-            {error ? (
-              <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            ) : null}
 
             <div className="mt-4">{children}</div>
           </div>

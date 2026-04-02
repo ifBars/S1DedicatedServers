@@ -132,9 +132,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-release-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-release-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-release-v1-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-release-v3-${{ steps.assembly-branch.outputs.branch }}-
 
       - name: Checkout Game Assemblies
         if: steps.cache-assemblies.outputs.cache-hit != 'true'
@@ -213,8 +213,11 @@ jobs:
             $compareLine = "**Repository**: https://github.com/${{ github.repository }}/releases"
           }
 
-          if ([string]::IsNullOrWhiteSpace($commits)) {
-            $commits = "- Packaging-only release"
+          $commitLines = @($commits | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+          if ($commitLines.Count -eq 0) {
+            $commitText = "- Packaging-only release"
+          } else {
+            $commitText = [string]::Join("`n", $commitLines)
           }
 
           @"
@@ -222,7 +225,7 @@ jobs:
 
           ### Changes
 
-          $commits
+          $commitText
 
           ---
 
@@ -234,7 +237,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-release-v1-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-release-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

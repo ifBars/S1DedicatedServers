@@ -2,14 +2,12 @@ import { useDeferredValue, useMemo, useState } from "react"
 
 import type { PanelCommonProps } from "@/app/runtimeTypes"
 import { formatRelativeTime, formatTimestamp, getLogTone } from "@/lib/format"
-import { cn } from "@/lib/utils"
 import { SectionHeader } from "@/components/layout/SectionHeader"
-import { EmptyState } from "@/components/panel/EmptyState"
+import { LogStream } from "@/components/panel/LogStream"
 import { Surface } from "@/components/panel/Surface"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Search } from "lucide-react"
 
@@ -109,52 +107,14 @@ export function ActivityPage({ boot, logs }: PanelCommonProps) {
 
           <Separator className="my-3" />
 
-          {filteredLogs.length === 0 ? (
-            <EmptyState
-              title="No activity"
-              description="No buffered log entries match the current filters."
-            />
-          ) : (
-            <div className="rounded-md border border-border bg-background/40">
-              <ScrollArea className="h-[560px]">
-                <div className="grid gap-1 p-2 font-mono text-sm">
-                  {filteredLogs
-                    .slice(-400)
-                    .reverse()
-                    .map((entry, index) => {
-                      const tone = getLogTone(entry.level)
-                      return (
-                        <div
-                          key={`${entry.timestampUtc}-${index}`}
-                          className="grid grid-cols-[78px_58px_minmax(0,1fr)] gap-3 rounded-sm px-2 py-1 hover:bg-muted/40"
-                        >
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(entry.timestampUtc).toLocaleTimeString()}
-                          </span>
-                          <span
-                            className={cn(
-                              "text-xs uppercase tracking-[0.14em]",
-                              tone === "error"
-                                ? "text-destructive"
-                                : tone === "warning"
-                                  ? "text-amber-200"
-                                  : tone === "debug"
-                                    ? "text-sky-200"
-                                    : "text-emerald-200"
-                            )}
-                          >
-                            {entry.level}
-                          </span>
-                          <span className="min-w-0 break-words text-foreground">
-                            {entry.message}
-                          </span>
-                        </div>
-                      )
-                    })}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
+          <LogStream
+            emptyDescription="No buffered log entries match the current filters."
+            emptyTitle="No activity"
+            heightClassName="h-[560px]"
+            logs={filteredLogs}
+            maxEntries={400}
+            variant="columns"
+          />
         </Surface>
 
         <div className="grid gap-4">

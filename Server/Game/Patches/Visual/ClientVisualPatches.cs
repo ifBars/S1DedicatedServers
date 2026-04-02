@@ -2,13 +2,10 @@ using HarmonyLib;
 using DedicatedServerMod.Server.Game.Patches.Common;
 #if IL2CPP
 using Il2CppFunly.SkyStudio;
-using AvatarType = Il2CppScheduleOne.AvatarFramework.Avatar;
 using AvatarImpostorType = Il2CppScheduleOne.AvatarFramework.Impostors.AvatarImpostor;
-using NpcAnimationType = Il2CppScheduleOne.NPCs.NPCAnimation;
 #else
 using Funly.SkyStudio;
 using AvatarImpostorType = ScheduleOne.AvatarFramework.Impostors.AvatarImpostor;
-using NpcAnimationType = ScheduleOne.NPCs.NPCAnimation;
 #endif
 
 namespace DedicatedServerMod.Server.Game.Patches.Visual
@@ -49,15 +46,4 @@ namespace DedicatedServerMod.Server.Game.Patches.Visual
         }
     }
 
-    /// <summary>
-    /// Skips NPC movement animation updates on dedicated servers because they only feed animator parameters.
-    /// </summary>
-    [HarmonyPatch(typeof(NpcAnimationType), "LateUpdate")]
-    internal static class NpcAnimationPatches
-    {
-        private static bool Prefix()
-        {
-            return DedicatedServerPatchCommon.ShouldRunClientVisuals();
-        }
-    }
 }

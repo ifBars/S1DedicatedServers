@@ -143,11 +143,11 @@
 		<Reference Include="Assembly-CSharp">
 			<HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
 		</Reference>
+		<Reference Include="AstarPathfindingProject">
+			<HintPath>$(ManagedPath)\AstarPathfindingProject.dll</HintPath>
+		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
 		<Publicize Include="Assembly-CSharp" />
-		<Reference Include="Autodesk.Fbx">
-			<HintPath>$(ManagedPath)\Autodesk.Fbx.dll</HintPath>
-		</Reference>
 		<Reference Include="Cinemachine">
 			<HintPath>$(ManagedPath)\Cinemachine.dll</HintPath>
 		</Reference>
@@ -157,20 +157,11 @@
 		<Reference Include="CorgiGodRays">
 			<HintPath>$(ManagedPath)\CorgiGodRays.dll</HintPath>
 		</Reference>
-		<Reference Include="FbxBuildTestAssets">
-			<HintPath>$(ManagedPath)\FbxBuildTestAssets.dll</HintPath>
-		</Reference>
 		<Reference Include="FishNet.CodeAnalysis">
 			<HintPath>$(ManagedPath)\FishNet.CodeAnalysis.dll</HintPath>
 		</Reference>
 		<Reference Include="FishNet.Runtime">
 			<HintPath>$(ManagedPath)\FishNet.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="GameKit.Dependencies">
-			<HintPath>$(ManagedPath)\GameKit.Dependencies.dll</HintPath>
-		</Reference>
-		<Reference Include="GameKit.Utilities">
-			<HintPath>$(ManagedPath)\GameKit.Utilities.dll</HintPath>
 		</Reference>
 		<Reference Include="Mono.Data.Sqlite">
 			<HintPath>$(ManagedPath)\Mono.Data.Sqlite.dll</HintPath>
@@ -220,9 +211,6 @@
 		<Reference Include="Unity.Collections">
 			<HintPath>$(ManagedPath)\Unity.Collections.dll</HintPath>
 		</Reference>
-		<Reference Include="Unity.Collections.LowLevel.ILSupport">
-			<HintPath>$(ManagedPath)\Unity.Collections.LowLevel.ILSupport.dll</HintPath>
-		</Reference>
 		<Reference Include="Unity.InputSystem">
 			<HintPath>$(ManagedPath)\Unity.InputSystem.dll</HintPath>
 		</Reference>
@@ -231,15 +219,6 @@
 		</Reference>
 		<Reference Include="Unity.Mathematics">
 			<HintPath>$(ManagedPath)\Unity.Mathematics.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.Analytics">
-			<HintPath>$(ManagedPath)\Unity.Services.Analytics.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.CloudDiagnostics">
-			<HintPath>$(ManagedPath)\Unity.Services.CloudDiagnostics.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Services.Core.Analytics">
-			<HintPath>$(ManagedPath)\Unity.Services.Core.Analytics.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.Services.Core.Device">
 			<HintPath>$(ManagedPath)\Unity.Services.Core.Device.dll</HintPath>
@@ -364,12 +343,6 @@
 		<Reference Include="UnityEngine.UmbraModule">
 			<HintPath>$(ManagedPath)\UnityEngine.UmbraModule.dll</HintPath>
 		</Reference>
-		<Reference Include="UnityEngine.UnityAnalyticsCommonModule">
-			<HintPath>$(ManagedPath)\UnityEngine.UnityAnalyticsCommonModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.UnityAnalyticsModule">
-			<HintPath>$(ManagedPath)\UnityEngine.UnityAnalyticsModule.dll</HintPath>
-		</Reference>
 		<Reference Include="UnityEngine.UnityConnectModule">
 			<HintPath>$(ManagedPath)\UnityEngine.UnityConnectModule.dll</HintPath>
 		</Reference>
@@ -448,12 +421,6 @@
 		<Reference Include="Il2CppFishNet.Runtime">
 			<HintPath>$(ManagedPath)\Il2CppFishNet.Runtime.dll</HintPath>
 		</Reference>
-		<Reference Include="Il2CppGameKit.Dependencies">
-			<HintPath>$(ManagedPath)\Il2CppGameKit.Dependencies.dll</HintPath>
-		</Reference>
-		<Reference Include="Il2CppGameKit.Utilities">
-			<HintPath>$(ManagedPath)\Il2CppGameKit.Utilities.dll</HintPath>
-		</Reference>
 		<Reference Include="Il2CppOokii.Dialogs">
 			<HintPath>$(ManagedPath)\Il2CppOokii.Dialogs.dll</HintPath>
 		</Reference>
@@ -486,9 +453,6 @@
 		</Reference>
 		<Reference Include="Unity.Collections">
 			<HintPath>$(ManagedPath)\Unity.Collections.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.Collections.LowLevel.ILSupport">
-			<HintPath>$(ManagedPath)\Unity.Collections.LowLevel.ILSupport.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.InputSystem">
 			<HintPath>$(ManagedPath)\Unity.InputSystem.dll</HintPath>
@@ -664,12 +628,6 @@
 		<Reference Include="UnityEngine.UmbraModule">
 			<HintPath>$(ManagedPath)\UnityEngine.UmbraModule.dll</HintPath>
 		</Reference>
-		<Reference Include="UnityEngine.UnityAnalyticsCommonModule">
-			<HintPath>$(ManagedPath)\UnityEngine.UnityAnalyticsCommonModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.UnityAnalyticsModule">
-			<HintPath>$(ManagedPath)\UnityEngine.UnityAnalyticsModule.dll</HintPath>
-		</Reference>
 		<Reference Include="UnityEngine.UnityConnectModule">
 			<HintPath>$(ManagedPath)\UnityEngine.UnityConnectModule.dll</HintPath>
 		</Reference>
@@ -810,6 +768,8 @@
 		
 		<Compile Include="API\S1DS.Client.cs" />
 		<Compile Include="Assets\AssetBundleLoader.cs" />
+		<EmbeddedResource Remove="Server\**" />
+		<None Remove="Server\**" />
 	</ItemGroup>
 
 	<!-- Server builds include the new organized server structure -->
@@ -821,6 +781,7 @@
 		<Compile Include="Server\Core\ServerBootstrap.cs" />
 		<Compile Include="Server\Core\ServerRuntimeConfigurationApplier.cs" />
 		<Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
+		<Compile Include="Server\Configuration\*.cs" />
 		
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />

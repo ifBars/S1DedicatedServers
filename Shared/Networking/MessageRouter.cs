@@ -158,6 +158,12 @@ namespace DedicatedServerMod.Shared.Networking
                 case Constants.Messages.DisconnectNotice:
                 case Constants.Messages.ServerData:
                 case Constants.Messages.PermissionSnapshot:
+                case Constants.Messages.SnlDedicatedSnapshot:
+                case Constants.Messages.SnlDedicatedMemberJoined:
+                case Constants.Messages.SnlDedicatedMemberLeft:
+                case Constants.Messages.SnlDedicatedLobbyDataChanged:
+                case Constants.Messages.SnlDedicatedMemberDataChanged:
+                case Constants.Messages.SnlDedicatedP2PMessage:
                     // Handled by dedicated client managers via CustomMessaging events.
                     break;
 

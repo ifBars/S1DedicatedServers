@@ -5,15 +5,12 @@ import {
   formatFrameTime,
   formatRelativeTime,
   formatTimestamp,
-  getLogTone,
 } from "@/lib/format"
-import { cn } from "@/lib/utils"
 import { SectionHeader } from "@/components/layout/SectionHeader"
-import { EmptyState } from "@/components/panel/EmptyState"
+import { LogStream } from "@/components/panel/LogStream"
 import { Surface } from "@/components/panel/Surface"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { TerminalSquare } from "lucide-react"
 
@@ -25,7 +22,7 @@ export function OverviewPage({
   config,
   onNavigate,
 }: PanelCommonProps & { onNavigate: (page: PanelPageId) => void }) {
-  const recentLogs = logs.slice(-30).reverse()
+  const recentLogs = logs.slice(-30)
 
   const authenticatedCount = players.filter((player) => player.isAuthenticated).length
   const pendingCount = players.filter(
@@ -105,7 +102,7 @@ export function OverviewPage({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Surface padding="md" variant="default">
+        <Surface className="flex h-full min-h-0 flex-col" padding="md" variant="default">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-foreground">Runtime output</p>
@@ -120,46 +117,15 @@ export function OverviewPage({
 
           <Separator className="my-3" />
 
-          {recentLogs.length === 0 ? (
-            <EmptyState
-              title="No log entries yet"
-              description="Once the server emits runtime output it will appear here."
-            />
-          ) : (
-            <div className="rounded-md border border-border bg-background/40">
-              <ScrollArea className="h-[420px]">
-                <div className="grid gap-1 p-2 font-mono text-sm">
-                  {recentLogs.map((entry, index) => (
-                    <div
-                      key={`${entry.timestampUtc}-${index}`}
-                      className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-sm px-2 py-1 hover:bg-muted/40"
-                    >
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(entry.timestampUtc).toLocaleTimeString()}
-                      </span>
-                      <span className="min-w-0 break-words text-foreground">
-                        <span
-                          className={cn(
-                            "mr-2 inline-flex rounded-sm border px-1.5 py-0.5 text-[0.7rem] uppercase tracking-[0.16em]",
-                            getLogTone(entry.level) === "error"
-                              ? "border-destructive/40 text-destructive"
-                              : getLogTone(entry.level) === "warning"
-                                ? "border-amber-500/40 text-amber-200"
-                                : getLogTone(entry.level) === "debug"
-                                  ? "border-sky-500/40 text-sky-200"
-                                  : "border-emerald-500/30 text-emerald-200"
-                          )}
-                        >
-                          {entry.level}
-                        </span>
-                        {entry.message}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
+          <LogStream
+            className="min-h-0 flex-1"
+            emptyDescription="Once the server emits runtime output it will appear here."
+            emptyTitle="No log entries yet"
+            heightClassName="h-full"
+            logs={recentLogs}
+            maxEntries={30}
+            variant="badge"
+          />
         </Surface>
 
         <div className="grid gap-4">

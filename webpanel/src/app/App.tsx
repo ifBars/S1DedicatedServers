@@ -1,3 +1,6 @@
+import { useEffect, useRef } from "react"
+import { toast } from "sonner"
+
 import { EmptyState } from "@/components/panel/EmptyState"
 import { AppShell } from "@/app/AppShell"
 import { usePanelRouter } from "@/app/usePanelRouter"
@@ -11,6 +14,23 @@ import { PlayersPage } from "@/features/players/PlayersPage"
 export default function App() {
   const { page, navigate } = usePanelRouter()
   const runtime = usePanelRuntime()
+  const lastToastErrorRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!runtime.boot || !runtime.error) {
+      lastToastErrorRef.current = runtime.error
+      return
+    }
+
+    if (lastToastErrorRef.current === runtime.error) {
+      return
+    }
+
+    toast.error("Request failed", {
+      description: runtime.error,
+    })
+    lastToastErrorRef.current = runtime.error
+  }, [runtime.boot, runtime.error])
 
   if (runtime.loading) {
     return (
@@ -86,7 +106,6 @@ export default function App() {
   return (
     <AppShell
       boot={runtime.boot}
-      error={runtime.error}
       isBusy={isBusy}
       onNavigate={navigate}
       onReloadConfig={runtime.actions.reloadConfigFromDisk}
