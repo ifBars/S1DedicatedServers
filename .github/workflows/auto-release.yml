@@ -213,8 +213,11 @@ jobs:
             $compareLine = "**Repository**: https://github.com/${{ github.repository }}/releases"
           }
 
-          if ([string]::IsNullOrWhiteSpace($commits)) {
-            $commits = "- Packaging-only release"
+          $commitLines = @($commits | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+          if ($commitLines.Count -eq 0) {
+            $commitText = "- Packaging-only release"
+          } else {
+            $commitText = [string]::Join("`n", $commitLines)
           }
 
           @"
@@ -222,7 +225,7 @@ jobs:
 
           ### Changes
 
-          $commits
+          $commitText
 
           ---
 
