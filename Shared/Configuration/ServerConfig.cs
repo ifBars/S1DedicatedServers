@@ -427,7 +427,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Whether to log admin commands to admin_actions.log.
         /// </summary>
-        [JsonProp("logAdminCommands")]
+        [JsonIgnore]
         public bool LogAdminCommands { get; set; } = true;
 
         /// <summary>
@@ -479,21 +479,32 @@ namespace DedicatedServerMod.Shared.Configuration
         #region Debug & Logging
 
         /// <summary>
+        /// Compact serialized representation of enabled logging-related options.
+        /// Entries reuse the legacy config key names for backward-compatible semantics.
+        /// </summary>
+        [JsonProp(Constants.ConfigKeys.EnabledLoggingOptions)]
+        internal List<string> EnabledLoggingOptions
+        {
+            get => GetEnabledLoggingOptions().ToList();
+            set => ApplyEnabledLoggingOptions(value);
+        }
+
+        /// <summary>
         /// Whether debug mode is enabled (additional logging).
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.DebugMode)]
+        [JsonIgnore]
         public bool DebugMode { get; set; } = false;
 
         /// <summary>
         /// Whether verbose logging is enabled (trace-level).
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.VerboseLogging)]
+        [JsonIgnore]
         public bool VerboseLogging { get; set; } = false;
 
         /// <summary>
         /// Whether to log player actions (movement, etc.).
         /// </summary>
-        [JsonProp("logPlayerActions")]
+        [JsonIgnore]
         public bool LogPlayerActions { get; set; } = true;
 
         /// <summary>
@@ -506,50 +517,116 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Whether to enable additional debug logging across shared networking systems.
         /// This acts as an umbrella switch for routing and transport/backend debug logs.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogNetworkingDebug)]
+        [JsonIgnore]
         public bool LogNetworkingDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed debug logging for message routing decisions.
         /// When false, normal warnings and errors still log.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogMessageRoutingDebug)]
+        [JsonIgnore]
         public bool LogMessageRoutingDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed debug logging for messaging backend send/receive activity.
         /// When false, normal warnings and errors still log.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogMessagingBackendDebug)]
+        [JsonIgnore]
         public bool LogMessagingBackendDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed startup orchestration and initialization tracing.
         /// When false, only important startup milestones, warnings, and errors remain visible.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogStartupDebug)]
+        [JsonIgnore]
         public bool LogStartupDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed server transport and network lifecycle tracing.
         /// When false, only important online/offline and failure logs remain visible.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogServerNetworkDebug)]
+        [JsonIgnore]
         public bool LogServerNetworkDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed player lifecycle tracing for connections, spawns, identities, and shutdown cleanup.
         /// When false, important join, leave, kick, and ban logs remain visible.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogPlayerLifecycleDebug)]
+        [JsonIgnore]
         public bool LogPlayerLifecycleDebug { get; set; } = false;
 
         /// <summary>
         /// Whether to enable detailed authentication tracing for handshake and auth state transitions.
         /// When false, only common authentication failures remain visible.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.LogAuthenticationDebug)]
+        [JsonIgnore]
         public bool LogAuthenticationDebug { get; set; } = false;
+
+        [JsonProp(Constants.ConfigKeys.DebugMode)]
+        private bool LegacyDebugMode
+        {
+            set => DebugMode = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.VerboseLogging)]
+        private bool LegacyVerboseLogging
+        {
+            set => VerboseLogging = value;
+        }
+
+        [JsonProp("logPlayerActions")]
+        private bool LegacyLogPlayerActions
+        {
+            set => LogPlayerActions = value;
+        }
+
+        [JsonProp("logAdminCommands")]
+        private bool LegacyLogAdminCommands
+        {
+            set => LogAdminCommands = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogNetworkingDebug)]
+        private bool LegacyLogNetworkingDebug
+        {
+            set => LogNetworkingDebug = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogMessageRoutingDebug)]
+        private bool LegacyLogMessageRoutingDebug
+        {
+            set => LogMessageRoutingDebug = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogMessagingBackendDebug)]
+        private bool LegacyLogMessagingBackendDebug
+        {
+            set => LogMessagingBackendDebug = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogStartupDebug)]
+        private bool LegacyLogStartupDebug
+        {
+            set => LogStartupDebug = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogServerNetworkDebug)]
+        private bool LegacyLogServerNetworkDebug
+        {
+            set => LogServerNetworkDebug = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogPlayerLifecycleDebug)]
+        private bool LegacyLogPlayerLifecycleDebug
+        {
+            set => LogPlayerLifecycleDebug = value;
+        }
+
+        [JsonProp(Constants.ConfigKeys.LogAuthenticationDebug)]
+        private bool LegacyLogAuthenticationDebug
+        {
+            set => LogAuthenticationDebug = value;
+        }
 
         #endregion
 
@@ -1141,6 +1218,103 @@ namespace DedicatedServerMod.Shared.Configuration
                     DebugLog.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p, steam_networking_sockets.");
                     value = MessagingBackendType.FishNetRpc;
                     return false;
+            }
+        }
+
+        private string[] GetEnabledLoggingOptions()
+        {
+            List<string> options = new List<string>();
+
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.DebugMode, DebugMode);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.VerboseLogging, VerboseLogging);
+            AddEnabledLoggingOption(options, "logPlayerActions", LogPlayerActions);
+            AddEnabledLoggingOption(options, "logAdminCommands", LogAdminCommands);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogNetworkingDebug, LogNetworkingDebug);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogMessageRoutingDebug, LogMessageRoutingDebug);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogMessagingBackendDebug, LogMessagingBackendDebug);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogStartupDebug, LogStartupDebug);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogServerNetworkDebug, LogServerNetworkDebug);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogPlayerLifecycleDebug, LogPlayerLifecycleDebug);
+            AddEnabledLoggingOption(options, Constants.ConfigKeys.LogAuthenticationDebug, LogAuthenticationDebug);
+
+            return options.ToArray();
+        }
+
+        private void ApplyEnabledLoggingOptions(IEnumerable<string> enabledOptions)
+        {
+            ResetLoggingOptions();
+
+            if (enabledOptions == null)
+            {
+                return;
+            }
+
+            foreach (string option in enabledOptions)
+            {
+                if (string.IsNullOrWhiteSpace(option))
+                {
+                    continue;
+                }
+
+                switch (option.Trim())
+                {
+                    case Constants.ConfigKeys.DebugMode:
+                        DebugMode = true;
+                        break;
+                    case Constants.ConfigKeys.VerboseLogging:
+                        VerboseLogging = true;
+                        break;
+                    case "logPlayerActions":
+                        LogPlayerActions = true;
+                        break;
+                    case "logAdminCommands":
+                        LogAdminCommands = true;
+                        break;
+                    case Constants.ConfigKeys.LogNetworkingDebug:
+                        LogNetworkingDebug = true;
+                        break;
+                    case Constants.ConfigKeys.LogMessageRoutingDebug:
+                        LogMessageRoutingDebug = true;
+                        break;
+                    case Constants.ConfigKeys.LogMessagingBackendDebug:
+                        LogMessagingBackendDebug = true;
+                        break;
+                    case Constants.ConfigKeys.LogStartupDebug:
+                        LogStartupDebug = true;
+                        break;
+                    case Constants.ConfigKeys.LogServerNetworkDebug:
+                        LogServerNetworkDebug = true;
+                        break;
+                    case Constants.ConfigKeys.LogPlayerLifecycleDebug:
+                        LogPlayerLifecycleDebug = true;
+                        break;
+                    case Constants.ConfigKeys.LogAuthenticationDebug:
+                        LogAuthenticationDebug = true;
+                        break;
+                }
+            }
+        }
+
+        private void ResetLoggingOptions()
+        {
+            DebugMode = false;
+            VerboseLogging = false;
+            LogPlayerActions = false;
+            LogAdminCommands = false;
+            LogNetworkingDebug = false;
+            LogMessageRoutingDebug = false;
+            LogMessagingBackendDebug = false;
+            LogStartupDebug = false;
+            LogServerNetworkDebug = false;
+            LogPlayerLifecycleDebug = false;
+            LogAuthenticationDebug = false;
+        }
+
+        private static void AddEnabledLoggingOption(ICollection<string> options, string key, bool enabled)
+        {
+            if (enabled)
+            {
+                options.Add(key);
             }
         }
 

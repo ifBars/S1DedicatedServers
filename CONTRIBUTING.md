@@ -417,8 +417,10 @@ Mockups, examples from other projects, etc.
 # Enable debug logging
 # In server_config.json:
 {
-  "debugMode": true,
-  "verboseLogging": true
+  "enabledLoggingOptions": [
+    "debugMode",
+    "verboseLogging"
+  ]
 }
 
 # Check logs

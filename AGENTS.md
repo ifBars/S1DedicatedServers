@@ -465,10 +465,12 @@ catch (JsonException ex)
 
 ```json
 {
-  "debugMode": true,
-  "verboseLogging": true,
-  "logPlayerActions": true,
-  "logAdminCommands": true
+  "enabledLoggingOptions": [
+    "debugMode",
+    "verboseLogging",
+    "logPlayerActions",
+    "logAdminCommands"
+  ]
 }
 ```
 

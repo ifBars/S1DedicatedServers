@@ -477,6 +477,7 @@ namespace DedicatedServerMod.Utils
             public const string BannedPlayers = "bannedPlayers";
             public const string DebugMode = "debugMode";
             public const string VerboseLogging = "verboseLogging";
+            public const string EnabledLoggingOptions = "enabledLoggingOptions";
             public const string LogNetworkingDebug = "logNetworkingDebug";
             public const string LogMessageRoutingDebug = "logMessageRoutingDebug";
             public const string LogMessagingBackendDebug = "logMessagingBackendDebug";

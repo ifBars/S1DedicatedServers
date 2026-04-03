@@ -76,6 +76,7 @@ namespace DedicatedServerMod.API.Configuration
                 : new TomlDocument();
 
             ApplyNormalization(config);
+            _options.NormalizeDocument?.Invoke(document);
             _updater.Update(document, config);
             TomlWriter.WriteFile(document, Path);
         }
@@ -99,13 +100,14 @@ namespace DedicatedServerMod.API.Configuration
                 wasCreated = true;
             }
 
+            bool wasDocumentNormalized = _options.NormalizeDocument?.Invoke(document) ?? false;
             TConfig config = CreateInstance();
             TomlConfigBinder<TConfig>.TomlConfigBindingResult bindResult = _binder.Bind(document, config);
-            bool wasNormalized = ApplyNormalization(config);
+            bool wasNormalized = ApplyNormalization(config) || wasDocumentNormalized;
             List<TomlConfigValidationIssue> validationIssues = bindResult.ValidationIssues.ToList();
             validationIssues.AddRange(Validate(config));
 
-            bool requiresSave = wasCreated || bindResult.MissingManagedKeys.Count > 0 || (_options.SaveOnNormalize && wasNormalized);
+            bool requiresSave = wasCreated || bindResult.MissingManagedKeys.Count > 0 || wasDocumentNormalized || (_options.SaveOnNormalize && wasNormalized);
             if (wasCreated && writeIfMissing)
             {
                 _updater.Update(document, config);

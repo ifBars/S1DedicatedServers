@@ -80,18 +80,15 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.AutoSaveOnPlayerLeave, option => option.Comment("Trigger a save when a player leaves.")))
                 .Section("logging", section => section
                     .Comment("Diagnostic and debug logging controls.")
-                    .Option(config => config.DebugMode, option => option.Comment("Enable general debug logging."))
-                    .Option(config => config.VerboseLogging, option => option.Comment("Enable verbose trace logging."))
-                    .Option(config => config.LogPlayerActions, option => option.Comment("Log player action details."))
-                    .Option(config => config.LogAdminCommands, option => option.Comment("Write privileged action usage to admin_actions.log."))
+                    .Option(config => config.EnabledLoggingOptions, option => option
+                        .Key(Utils.Constants.ConfigKeys.EnabledLoggingOptions)
+                        .Comments(
+                            "Enable one or more logging streams.",
+                            "Valid values: 'debugMode', 'verboseLogging', 'logPlayerActions', 'logAdminCommands',",
+                            "'logNetworkingDebug', 'logMessageRoutingDebug', 'logMessagingBackendDebug',",
+                            "'logStartupDebug', 'logServerNetworkDebug', 'logPlayerLifecycleDebug', 'logAuthenticationDebug'."))
                     .Option(config => config.EnablePerformanceMonitoring, option => option.Comment("Enable performance monitoring instrumentation."))
-                    .Option(config => config.LogNetworkingDebug, option => option.Comment("Enable shared networking debug logging."))
-                    .Option(config => config.LogMessageRoutingDebug, option => option.Comment("Enable message routing debug logging."))
-                    .Option(config => config.LogMessagingBackendDebug, option => option.Comment("Enable messaging backend debug logging."))
-                    .Option(config => config.LogStartupDebug, option => option.Comment("Enable startup orchestration debug logging."))
-                    .Option(config => config.LogServerNetworkDebug, option => option.Comment("Enable server network lifecycle debug logging."))
-                    .Option(config => config.LogPlayerLifecycleDebug, option => option.Comment("Enable player lifecycle debug logging."))
-                    .Option(config => config.LogAuthenticationDebug, option => option.Comment("Enable authentication debug logging.")))
+                    )
                 .Section("performance", section => section
                     .Comment("Headless performance tuning.")
                     .Option(config => config.TargetFrameRate, option => option.Comment("Target frame rate. Use -1 for unlimited."))

@@ -1,3 +1,5 @@
+using DedicatedServerMod.API.Toml;
+
 namespace DedicatedServerMod.API.Configuration
 {
     /// <summary>
@@ -25,6 +27,12 @@ namespace DedicatedServerMod.API.Configuration
         /// Gets or sets an additional validation delegate.
         /// </summary>
         public Func<TConfig, IEnumerable<TomlConfigValidationIssue>> Validate { get; set; }
+
+        /// <summary>
+        /// Gets or sets an optional TOML document normalization delegate applied before bind and save.
+        /// Returns <see langword="true"/> when the document was modified.
+        /// </summary>
+        public Func<TomlDocument, bool> NormalizeDocument { get; set; }
 
         /// <summary>
         /// Gets or sets whether <see cref="TomlConfigStore{TConfig}.Load"/> should mark the result for save after normalization.
