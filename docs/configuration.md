@@ -211,6 +211,25 @@ vSyncCount = 0
 - `targetFrameRate`: 30-60 is the normal dedicated-server range
 - `vSyncCount`: should usually stay `0`
 
+### Host Sizing
+
+Current baseline observation for a mostly idle server:
+
+- `2` vCPUs at around `2.0 GHz`
+- `4 GB` RAM
+- `0-1` connected players
+- roughly `72%` average CPU usage
+- about `3.0 GB` RAM in use
+
+Documented this way, that is a bare-minimum baseline rather than a general recommendation. It appears sufficient for bringing up a server and keeping a nearly empty world running, but it leaves little safety margin for:
+
+- more concurrent players
+- save/load spikes
+- additional server or client-mod verification work
+- hosted panel overhead, Wine/Proton overhead, or noisy-neighbor VPS contention
+
+If you are provisioning a public server or expect regular activity, use more CPU and memory than this baseline.
+
 ### Starting The Server
 
 - Use `start_server.bat` from the release package to launch the dedicated server install.

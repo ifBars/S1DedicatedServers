@@ -15,6 +15,17 @@ Run authoritative, headless Schedule I servers and build server/client mods agai
 - Avoid MelonLoader `0.7.1`.
 - Windows is the primary target for server hosting. Linux hosting typically requires Wine or Proton.
 
+## Host Sizing Baseline
+
+The smallest host size currently known to run a mostly idle server is a VPS with:
+
+- `2` vCPUs at around `2.0 GHz`
+- `4 GB` RAM
+
+That baseline has only been observed to handle a server with `0-1` connected players, at roughly `72%` average CPU usage and about `3.0 GB` RAM in use. Treat it as a bare-minimum starting point, not as a comfortable production target.
+
+If you expect multiple players, CPU spikes during save/load, extra mods, or virtualization overhead from a budget VPS, provision more headroom.
+
 ## Create a Server Install
 
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.

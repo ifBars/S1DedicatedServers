@@ -23,6 +23,8 @@ Current release status: `0.5.0-beta`. The project is usable, but the runtime and
 3. Review the [configuration overview](https://docs.s1servers.com/docs/configuration.html) before opening a server to other players.
 4. Check the [troubleshooting guide](https://docs.s1servers.com/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
 
+Current documented host baseline for a near-empty server is `2` vCPUs at roughly `2.0 GHz` with `4 GB` RAM. That has only been observed to hold `0-1` players at around `72%` average CPU usage and about `3.0 GB` RAM, so it should be treated as a bare minimum rather than a recommended production target.
+
 ## Documentation
 
 - [Docs site](https://docs.s1servers.com/)
