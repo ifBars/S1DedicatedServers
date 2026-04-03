@@ -6,12 +6,10 @@ using DedicatedServerMod.Utils;
 using Il2CppFishNet;
 using Il2CppScheduleOne.Map;
 using Il2CppScheduleOne.PlayerScripts;
-using Il2CppScheduleOne.UI;
 #else
 using FishNet;
 using ScheduleOne.Map;
 using ScheduleOne.PlayerScripts;
-using ScheduleOne.UI;
 #endif
 
 namespace DedicatedServerMod.Client.Patches
@@ -45,25 +43,6 @@ namespace DedicatedServerMod.Client.Patches
             catch (Exception ex)
             {
                 DebugLog.Error("Error filtering ghost host POI", ex);
-                return true;
-            }
-        }
-
-        [HarmonyPatch(typeof(DeathScreen), "CanRespawn")]
-        [HarmonyPrefix]
-        private static bool CanRespawnPrefix(ref bool __result)
-        {
-            if (!ShouldFilterGhostHostUi())
-                return true;
-
-            try
-            {
-                __result = ClientLoopbackHandler.GetVisiblePlayerCount() > 1;
-                return false;
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error("Error filtering ghost host respawn state", ex);
                 return true;
             }
         }
