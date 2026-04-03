@@ -154,8 +154,35 @@ namespace DedicatedServerMod.Client.Patchers
 
         internal static bool TryGetGhostHostOwner(POI poi, out Player player)
         {
-            player = poi?.GetComponentInParent<Player>(includeInactive: true);
-            return player.IsGhostHost();
+            player = null;
+
+            if (poi == null)
+                return false;
+
+            player = poi.GetComponentInParent<Player>(includeInactive: true);
+            if (player != null && player.IsGhostHost())
+                return true;
+
+            foreach (var candidate in Player.PlayerList)
+            {
+                if (candidate?.PoI == poi && candidate.IsGhostHost())
+                {
+                    player = candidate;
+                    return true;
+                }
+            }
+
+            foreach (var candidate in UnityEngine.Object.FindObjectsOfType<Player>(includeInactive: true))
+            {
+                if (candidate?.PoI == poi && candidate.IsGhostHost())
+                {
+                    player = candidate;
+                    return true;
+                }
+            }
+
+            player = null;
+            return false;
         }
 
         internal static int GetVisiblePlayerCount()

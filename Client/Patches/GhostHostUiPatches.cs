@@ -29,27 +29,40 @@ namespace DedicatedServerMod.Client.Patches
         [HarmonyPrefix]
         private static bool PoiOnEnablePrefix(POI __instance)
         {
-            if (!ShouldFilterGhostHostUi())
-                return true;
+            return ShouldAllowPoiLifecycle(__instance, "OnEnable");
+        }
 
-            try
-            {
-                if (!ClientLoopbackHandler.TryGetGhostHostOwner(__instance, out Player player))
-                    return true;
-
-                ClientLoopbackHandler.HideLoopbackPresentation(player);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error("Error filtering ghost host POI", ex);
-                return true;
-            }
+        [HarmonyPatch(typeof(POI), nameof(POI.InitializeUI))]
+        [HarmonyPrefix]
+        private static bool PoiInitializeUiPrefix(POI __instance)
+        {
+            return ShouldAllowPoiLifecycle(__instance, nameof(POI.InitializeUI));
         }
 
         private static bool ShouldFilterGhostHostUi()
         {
             return InstanceFinder.IsClient && !InstanceFinder.IsServer;
+        }
+
+        private static bool ShouldAllowPoiLifecycle(POI poi, string stage)
+        {
+            if (!ShouldFilterGhostHostUi())
+                return true;
+
+            try
+            {
+                if (!ClientLoopbackHandler.TryGetGhostHostOwner(poi, out Player player))
+                    return true;
+
+                DebugLog.Debug($"Suppressing ghost host POI during {stage}");
+                ClientLoopbackHandler.HideLoopbackPresentation(player);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error($"Error filtering ghost host POI during {stage}", ex);
+                return true;
+            }
         }
     }
 }
