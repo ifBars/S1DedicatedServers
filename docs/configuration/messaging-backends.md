@@ -387,14 +387,8 @@ Steam-based backends (SteamP2P and SteamNetworkingSockets) require Steam ID mapp
 3. **Never use SteamP2P** - only works with Steam client launch
 4. Pair Steam backends with Steam authentication
 5. Monitor logs for fallback usage (should be minimal after init)
-
-### For Docker/Cloud
-
-1. **Always use SteamNetworkingSockets** (FishNetRpc also works if not using Steam features)
-2. **Never use SteamP2P** - incompatible with containerized deployments
-3. Ensure Steam can initialize in container
-4. Configure relay for NAT traversal
-5. Test connectivity before production deployment
+6. For Docker or cloud hosting, prefer `SteamNetworkingSockets`, make sure Steam can initialize inside the container or host environment, and test connectivity before production deployment.
+7. Follow [Docker Deployment](../docker.md) for the release package and image build layout when deploying this way.
 
 ### General Tips
 

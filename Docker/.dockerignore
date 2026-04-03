@@ -1,0 +1,10 @@
+MelonLoader.x64/
+MelonLoader/
+Server/
+UserData/
+Logs/
+*.zip
+*.tar
+*.tar.gz
+*.log
+steam_appid.txt

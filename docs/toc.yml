@@ -4,6 +4,8 @@
     href: index.md
   - name: Quick Start
     href: ../index.md
+  - name: Docker Deployment
+    href: docker.md
 - name: Configuration
   items:
   - name: Overview

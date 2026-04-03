@@ -26,6 +26,12 @@ That baseline has only been observed to handle a server with `0-1` connected pla
 
 If you expect multiple players, CPU spikes during save/load, extra mods, or virtualization overhead from a budget VPS, provision more headroom.
 
+## Docker Deployment
+
+For containerized hosting, use the Docker release package and follow [Docker Deployment](docs/docker.md).
+
+`Docker.zip` intentionally contains only the Docker template files. Copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Server.zip` into that Docker folder before running `docker build`.
+
 ## Create a Server Install
 
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.

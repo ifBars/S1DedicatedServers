@@ -212,19 +212,14 @@ If you see messages about `SteamWebApi` not being implemented, switch `authProvi
 3. Keep `authAllowLoopbackBypass: true`.
 4. Use `steamGameServerMode: "Authentication"` or stricter.
 5. Use a persistent token for long-lived production hosting.
+6. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` correctly, and keep tokens out of version control.
+7. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
 
 ### Private servers
 
 1. Use `authProvider: "None"` only when the trust model is acceptable.
 2. Consider keeping Steam auth enabled anyway for accountability.
 3. Use `permissions.toml` groups, direct user rules, and bans if you need a coarse whitelist or staff-only environment.
-
-### Docker or cloud deployments
-
-1. Prefer `SteamGameServer`.
-2. Ensure the container or host can reach Steam backend services.
-3. Expose `steamGameServerQueryPort` correctly.
-4. Keep tokens out of version control.
 
 ## Security Considerations
 

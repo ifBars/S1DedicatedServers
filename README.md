@@ -29,6 +29,7 @@ Current documented host baseline for a near-empty server is `2` vCPUs at roughly
 
 - [Docs site](https://docs.s1servers.com/)
 - [Quick Start](https://docs.s1servers.com/)
+- [Docker Deployment](https://docs.s1servers.com/docs/docker.html)
 - [Configuration](https://docs.s1servers.com/docs/configuration.html)
 - [Web Panel](https://docs.s1servers.com/docs/configuration/web-panel.html)
 - [Authentication](https://docs.s1servers.com/docs/configuration/authentication.html)
@@ -59,6 +60,8 @@ cd webpanel
 bun install
 bun run build
 ```
+
+Docker release assets are packaged separately from the server DLL. Use `Docker.zip` for the container files, then copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Server.zip` into that Docker folder before building the image.
 
 ## Disclaimer
 

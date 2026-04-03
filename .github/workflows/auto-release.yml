@@ -187,17 +187,24 @@ jobs:
           $releaseRoot = Join-Path $PWD 'release'
           $serverRoot = Join-Path $releaseRoot 'Server'
           $clientRoot = Join-Path $releaseRoot 'Client'
+          $dockerRoot = Join-Path $releaseRoot 'Docker'
 
           Remove-Item $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path (Join-Path $serverRoot 'Mods') -Force | Out-Null
           New-Item -ItemType Directory -Path (Join-Path $clientRoot 'Mods') -Force | Out-Null
+          New-Item -ItemType Directory -Path $dockerRoot -Force | Out-Null
 
           Copy-Item 'bin/Mono_Server/netstandard2.1/DedicatedServerMod_Mono_Server.dll' (Join-Path $serverRoot 'Mods/DedicatedServerMod_Mono_Server.dll')
           Copy-Item 'bin/Mono_Client/netstandard2.1/DedicatedServerMod_Mono_Client.dll' (Join-Path $clientRoot 'Mods/DedicatedServerMod_Mono_Client.dll')
           Copy-Item 'packaging/Server/start_server.bat' (Join-Path $serverRoot 'start_server.bat')
+          Copy-Item 'Docker/Dockerfile' (Join-Path $dockerRoot 'Dockerfile')
+          Copy-Item 'Docker/run.sh' (Join-Path $dockerRoot 'run.sh')
+          Copy-Item 'Docker/.dockerignore' (Join-Path $dockerRoot '.dockerignore')
+          Copy-Item 'Docker/README.md' (Join-Path $dockerRoot 'README.md')
 
           Compress-Archive -Path (Join-Path $serverRoot '*') -DestinationPath (Join-Path $releaseRoot 'Server.zip') -Force
           Compress-Archive -Path (Join-Path $clientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Client.zip') -Force
+          Compress-Archive -Path (Get-ChildItem -Path $dockerRoot -Force | ForEach-Object { $_.FullName }) -DestinationPath (Join-Path $releaseRoot 'Docker.zip') -Force
 
       - name: Generate Release Notes
         shell: pwsh
@@ -251,6 +258,7 @@ jobs:
           files: |
             release/Server.zip
             release/Client.zip
+            release/Docker.zip
 
       - name: Summary
         shell: pwsh
@@ -263,3 +271,4 @@ jobs:
           Add-Content $env:GITHUB_STEP_SUMMARY "**Artifacts:**"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Server.zip"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Client.zip"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Docker.zip"
