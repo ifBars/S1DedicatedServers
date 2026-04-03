@@ -23,8 +23,6 @@ Current release status: `0.4.0-beta`. The project is usable, but the runtime and
 3. Review the [configuration overview](https://docs.s1servers.com/docs/configuration.html) before opening a server to other players.
 4. Check the [troubleshooting guide](https://docs.s1servers.com/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
 
-The integrated web panel is disabled by default. Enable it only if you want a localhost browser UI for server operations.
-
 ## Documentation
 
 - [Docs site](https://docs.s1servers.com/)
