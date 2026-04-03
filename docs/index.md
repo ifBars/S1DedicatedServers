@@ -17,9 +17,7 @@ Key docs:
 - [Companion Mods and Verification Metadata](modding/companion-mods.md)
 - [Troubleshooting](troubleshooting.md)
 
-### This mod is in alpha
-
-This release is an early alpha (beta at best). You should expect bugs, incomplete features, and occasional instability. I'm releasing it in a working but not fully stable state specifically to gather community feedback and iterate quickly.
+### Notes
 
 - Please search existing issues before opening a new one; if you don't see your problem reported, opening an issue on GitHub is encouraged.
 - Reproduction steps, logs, and any installed mods details are extremely helpful.
