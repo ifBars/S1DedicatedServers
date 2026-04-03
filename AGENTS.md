@@ -653,16 +653,16 @@ CI uses `ci.build.props` generated dynamically:
 
 ## Version & Release
 
-Current version: **0.4.0-beta**
+Current version: **0.5.0-beta**
 
-- **API Version**: 0.4.0
+- **API Version**: 0.5.0
 - **Status**: Beta (pre-1.0, expect breaking changes)
 
 Version bumping:
 1. Update `API/Version.cs`
 2. Update release-facing docs that embed the current version (`README.md`, `CONTRIBUTING.md`, `docs/configuration/authentication.md`, and this file when needed)
 3. Create `CHANGELOG.md` entry
-4. Tag release: `git tag v0.4.0-beta`
+4. Tag release: `git tag v0.5.0-beta`
 
 ---
 
