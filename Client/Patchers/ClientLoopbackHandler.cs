@@ -25,7 +25,7 @@ namespace DedicatedServerMod.Client.Patchers
 {
     /// <summary>
     /// Handles hiding server loopback players on dedicated server clients.
-    /// Uses <see cref="GhostHostIdentifier"/> for centralized detection.
+    /// Uses centralized ghost host detection.
     /// </summary>
     internal class ClientLoopbackHandler
     {
@@ -75,7 +75,7 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
-                if (GhostHostIdentifier.IsGhostHost(player))
+                if (player.IsGhostHost())
                 {
                     HideLoopbackPlayer(player);
                 }
@@ -111,7 +111,7 @@ namespace DedicatedServerMod.Client.Patchers
 
             try
             {
-                if (GhostHostIdentifier.IsGhostHost(player))
+                if (player.IsGhostHost())
                     HideLoopbackPlayer(player);
             }
             catch (Exception ex)
@@ -155,7 +155,7 @@ namespace DedicatedServerMod.Client.Patchers
         internal static bool TryGetGhostHostOwner(POI poi, out Player player)
         {
             player = poi?.GetComponentInParent<Player>(includeInactive: true);
-            return player != null && GhostHostIdentifier.IsGhostHost(player);
+            return player.IsGhostHost();
         }
 
         internal static int GetVisiblePlayerCount()
@@ -164,7 +164,7 @@ namespace DedicatedServerMod.Client.Patchers
 
             foreach (var player in Player.PlayerList)
             {
-                if (player == null || GhostHostIdentifier.IsGhostHost(player))
+                if (player == null || player.IsGhostHost())
                     continue;
 
                 count++;

@@ -273,7 +273,7 @@ namespace DedicatedServerMod.Server.Player
                     playerInfo.PlayerInstance = player;
                     playerInfo.IsDisconnectProcessed = false;
 
-                    if (playerInfo.IsLoopbackConnection || GhostHostIdentifier.IsGhostHost(player))
+                    if (playerInfo.IsLoopbackConnection || player.IsGhostHost())
                     {
                         ApplyLoopbackIdentity(playerInfo, player.PlayerCode, player.PlayerName);
                         DebugLog.PlayerLifecycleDebug($"Loopback player spawned and correlated: {playerInfo.DisplayName} (ClientId {player.Owner.ClientId})");

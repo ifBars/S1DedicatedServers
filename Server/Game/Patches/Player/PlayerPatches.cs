@@ -88,7 +88,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                     return;
                 }
 
-                if (!GhostHostIdentifier.IsGhostHost(__instance) || __instance.HasCompletedIntro)
+                if (!__instance.IsGhostHost() || __instance.HasCompletedIntro)
                 {
                     return;
                 }
@@ -115,7 +115,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                     return;
                 }
 
-                if (GhostHostIdentifier.IsGhostHost(__instance))
+                if (__instance.IsGhostHost())
                 {
                     return;
                 }
@@ -161,7 +161,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                 for (int i = 0; i < list.Count; i++)
                 {
                     var player = list[i];
-                    if (player == null || GhostHostIdentifier.IsGhostHost(player))
+                    if (player == null || player.IsGhostHost())
                     {
                         continue;
                     }

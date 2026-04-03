@@ -15,7 +15,7 @@ namespace DedicatedServerMod.Client.Patches
     /// Harmony patches for the sleep system to support dedicated servers.
     /// Filters out the ghost loopback host player from sleep readiness checks
     /// and enforces the server's AllowSleeping configuration.
-    /// Uses <see cref="GhostHostIdentifier"/> for centralized ghost detection.
+    /// Uses centralized ghost host detection for dedicated-server loopback filtering.
     /// </summary>
     internal static class SleepPatches
     {
@@ -59,7 +59,7 @@ namespace DedicatedServerMod.Client.Patches
                     var player = playerList[i];
                     if (player == null) continue;
 
-                    if (GhostHostIdentifier.IsGhostHost(player))
+                    if (player.IsGhostHost())
                         continue;
 
                     eligiblePlayers++;

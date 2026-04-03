@@ -383,7 +383,7 @@ namespace DedicatedServerMod.Server.Player
                 return true;
             }
 
-            if (playerInfo.PlayerInstance != null && GhostHostIdentifier.IsGhostHost(playerInfo.PlayerInstance))
+            if (playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.IsGhostHost())
             {
                 return true;
             }

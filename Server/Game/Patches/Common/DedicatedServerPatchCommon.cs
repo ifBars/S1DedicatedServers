@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Common
 
         internal static bool IsGhostOrLoopbackPlayer(PlayerType player)
         {
-            return player != null && GhostHostIdentifier.IsGhostHost(player);
+            return player.IsGhostHost();
         }
 
         internal static bool ShouldRunClientVisuals()
