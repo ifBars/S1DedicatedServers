@@ -53,7 +53,8 @@ const Hero = () => {
           <img
             key={heroImage}
             src={heroImage}
-            alt="Schedule I town overview"
+            alt=""
+            aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-cover will-change-transform saturate-[0.92] brightness-[0.68] contrast-[1.08] transition-opacity ease-out ${index === activeHeroIndex ? "opacity-100" : "opacity-0"
               }`}
             style={{

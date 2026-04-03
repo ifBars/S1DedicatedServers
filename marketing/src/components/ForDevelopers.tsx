@@ -43,6 +43,7 @@ const ForDevelopers = () => {
               <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/55 to-transparent" />
               <img
                 src={docsSite}
+                alt="S1DedicatedServers documentation site showing setup, configuration, and developer guides"
                 className="h-auto w-full object-contain lg:h-full lg:w-full lg:object-cover lg:object-left-top"
                 loading="lazy"
               />
