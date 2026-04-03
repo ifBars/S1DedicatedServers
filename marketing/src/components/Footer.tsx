@@ -82,6 +82,15 @@ const Footer = () => {
               S1DedicatedServers is an open-source, community-developed project.
               It is not affiliated with, endorsed by, or officially connected to
               TVGS, the developer and publisher of Schedule I.
+              The only official URLs for this project are{" "}
+              <a href="https://s1servers.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/70 underline underline-offset-2 transition-colors hover:text-foreground">
+                s1servers.com
+              </a>{" "}
+              and{" "}
+              <a href="https://s1ds.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/70 underline underline-offset-2 transition-colors hover:text-foreground">
+                s1ds.com
+              </a>
+              ; similarly named closed-source projects are separate and unaffiliated.
               All game assets and trademarks belong to their respective owners.
             </p>
           </div>
