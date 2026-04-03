@@ -2,8 +2,8 @@
   items:
   - name: Overview
     href: index.md
-  - name: Installation
-    href: home/installation.md
+  - name: Quick Start
+    href: ../index.md
 - name: Configuration
   items:
   - name: Overview

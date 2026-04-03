@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import gasMart from "@/assets/Region_Northtown.png";
+import gasMart from "@/assets/web-panel.png";
 import { Check } from "lucide-react";
 
 const capabilities = [
@@ -16,8 +16,8 @@ const ForHosts = () => {
 
   return (
     <section id="for-hosts" className="py-24 md:py-24">
-      <div ref={ref} className="container px-4 md:px-8 max-w-6xl mx-auto">
-        <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(420px,560px)] lg:gap-20">
+      <div ref={ref} className="container px-4 md:px-8 max-w-7xl mx-auto">
+        <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(520px,700px)] lg:gap-20">
           {/* Text column */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -75,11 +75,11 @@ const ForHosts = () => {
             animate={visible ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-muted/10 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)]">
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-muted/10 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] lg:aspect-[16/10]">
               <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/55 to-transparent" />
               <img
                 src={gasMart}
-                className="aspect-[16/10] w-full object-cover"
+                className="h-auto w-full object-contain lg:h-full lg:w-full lg:object-cover lg:object-left-top"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/55 via-background/0 to-background/10" />

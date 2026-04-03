@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const steps = [
-  { num: "01", title: "Download", desc: "Grab the latest build from GitHub Releases. Compatible with MelonLoader." },
-  { num: "02", title: "Install", desc: "Follow the setup docs for MelonLoader, file placement, and initial config." },
-  { num: "03", title: "Configure", desc: "Adjust permissions, auth backends, networking, and server behavior." },
-  { num: "04", title: "Launch", desc: "Start headless, connect via remote console or web panel, invite your community." },
+  { num: "01", title: "Download The Release", desc: "Grab the latest GitHub release, then use `server.zip` for hosting and `client.zip` for players who need the dedicated-server client mod." },
+  { num: "02", title: "Create The Server Install", desc: "Copy your Schedule I install to a new folder, extract `server.zip`, and confirm `start_server.bat` was added at the root." },
+  { num: "03", title: "Generate And Edit Config", desc: "Run `start_server.bat` once to generate `server_config.toml`, then set `saveGamePath` before using the world for real hosting." },
+  { num: "04", title: "Launch And Connect", desc: "Start the server again, optionally enable the localhost web panel, and join from a client install that has `client.zip` extracted." },
 ];
 
 const GettingStarted = () => {
@@ -21,10 +21,10 @@ const GettingStarted = () => {
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Up and Running in Minutes
+            Quick Start
           </h2>
           <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-            From download to a live server in four steps.
+            The same path as the docs: release, server install, first config, then launch.
           </p>
         </motion.div>
 

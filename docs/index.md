@@ -4,7 +4,7 @@ Run a headless, authoritative server for Schedule I using the Dedicated Server M
 
 Key docs:
 
-- [Installation](home/installation.md)
+- [Quick Start](../index.md)
 - [Configuration](configuration.md)
 - [Web Panel](configuration/web-panel.md)
 - [Permissions](configuration/permissions.md)

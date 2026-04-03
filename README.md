@@ -19,7 +19,7 @@ Current release status: `0.4.0-beta`. The project is usable, but the runtime and
 ## Quick Start
 
 1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
-2. Follow the [installation guide](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html).
+2. Follow the [Quick Start guide](https://ifbars.github.io/S1DedicatedServers/).
 3. Review the [configuration overview](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html) before opening a server to other players.
 4. Check the [troubleshooting guide](https://ifbars.github.io/S1DedicatedServers/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
 
@@ -28,7 +28,7 @@ The integrated web panel is disabled by default. Enable it only if you want a lo
 ## Documentation
 
 - [Docs site](https://ifbars.github.io/S1DedicatedServers/)
-- [Installation](https://ifbars.github.io/S1DedicatedServers/docs/home/installation.html)
+- [Quick Start](https://ifbars.github.io/S1DedicatedServers/)
 - [Configuration](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html)
 - [Web Panel](https://ifbars.github.io/S1DedicatedServers/docs/configuration/web-panel.html)
 - [Authentication](https://ifbars.github.io/S1DedicatedServers/docs/configuration/authentication.html)

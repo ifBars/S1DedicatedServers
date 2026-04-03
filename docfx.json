@@ -50,6 +50,8 @@
     "globalMetadata": {
       "_appName": "DedicatedServerMod",
       "_appTitle": "DedicatedServerMod Documentation",
+      "_appLogoPath": "docs/assets/favicon.png",
+      "_appFaviconPath": "docs/assets/favicon.png",
       "_navbarTitle": "DedicatedServerMod",
       "_enableSearch": true,
       "pdf": true
