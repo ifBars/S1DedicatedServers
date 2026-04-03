@@ -45,7 +45,8 @@
     "output": "_site",
     "template": [
       "default",
-      "modern"
+      "modern",
+      "templates/site"
     ],
     "globalMetadata": {
       "_appName": "DedicatedServerMod",
