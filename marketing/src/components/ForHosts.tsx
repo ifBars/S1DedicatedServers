@@ -79,6 +79,7 @@ const ForHosts = () => {
               <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/55 to-transparent" />
               <img
                 src={gasMart}
+                alt="S1DedicatedServers web panel showing dedicated server controls and live status"
                 className="h-auto w-full object-contain lg:h-full lg:w-full lg:object-cover lg:object-left-top"
                 loading="lazy"
               />

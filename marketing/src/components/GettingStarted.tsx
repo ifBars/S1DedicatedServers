@@ -24,7 +24,7 @@ const GettingStarted = () => {
             Quick Start
           </h2>
           <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-            The same path as the docs: release, server install, first config, then launch.
+            Download the release, set up the server files, configure the basics, and launch.
           </p>
         </motion.div>
 
@@ -72,14 +72,37 @@ const GettingStarted = () => {
           animate={visible ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          <a
-            href="https://github.com/ifBars/S1DedicatedServers/releases"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)]"
-          >
-            Download Latest Release
-          </a>
+          <div className="flex flex-col items-center gap-4">
+            <a
+              href="https://github.com/ifBars/S1DedicatedServers/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)]"
+            >
+              Download Latest Release
+            </a>
+            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Need the full walkthrough first? Start with the{" "}
+              <a
+                href="https://docs.s1servers.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary"
+              >
+                Quick Start guide
+              </a>{" "}
+              and then continue with the{" "}
+              <a
+                href="https://docs.s1servers.com/docs/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary"
+              >
+                full documentation
+              </a>
+              .
+            </p>
+          </div>
         </motion.div>
       </div>
     </section>

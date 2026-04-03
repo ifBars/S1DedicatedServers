@@ -100,28 +100,38 @@ const Hero = () => {
         </motion.p>
 
         <motion.div
-          className="flex items-center justify-center gap-4"
+          className="flex flex-col items-center justify-center gap-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://github.com/ifBars/S1DedicatedServers/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:shadow-[0_0_34px_-8px_hsl(var(--primary)/0.45)]"
+            >
+              <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+              Download
+            </a>
+            <a
+              href="https://github.com/ifBars/S1DedicatedServers"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-md border border-border/60 bg-background/35 px-7 py-3 text-sm font-medium text-foreground hover:bg-background/55 transition-colors duration-200"
+            >
+              <Github className="mr-2 h-4 w-4" aria-hidden="true" />
+              GitHub
+            </a>
+          </div>
           <a
-            href="https://github.com/ifBars/S1DedicatedServers/releases"
+            href="https://docs.s1servers.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:shadow-[0_0_34px_-8px_hsl(var(--primary)/0.45)]"
+            className="text-sm font-medium text-foreground/80 underline decoration-primary/60 underline-offset-4 transition-colors hover:text-foreground"
           >
-            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-            Download
-          </a>
-          <a
-            href="https://github.com/ifBars/S1DedicatedServers"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-md border border-border/60 bg-background/35 px-7 py-3 text-sm font-medium text-foreground hover:bg-background/55 transition-colors duration-200"
-          >
-            <Github className="mr-2 h-4 w-4" aria-hidden="true" />
-            GitHub
+            Open the dedicated server docs
           </a>
         </motion.div>
       </div>

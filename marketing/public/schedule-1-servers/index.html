@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule 1 Servers Guide for Schedule I | S1DedicatedServers</title>
+    <meta
+      name="description"
+      content="Learn how to run Schedule 1 servers for Schedule I with S1DedicatedServers, including host sizing, install steps, admin tools, and docs."
+    />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://s1servers.com/schedule-1-servers/" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="S1DedicatedServers" />
+    <meta property="og:url" content="https://s1servers.com/schedule-1-servers/" />
+    <meta property="og:title" content="Schedule 1 Servers Guide for Schedule I | S1DedicatedServers" />
+    <meta
+      property="og:description"
+      content="Learn how to host Schedule 1 servers for Schedule I with S1DedicatedServers, including setup steps, admin tooling, and documentation."
+    />
+    <meta property="og:image" content="https://s1servers.com/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Schedule 1 Servers Guide for Schedule I | S1DedicatedServers" />
+    <meta
+      name="twitter:description"
+      content="Learn how to host Schedule 1 servers for Schedule I with S1DedicatedServers, including setup steps and docs."
+    />
+    <meta name="twitter:image" content="https://s1servers.com/social-card.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111111;
+        --panel: #18131d;
+        --panel-2: #22172d;
+        --text: #f8eadf;
+        --muted: #b6a8b9;
+        --line: rgba(255, 255, 255, 0.1);
+        --primary: #90ba66;
+        --primary-ink: #101010;
+        --accent: #5b2f73;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(91, 47, 115, 0.35), transparent 36%),
+          linear-gradient(160deg, #0b0b0b 0%, #171019 46%, #202917 100%);
+        color: var(--text);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 22px 0;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .brand {
+        text-decoration: none;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      .hero {
+        padding: 60px 0 44px;
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        font-size: 0.8rem;
+        color: var(--primary);
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 12ch;
+        font-size: clamp(3rem, 8vw, 6.4rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .lede {
+        max-width: 66ch;
+        margin: 24px 0 0;
+        font-size: 1.12rem;
+        line-height: 1.75;
+        color: rgba(248, 234, 223, 0.9);
+      }
+
+      .actions {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-top: 28px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 18px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .button-primary {
+        background: var(--primary);
+        color: var(--primary-ink);
+      }
+
+      .button-secondary {
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .hero-grid,
+      .section-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 22px;
+      }
+
+      .hero-copy {
+        grid-column: span 8;
+      }
+
+      .hero-card {
+        grid-column: span 4;
+        align-self: end;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+        backdrop-filter: blur(14px);
+      }
+
+      .hero-card h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        letter-spacing: -0.03em;
+      }
+
+      .hero-card p,
+      .hero-card li,
+      .section-copy p,
+      .section-copy li {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .hero-card ul,
+      .section-copy ul,
+      .section-copy ol {
+        margin: 14px 0 0;
+        padding-left: 18px;
+      }
+
+      section {
+        padding: 28px 0;
+      }
+
+      .section-block {
+        padding: 30px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(17, 17, 17, 0.65);
+      }
+
+      .section-copy {
+        grid-column: span 7;
+      }
+
+      .section-side {
+        grid-column: span 5;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: clamp(1.8rem, 3vw, 3rem);
+        line-height: 1.02;
+        letter-spacing: -0.05em;
+      }
+
+      .callout {
+        padding: 22px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, rgba(144, 186, 102, 0.13), rgba(91, 47, 115, 0.12));
+        border: 1px solid rgba(144, 186, 102, 0.22);
+      }
+
+      .kicker {
+        margin: 0 0 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.75rem;
+        color: var(--primary);
+      }
+
+      .footer {
+        padding: 36px 0 52px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .footer p {
+        margin: 0;
+      }
+
+      @media (max-width: 900px) {
+        .hero-copy,
+        .hero-card,
+        .section-copy,
+        .section-side {
+          grid-column: 1 / -1;
+        }
+
+        .hero {
+          padding-top: 36px;
+        }
+
+        .section-block {
+          padding: 22px;
+        }
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://s1servers.com/schedule-1-servers/#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://s1servers.com/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Schedule 1 Servers Guide",
+                "item": "https://s1servers.com/schedule-1-servers/"
+              }
+            ]
+          },
+          {
+            "@type": "TechArticle",
+            "@id": "https://s1servers.com/schedule-1-servers/#article",
+            "headline": "Schedule 1 Servers: Dedicated Server Hosting Guide for Schedule I",
+            "description": "How to run Schedule 1 servers with the open-source S1DedicatedServers mod for Schedule I.",
+            "author": {
+              "@type": "Organization",
+              "name": "S1DedicatedServers"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "S1DedicatedServers",
+              "url": "https://s1servers.com/"
+            },
+            "mainEntityOfPage": "https://s1servers.com/schedule-1-servers/"
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://s1servers.com/schedule-1-servers/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is the easiest way to host Schedule 1 servers?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The shortest path is to install the S1DedicatedServers release into a dedicated Schedule I server copy, run it once to generate server_config.toml, set saveGamePath, and relaunch with the matching client mod installed for players."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What hardware do Schedule 1 servers need?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The current documentation baseline for a mostly idle server is about 2 vCPUs and 4 GB RAM. That is a minimum starting point, not a comfortable production target for multiple players or heavier mod stacks."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does S1DedicatedServers include admin tools?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The project includes permissions, admin commands, remote console access, configurable server behavior, and an optional localhost web panel for local operators."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="nav" aria-label="Primary">
+        <a class="brand" href="/">S1DedicatedServers</a>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="https://docs.s1servers.com/">Docs</a>
+          <a href="https://github.com/ifBars/S1DedicatedServers/releases">Releases</a>
+        </div>
+      </nav>
+
+      <main>
+        <section class="hero">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <p class="eyebrow">Schedule 1 Server Hosting Guide</p>
+              <h1>Run Schedule 1 servers that stay online.</h1>
+              <p class="lede">
+                If you are looking for a way to host a dedicated Schedule I server, S1DedicatedServers gives you
+                an open-source path to run long-lived worlds with remote administration, permissions, configurable
+                gameplay, and a full server and client mod workflow. This guide covers what Schedule 1 servers are,
+                why a dedicated setup helps, and how to get started.
+              </p>
+              <div class="actions">
+                <a class="button button-primary" href="https://github.com/ifBars/S1DedicatedServers/releases">Download the latest release</a>
+                <a class="button button-secondary" href="https://docs.s1servers.com/">Read the docs</a>
+              </div>
+            </div>
+
+            <aside class="hero-card" aria-label="At a glance">
+              <h2>What S1DedicatedServers gives you</h2>
+              <ul>
+                <li>24/7 headless server runtime for Schedule I</li>
+                <li>Admin commands, permissions, bans, and remote console access</li>
+                <li>Deep configuration through server files and documentation</li>
+                <li>An optional localhost web panel for local operators</li>
+              </ul>
+            </aside>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-block">
+            <div class="section-grid">
+              <div class="section-copy">
+                <p class="kicker">Why dedicated</p>
+                <h2>Schedule 1 servers keep the world running even when the host leaves.</h2>
+                <p>
+                  A dedicated Schedule I server is useful when you want a persistent world, operator tooling,
+                  better control over who can connect, and a setup that is not tied to a single player session.
+                  That makes it a better fit for community worlds, friend groups with different schedules, and
+                  anyone testing mods or server-side rules over time.
+                </p>
+                <p>
+                  Searchers often look for “Schedule 1 servers” when they really need either a hosting guide or a
+                  dedicated server mod. This page is the short path. The docs cover every subsystem in detail after
+                  the initial setup is done.
+                </p>
+              </div>
+              <div class="section-side">
+                <div class="callout">
+                  <p class="kicker">Host sizing baseline</p>
+                <p>
+                  According to the current Quick Start documentation, the baseline for a mostly idle server is roughly
+                  <strong> 2 vCPUs</strong> and <strong>4 GB RAM</strong>. Treat that as a floor, not a comfortable production target.
+                </p>
+                <p>
+                  If you expect multiple players, save spikes, or extra mods, give the host more CPU headroom and memory.
+                </p>
+              </div>
+            </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-block">
+            <div class="section-grid">
+              <div class="section-copy">
+                <p class="kicker">Quick setup</p>
+                <h2>How to set up a Schedule I dedicated server</h2>
+                <ol>
+                  <li>Download the latest release and use <code>server.zip</code> for the server install.</li>
+                  <li>Copy your Schedule I game folder to a dedicated server location.</li>
+                  <li>Extract <code>server.zip</code> into that folder and confirm <code>start_server.bat</code> exists.</li>
+                  <li>Run the server once so it generates <code>server_config.toml</code>.</li>
+                  <li>Edit the config, especially <code>saveGamePath</code>, then launch again.</li>
+                  <li>If players need to connect to dedicated servers, install <code>client.zip</code> on the client side.</li>
+                </ol>
+              </div>
+              <div class="section-side">
+                <div class="callout">
+                  <p class="kicker">Next reads</p>
+                  <ul>
+                    <li><a href="https://docs.s1servers.com/docs/index.html">Overview and key docs</a></li>
+                    <li><a href="https://docs.s1servers.com/docs/configuration.html">Configuration</a></li>
+                    <li><a href="https://docs.s1servers.com/docs/configuration/web-panel.html">Web panel</a></li>
+                    <li><a href="https://docs.s1servers.com/docs/host-console.html">Host console</a></li>
+                    <li><a href="https://docs.s1servers.com/docs/troubleshooting.html">Troubleshooting</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-block">
+            <div class="section-grid">
+              <div class="section-copy">
+                <p class="kicker">Why this project</p>
+                <h2>An open-source platform, not a black-box host panel.</h2>
+                <p>
+                  S1DedicatedServers is not just a binary download. It is an open-source dedicated server framework
+                  with docs, release notes, mod APIs, configuration references, and companion client support. That makes
+                  it useful both for operators who want a working server now and for developers building extensions later.
+                </p>
+                <p>
+                  If your goal is to host Schedule 1 servers with as much control as possible, start with the release,
+                  follow the docs, and treat this page as the indexing-friendly guide that points to the deeper material.
+                </p>
+              </div>
+              <div class="section-side">
+                <div class="callout">
+                  <p class="kicker">Primary links</p>
+                  <ul>
+                    <li><a href="https://github.com/ifBars/S1DedicatedServers">Source code on GitHub</a></li>
+                    <li><a href="https://github.com/ifBars/S1DedicatedServers/releases">Latest releases</a></li>
+                    <li><a href="https://docs.s1servers.com/">Full documentation</a></li>
+                    <li><a href="https://s1servers.com/">Main site</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-block">
+            <div class="section-grid">
+              <div class="section-copy">
+                <p class="kicker">FAQ</p>
+                <h2>Direct answers for search and AI citations</h2>
+                <p><strong>What is the easiest way to host Schedule 1 servers?</strong></p>
+                <p>
+                  Download the release, set up a dedicated Schedule I server install, run it once to generate
+                  <code> server_config.toml</code>, set <code>saveGamePath</code>, and relaunch with the matching client
+                  mod installed for players.
+                </p>
+                <p><strong>What hardware do Schedule 1 servers need?</strong></p>
+                <p>
+                  The current documented baseline is about 2 vCPUs and 4 GB RAM for a mostly idle server, but real
+                  production hosts should budget more CPU and memory for player count, save spikes, and extra mods.
+                </p>
+                <p><strong>Does S1DedicatedServers include admin tooling?</strong></p>
+                <p>
+                  Yes. It includes permissions, commands, remote console access, configurable server behavior,
+                  and an optional localhost web panel for local operators.
+                </p>
+              </div>
+              <div class="section-side">
+                <div class="callout">
+                  <p class="kicker">Authoritative sources</p>
+                  <ul>
+                    <li><a href="https://docs.s1servers.com/">DedicatedServerMod documentation</a></li>
+                    <li><a href="https://docs.s1servers.com/docs/configuration.html">Configuration reference</a></li>
+                    <li><a href="https://github.com/ifBars/S1DedicatedServers/releases">Project releases</a></li>
+                    <li><a href="https://github.com/ifBars/S1DedicatedServers">Project repository</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>
+          S1DedicatedServers is an open-source community project for Schedule I and is not affiliated with TVGS.
+          The canonical home for the project is <a href="https://s1servers.com/">s1servers.com</a>.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

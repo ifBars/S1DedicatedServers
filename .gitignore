@@ -328,5 +328,6 @@ FishNet-Docs/
 FishNet.Runtime.xml
 _site/
 s1ds-local.tar
-
+.agents/
 Assets/S1-Assets
+.claude/
