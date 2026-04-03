@@ -6,7 +6,7 @@ const navLinks = [
   { label: "For Hosts", href: "#for-hosts" },
   { label: "For Developers", href: "#for-developers" },
   { label: "Getting Started", href: "#getting-started" },
-  { label: "Docs", href: "https://ifbars.github.io/S1DedicatedServers/docs/index.html" },
+  { label: "Docs", href: "https://docs.s1servers.com/docs/index.html" },
 ];
 
 const Header = () => {

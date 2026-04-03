@@ -19,28 +19,28 @@ Current release status: `0.4.0-beta`. The project is usable, but the runtime and
 ## Quick Start
 
 1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
-2. Follow the [Quick Start guide](https://ifbars.github.io/S1DedicatedServers/).
-3. Review the [configuration overview](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html) before opening a server to other players.
-4. Check the [troubleshooting guide](https://ifbars.github.io/S1DedicatedServers/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
+2. Follow the [Quick Start guide](https://docs.s1servers.com/).
+3. Review the [configuration overview](https://docs.s1servers.com/docs/configuration.html) before opening a server to other players.
+4. Check the [troubleshooting guide](https://docs.s1servers.com/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
 
 The integrated web panel is disabled by default. Enable it only if you want a localhost browser UI for server operations.
 
 ## Documentation
 
-- [Docs site](https://ifbars.github.io/S1DedicatedServers/)
-- [Quick Start](https://ifbars.github.io/S1DedicatedServers/)
-- [Configuration](https://ifbars.github.io/S1DedicatedServers/docs/configuration.html)
-- [Web Panel](https://ifbars.github.io/S1DedicatedServers/docs/configuration/web-panel.html)
-- [Authentication](https://ifbars.github.io/S1DedicatedServers/docs/configuration/authentication.html)
-- [Client mod verification](https://ifbars.github.io/S1DedicatedServers/docs/configuration/client-mod-verification.html)
-- [Commands and permissions](https://ifbars.github.io/S1DedicatedServers/docs/commands.html)
-- [Host console](https://ifbars.github.io/S1DedicatedServers/docs/host-console.html)
-- [Troubleshooting](https://ifbars.github.io/S1DedicatedServers/docs/troubleshooting.html)
-- [Mod API overview](https://ifbars.github.io/S1DedicatedServers/docs/modding/overview.html)
-- [Server modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/server.html)
-- [Client modding](https://ifbars.github.io/S1DedicatedServers/docs/modding/client.html)
-- [Companion mod metadata](https://ifbars.github.io/S1DedicatedServers/docs/modding/companion-mods.html)
-- [API reference](https://ifbars.github.io/S1DedicatedServers/reference/index.html)
+- [Docs site](https://docs.s1servers.com/)
+- [Quick Start](https://docs.s1servers.com/)
+- [Configuration](https://docs.s1servers.com/docs/configuration.html)
+- [Web Panel](https://docs.s1servers.com/docs/configuration/web-panel.html)
+- [Authentication](https://docs.s1servers.com/docs/configuration/authentication.html)
+- [Client mod verification](https://docs.s1servers.com/docs/configuration/client-mod-verification.html)
+- [Commands and permissions](https://docs.s1servers.com/docs/commands.html)
+- [Host console](https://docs.s1servers.com/docs/host-console.html)
+- [Troubleshooting](https://docs.s1servers.com/docs/troubleshooting.html)
+- [Mod API overview](https://docs.s1servers.com/docs/modding/overview.html)
+- [Server modding](https://docs.s1servers.com/docs/modding/server.html)
+- [Client modding](https://docs.s1servers.com/docs/modding/client.html)
+- [Companion mod metadata](https://docs.s1servers.com/docs/modding/companion-mods.html)
+- [API reference](https://docs.s1servers.com/reference/index.html)
 
 ## Development
 

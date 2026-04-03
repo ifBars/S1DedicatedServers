@@ -52,7 +52,7 @@ const Footer = () => {
               Get Started
             </a>
             <a
-              href="https://ifbars.github.io/S1DedicatedServers/docs/index.html"
+              href="https://docs.s1servers.com/docs/index.html"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-md border border-border/50 px-7 py-3 text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors duration-200"
@@ -73,7 +73,7 @@ const Footer = () => {
             </div>
             <div className="flex items-center gap-6">
               <a href="https://github.com/ifBars/S1DedicatedServers" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">GitHub</a>
-              <a href="https://ifbars.github.io/S1DedicatedServers/docs/index.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Docs</a>
+              <a href="https://docs.s1servers.com/docs/index.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Docs</a>
               <a href="https://github.com/ifBars/S1DedicatedServers/releases" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Releases</a>
             </div>
           </div>
