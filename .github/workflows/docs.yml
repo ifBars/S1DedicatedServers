@@ -183,5 +183,24 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
         run: |
-          bunx wrangler pages deploy ./_site --project-name=s1ds-docs --branch=master
+          attempts=5
+          delay=15
+
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Cloudflare Pages deploy attempt $attempt/$attempts"
+
+            if bunx wrangler pages deploy ./_site --project-name=s1ds-docs --branch=master; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "Cloudflare Pages deploy failed after $attempts attempts."
+              exit 1
+            fi
+
+            echo "Retrying in ${delay}s after transient deploy failure..."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done
