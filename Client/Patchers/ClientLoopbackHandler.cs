@@ -1,7 +1,13 @@
 #if IL2CPP
 using Il2CppFishNet;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Map;
+using Il2CppScheduleOne.UI.Phone.Map;
 #else
 using FishNet;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Map;
+using ScheduleOne.UI.Phone.Map;
 #endif
 using MelonLoader;
 #if IL2CPP
@@ -88,12 +94,7 @@ namespace DedicatedServerMod.Client.Patchers
         {
             try
             {
-                DebugLog.Debug($"Hiding ghost host player: {player.PlayerName ?? "Unknown"}");
-
-                player.SetVisibleToLocalPlayer(false);
-
-                if (player.Avatar != null)
-                    player.Avatar.SetVisible(false);
+                HideLoopbackPresentation(player);
             }
             catch (Exception ex)
             {
@@ -136,6 +137,61 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
+        internal static void HideLoopbackPresentation(Player player)
+        {
+            if (player == null)
+                return;
+
+            DebugLog.Debug($"Hiding ghost host player presentation: {player.PlayerName ?? "Unknown"}");
+
+            player.SetVisibleToLocalPlayer(false);
+
+            if (player.Avatar != null)
+                player.Avatar.SetVisible(false);
+
+            HideLoopbackMapMarker(player);
+        }
+
+        internal static bool TryGetGhostHostOwner(POI poi, out Player player)
+        {
+            player = poi?.GetComponentInParent<Player>(includeInactive: true);
+            return player != null && GhostHostIdentifier.IsGhostHost(player);
+        }
+
+        internal static int GetVisiblePlayerCount()
+        {
+            int count = 0;
+
+            foreach (var player in Player.PlayerList)
+            {
+                if (player == null || GhostHostIdentifier.IsGhostHost(player))
+                    continue;
+
+                count++;
+            }
+
+            return count;
+        }
+
+        private static void HideLoopbackMapMarker(Player player)
+        {
+            var poi = player.PoI;
+            if (poi == null || poi.UI == null)
+                return;
+
+            try
+            {
+                if (PlayerSingleton<MapApp>.Instance != null)
+                    PlayerSingleton<MapApp>.Instance.TeardownMapItem(poi.UI.gameObject);
+
+                UnityEngine.Object.Destroy(poi.UI.gameObject);
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error("Error hiding loopback map marker", ex);
+            }
+        }
+
         internal string GetLoopbackStatus()
         {
             try
@@ -145,15 +201,8 @@ namespace DedicatedServerMod.Client.Patchers
                 status += $"Is Client: {InstanceFinder.IsClient}\n";
                 status += $"Tugboat Mode: {ClientConnectionManager.IsTugboatMode}\n";
 
-                int visibleCount = 0;
-                int hiddenCount = 0;
-                foreach (var player in Player.PlayerList)
-                {
-                    if (GhostHostIdentifier.IsGhostHost(player))
-                        hiddenCount++;
-                    else
-                        visibleCount++;
-                }
+                int visibleCount = GetVisiblePlayerCount();
+                int hiddenCount = Player.PlayerList.Count - visibleCount;
 
                 status += $"Real Players: {visibleCount}\n";
                 status += $"Ghost Host Players: {hiddenCount}\n";
