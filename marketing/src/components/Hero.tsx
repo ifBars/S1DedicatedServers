@@ -12,7 +12,7 @@ const heroImages = Object.entries(heroModules)
   .map(([, image]) => image as string);
 
 const heroSlides = heroImages;
-const HERO_ROTATION_MS = 6500;
+const HERO_ROTATION_MS = 6000;
 
 const Hero = () => {
   const sectionRef = useRef<HTMLElement>(null);

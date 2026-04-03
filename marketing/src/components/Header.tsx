@@ -14,10 +14,10 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
 
   const desktopLinkClass = scrolled
-    ? "text-[13px] text-foreground/72 hover:text-foreground"
-    : "text-[13px] text-foreground/88 hover:text-foreground";
+    ? "text-[13px] text-muted-foreground hover:text-foreground"
+    : "text-[13px] text-muted-foreground/90 hover:text-foreground";
 
-  const mobileLinkClass = "text-sm text-foreground/82 hover:text-foreground";
+  const mobileLinkClass = "text-sm text-muted-foreground hover:text-foreground";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
