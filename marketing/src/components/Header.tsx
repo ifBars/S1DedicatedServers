@@ -6,7 +6,7 @@ const navLinks = [
   { label: "For Hosts", href: "#for-hosts" },
   { label: "For Developers", href: "#for-developers" },
   { label: "Getting Started", href: "#getting-started" },
-  { label: "Docs", href: "https://docs.s1servers.com/docs/index.html" },
+  { label: "Docs", href: "https://docs.s1servers.com/" },
 ];
 
 const Header = () => {
@@ -28,8 +28,8 @@ const Header = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
-          ? "bg-background/80 backdrop-blur-xl border-b border-border/30"
-          : "bg-transparent"
+        ? "bg-background/80 backdrop-blur-xl border-b border-border/30"
+        : "bg-transparent"
         }`}
     >
       <div className="container relative flex items-center justify-between h-16 px-4 md:px-8">
