@@ -18,7 +18,7 @@ export function Sidebar({
       <div className="flex items-center gap-3 px-4 py-4">
         <div className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-muted/50 ring-1 ring-border/60">
           <img
-            alt="Schedule I dedicated server"
+            alt="Dedicated Server Mod logo"
             className="size-full object-contain"
             src={sidebarLogo}
           />

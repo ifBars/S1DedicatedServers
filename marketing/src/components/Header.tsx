@@ -34,7 +34,7 @@ const Header = () => {
     >
       <div className="container relative flex items-center justify-between h-16 px-4 md:px-8">
         <a href="#" className="flex items-center gap-2.5 shrink-0">
-          <img src={logoIcon} alt="S1DedicatedServers" className="w-7 h-7" />
+          <img src={logoIcon} alt="S1DedicatedServers logo" className="w-7 h-7" />
           <span className="font-semibold text-foreground text-sm tracking-tight">
             S1DS
           </span>
