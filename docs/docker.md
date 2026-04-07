@@ -34,6 +34,7 @@ Extract `Docker.zip` to a working folder, then copy `Mods/DedicatedServerMod_Mon
 Docker/
   .dockerignore
   Dockerfile
+  docker-compose.example.yml
   run.sh
   README.md
   DedicatedServerMod_Mono_Server.dll
@@ -50,6 +51,10 @@ docker build -t s1ds-dedicated-server .
 If `DedicatedServerMod_Mono_Server.dll` is missing from the folder, the build will fail during the Docker `COPY` step.
 
 ## First Run
+
+You can start the container with either a direct `docker run` command or Docker Compose.
+
+### `docker run`
 
 The first container start installs Schedule I through SteamCMD, so provide Steam credentials and persist the game directory:
 
@@ -69,6 +74,26 @@ Optional environment variables:
 - `STEAM_GUARD` for Steam Guard prompts
 - `FORCE_STEAMCMD_UPDATE=true` to force the next startup to refresh the game install
 
+### Docker Compose
+
+The release package includes `docker-compose.example.yml` for Compose-based deployments. Copy it to `docker-compose.yml`, then add a `.env` file in the same folder:
+
+```env
+STEAM_USER=your_steam_login
+STEAM_PASS=your_steam_password
+STEAM_BRANCH=alternate
+# Optional on first login when Steam prompts for a code.
+STEAM_GUARD=
+# Optional; set to true when you want to force a fresh update.
+FORCE_STEAMCMD_UPDATE=false
+```
+
+Then build and start the service:
+
+```bash
+docker compose up -d --build
+```
+
 ## After First Boot
 
 - Edit the generated `server_config.toml` in the mounted game directory
@@ -81,6 +106,7 @@ Optional environment variables:
 - `SteamNetworkingSockets` is the preferred messaging backend for containerized deployments
 - `SteamP2P` should not be used in Docker
 - The image reapplies MelonLoader and the server mod DLL on container start because SteamCMD validation may overwrite game files
+- The Compose example also persists `/home/steam/steamcmd` and `/home/steam/Steam` so SteamCMD downloads and runtime data survive container recreation
 
 ## Related Documentation
 
