@@ -23,9 +23,9 @@ namespace DedicatedServerMod.Server.Game
         internal GameSystemManager(MelonLogger.Instance loggerInstance)
         {
             logger = loggerInstance;
-            timeManager = new TimeSystemManager(logger);
+            timeManager = new TimeSystemManager();
             sleepManager = new SleepSystemManager(logger);
-            patchManager = new GamePatchManager(logger);
+            patchManager = new GamePatchManager();
         }
 
         /// <summary>
@@ -85,7 +85,6 @@ namespace DedicatedServerMod.Server.Game
         {
             try
             {
-                patchManager.Shutdown();
                 sleepManager.Shutdown();
                 timeManager.Shutdown();
 

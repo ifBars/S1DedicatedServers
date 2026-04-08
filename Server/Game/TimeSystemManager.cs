@@ -1,3 +1,4 @@
+using DedicatedServerMod.Utils;
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
@@ -14,12 +15,10 @@ namespace DedicatedServerMod.Server.Game
     /// </summary>
     public class TimeSystemManager
     {
-        private readonly MelonLogger.Instance logger;
         private bool isActive;
 
-        internal TimeSystemManager(MelonLogger.Instance loggerInstance)
+        internal TimeSystemManager()
         {
-            logger = loggerInstance;
         }
 
         /// <summary>
@@ -36,11 +35,11 @@ namespace DedicatedServerMod.Server.Game
             {
                 isActive = true;
 
-                logger.Msg("Time system initialized with native game behavior.");
+                DebugLog.StartupDebug("Time system initialized with native game behavior.");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize time system: {ex}");
+                DebugLog.Error("Failed to initialize time system", ex);
                 throw;
             }
         }
@@ -58,12 +57,12 @@ namespace DedicatedServerMod.Server.Game
                     int addMins = (int)Math.Round(amount.TotalMinutes);
                     int newTime = TimeManager.AddMinutesTo24HourTime(tm.CurrentTime, addMins);
                     tm.SetTimeAndSync(newTime);
-                    logger.Msg($"Forced time advancement: {addMins} minutes");
+                    DebugLog.Verbose($"Forced time advancement: {addMins} minutes");
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error forcing time advancement: {ex}");
+                DebugLog.Error($"Error forcing time advancement: {ex}");
             }
         }
 
@@ -109,7 +108,6 @@ namespace DedicatedServerMod.Server.Game
         internal void Shutdown()
         {
             isActive = false;
-            logger.Msg("Time system shutdown");
         }
     }
 

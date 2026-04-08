@@ -3,6 +3,7 @@ using DedicatedServerMod.Server.Game.Patches.Console;
 using DedicatedServerMod.Server.Game.Patches.Player;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ConsoleSupport;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 using MelonLoader;
 #if IL2CPP
@@ -20,14 +21,11 @@ namespace DedicatedServerMod.Server.Game
     /// </summary>
     public class GamePatchManager
     {
-        private readonly MelonLogger.Instance logger;
-
         private readonly List<string> appliedPatches;
         private readonly HarmonyLib.Harmony harmony;
 
-        internal GamePatchManager(MelonLogger.Instance loggerInstance)
+        internal GamePatchManager()
         {
-            logger = loggerInstance;
             appliedPatches = new List<string>();
             harmony = new HarmonyLib.Harmony("DedicatedServerMod.GamePatches");
         }
@@ -40,11 +38,11 @@ namespace DedicatedServerMod.Server.Game
             try
             {
                 ApplyServerPatches();
-                logger.Msg($"Game patch manager initialized with {appliedPatches.Count} patches");
+                DebugLog.StartupDebug($"Game patch manager initialized with {appliedPatches.Count} patches");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize game patch manager: {ex}");
+                DebugLog.Error("Failed to initialize game patch manager", ex);
                 throw;
             }
         }
@@ -75,7 +73,7 @@ namespace DedicatedServerMod.Server.Game
             }
             catch (Exception ex)
             {
-                logger.Error($"Error applying server patches: {ex}");
+                DebugLog.Error("Error applying server patches", ex);
             }
         }
 
@@ -124,17 +122,17 @@ namespace DedicatedServerMod.Server.Game
 
                 if (target == null)
                 {
-                    logger.Warning("Could not find Player RPC for ReceivePlayerNameData; identity binding may be delayed");
+                    DebugLog.Warning("Could not find Player RPC for ReceivePlayerNameData; identity binding may be delayed");
                     return;
                 }
 
                 var postfix = typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.BindPlayerIdentityPostfix), BindingFlags.Public | BindingFlags.Static);
                 harmony.Patch(target, postfix: new HarmonyMethod(postfix));
-                logger.Msg($"Patched Player RPC for identity binding: {target.Name}");
+                DebugLog.StartupDebug($"Patched Player RPC for identity binding: {target.Name}");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error patching Player ReceivePlayerNameData: {ex}");
+                DebugLog.Error("Error patching Player ReceivePlayerNameData", ex);
             }
         }
 
@@ -182,17 +180,17 @@ namespace DedicatedServerMod.Server.Game
 
                 if (target == null)
                 {
-                    logger.Warning("Could not find Player RPC logic for SendPlayerNameData; dedicated server friend gate patch was skipped.");
+                    DebugLog.Warning("Could not find Player RPC logic for SendPlayerNameData; dedicated server friend gate patch was skipped.");
                     return;
                 }
 
                 MethodInfo prefix = typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.AllowDedicatedServerPlayerNameDataPrefix), BindingFlags.Public | BindingFlags.Static);
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
-                logger.Msg($"Patched Player server name validation RPC: {target.Name}");
+                DebugLog.StartupDebug($"Patched Player server name validation RPC: {target.Name}");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error patching Player SendPlayerNameData RPC: {ex}");
+                DebugLog.Error("Error patching Player SendPlayerNameData RPC", ex);
             }
         }
 
@@ -205,18 +203,18 @@ namespace DedicatedServerMod.Server.Game
             {
                 if (!GameConsoleAccess.TryGetSubmitCommandArgumentListOverload(out MethodInfo target))
                 {
-                    logger.Warning("Could not find ScheduleOne.Console.SubmitCommand(List<string>) for patching");
+                    DebugLog.Warning("Could not find ScheduleOne.Console.SubmitCommand(List<string>) for patching");
                     return;
                 }
 
                 var prefix = typeof(ConsolePatches).GetMethod(nameof(ConsolePatches.SubmitCommandPrefix), BindingFlags.Public | BindingFlags.Static);
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
-                logger.Msg("Patched Console.SubmitCommand(List<string>) with permission checks");
+                DebugLog.StartupDebug("Patched Console.SubmitCommand(List<string>) with permission checks");
                 appliedPatches.Add("ConsoleSubmitCommandPatch");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error patching Console.SubmitCommand: {ex}");
+                DebugLog.Error($"Error patching Console.SubmitCommand", ex);
             }
         }
 
@@ -247,24 +245,6 @@ namespace DedicatedServerMod.Server.Game
                 AppliedPatches = GetAppliedPatches(),
                 HarmonyId = harmony.Id
             };
-        }
-
-        /// <summary>
-        /// Shutdown and unpatch if necessary
-        /// </summary>
-        internal void Shutdown()
-        {
-            try
-            {
-                // Note: Generally we don't unpatch during shutdown as it can cause issues
-                // But we could do cleanup here if needed
-                
-                logger.Msg($"Game patch manager shutdown ({appliedPatches.Count} patches remain active)");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error during game patch manager shutdown: {ex}");
-            }
         }
     }
 

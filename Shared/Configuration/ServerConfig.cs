@@ -102,6 +102,10 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Timeout in seconds for authentication handshake completion.
         /// </summary>
+        /// <remarks>
+        /// Keep this at a minimum of 30 seconds, with 60 seconds preferred for public servers
+        /// or slower client hardware/network conditions so authentication can complete reliably.
+        /// </remarks>
         [JsonProp(Constants.ConfigKeys.AuthTimeoutSeconds)]
         public int AuthTimeoutSeconds { get; set; } = Constants.DefaultAuthTimeoutSeconds;
 
