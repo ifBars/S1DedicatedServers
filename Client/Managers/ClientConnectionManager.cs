@@ -31,6 +31,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Client.CustomClothing;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
@@ -50,6 +51,7 @@ namespace DedicatedServerMod.Client.Managers
     public sealed class ClientConnectionManager
     {
         private readonly MelonLogger.Instance logger;
+        private readonly ClientCustomClothingManager _customClothingManager;
 
         private static string _targetServerIP = "localhost";
         private static int _targetServerPort = 38465;
@@ -78,9 +80,10 @@ namespace DedicatedServerMod.Client.Managers
 
         public event Action<string, int> DedicatedServerConnected;
 
-        internal ClientConnectionManager(MelonLogger.Instance logger)
+        internal ClientConnectionManager(MelonLogger.Instance logger, ClientCustomClothingManager customClothingManager)
         {
             this.logger = logger;
+            _customClothingManager = customClothingManager ?? throw new ArgumentNullException(nameof(customClothingManager));
 #if MONO
             _clientConnectionStateHandler = OnClientConnectionState;
 #endif
@@ -168,6 +171,13 @@ namespace DedicatedServerMod.Client.Managers
                 yield break;
             }
 
+            yield return _customClothingManager.PrepareForConnection(_targetServerIP, _targetServerPort);
+            if (!string.IsNullOrWhiteSpace(_customClothingManager.LastSyncError))
+            {
+                HandleConnectionError(_customClothingManager.LastSyncError);
+                yield break;
+            }
+
             // --- Step 1 (native 644-656): If game already loaded, exit to menu first ---
             if (loadManager.IsGameLoaded)
             {
@@ -239,6 +249,13 @@ namespace DedicatedServerMod.Client.Managers
                 yield break;
             }
             timeline.Mark("MainSceneLoaded", $"{sceneElapsed:F1}s");
+
+            if (!_customClothingManager.RegisterPreparedContent())
+            {
+                timeline.MarkError("CustomClothingRegister", _customClothingManager.LastSyncError ?? "registration failed");
+                HandleConnectionError(_customClothingManager.LastSyncError ?? "Failed to register custom clothing on the client.");
+                yield break;
+            }
 
             // --- Step 11 (native 695-697): Pre-load event ---
             timeline.Mark("onPreLoad");
@@ -444,6 +461,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
             PermissionSnapshotStore.Reset();
+            _customClothingManager.OnDisconnected();
         }
 
         private void CompleteJoinAfterVerification()
@@ -593,6 +611,7 @@ namespace DedicatedServerMod.Client.Managers
             IsConnectedToDedicatedServer = false;
             ServerDataStore.Reset();
             PermissionSnapshotStore.Reset();
+            _customClothingManager.OnDisconnected();
             _worldLoadCompleted = false;
             _authSucceeded = false;
             _modVerificationSucceeded = false;

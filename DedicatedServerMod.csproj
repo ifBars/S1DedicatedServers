@@ -31,6 +31,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="S1API.Forked" Version="3.0.0" />
 	</ItemGroup>
 	
 	<!-- MelonLoader references (common to all configurations) -->
@@ -701,13 +702,14 @@
 	  <EmbeddedResource Remove="packaging\**" />
 	  <None Remove="packaging\**" />
 	</ItemGroup>
-	
+
 	<!-- Utility infrastructure (shared by all builds) -->
 	<ItemGroup>
 	  <!-- Legacy files in Shared root (for backward compatibility) -->
 	  <Compile Include="Shared\CustomMessaging.cs" />
 	  <Compile Include="Shared\ServerData.cs" />
 	  <Compile Include="Shared\ServerStatusSnapshot.cs" />
+	  <Compile Include="Shared\CustomClothing\*.cs" />
 	  <Compile Include="Shared\Toml\Binding\*.cs" />
 	  <!-- Utils -->
 	  <Compile Include="Utils\*.cs" />
@@ -755,6 +757,7 @@
 		
 		<!-- Client managers -->
 		<Compile Include="Client\Managers\*.cs" />
+		<Compile Include="Client\CustomClothing\*.cs" />
 		<Compile Include="Client\Permissions\*.cs" />
 		
 		<!-- Client patchers -->
@@ -787,6 +790,7 @@
 		<Compile Include="Server\Network\NetworkManager.cs" />
 		<Compile Include="Server\Network\ServerStatusQueryService.cs" />
 		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
+		<Compile Include="Server\CustomClothing\*.cs" />
 		<Compile Include="Server\HostConsole\*.cs" />
 		<Compile Include="Server\WebPanel\*.cs" />
 		<EmbeddedResource Include="Server\WebPanel\Static\**\*" />
