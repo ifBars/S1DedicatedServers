@@ -16,6 +16,12 @@
 		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' != 'true'">true</AutomateLocalDeployment>
 	</PropertyGroup>
 
+	<!-- Set UseLocalS1APIForked to 'true' to use a local assembly reference instead of NuGet -->
+	<!-- You can also set this via command line: dotnet build /p:UseLocalS1APIForked=true -->
+	<PropertyGroup>
+		<UseLocalS1APIForked Condition="'$(UseLocalS1APIForked)' == ''">false</UseLocalS1APIForked>
+	</PropertyGroup>
+
 	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Documentation'">
 		<TargetFramework>netstandard2.1</TargetFramework>
 	</PropertyGroup>
@@ -31,7 +37,17 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UseLocalS1APIForked)' != 'true'">
 		<PackageReference Include="S1API.Forked" Version="3.0.0" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UseLocalS1APIForked)' == 'true'">
+		<Reference Include="S1API.Forked">
+			<HintPath>$(LocalS1APIForkedPath)</HintPath>
+			<Private>false</Private>
+		</Reference>
 	</ItemGroup>
 	
 	<!-- MelonLoader references (common to all configurations) -->

@@ -23,5 +23,9 @@
         <!-- If not specified, defaults to $(GamePath)\Mods -->
         <!-- <ClientDeploymentPath>C:\Path\To\Client\Mods</ClientDeploymentPath> -->
         <!-- <ServerDeploymentPath>C:\Path\To\Server\Mods</ServerDeploymentPath> -->
+
+		<!-- Optional: use a local S1API.Forked build instead of the NuGet package -->
+		<!-- <UseLocalS1APIForked>true</UseLocalS1APIForked> -->
+		<!-- <LocalS1APIForkedPath>C:\Users\ghost\Desktop\Coding\ScheduleOne\S1API\S1API\bin\MonoMelon\netstandard2.1\S1API.dll</LocalS1APIForkedPath> -->
 	</PropertyGroup>
 </Project>
