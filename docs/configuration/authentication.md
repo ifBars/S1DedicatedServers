@@ -4,6 +4,8 @@ DedicatedServerMod can require each remote client to complete a Steam ticket han
 
 `authProvider` is the canonical switch for authentication in current builds. The older `requireAuthentication` flag is still parsed for backward compatibility, but new configs should use `authProvider` directly.
 
+Keep `authTimeoutSeconds` at a minimum of `30` seconds, and prefer `60` seconds for public or modded servers. Slower internet connections, heavier client startup, or lower-end hardware can otherwise cause players to time out before authentication finishes.
+
 ## Authentication Providers
 
 The `authProvider` setting determines how Steam tickets are validated. Three options are available.
@@ -49,7 +51,7 @@ authProvider = 'None'
 ```toml
 [authentication]
 authProvider = 'SteamGameServer'
-authTimeoutSeconds = 15
+authTimeoutSeconds = 60
 authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = true
 steamGameServerQueryPort = 27016
@@ -62,7 +64,7 @@ steamGameServerMode = 'Authentication'
 ```toml
 [authentication]
 authProvider = 'SteamGameServer'
-authTimeoutSeconds = 15
+authTimeoutSeconds = 60
 authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = false
 steamGameServerToken = 'YOUR_GAME_SERVER_TOKEN_HERE'
@@ -90,7 +92,7 @@ steamGameServerMode = 'Authentication'
 ```toml
 [authentication]
 authProvider = 'SteamWebApi'
-authTimeoutSeconds = 15
+authTimeoutSeconds = 60
 authAllowLoopbackBypass = true
 steamWebApiKey = 'YOUR_STEAM_WEB_API_KEY'
 steamWebApiIdentity = 'DedicatedServerMod'
@@ -105,7 +107,7 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `authProvider` | `string` | `"None"` | Authentication backend: `None`, `SteamWebApi`, `SteamGameServer` |
-| `authTimeoutSeconds` | `int` | `15` | Timeout for handshake completion (1-120 seconds) |
+| `authTimeoutSeconds` | `int` | `15` | Timeout for handshake completion (1-120 seconds). Keep this at `30` seconds minimum; `60` seconds is recommended so slower clients can finish auth reliably. |
 | `authAllowLoopbackBypass` | `bool` | `true` | Allow local loopback/ghost host to bypass auth |
 
 ### Steam Game Server Settings
@@ -172,12 +174,16 @@ You can override authentication settings via command-line arguments:
 **Example:**
 
 ```bash
-ScheduleI.exe --require-authentication --auth-provider steam_game_server --auth-timeout 30
+ScheduleI.exe --require-authentication --auth-provider steam_game_server --auth-timeout 60
 ```
 
 The `--require-authentication` flag is a convenience alias. New persisted configs should still prefer `authProvider`.
 
 ## Troubleshooting
+
+- Clients disconnecting shortly after connect are often hitting an auth timeout that is set too low.
+- Do not set `authTimeoutSeconds` below `30` seconds unless you are deliberately optimizing a controlled local test environment.
+- For public servers, mixed hardware, or heavier mod stacks, use `60` seconds.
 
 ### Authentication always times out
 
@@ -187,7 +193,7 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 1. Confirm Steam is running on client machines.
 2. Verify the server can reach Steam backend services.
 3. Ensure `steamGameServerQueryPort` is not blocked.
-4. Increase `authTimeoutSeconds` slightly if your environment is slow.
+4. Raise `authTimeoutSeconds` to at least `30` seconds, or `60` seconds for slower environments.
 5. Review MelonLoader logs for provider-specific failures.
 
 ### Players cannot connect after enabling auth
@@ -212,8 +218,9 @@ If you see messages about `SteamWebApi` not being implemented, switch `authProvi
 3. Keep `authAllowLoopbackBypass: true`.
 4. Use `steamGameServerMode: "Authentication"` or stricter.
 5. Use a persistent token for long-lived production hosting.
-6. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` correctly, and keep tokens out of version control.
-7. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
+6. Keep `authTimeoutSeconds` at `60` seconds unless you have a measured reason to lower it.
+7. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` correctly, and keep tokens out of version control.
+8. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
 
 ### Private servers
 

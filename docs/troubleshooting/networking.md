@@ -22,6 +22,7 @@ If you cannot forward ports (CGNAT/ISP restrictions), consider hosting on a VPS 
 - This is commonly an authentication handshake timeout (`authTimeoutSeconds`, default 15s), not a raw network failure.
 - Check server logs for auth-specific messages and failure reasons.
 - Confirm `authProvider` and Steam game server login settings are configured correctly.
-- If needed for slow environments, increase `authTimeoutSeconds` slightly and retest.
+- Keep `authTimeoutSeconds` at `30` seconds minimum, and prefer `60` seconds for public servers or slower client hardware/network conditions.
+- Lower values can disconnect clients before they finish the Steam/auth handshake.
 
 
