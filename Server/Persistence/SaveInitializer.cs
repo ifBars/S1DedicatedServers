@@ -15,8 +15,8 @@ namespace DedicatedServerMod.Server.Persistence
 {
 	/// <summary>
 	/// Prepares a save folder for dedicated server usage by copying the DefaultSave,
-	/// extracting an embedded Player_0 template, forcing PlayerCode, and ensuring
-	/// required JSON files exist with tutorial disabled.
+	/// extracting an embedded Player_0 template, and ensuring required JSON files
+	/// exist with tutorial disabled.
 	/// </summary>
 	public static class SaveInitializer
 	{
@@ -25,7 +25,6 @@ namespace DedicatedServerMod.Server.Persistence
 		/// - Creates folder if missing
 		/// - Copies DefaultSave template if folder is empty or missing key files
 		/// - Extracts embedded Player_0.zip into Players
-		/// - Sets PlayerCode in Player.json
 		/// - Ensures Game.json and Metadata.json exist with sane defaults (PlayTutorial=false)
 		/// </summary>
 		public static void EnsureSavePrepared(string saveFolderPath, string organisationName, string serverPlayerCode)
@@ -45,7 +44,8 @@ namespace DedicatedServerMod.Server.Persistence
 			// Extract Player_0.zip into Players
 			TryExtractEmbeddedPlayerZip(Path.Combine(saveFolderPath, "Players"));
 
-			// Ensure Player.json's loopback identity and intro-complete state are normalized.
+			// Ensure Player.json's loopback state is normalized without overwriting
+			// an existing canonical host identity.
 			TryNormalizeLoopbackPlayer(Path.Combine(saveFolderPath, "Players", "Player_0", "Player.json"), serverPlayerCode);
 
 			// Ensure Game.json exists
@@ -206,7 +206,7 @@ namespace DedicatedServerMod.Server.Persistence
 					return;
 
 				bool changed = false;
-				if (!string.IsNullOrWhiteSpace(serverPlayerCode))
+				if (string.IsNullOrWhiteSpace(data.PlayerCode) && !string.IsNullOrWhiteSpace(serverPlayerCode))
 				{
 					data.PlayerCode = serverPlayerCode;
 					changed = true;
@@ -230,7 +230,7 @@ namespace DedicatedServerMod.Server.Persistence
 				}
 
 				File.WriteAllText(playerJsonPath, data.GetJson());
-				DebugLog.Info("Normalized loopback Player.json (PlayerCode + IntroCompleted + GameVersion).");
+				DebugLog.Info("Normalized loopback Player.json (intro + version, preserving existing PlayerCode).");
 			}
 			catch (Exception ex)
 			{

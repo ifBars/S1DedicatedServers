@@ -158,7 +158,7 @@ namespace DedicatedServerMod.Server.Core
                     Persistence.SaveInitializer.EnsureSavePrepared(
                         configuredPath,
                         orgName,
-                        "DedicatedServerHost"
+                        Constants.GhostHostSyntheticSteamId
                     );
                 }
                 catch (Exception ex)
@@ -297,6 +297,7 @@ namespace DedicatedServerMod.Server.Core
 
             DebugLog.StartupDebug($"Loopback local player ready after {localPlayerElapsed:F1}s");
             TryHandleExistingLoopbackPlayer();
+            TryNormalizeLoopbackHostPersistence(loadManager.LoadedGameFolderPath);
 
             // Step 6: Load save data
             DebugLog.Info("Loading save data");
@@ -615,6 +616,138 @@ namespace DedicatedServerMod.Server.Core
                 {
                     ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
                 }
+            }
+        }
+
+        private static void TryNormalizeLoopbackHostPersistence(string saveFolderPath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(saveFolderPath) || ScheduleOne.PlayerScripts.Player.Local == null)
+                {
+                    return;
+                }
+
+                string loopbackPlayerCode = ScheduleOne.PlayerScripts.Player.Local.PlayerCode;
+                if (string.IsNullOrWhiteSpace(loopbackPlayerCode))
+                {
+                    DebugLog.StartupDebug("Loopback PlayerCode not available yet; skipping Player_0 persistence normalization.");
+                    return;
+                }
+
+                string playersDir = Path.Combine(saveFolderPath, "Players");
+                string player0Dir = Path.Combine(playersDir, "Player_0");
+                string loopbackDir = Path.Combine(playersDir, $"Player_{loopbackPlayerCode}");
+
+                if (!Path.GetFullPath(loopbackDir).Equals(Path.GetFullPath(player0Dir), StringComparison.OrdinalIgnoreCase)
+                    && Directory.Exists(loopbackDir))
+                {
+                    Directory.CreateDirectory(player0Dir);
+
+                    PlayerData player0Data = ReadPlayerData(Path.Combine(player0Dir, "Player.json"));
+                    bool player0LooksLikeBootstrap =
+                        player0Data == null
+                        || string.IsNullOrWhiteSpace(player0Data.PlayerCode)
+                        || string.Equals(player0Data.PlayerCode, Constants.GhostHostSyntheticSteamId, StringComparison.Ordinal)
+                        || string.Equals(player0Data.PlayerCode, "DedicatedServerHost", StringComparison.Ordinal);
+
+                    if (player0LooksLikeBootstrap)
+                    {
+                        CopyDirectoryContents(loopbackDir, player0Dir, overwrite: true);
+                        Directory.Delete(loopbackDir, recursive: true);
+                        DebugLog.Info($"Adopted loopback host save folder '{Path.GetFileName(loopbackDir)}' into Player_0.");
+                    }
+                    else if (string.Equals(player0Data.PlayerCode, loopbackPlayerCode, StringComparison.Ordinal))
+                    {
+                        Directory.Delete(loopbackDir, recursive: true);
+                        DebugLog.Info($"Removed duplicate loopback host save folder '{Path.GetFileName(loopbackDir)}'; Player_0 is canonical.");
+                    }
+                    else
+                    {
+                        DebugLog.Warning(
+                            $"Found conflicting loopback host save folders: Player_0 uses '{player0Data.PlayerCode}', " +
+                            $"but '{Path.GetFileName(loopbackDir)}' exists for '{loopbackPlayerCode}'. Keeping Player_0.");
+                    }
+                }
+
+                NormalizePlayer0Identity(player0Dir, loopbackPlayerCode);
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Failed to normalize loopback host persistence: {ex.Message}");
+            }
+        }
+
+        private static void NormalizePlayer0Identity(string player0Dir, string loopbackPlayerCode)
+        {
+            if (string.IsNullOrWhiteSpace(player0Dir) || string.IsNullOrWhiteSpace(loopbackPlayerCode))
+            {
+                return;
+            }
+
+            string playerJsonPath = Path.Combine(player0Dir, "Player.json");
+            PlayerData playerData = ReadPlayerData(playerJsonPath);
+            if (playerData == null)
+            {
+                return;
+            }
+
+            bool changed = false;
+            if (!string.Equals(playerData.PlayerCode, loopbackPlayerCode, StringComparison.Ordinal))
+            {
+                playerData.PlayerCode = loopbackPlayerCode;
+                changed = true;
+            }
+
+            if (!playerData.IntroCompleted)
+            {
+                playerData.IntroCompleted = true;
+                changed = true;
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+
+            File.WriteAllText(playerJsonPath, playerData.GetJson());
+            DebugLog.StartupDebug($"Normalized Player_0 identity to loopback PlayerCode '{loopbackPlayerCode}'.");
+        }
+
+        private static PlayerData ReadPlayerData(string playerJsonPath)
+        {
+            try
+            {
+                if (!File.Exists(playerJsonPath))
+                {
+                    return null;
+                }
+
+                string json = File.ReadAllText(playerJsonPath);
+                return string.IsNullOrWhiteSpace(json) ? null : JsonUtility.FromJson<PlayerData>(json);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void CopyDirectoryContents(string sourceDir, string destinationDir, bool overwrite)
+        {
+            Directory.CreateDirectory(destinationDir);
+
+            foreach (string directory in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(sourceDir, directory);
+                Directory.CreateDirectory(Path.Combine(destinationDir, relativePath));
+            }
+
+            foreach (string file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(sourceDir, file);
+                string destinationPath = Path.Combine(destinationDir, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? destinationDir);
+                File.Copy(file, destinationPath, overwrite);
             }
         }
 

@@ -77,6 +77,27 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
             }
         }
 
+        [HarmonyPatch(typeof(PlayerType), "get_SaveFolderName")]
+        [HarmonyPrefix]
+        private static bool GetSaveFolderNamePrefix(PlayerType __instance, ref string __result)
+        {
+            try
+            {
+                if (!InstanceFinder.IsServer || __instance == null || !__instance.IsGhostHost())
+                {
+                    return true;
+                }
+
+                __result = "Player_0";
+                return false;
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Player.SaveFolderName patch error: {ex.Message}");
+                return true;
+            }
+        }
+
         [HarmonyPatch(typeof(PlayerType), "PlayerLoaded")]
         [HarmonyPrefix]
         private static void PlayerLoadedPrefix(PlayerType __instance)
