@@ -1,4 +1,3 @@
-using MelonLoader;
 using UnityEngine;
 
 namespace DedicatedServerMod.Utils
@@ -7,7 +6,7 @@ namespace DedicatedServerMod.Utils
     /// Records timestamped milestones during the client join sequence.
     /// Produces a compact one-line-per-step log and a final summary.
     /// </summary>
-    public class JoinTimeline(MelonLogger.Instance logger)
+    public class JoinTimeline
     {
         private readonly float startTime = Time.realtimeSinceStartup;
         private readonly List<Entry> entries = new List<Entry>();
@@ -27,20 +26,20 @@ namespace DedicatedServerMod.Utils
             string msg = detail != null
                 ? $"[JoinTimeline] +{elapsed:F2}s {step} ({detail})"
                 : $"[JoinTimeline] +{elapsed:F2}s {step}";
-            logger.Msg(msg);
+            DebugLog.Info(msg);
         }
 
         public void MarkError(string step, string error)
         {
             float elapsed = Time.realtimeSinceStartup - startTime;
             entries.Add(new Entry { Step = step, Detail = $"ERROR: {error}", Elapsed = elapsed });
-            logger.Error($"[JoinTimeline] +{elapsed:F2}s {step} FAILED: {error}");
+            DebugLog.Error($"[JoinTimeline] +{elapsed:F2}s {step} FAILED: {error}");
         }
 
         public void PrintSummary()
         {
             float total = Time.realtimeSinceStartup - startTime;
-            logger.Msg($"[JoinTimeline] === Join complete in {total:F2}s ({entries.Count} steps) ===");
+            DebugLog.Info($"[JoinTimeline] === Join complete in {total:F2}s ({entries.Count} steps) ===");
         }
 
         /// <summary>

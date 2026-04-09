@@ -285,7 +285,7 @@ namespace DedicatedServerMod.Client.Core
             _customClothingManager.Initialize();
 
             // Initialize connection manager
-            _connectionManager = new ClientConnectionManager(_logger, _customClothingManager);
+            _connectionManager = new ClientConnectionManager(_customClothingManager);
             _connectionManager.Initialize();
 
             // Initialize authentication manager

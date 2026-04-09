@@ -24,14 +24,12 @@ namespace DedicatedServerMod.Server.Network
     /// </summary>
     public sealed class NetworkManager
     {
-        private readonly MelonLogger.Instance logger;
         private DateTime serverStartTime;
         private bool isServerRunning = false;
         private bool hooksRegistered = false;
 
-        internal NetworkManager(MelonLogger.Instance loggerInstance)
+        internal NetworkManager()
         {
-            logger = loggerInstance;
         }
 
         /// <summary>
@@ -55,7 +53,7 @@ namespace DedicatedServerMod.Server.Network
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize network manager: {ex}");
+                DebugLog.Error($"Failed to initialize network manager: {ex}");
                 throw;
             }
         }
@@ -108,10 +106,10 @@ namespace DedicatedServerMod.Server.Network
 
                     isServerRunning = true;
                     serverStartTime = DateTime.Now;
-                    logger.Msg($"=== DEDICATED SERVER ONLINE ===");
-                    logger.Msg($"Server Name: {ServerConfig.Instance.ServerName}");
-                    logger.Msg($"Port: {ServerConfig.Instance.ServerPort}");
-                    logger.Msg($"Max Players: {ServerConfig.Instance.MaxPlayers}");
+                    DebugLog.Info($"=== DEDICATED SERVER ONLINE ===");
+                    DebugLog.Info($"Server Name: {ServerConfig.Instance.ServerName}");
+                    DebugLog.Info($"Port: {ServerConfig.Instance.ServerPort}");
+                    DebugLog.Info($"Max Players: {ServerConfig.Instance.MaxPlayers}");
                     break;
 
                 case LocalConnectionState.Stopped:
@@ -122,7 +120,7 @@ namespace DedicatedServerMod.Server.Network
                     }
 
                     isServerRunning = false;
-                    logger.Msg($"=== DEDICATED SERVER OFFLINE ===");
+                    DebugLog.Info($"=== DEDICATED SERVER OFFLINE ===");
                     break;
             }
         }
@@ -161,12 +159,12 @@ namespace DedicatedServerMod.Server.Network
                     return true;
                 }
 
-                logger.Warning("Could not set server transport (no method/field found)");
+                DebugLog.Warning("Could not set server transport (no method/field found)");
                 return false;
             }
             catch (Exception ex)
             {
-                logger.Error($"Error setting server transport: {ex}");
+                DebugLog.Error($"Error setting server transport: {ex}");
                 return false;
             }
         }
@@ -178,22 +176,22 @@ namespace DedicatedServerMod.Server.Network
         {
             try
             {
-                logger.Msg($"Stopping server: {reason}");
+                DebugLog.Info($"Stopping server: {reason}");
 
                 var networkManager = InstanceFinder.NetworkManager;
                 if (networkManager != null && networkManager.ServerManager != null)
                 {
                     networkManager.ServerManager.StopConnection(true);
-                    logger.Msg("Server stop initiated");
+                    DebugLog.Info("Server stop initiated");
                 }
                 else
                 {
-                    logger.Warning("NetworkManager or ServerManager not available for stop");
+                    DebugLog.Warning("NetworkManager or ServerManager not available for stop");
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error stopping server: {ex}");
+                DebugLog.Error($"Error stopping server: {ex}");
             }
         }
 
@@ -264,11 +262,11 @@ namespace DedicatedServerMod.Server.Network
                 }
                 hooksRegistered = false;
 
-                logger.Msg("Network manager shutdown");
+                DebugLog.Info("Network manager shutdown");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error during network manager shutdown: {ex}");
+                DebugLog.Error($"Error during network manager shutdown: {ex}");
             }
         }
     }

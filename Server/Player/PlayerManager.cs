@@ -53,19 +53,20 @@ namespace DedicatedServerMod.Server.Player
             "SetTimeData_Client",
             new[] { typeof(NetworkConnection), typeof(int), typeof(int), typeof(uint) });
 
-        private readonly MelonLogger.Instance logger;
         private readonly Dictionary<NetworkConnection, ConnectedPlayerInfo> connectedPlayers;
         private readonly PlayerAuthentication authentication;
         private readonly ClientModVerificationManager modVerification;
         private readonly PlayerPermissions permissions;
 
-        internal PlayerManager(MelonLogger.Instance loggerInstance)
+        internal PlayerManager(
+            PlayerAuthentication authentication,
+            ClientModVerificationManager modVerification,
+            PlayerPermissions permissions)
         {
-            logger = loggerInstance;
             connectedPlayers = new Dictionary<NetworkConnection, ConnectedPlayerInfo>();
-            authentication = new PlayerAuthentication();
-            modVerification = new ClientModVerificationManager(logger);
-            permissions = new PlayerPermissions(logger);
+            this.authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
+            this.modVerification = modVerification ?? throw new ArgumentNullException(nameof(modVerification));
+            this.permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
         }
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize player manager: {ex}");
+                DebugLog.Error($"Failed to initialize player manager: {ex}");
                 throw;
             }
         }
@@ -138,7 +139,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Warning($"Could not establish player spawn hooks: {ex.Message}");
+                DebugLog.Warning($"Could not establish player spawn hooks: {ex.Message}");
             }
         }
 
@@ -176,7 +177,7 @@ namespace DedicatedServerMod.Server.Player
 
                 if (!isExistingPlayer && ConnectedPlayerCount >= ServerConfig.Instance.MaxPlayers)
                 {
-                    logger.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
+                    DebugLog.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
                     if (playerInfo == null)
                     {
                         playerInfo = new ConnectedPlayerInfo
@@ -237,7 +238,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Error($"Error handling player connection: {ex}");
+                DebugLog.Error($"Error handling player connection: {ex}");
             }
         }
 
@@ -260,7 +261,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Error($"Error handling player disconnection: {ex}");
+                DebugLog.Error($"Error handling player disconnection: {ex}");
             }
         }
 
@@ -303,13 +304,13 @@ namespace DedicatedServerMod.Server.Player
                     // Only log warning if this is not the initial spawn with default values
                     if (!string.IsNullOrEmpty(player.PlayerCode) || player.PlayerName != "Player")
                     {
-                        logger.Warning($"Player spawned but not found in connected players: {player.PlayerName}");
+                        DebugLog.Warning($"Player spawned but not found in connected players: {player.PlayerName}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in OnPlayerSpawned: {ex}");
+                DebugLog.Error($"Error in OnPlayerSpawned: {ex}");
             }
         }
 
@@ -332,7 +333,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in OnPlayerDespawned: {ex}");
+                DebugLog.Error($"Error in OnPlayerDespawned: {ex}");
             }
         }
 
@@ -382,13 +383,13 @@ namespace DedicatedServerMod.Server.Player
 
             foreach (var playerInfo in pendingAuthDisconnects)
             {
-                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId}: authentication handshake timed out");
+                DebugLog.Warning($"Disconnecting ClientId {playerInfo.ClientId}: authentication handshake timed out");
                 NotifyAndDisconnectPlayer(playerInfo, "Authentication Failed", $"Authentication timed out after {ServerConfig.Instance.AuthTimeoutSeconds}s.");
             }
 
             foreach (var playerInfo in pendingVerificationDisconnects)
             {
-                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId}: client mod verification timed out");
+                DebugLog.Warning($"Disconnecting ClientId {playerInfo.ClientId}: client mod verification timed out");
                 NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", "Client mod verification timed out.");
             }
         }
@@ -411,7 +412,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (result.ShouldDisconnect && playerInfo.Connection != null && playerInfo.Connection.IsActive)
             {
-                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to auth failure: {result.Message}");
+                DebugLog.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to auth failure: {result.Message}");
                 NotifyAndDisconnectPlayer(playerInfo, "Authentication Failed", result.Message);
             }
         }
@@ -434,7 +435,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (result.ShouldDisconnect && playerInfo.Connection != null && playerInfo.Connection.IsActive)
             {
-                logger.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to client mod verification failure: {result.Message}");
+                DebugLog.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to client mod verification failure: {result.Message}");
                 NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", result.Message);
             }
         }
@@ -448,7 +449,7 @@ namespace DedicatedServerMod.Server.Player
 
             playerInfo.HasCompletedJoinFlow = true;
 
-            logger.Msg($"Player joined: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
+            DebugLog.Info($"Player joined: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
             OnPlayerJoined?.Invoke(playerInfo);
             try { ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
 
@@ -507,7 +508,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Warning($"Failed to send auth result to ClientId {playerInfo.ClientId}: {ex.Message}");
+                DebugLog.Warning($"Failed to send auth result to ClientId {playerInfo.ClientId}: {ex.Message}");
             }
         }
 
@@ -531,7 +532,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Warning($"Failed to send mod verification result to ClientId {playerInfo.ClientId}: {ex.Message}");
+                DebugLog.Warning($"Failed to send mod verification result to ClientId {playerInfo.ClientId}: {ex.Message}");
             }
         }
 
@@ -585,7 +586,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
+                DebugLog.Warning($"Failed to send server data to ClientId {connection.ClientId}: {ex.Message}");
             }
         }
 
@@ -600,7 +601,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (SetTimeDataClientMethod == null)
             {
-                logger.Warning("Unable to replay authoritative time because TimeManager.SetTimeData_Client could not be resolved.");
+                DebugLog.Warning("Unable to replay authoritative time because TimeManager.SetTimeData_Client could not be resolved.");
                 yield break;
             }
 
@@ -633,7 +634,7 @@ namespace DedicatedServerMod.Server.Player
                     }
                     catch (Exception ex)
                     {
-                        logger.Warning($"Failed to replay authoritative time to ClientId {playerInfo.ClientId}: {ex.Message}");
+                        DebugLog.Warning($"Failed to replay authoritative time to ClientId {playerInfo.ClientId}: {ex.Message}");
                         yield break;
                     }
                 }
@@ -770,13 +771,13 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                logger.Msg($"Kicking player {player.DisplayName}: {reason}");
+                DebugLog.Info($"Kicking player {player.DisplayName}: {reason}");
                 NotifyAndDisconnectPlayer(player, "Kicked", reason);
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error($"Error kicking player: {ex}");
+                DebugLog.Error($"Error kicking player: {ex}");
                 return false;
             }
         }
@@ -794,25 +795,25 @@ namespace DedicatedServerMod.Server.Player
 
                 if (string.IsNullOrEmpty(banIdentifier))
                 {
-                    logger.Warning("Cannot ban player without SteamID");
+                    DebugLog.Warning("Cannot ban player without SteamID");
                     return false;
                 }
 
                 if (ServerBootstrap.Permissions?.AddBan(null, banIdentifier, reason) != true)
                 {
-                    logger.Warning($"Ban for {banIdentifier} was rejected or already exists.");
+                    DebugLog.Warning($"Ban for {banIdentifier} was rejected or already exists.");
                     return false;
                 }
 
                 // Kick the player
                 NotifyAndDisconnectPlayer(player, "Banned", $"Banned: {reason}");
-                logger.Msg($"Player banned: {player.DisplayName} ({banIdentifier}) - {reason}");
+                DebugLog.Info($"Player banned: {player.DisplayName} ({banIdentifier}) - {reason}");
                 
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error($"Error banning player: {ex}");
+                DebugLog.Error($"Error banning player: {ex}");
                 return false;
             }
         }
@@ -837,7 +838,7 @@ namespace DedicatedServerMod.Server.Player
         {
             if (connection == null)
             {
-                logger.Warning("SetPlayerIdentity called with null connection");
+                DebugLog.Warning("SetPlayerIdentity called with null connection");
                 return;
             }
 
@@ -895,7 +896,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (IsSyntheticLoopbackSteamId(steamId))
             {
-                logger.Warning($"Ignoring synthetic loopback SteamID '{steamId}' for non-loopback ClientId {connection.ClientId}.");
+                DebugLog.Warning($"Ignoring synthetic loopback SteamID '{steamId}' for non-loopback ClientId {connection.ClientId}.");
                 steamId = string.Empty;
             }
 
@@ -904,7 +905,7 @@ namespace DedicatedServerMod.Server.Player
                 if (!string.IsNullOrEmpty(steamId) &&
                     !string.Equals(steamId, playerInfo.AuthenticatedSteamId, StringComparison.Ordinal))
                 {
-                    logger.Warning($"Ignoring identity steamId overwrite for authenticated ClientId {connection.ClientId}: provided {steamId}, expected {playerInfo.AuthenticatedSteamId}");
+                    DebugLog.Warning($"Ignoring identity steamId overwrite for authenticated ClientId {connection.ClientId}: provided {steamId}, expected {playerInfo.AuthenticatedSteamId}");
                 }
 
                 steamId = playerInfo.AuthenticatedSteamId;
@@ -1010,7 +1011,7 @@ namespace DedicatedServerMod.Server.Player
             }
             catch (Exception ex)
             {
-                logger.Error($"Error notifying/disconnecting player {player.DisplayName}: {ex}");
+                DebugLog.Error($"Error notifying/disconnecting player {player.DisplayName}: {ex}");
                 return false;
             }
         }
@@ -1036,7 +1037,7 @@ namespace DedicatedServerMod.Server.Player
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"Error sending shutdown notice to {player.DisplayName}: {ex.Message}");
+                    DebugLog.Warning($"Error sending shutdown notice to {player.DisplayName}: {ex.Message}");
                 }
             }
 
@@ -1059,7 +1060,7 @@ namespace DedicatedServerMod.Server.Player
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"Error disconnecting player {player.DisplayName} during shutdown: {ex.Message}");
+                    DebugLog.Warning($"Error disconnecting player {player.DisplayName} during shutdown: {ex.Message}");
                 }
             }
         }
@@ -1071,7 +1072,7 @@ namespace DedicatedServerMod.Server.Player
         {
             try
             {
-                logger.Msg($"Shutting down player manager - {connectedPlayers.Count} players to disconnect");
+                DebugLog.Info($"Shutting down player manager - {connectedPlayers.Count} players to disconnect");
                 
                 // Create a snapshot to avoid modification during iteration
                 var playersToKick = connectedPlayers.Values.ToList();
@@ -1093,7 +1094,7 @@ namespace DedicatedServerMod.Server.Player
                     }
                     catch (Exception ex)
                     {
-                        logger.Warning($"Error kicking player {player.DisplayName} during shutdown: {ex.Message}");
+                        DebugLog.Warning($"Error kicking player {player.DisplayName} during shutdown: {ex.Message}");
                     }
                 }
 
@@ -1114,11 +1115,11 @@ namespace DedicatedServerMod.Server.Player
 
                 // Note: Player spawn hooks are harder to remove safely, so we leave them
 
-                logger.Msg("Player manager shutdown complete");
+                DebugLog.Info("Player manager shutdown complete");
             }
             catch (Exception ex)
             {
-                logger.Error($"Error during player manager shutdown: {ex}");
+                DebugLog.Error($"Error during player manager shutdown: {ex}");
             }
         }
 
@@ -1183,7 +1184,7 @@ namespace DedicatedServerMod.Server.Player
 
             if (logDisconnect)
             {
-                logger.Msg($"{reason}: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
+                DebugLog.Info($"{reason}: {playerInfo.DisplayName} (ClientId {playerInfo.ClientId})");
             }
             else
             {
@@ -1214,7 +1215,7 @@ namespace DedicatedServerMod.Server.Player
             OnPlayerLeft?.Invoke(playerInfo);
             try { ModManager.NotifyPlayerDisconnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}"); } catch { }
 
-            logger.Msg($"Current players: {ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers}");
+            DebugLog.Info($"Current players: {ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers}");
         }
 
         private void TrySatisfyNoAuthFlow(ConnectedPlayerInfo playerInfo)

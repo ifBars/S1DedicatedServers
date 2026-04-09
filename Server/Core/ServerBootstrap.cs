@@ -138,12 +138,15 @@ namespace DedicatedServerMod.Server.Core
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
             
             // Step 4: Network Manager
-            _networkManager = new NetworkManager(_logger);
+            _networkManager = new NetworkManager();
             _networkManager.Initialize();
             DebugLog.StartupDebug("Network manager initialized");
             
             // Step 5: Player Manager
-            _playerManager = new PlayerManager(_logger);
+            _playerManager = new PlayerManager(
+                new PlayerAuthentication(),
+                new ClientModVerificationManager(_logger),
+                new PlayerPermissions());
             _playerManager.Initialize();
             _permissionService.AttachPlayerManager(_playerManager);
             DebugLog.StartupDebug("Player manager initialized");

@@ -1,6 +1,5 @@
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Shared.Permissions;
-using MelonLoader;
 
 namespace DedicatedServerMod.Server.Player
 {
@@ -9,23 +8,12 @@ namespace DedicatedServerMod.Server.Player
     /// </summary>
     public sealed class PlayerPermissions
     {
-        private readonly MelonLogger.Instance _logger;
-
-        /// <summary>
-        /// Initializes a new player permission wrapper.
-        /// </summary>
-        /// <param name="loggerInstance">The logger instance.</param>
-        public PlayerPermissions(MelonLogger.Instance loggerInstance)
-        {
-            _logger = loggerInstance;
-        }
-
         /// <summary>
         /// Initializes the permission wrapper.
         /// </summary>
         public void Initialize()
         {
-            _logger.Msg("Player permissions compatibility wrapper initialized");
+            Utils.DebugLog.Info("Player permissions compatibility wrapper initialized");
         }
 
         /// <summary>

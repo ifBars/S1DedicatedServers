@@ -50,7 +50,6 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientConnectionManager
     {
-        private readonly MelonLogger.Instance logger;
         private readonly ClientCustomClothingManager _customClothingManager;
 
         private static string _targetServerIP = "localhost";
@@ -80,9 +79,8 @@ namespace DedicatedServerMod.Client.Managers
 
         public event Action<string, int> DedicatedServerConnected;
 
-        internal ClientConnectionManager(MelonLogger.Instance logger, ClientCustomClothingManager customClothingManager)
+        internal ClientConnectionManager(ClientCustomClothingManager customClothingManager)
         {
-            this.logger = logger;
             _customClothingManager = customClothingManager ?? throw new ArgumentNullException(nameof(customClothingManager));
 #if MONO
             _clientConnectionStateHandler = OnClientConnectionState;
@@ -93,15 +91,15 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                logger.Msg("Initializing ClientConnectionManager");
+                DebugLog.Info("Initializing ClientConnectionManager");
                 ParseCommandLineArguments();
                 CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
                 TryHookConnectionState();
-                logger.Msg("ClientConnectionManager initialized");
+                DebugLog.Info("ClientConnectionManager initialized");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to initialize ClientConnectionManager: {ex}");
+                DebugLog.Error($"Failed to initialize ClientConnectionManager: {ex}");
             }
         }
 
@@ -113,14 +111,14 @@ namespace DedicatedServerMod.Client.Managers
                 if (args[i] == "--server-ip" && i + 1 < args.Length)
                 {
                     _targetServerIP = args[i + 1];
-                    logger.Msg($"Target server IP set to: {_targetServerIP}");
+                    DebugLog.Info($"Target server IP set to: {_targetServerIP}");
                 }
                 if (args[i] == "--server-port" && i + 1 < args.Length)
                 {
                     if (int.TryParse(args[i + 1], out int port))
                     {
                         _targetServerPort = port;
-                        logger.Msg($"Target server port set to: {_targetServerPort}");
+                        DebugLog.Info($"Target server port set to: {_targetServerPort}");
                     }
                 }
             }
@@ -134,12 +132,12 @@ namespace DedicatedServerMod.Client.Managers
         {
             if (IsConnecting)
             {
-                logger.Warning("Connection already in progress");
+                DebugLog.Warning("Connection already in progress");
                 return;
             }
 
             TryHookConnectionState();
-            logger.Msg($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
+            DebugLog.Info($"Starting dedicated server connection to {_targetServerIP}:{_targetServerPort}");
             ServerDataStore.Reset();
             PermissionSnapshotStore.Reset();
             _worldLoadCompleted = false;
@@ -161,7 +159,7 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         private IEnumerator ClientLoadSequence()
         {
-            var timeline = new JoinTimeline(logger);
+            var timeline = new JoinTimeline();
             timeline.Mark("Begin");
 
             var loadManager = Singleton<LoadManager>.Instance;
@@ -229,7 +227,7 @@ namespace DedicatedServerMod.Client.Managers
             Player.onLocalPlayerSpawned = (Action)Delegate.Combine(
                 Player.onLocalPlayerSpawned, LocalPlayerSpawnedHandler);
 #else
-            logger.Msg("Skipping local player spawned delegate hook on IL2CPP runtime");
+            DebugLog.Info("Skipping local player spawned delegate hook on IL2CPP runtime");
 #endif
 
             // --- Step 10 (native 693): Wait for Main scene ---
@@ -310,7 +308,7 @@ namespace DedicatedServerMod.Client.Managers
             {
                 var task = replicationQueue.CurrentReplicationTask;
                 timeline.Mark("ReplicationTimeout", task);
-                logger.Warning($"Replication timed out. Current task: {task}");
+                DebugLog.Warning($"Replication timed out. Current task: {task}");
             }
             else
             {
@@ -345,27 +343,27 @@ namespace DedicatedServerMod.Client.Managers
             var networkManager = InstanceFinder.NetworkManager;
             if (networkManager == null)
             {
-                logger.Error("NetworkManager not found");
+                DebugLog.Error("NetworkManager not found");
                 return false;
             }
 
             var multipass = networkManager.TransportManager.Transport as Multipass;
             if (multipass == null)
             {
-                logger.Error("Multipass transport not found");
+                DebugLog.Error("Multipass transport not found");
                 return false;
             }
 
             var tugboat = multipass.gameObject.GetComponent<Tugboat>();
             if (tugboat == null)
             {
-                logger.Error("Tugboat component not found");
+                DebugLog.Error("Tugboat component not found");
                 return false;
             }
 
             // Set Tugboat as Multipass client transport (native: SetClientTransport<Tugboat>())
             if (!ClientTransportPatcher.SetMultipassClientTransport(multipass, tugboat))
-                logger.Warning("Could not set client transport via reflection");
+                DebugLog.Warning("Could not set client transport via reflection");
 
             // Set transport timeout (native: SetTimeout(30f, asServer: false))
             try
@@ -375,7 +373,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"Failed to set transport timeout: {ex.Message}");
+                DebugLog.Warning($"Failed to set transport timeout: {ex.Message}");
             }
 
             // Configure Tugboat address and port
@@ -383,10 +381,10 @@ namespace DedicatedServerMod.Client.Managers
             tugboat.SetPort((ushort)_targetServerPort);
 
             // Start connection via ClientManager (ensures Multipass TransportIdData registration)
-            logger.Msg($"Starting client connection to {_targetServerIP}:{_targetServerPort} via ClientManager");
+            DebugLog.Info($"Starting client connection to {_targetServerIP}:{_targetServerPort} via ClientManager");
             bool started = networkManager.ClientManager.StartConnection();
             if (!started)
-                logger.Error("ClientManager.StartConnection() returned false");
+                DebugLog.Error("ClientManager.StartConnection() returned false");
 
             return started;
         }
@@ -401,7 +399,7 @@ namespace DedicatedServerMod.Client.Managers
 
         private void HandleConnectionError(string errorMessage)
         {
-            logger.Error($"Connection failed: {errorMessage}");
+            DebugLog.Error($"Connection failed: {errorMessage}");
             LastConnectionError = errorMessage;
             ReturnToMenu(errorMessage, isFailure: true, requestPlayerSave: false);
         }
@@ -410,12 +408,12 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                logger.Msg("Disconnecting from dedicated server");
+                DebugLog.Info("Disconnecting from dedicated server");
                 ReturnToMenu("Disconnected from dedicated server", isFailure: false, requestPlayerSave: false);
             }
             catch (Exception ex)
             {
-                logger.Error($"Error disconnecting: {ex}");
+                DebugLog.Error($"Error disconnecting: {ex}");
             }
         }
 
@@ -429,7 +427,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             else
             {
-                logger.Msg("Authentication succeeded; waiting for mod verification and world load completion");
+                DebugLog.Info("Authentication succeeded; waiting for mod verification and world load completion");
             }
         }
 
@@ -448,7 +446,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             else
             {
-                logger.Msg("Client mod verification succeeded before world load finalized; waiting to complete join");
+                DebugLog.Info("Client mod verification succeeded before world load finalized; waiting to complete join");
             }
         }
 
@@ -480,7 +478,7 @@ namespace DedicatedServerMod.Client.Managers
                 Singleton<LoadingScreen>.Instance.Close();
             }
 
-            logger.Msg("Dedicated server join fully completed after authentication and client mod verification");
+            DebugLog.Info("Dedicated server join fully completed after authentication and client mod verification");
 
             try
             {
@@ -488,7 +486,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"DedicatedServerConnected callback error: {ex.Message}");
+                DebugLog.Warning($"DedicatedServerConnected callback error: {ex.Message}");
             }
 
             try
@@ -497,7 +495,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"NotifyConnectedToServer error: {ex.Message}");
+                DebugLog.Warning($"NotifyConnectedToServer error: {ex.Message}");
             }
 
             try
@@ -506,7 +504,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"NotifyClientPlayerReady error: {ex.Message}");
+                DebugLog.Warning($"NotifyClientPlayerReady error: {ex.Message}");
             }
         }
 
@@ -596,7 +594,7 @@ namespace DedicatedServerMod.Client.Managers
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"Failed to request player save before returning to menu: {ex.Message}");
+                    DebugLog.Warning($"Failed to request player save before returning to menu: {ex.Message}");
                 }
 
                 if (waitForSave)
@@ -629,7 +627,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"Error invoking pre-scene change during return to menu: {ex.Message}");
+                DebugLog.Warning($"Error invoking pre-scene change during return to menu: {ex.Message}");
             }
 
             try
@@ -641,7 +639,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"Error stopping client connection during return to menu: {ex.Message}");
+                DebugLog.Warning($"Error stopping client connection during return to menu: {ex.Message}");
             }
 
             ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
@@ -692,7 +690,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"Error finalizing return to menu: {ex.Message}");
+                DebugLog.Warning($"Error finalizing return to menu: {ex.Message}");
             }
 
             if (wasConnected)
@@ -703,7 +701,7 @@ namespace DedicatedServerMod.Client.Managers
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning($"NotifyDisconnectedFromServer error: {ex.Message}");
+                    DebugLog.Warning($"NotifyDisconnectedFromServer error: {ex.Message}");
                 }
             }
 
@@ -730,7 +728,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             catch (Exception ex)
             {
-                logger.Warning($"Error restoring menu cursor state: {ex.Message}");
+                DebugLog.Warning($"Error restoring menu cursor state: {ex.Message}");
             }
         }
 
@@ -751,11 +749,11 @@ namespace DedicatedServerMod.Client.Managers
 
                 _pendingDisconnectTitle = string.IsNullOrWhiteSpace(notice.Title) ? "Disconnected" : notice.Title;
                 _pendingDisconnectReason = notice.Message;
-                logger.Msg($"Received disconnect notice: {_pendingDisconnectTitle} - {_pendingDisconnectReason}");
+                DebugLog.Info($"Received disconnect notice: {_pendingDisconnectTitle} - {_pendingDisconnectReason}");
             }
             catch (JsonException ex)
             {
-                logger.Warning($"Failed to parse disconnect notice: {ex.Message}");
+                DebugLog.Warning($"Failed to parse disconnect notice: {ex.Message}");
             }
         }
 
@@ -773,7 +771,7 @@ namespace DedicatedServerMod.Client.Managers
             }
 
 #if IL2CPP
-            logger.Msg("Skipping direct client connection state hook on IL2CPP runtime");
+            DebugLog.Info("Skipping direct client connection state hook on IL2CPP runtime");
             _isConnectionStateHooked = true;
 #else
             InstanceFinder.ClientManager.OnClientConnectionState += _clientConnectionStateHandler;
@@ -790,7 +788,7 @@ namespace DedicatedServerMod.Client.Managers
 
             if (IsConnecting || IsConnectedToDedicatedServer)
             {
-                logger.Warning("Dedicated server connection stopped unexpectedly; returning to menu");
+                DebugLog.Warning("Dedicated server connection stopped unexpectedly; returning to menu");
                 ReturnToMenu(GetUnexpectedDisconnectReason(), isFailure: true, requestPlayerSave: false);
             }
         }
@@ -843,7 +841,7 @@ namespace DedicatedServerMod.Client.Managers
 
             _targetServerIP = ip.Trim();
             _targetServerPort = port;
-            logger.Msg($"Target server updated to {_targetServerIP}:{_targetServerPort}");
+            DebugLog.Info($"Target server updated to {_targetServerIP}:{_targetServerPort}");
         }
     }
 }
