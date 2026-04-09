@@ -114,10 +114,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
             for (int i = 0; i < disconnectedPlayers.Count; i++)
             {
-                if (TryRemovePlayer(disconnectedPlayers[i], out ConnectedPlayerInfo removedPlayer))
-                {
-                    onRemoved?.Invoke(removedPlayer);
-                }
+                onRemoved?.Invoke(disconnectedPlayers[i]);
             }
         }
 
@@ -181,14 +178,10 @@ namespace DedicatedServerMod.Server.Player.Runtime
             removedPlayer = playerInfo;
             if (removedPlayer.IsDisconnectProcessed)
             {
-                removedPlayer.Connection = null;
-                removedPlayer.PlayerInstance = null;
                 return false;
             }
 
             removedPlayer.IsDisconnectProcessed = true;
-            removedPlayer.Connection = null;
-            removedPlayer.PlayerInstance = null;
             return true;
         }
 

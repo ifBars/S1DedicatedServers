@@ -699,6 +699,9 @@ namespace DedicatedServerMod.Server.Player.Runtime
             {
             }
 
+            removedPlayer.Connection = null;
+            removedPlayer.PlayerInstance = null;
+
             DebugLog.Info($"Current players: {_registry.ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers}");
         }
 
