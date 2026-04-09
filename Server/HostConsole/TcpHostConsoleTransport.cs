@@ -163,7 +163,7 @@ namespace DedicatedServerMod.Server.HostConsole
                         WriteLine("Authenticated.");
                     }
 
-                    TcpCommandOutput output = new TcpCommandOutput(WriteLine);
+                    ICommandReplyChannel output = CommandReplyChannelFactory.CreateTcp(WriteLine);
                     while (_isRunning && client.Connected)
                     {
                         WriteRaw("> ");
@@ -218,12 +218,10 @@ namespace DedicatedServerMod.Server.HostConsole
 
         private static void ConfigureClient(TcpClient client)
         {
-            client.ReceiveTimeout = Constants.TcpConsoleSocketTimeoutMs;
             client.SendTimeout = Constants.TcpConsoleSocketTimeoutMs;
             client.NoDelay = true;
 
             NetworkStream stream = client.GetStream();
-            stream.ReadTimeout = Constants.TcpConsoleSocketTimeoutMs;
             stream.WriteTimeout = Constants.TcpConsoleSocketTimeoutMs;
         }
 

@@ -41,7 +41,7 @@ namespace DedicatedServerMod.Server.Commands
             try
             {
                 ParsedCommandLine commandLine = new ParsedCommandLine(CommandWord.ToLowerInvariant(), args ?? new List<string>());
-                _commandManager.ExecuteConsoleLine(commandLine, new GameConsoleCommandOutput());
+                _commandManager.ExecuteConsoleLine(commandLine, CommandReplyChannelFactory.CreateGameConsole());
             }
             catch (Exception ex)
             {

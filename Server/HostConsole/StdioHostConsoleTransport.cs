@@ -11,7 +11,7 @@ namespace DedicatedServerMod.Server.HostConsole
     {
         private readonly CommandManager _commandManager;
         private readonly MelonLogger.Instance _logger;
-        private readonly ICommandOutput _output;
+        private readonly ICommandReplyChannel _output;
         private volatile bool _isRunning;
         private Thread _readThread;
 
@@ -22,7 +22,7 @@ namespace DedicatedServerMod.Server.HostConsole
         {
             _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _output = new StdioCommandOutput();
+            _output = CommandReplyChannelFactory.CreateStdio();
         }
 
         /// <inheritdoc />

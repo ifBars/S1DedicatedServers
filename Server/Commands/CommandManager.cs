@@ -58,6 +58,19 @@ namespace DedicatedServerMod.Server.Commands
         /// </summary>
         public CommandExecutionResult ExecuteConsoleLine(string rawLine, ICommandOutput output = null, ConnectedPlayerInfo executor = null)
         {
+            return ExecuteConsoleLine(rawLine, output, CommandReplyChannelFactory.FromLegacy(output), executor);
+        }
+
+        /// <summary>
+        /// Execute a raw console line through the shared parser and command pipeline.
+        /// </summary>
+        internal CommandExecutionResult ExecuteConsoleLine(string rawLine, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor = null)
+        {
+            return ExecuteConsoleLine(rawLine, legacyOutput: null, replyChannel, executor);
+        }
+
+        private CommandExecutionResult ExecuteConsoleLine(string rawLine, ICommandOutput legacyOutput, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor)
+        {
             CommandLineParseResult parseResult = CommandLineParser.TryParse(rawLine);
             if (parseResult.IsEmpty)
             {
@@ -67,17 +80,30 @@ namespace DedicatedServerMod.Server.Commands
             if (!parseResult.Success)
             {
                 CommandExecutionResult result = new CommandExecutionResult(CommandExecutionStatus.ParseError, string.Empty, parseResult.ErrorMessage);
-                output?.WriteError(result.Message);
+                replyChannel?.Write(new CommandReplyLine(CommandReplyLevel.Error, result.Message));
                 return result;
             }
 
-            return ExecuteConsoleLine(parseResult.CommandLine, output, executor);
+            return ExecuteConsoleLine(parseResult.CommandLine, legacyOutput, replyChannel, executor);
         }
 
         /// <summary>
         /// Execute an already parsed command line.
         /// </summary>
         public CommandExecutionResult ExecuteConsoleLine(ParsedCommandLine commandLine, ICommandOutput output = null, ConnectedPlayerInfo executor = null)
+        {
+            return ExecuteConsoleLine(commandLine, output, CommandReplyChannelFactory.FromLegacy(output), executor);
+        }
+
+        /// <summary>
+        /// Execute an already parsed command line.
+        /// </summary>
+        internal CommandExecutionResult ExecuteConsoleLine(ParsedCommandLine commandLine, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor = null)
+        {
+            return ExecuteConsoleLine(commandLine, legacyOutput: null, replyChannel, executor);
+        }
+
+        private CommandExecutionResult ExecuteConsoleLine(ParsedCommandLine commandLine, ICommandOutput legacyOutput, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor)
         {
             if (commandLine == null)
             {
@@ -90,7 +116,7 @@ namespace DedicatedServerMod.Server.Commands
                     CommandExecutionStatus.UnknownCommand,
                     commandLine.CommandWord,
                     $"Unknown command: {commandLine.CommandWord}");
-                output?.WriteError(result.Message);
+                replyChannel?.Write(new CommandReplyLine(CommandReplyLevel.Error, result.Message));
                 return result;
             }
 
@@ -101,7 +127,7 @@ namespace DedicatedServerMod.Server.Commands
                     CommandExecutionStatus.Unauthorized,
                     commandLine.CommandWord,
                     $"Unauthorized command: {commandLine.CommandWord}");
-                output?.WriteError(result.Message);
+                replyChannel?.Write(new CommandReplyLine(CommandReplyLevel.Error, result.Message));
                 return result;
             }
 
@@ -113,7 +139,8 @@ namespace DedicatedServerMod.Server.Commands
                     Arguments = new List<string>(commandLine.Arguments),
                     PlayerManager = playerManager,
                     Permissions = permissionService,
-                    Output = output
+                    Output = legacyOutput,
+                    ReplyChannel = replyChannel
                 };
 
                 command.Execute(context);
@@ -127,7 +154,7 @@ namespace DedicatedServerMod.Server.Commands
                     commandLine.CommandWord,
                     $"Error executing command '{commandLine.CommandWord}': {ex.Message}",
                     ex);
-                output?.WriteError(result.Message);
+                replyChannel?.Write(new CommandReplyLine(CommandReplyLevel.Error, result.Message));
                 return result;
             }
         }

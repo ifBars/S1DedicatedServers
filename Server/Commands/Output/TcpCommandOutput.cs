@@ -3,7 +3,7 @@ namespace DedicatedServerMod.Server.Commands.Output
     /// <summary>
     /// Writes command output to a TCP session.
     /// </summary>
-    public sealed class TcpCommandOutput : ICommandOutput
+    public sealed class TcpCommandOutput : ICommandOutput, ICommandReplyChannel
     {
         private readonly Action<string> _writeLine;
 
@@ -18,28 +18,32 @@ namespace DedicatedServerMod.Server.Commands.Output
         /// <inheritdoc />
         public void WriteInfo(string message)
         {
-            WriteWithPrefix(message, string.Empty);
+            WriteReply(new CommandReplyLine(CommandReplyLevel.Info, message));
         }
 
         /// <inheritdoc />
         public void WriteWarning(string message)
         {
-            WriteWithPrefix(message, "[WARN] ");
+            WriteReply(new CommandReplyLine(CommandReplyLevel.Warning, message));
         }
 
         /// <inheritdoc />
         public void WriteError(string message)
         {
-            WriteWithPrefix(message, "[ERR] ");
+            WriteReply(new CommandReplyLine(CommandReplyLevel.Error, message));
         }
 
-        private void WriteWithPrefix(string message, string prefix)
+        /// <inheritdoc />
+        void ICommandReplyChannel.Write(CommandReplyLine line)
         {
-            string normalized = (message ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
-            string[] lines = normalized.Split('\n');
-            for (int i = 0; i < lines.Length; i++)
+            WriteReply(line);
+        }
+
+        private void WriteReply(CommandReplyLine line)
+        {
+            foreach (CommandReplyLine expandedLine in CommandReplyRenderer.Expand(line))
             {
-                _writeLine(prefix + lines[i]);
+                _writeLine(CommandReplyRenderer.RenderText(expandedLine));
             }
         }
     }

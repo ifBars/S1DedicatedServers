@@ -428,7 +428,7 @@ namespace DedicatedServerMod.Server.WebPanel
 
         public WebPanelCommandResult Execute(string commandLine)
         {
-            BrowserCommandOutput output = new BrowserCommandOutput(_eventStream, _logBuffer);
+            WebPanelCommandReplyChannel output = CommandReplyChannelFactory.CreateWebPanel(_eventStream, _logBuffer);
             CommandExecutionResult executionResult = _commandManager.ExecuteConsoleLine(commandLine ?? string.Empty, output);
 
             return new WebPanelCommandResult
@@ -439,50 +439,6 @@ namespace DedicatedServerMod.Server.WebPanel
                 Message = executionResult.Message ?? string.Empty,
                 Output = output.Lines
             };
-        }
-
-        private sealed class BrowserCommandOutput(WebPanelEventStream eventStream, WebPanelLogBuffer logBuffer)
-            : ICommandOutput
-        {
-            public List<WebPanelCommandOutputLine> Lines { get; } = new();
-
-            public void WriteInfo(string message)
-            {
-                Add("info", message);
-            }
-
-            public void WriteWarning(string message)
-            {
-                Add("warning", message);
-            }
-
-            public void WriteError(string message)
-            {
-                Add("error", message);
-            }
-
-            private void Add(string level, string message)
-            {
-                WebPanelCommandOutputLine line = new WebPanelCommandOutputLine
-                {
-                    Level = level,
-                    Message = message ?? string.Empty
-                };
-
-                Lines.Add(line);
-
-                WebPanelLogEntry logEntry = new WebPanelLogEntry
-                {
-                    TimestampUtc = DateTime.UtcNow,
-                    Level = level,
-                    Message = message ?? string.Empty,
-                    Source = "console"
-                };
-
-                logBuffer.Add(logEntry);
-                eventStream.Publish("log.append", logEntry);
-                eventStream.Publish("console.output", line);
-            }
         }
     }
 }

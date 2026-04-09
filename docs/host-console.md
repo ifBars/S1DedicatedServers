@@ -41,9 +41,11 @@ That lets the panel capture the game log stream directly. Hidden desktop console
 - quoted arguments are preserved consistently
 - stdio mode does not print prompts
 - stdio mode does not echo typed input
-- warnings and errors are written to `stderr`
+- stdio command replies are written to a single hosted-console reply stream (`stderr` in the current implementation), so informational replies such as `help` and `serverinfo` remain visible on hosted panels
+- warnings and errors keep `[WARN]` and `[ERR]` prefixes in console-like transports
 - EOF on stdin detaches the stdio reader and does not shut down the server
 - `exit` and `quit` remain TCP-session commands only and are not special in stdio mode
+- TCP console sessions do not have a server-side idle read timeout, so long-lived `nc` or telnet sessions stay usable until the client or network closes them
 
 ### When to use TCP instead
 

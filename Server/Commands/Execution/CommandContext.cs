@@ -37,6 +37,11 @@ namespace DedicatedServerMod.Server.Commands.Execution
         public ICommandOutput Output { get; set; }
 
         /// <summary>
+        /// Optional structured reply channel used by internal command transports.
+        /// </summary>
+        internal ICommandReplyChannel ReplyChannel { get; set; }
+
+        /// <summary>
         /// Whether the command is being executed from console.
         /// </summary>
         public bool IsConsoleExecution => Executor == null;
@@ -46,13 +51,7 @@ namespace DedicatedServerMod.Server.Commands.Execution
         /// </summary>
         public void Reply(string message)
         {
-            if (Output != null)
-            {
-                Output.WriteInfo(message);
-                return;
-            }
-
-            DebugLog.Info(BuildReplyPrefix() + (message ?? string.Empty));
+            WriteReply(CommandReplyLevel.Info, message);
         }
 
         /// <summary>
@@ -60,13 +59,7 @@ namespace DedicatedServerMod.Server.Commands.Execution
         /// </summary>
         public void ReplyWarning(string message)
         {
-            if (Output != null)
-            {
-                Output.WriteWarning(message);
-                return;
-            }
-
-            DebugLog.Warning(BuildReplyPrefix() + (message ?? string.Empty));
+            WriteReply(CommandReplyLevel.Warning, message);
         }
 
         /// <summary>
@@ -74,13 +67,48 @@ namespace DedicatedServerMod.Server.Commands.Execution
         /// </summary>
         public void ReplyError(string message)
         {
-            if (Output != null)
+            WriteReply(CommandReplyLevel.Error, message);
+        }
+
+        private void WriteReply(CommandReplyLevel level, string message)
+        {
+            if (ReplyChannel != null)
             {
-                Output.WriteError(message);
+                ReplyChannel.Write(new CommandReplyLine(level, message));
                 return;
             }
 
-            DebugLog.Error(BuildReplyPrefix() + (message ?? string.Empty));
+            if (Output != null)
+            {
+                switch (level)
+                {
+                    case CommandReplyLevel.Warning:
+                        Output.WriteWarning(message);
+                        break;
+                    case CommandReplyLevel.Error:
+                        Output.WriteError(message);
+                        break;
+                    default:
+                        Output.WriteInfo(message);
+                        break;
+                }
+
+                return;
+            }
+
+            string rendered = BuildReplyPrefix() + (message ?? string.Empty);
+            switch (level)
+            {
+                case CommandReplyLevel.Warning:
+                    DebugLog.Warning(rendered);
+                    break;
+                case CommandReplyLevel.Error:
+                    DebugLog.Error(rendered);
+                    break;
+                default:
+                    DebugLog.Info(rendered);
+                    break;
+            }
         }
 
         private string BuildReplyPrefix()

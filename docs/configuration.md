@@ -197,6 +197,8 @@ stdioConsoleMode = 'Auto'
 - `Auto`: start stdio console only when stdin is redirected
 - `Enabled`: always start stdio console
 - `Auto` is the default because hosted panels usually inject commands through stdin, while local desktop runs should avoid stealing the interactive console unless you explicitly opt in
+- stdio command replies use a single hosted-console reply stream so informational replies remain visible even on panels that do not surface `stdout` reliably
+- Unity and MelonLoader logs still need `-logFile -` when you want the game log stream captured by the host panel
 
 See [Host Console](host-console.md) for deployment guidance and runtime behavior.
 
