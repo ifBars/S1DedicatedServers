@@ -29,9 +29,10 @@ using ScheduleOne.UI.MainMenu;
 #endif
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using DedicatedServerMod.API;
-using DedicatedServerMod.Client.CustomClothing;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
@@ -50,8 +51,6 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientConnectionManager
     {
-        private readonly ClientCustomClothingManager _customClothingManager;
-
         private static string _targetServerIP = "localhost";
         private static int _targetServerPort = 38465;
         private static bool _isTugboatMode = false;
@@ -71,6 +70,8 @@ namespace DedicatedServerMod.Client.Managers
         private bool _isConnectionStateHooked;
         private string _pendingDisconnectTitle;
         private string _pendingDisconnectReason;
+        private readonly List<JoinPreparationRegistrationEntry> _joinPreparationRegistrations = new List<JoinPreparationRegistrationEntry>();
+        private long _nextJoinPreparationOrder;
 
         public bool IsConnecting { get; private set; }
         public bool IsConnectedToDedicatedServer { get; private set; }
@@ -79,9 +80,8 @@ namespace DedicatedServerMod.Client.Managers
 
         public event Action<string, int> DedicatedServerConnected;
 
-        internal ClientConnectionManager(ClientCustomClothingManager customClothingManager)
+        internal ClientConnectionManager()
         {
-            _customClothingManager = customClothingManager ?? throw new ArgumentNullException(nameof(customClothingManager));
 #if MONO
             _clientConnectionStateHandler = OnClientConnectionState;
 #endif
@@ -169,10 +169,10 @@ namespace DedicatedServerMod.Client.Managers
                 yield break;
             }
 
-            yield return _customClothingManager.PrepareForConnection(_targetServerIP, _targetServerPort);
-            if (!string.IsNullOrWhiteSpace(_customClothingManager.LastSyncError))
+            yield return RunConnectionPreparationRegistrations();
+            if (TryGetConnectionPreparationError(out string preparationError))
             {
-                HandleConnectionError(_customClothingManager.LastSyncError);
+                HandleConnectionError(preparationError);
                 yield break;
             }
 
@@ -248,10 +248,10 @@ namespace DedicatedServerMod.Client.Managers
             }
             timeline.Mark("MainSceneLoaded", $"{sceneElapsed:F1}s");
 
-            if (!_customClothingManager.RegisterPreparedContent())
+            if (!FinalizeConnectionPreparationRegistrations(out string finalizeError))
             {
-                timeline.MarkError("CustomClothingRegister", _customClothingManager.LastSyncError ?? "registration failed");
-                HandleConnectionError(_customClothingManager.LastSyncError ?? "Failed to register custom clothing on the client.");
+                timeline.MarkError("ConnectionPreparationFinalize", finalizeError ?? "finalization failed");
+                HandleConnectionError(finalizeError ?? "Failed to finalize prepared connection content.");
                 yield break;
             }
 
@@ -459,7 +459,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             CustomMessaging.ClientMessageReceived -= OnClientMessageReceived;
             PermissionSnapshotStore.Reset();
-            _customClothingManager.OnDisconnected();
+            ResetConnectionPreparationRegistrations();
         }
 
         private void CompleteJoinAfterVerification()
@@ -649,7 +649,7 @@ namespace DedicatedServerMod.Client.Managers
             IsConnectedToDedicatedServer = false;
             ServerDataStore.Reset();
             PermissionSnapshotStore.Reset();
-            _customClothingManager.OnDisconnected();
+            ResetConnectionPreparationRegistrations();
             _worldLoadCompleted = false;
             _authSucceeded = false;
             _modVerificationSucceeded = false;
@@ -842,6 +842,215 @@ namespace DedicatedServerMod.Client.Managers
             _targetServerIP = ip.Trim();
             _targetServerPort = port;
             DebugLog.Info($"Target server updated to {_targetServerIP}:{_targetServerPort}");
+        }
+
+        /// <summary>
+        /// Registers callbacks that participate in the dedicated-server join preparation pipeline.
+        /// </summary>
+        /// <param name="registrationId">Stable identifier for this registration.</param>
+        /// <param name="configure">Fluent registration builder.</param>
+        /// <returns>A disposable registration handle.</returns>
+        public ClientJoinPreparationRegistration RegisterJoinPreparation(string registrationId, Action<ClientJoinPreparationBuilder> configure)
+        {
+            if (string.IsNullOrWhiteSpace(registrationId))
+                throw new ArgumentException("Registration id cannot be empty.", nameof(registrationId));
+            if (configure == null)
+                throw new ArgumentNullException(nameof(configure));
+
+            ClientJoinPreparationBuilder builder = new ClientJoinPreparationBuilder(registrationId);
+            configure(builder);
+
+            JoinPreparationRegistrationEntry entry = new JoinPreparationRegistrationEntry(
+                Guid.NewGuid(),
+                builder.RegistrationId,
+                builder.Priority,
+                _nextJoinPreparationOrder++,
+                builder.PrepareCallback,
+                builder.FinalizeCallback,
+                builder.ResetCallback);
+
+            lock (_joinPreparationRegistrations)
+            {
+                _joinPreparationRegistrations.RemoveAll(existing =>
+                    string.Equals(existing.RegistrationId, builder.RegistrationId, StringComparison.OrdinalIgnoreCase));
+                _joinPreparationRegistrations.Add(entry);
+            }
+
+            return new ClientJoinPreparationRegistration(this, entry.Token, entry.RegistrationId);
+        }
+
+        internal void UnregisterJoinPreparation(Guid token)
+        {
+            lock (_joinPreparationRegistrations)
+            {
+                _joinPreparationRegistrations.RemoveAll(entry => entry.Token == token);
+            }
+        }
+
+        private IEnumerator RunConnectionPreparationRegistrations()
+        {
+            foreach (JoinPreparationRegistrationEntry entry in GetJoinPreparationRegistrationsSnapshot())
+            {
+                IEnumerator routine = null;
+                ClientJoinPreparationContext context = entry.BeginAttempt(_targetServerIP, _targetServerPort);
+
+                try
+                {
+                    routine = entry.PrepareCallback?.Invoke(context);
+                }
+                catch (Exception ex)
+                {
+                    HandleConnectionError($"Client join preparation '{entry.RegistrationId}' failed during prepare: {ex.Message}");
+                    yield break;
+                }
+
+                if (routine != null)
+                {
+                    yield return routine;
+                }
+
+                if (context.HasFailed)
+                {
+                    yield break;
+                }
+            }
+        }
+
+        private bool FinalizeConnectionPreparationRegistrations(out string errorMessage)
+        {
+            foreach (JoinPreparationRegistrationEntry entry in GetJoinPreparationRegistrationsSnapshot())
+            {
+                ClientJoinPreparationContext context = entry.GetOrCreateContext(_targetServerIP, _targetServerPort);
+                context.ClearFailure();
+
+                try
+                {
+                    entry.FinalizeCallback?.Invoke(context);
+                    if (!context.HasFailed)
+                    {
+                        continue;
+                    }
+
+                    errorMessage = string.IsNullOrWhiteSpace(context.FailureReason)
+                        ? $"Client join preparation '{entry.RegistrationId}' failed during finalize."
+                        : context.FailureReason;
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = $"Client join preparation '{entry.RegistrationId}' failed during finalize: {ex.Message}";
+                    return false;
+                }
+            }
+
+            errorMessage = null;
+            return true;
+        }
+
+        private void ResetConnectionPreparationRegistrations()
+        {
+            foreach (JoinPreparationRegistrationEntry entry in GetJoinPreparationRegistrationsSnapshot())
+            {
+                ClientJoinPreparationContext context = entry.GetOrCreateContext(_targetServerIP, _targetServerPort);
+
+                try
+                {
+                    entry.ResetCallback?.Invoke(context);
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Warning($"Client join preparation '{entry.RegistrationId}' failed during reset: {ex.Message}");
+                }
+
+                entry.ClearAttempt();
+            }
+        }
+
+        private bool TryGetConnectionPreparationError(out string errorMessage)
+        {
+            foreach (JoinPreparationRegistrationEntry entry in GetJoinPreparationRegistrationsSnapshot())
+            {
+                string failureReason = entry.ActiveContext?.FailureReason;
+                if (string.IsNullOrWhiteSpace(failureReason))
+                {
+                    continue;
+                }
+
+                errorMessage = failureReason;
+                return true;
+            }
+
+            errorMessage = null;
+            return false;
+        }
+
+        private List<JoinPreparationRegistrationEntry> GetJoinPreparationRegistrationsSnapshot()
+        {
+            lock (_joinPreparationRegistrations)
+            {
+                return _joinPreparationRegistrations
+                    .OrderByDescending(entry => entry.Priority)
+                    .ThenBy(entry => entry.Order)
+                    .ToList();
+            }
+        }
+
+        private sealed class JoinPreparationRegistrationEntry
+        {
+            public JoinPreparationRegistrationEntry(
+                Guid token,
+                string registrationId,
+                int priority,
+                long order,
+                Func<ClientJoinPreparationContext, IEnumerator> prepareCallback,
+                Action<ClientJoinPreparationContext> finalizeCallback,
+                Action<ClientJoinPreparationContext> resetCallback)
+            {
+                Token = token;
+                RegistrationId = registrationId;
+                Priority = priority;
+                Order = order;
+                PrepareCallback = prepareCallback;
+                FinalizeCallback = finalizeCallback;
+                ResetCallback = resetCallback;
+            }
+
+            public Guid Token { get; }
+
+            public string RegistrationId { get; }
+
+            public int Priority { get; }
+
+            public long Order { get; }
+
+            public Func<ClientJoinPreparationContext, IEnumerator> PrepareCallback { get; }
+
+            public Action<ClientJoinPreparationContext> FinalizeCallback { get; }
+
+            public Action<ClientJoinPreparationContext> ResetCallback { get; }
+
+            public ClientJoinPreparationContext ActiveContext { get; private set; }
+
+            public ClientJoinPreparationContext BeginAttempt(string host, int port)
+            {
+                ActiveContext = new ClientJoinPreparationContext(host, port);
+                return ActiveContext;
+            }
+
+            public ClientJoinPreparationContext GetOrCreateContext(string host, int port)
+            {
+                if (ActiveContext == null)
+                {
+                    ActiveContext = new ClientJoinPreparationContext(host, port);
+                }
+
+                return ActiveContext;
+            }
+
+            public void ClearAttempt()
+            {
+                ActiveContext = null;
+            }
         }
     }
 }

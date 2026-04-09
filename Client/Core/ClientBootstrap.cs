@@ -2,7 +2,6 @@ using System;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
-using DedicatedServerMod.Client.CustomClothing;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
 #else
@@ -52,12 +51,6 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         private ClientConnectionManager _connectionManager;
 
-        /// <summary>
-        /// The custom clothing manager used for pre-join sync and local shop registration.
-        /// </summary>
-        private ClientCustomClothingManager _customClothingManager;
-
-        /// <summary>
         /// The auth manager for Steam ticket handshake.
         /// </summary>
         private ClientAuthManager _authManager;
@@ -124,12 +117,6 @@ namespace DedicatedServerMod.Client.Core
         /// </remarks>
         internal ClientConnectionManager ConnectionManager => _connectionManager;
 
-        /// <summary>
-        /// Gets the custom clothing manager used by the dedicated client.
-        /// </summary>
-        internal ClientCustomClothingManager CustomClothingManager => _customClothingManager;
-
-        /// <summary>
         /// Gets the client authentication manager used for the dedicated-server Steam ticket handshake.
         /// </summary>
         internal ClientAuthManager AuthManager => _authManager;
@@ -281,11 +268,8 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         private void InitializeManagers()
         {
-            _customClothingManager = new ClientCustomClothingManager(_logger);
-            _customClothingManager.Initialize();
-
             // Initialize connection manager
-            _connectionManager = new ClientConnectionManager(_customClothingManager);
+            _connectionManager = new ClientConnectionManager();
             _connectionManager.Initialize();
 
             // Initialize authentication manager
@@ -373,7 +357,6 @@ namespace DedicatedServerMod.Client.Core
                 // Delegate scene handling to appropriate managers
                 _uiManager?.OnSceneLoaded(sceneName);
                 _questManager?.OnSceneLoaded(sceneName);
-                _customClothingManager?.OnSceneLoaded(sceneName);
             }
             catch (Exception ex)
             {
@@ -459,15 +442,6 @@ namespace DedicatedServerMod.Client.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Error shutting down Steam avatar service: {ex.Message}");
-            }
-
-            try
-            {
-                _customClothingManager?.OnDisconnected();
-            }
-            catch (Exception ex)
-            {
-                _logger?.Warning($"Error resetting client custom clothing manager: {ex.Message}");
             }
 
             try

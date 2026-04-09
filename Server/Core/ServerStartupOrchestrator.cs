@@ -202,9 +202,6 @@ namespace DedicatedServerMod.Server.Core
             DebugLog.Info("Main scene loaded");
             loadManager.LoadStatus = LoadManager.ELoadStatus.Initializing;
 
-            ServerBootstrap.CustomClothing?.Initialize();
-            DebugLog.StartupDebug("Custom clothing manager initialized after Main scene load");
-
             // Ensure default quests are registered before save data loads
             TryRegisterDefaultQuestsWithGuidManager();
 

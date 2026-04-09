@@ -85,6 +85,7 @@ var config = S1DS.Shared.Config;
 | `Network` | NetworkManager instance |
 | `GameSystems` | GameSystemManager instance |
 | `Persistence` | PersistenceManager instance |
+| `StatusQuery` | `ServerStatusQueryService` registration surface for custom TCP status-query handlers |
 | `Patches` | GamePatchManager instance |
 | `PlayerCount` | Number of connected players |
 | `IsRunning` | True if server is running |
@@ -104,6 +105,88 @@ var config = S1DS.Shared.Config;
 | `AdminStatus` | AdminStatusManager instance |
 | `IsConnected` | True if connected |
 | `IsInitialized` | True if initialized |
+
+### Join Preparation Registration
+
+Client mods that need to stage content before the dedicated-server join begins should register a join-preparation pipeline step through `S1DS.Client.Connection`.
+
+```csharp
+using System.Collections;
+using DedicatedServerMod.API;
+
+public sealed class MyClientMod : ClientMelonModBase
+{
+    private ClientJoinPreparationRegistration _registration;
+
+    public override void OnClientInitialize()
+    {
+        _registration = S1DS.Client.Connection.RegisterJoinPreparation(
+            "ghost.example-prejoin",
+            builder => builder
+                .WithPriority(100)
+                .WithPrepare(PrepareForJoin)
+                .WithFinalize(FinalizePreparedJoin)
+                .WithReset(ResetPreparedJoin));
+    }
+
+    public override void OnClientShutdown()
+    {
+        _registration?.Dispose();
+    }
+
+    private IEnumerator PrepareForJoin(ClientJoinPreparationContext context)
+    {
+        yield break;
+    }
+
+    private void FinalizePreparedJoin(ClientJoinPreparationContext context)
+    {
+    }
+
+    private void ResetPreparedJoin(ClientJoinPreparationContext context)
+    {
+    }
+}
+```
+
+Use `context.Fail("reason")` from the prepare or finalize callback to abort the join with a user-facing error.
+
+### Status Query Registration
+
+Server mods can extend the lightweight TCP status-query endpoint through `S1DS.Server.StatusQuery`.
+
+```csharp
+using DedicatedServerMod.API;
+
+public sealed class MyServerMod : ServerMelonModBase
+{
+    private ServerStatusQueryRegistration _registration;
+
+    public override void OnServerInitialize()
+    {
+        _registration = S1DS.Server.StatusQuery.RegisterHandler(
+            "ghost.example-status",
+            builder => builder
+                .WithPriority(100)
+                .WithHandler(HandleStatusQuery));
+    }
+
+    public override void OnServerShutdown()
+    {
+        _registration?.Dispose();
+    }
+
+    private void HandleStatusQuery(ServerStatusQueryContext context)
+    {
+        if (context.RequestLine != "EXAMPLE_STATUS")
+        {
+            return;
+        }
+
+        context.Respond("{\"ok\":true}");
+    }
+}
+```
 
 ### Steam Avatar Helper
 

@@ -1,12 +1,12 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Linq;
 using MelonLoader;
-using DedicatedServerMod.Server.CustomClothing;
+using DedicatedServerMod.API;
 using Newtonsoft.Json;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared;
-using DedicatedServerMod.Shared.CustomClothing;
 using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Network
@@ -17,21 +17,19 @@ namespace DedicatedServerMod.Server.Network
     public sealed class ServerStatusQueryService
     {
         private const string StatusRequestCommand = "DS_STATUS";
-        private const string ClothingManifestCommand = "DS_CLOTHING_MANIFEST";
-        private const string ClothingAssetCommand = "DS_CLOTHING_ASSET";
 
         private readonly MelonLogger.Instance _logger;
         private readonly PlayerManager _playerManager;
-        private readonly ServerCustomClothingManager _customClothingManager;
+        private readonly List<StatusQueryRegistrationEntry> _registrations = new List<StatusQueryRegistrationEntry>();
         private TcpListener _listener;
         private Thread _listenerThread;
         private CancellationTokenSource _cancellation;
+        private long _nextRegistrationOrder;
 
-        internal ServerStatusQueryService(MelonLogger.Instance logger, PlayerManager playerManager, ServerCustomClothingManager customClothingManager)
+        internal ServerStatusQueryService(MelonLogger.Instance logger, PlayerManager playerManager)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
-            _customClothingManager = customClothingManager;
         }
 
         public void Start()
@@ -73,6 +71,47 @@ namespace DedicatedServerMod.Server.Network
                 _listenerThread = null;
                 _cancellation?.Dispose();
                 _cancellation = null;
+            }
+        }
+
+        /// <summary>
+        /// Registers a handler for custom commands on the dedicated server status-query endpoint.
+        /// </summary>
+        /// <param name="registrationId">Stable identifier for this handler registration.</param>
+        /// <param name="configure">Fluent handler builder.</param>
+        /// <returns>A disposable registration handle.</returns>
+        public ServerStatusQueryRegistration RegisterHandler(string registrationId, Action<ServerStatusQueryHandlerBuilder> configure)
+        {
+            if (string.IsNullOrWhiteSpace(registrationId))
+                throw new ArgumentException("Registration id cannot be empty.", nameof(registrationId));
+            if (configure == null)
+                throw new ArgumentNullException(nameof(configure));
+
+            ServerStatusQueryHandlerBuilder builder = new ServerStatusQueryHandlerBuilder(registrationId);
+            configure(builder);
+
+            StatusQueryRegistrationEntry entry = new StatusQueryRegistrationEntry(
+                Guid.NewGuid(),
+                builder.RegistrationId,
+                builder.Priority,
+                _nextRegistrationOrder++,
+                builder.HandlerCallback);
+
+            lock (_registrations)
+            {
+                _registrations.RemoveAll(existing =>
+                    string.Equals(existing.RegistrationId, builder.RegistrationId, StringComparison.OrdinalIgnoreCase));
+                _registrations.Add(entry);
+            }
+
+            return new ServerStatusQueryRegistration(this, entry.Token, entry.RegistrationId);
+        }
+
+        internal void UnregisterHandler(Guid token)
+        {
+            lock (_registrations)
+            {
+                _registrations.RemoveAll(entry => entry.Token == token);
             }
         }
 
@@ -120,16 +159,9 @@ namespace DedicatedServerMod.Server.Network
                             return;
                         }
 
-                        if (string.Equals(request, ClothingManifestCommand, StringComparison.Ordinal))
+                        if (TryWriteExtendedResponse(request, writer))
                         {
-                            WriteManifestResponse(writer);
                             return;
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(request) && request.StartsWith(ClothingAssetCommand + " ", StringComparison.Ordinal))
-                        {
-                            string itemId = request.Substring(ClothingAssetCommand.Length + 1).Trim();
-                            WriteAssetResponse(writer, itemId);
                         }
                     }
                 }
@@ -154,44 +186,67 @@ namespace DedicatedServerMod.Server.Network
             };
         }
 
-        private void WriteManifestResponse(StreamWriter writer)
+        private bool TryWriteExtendedResponse(string request, StreamWriter writer)
         {
-            if (_customClothingManager == null)
+            if (string.IsNullOrWhiteSpace(request))
             {
-                writer.WriteLine(JsonConvert.SerializeObject(new CustomClothingManifestResponse
-                {
-                    Success = true,
-                    Manifest = new CustomClothingManifest()
-                }));
-                return;
+                return false;
             }
 
-            writer.WriteLine(JsonConvert.SerializeObject(new CustomClothingManifestResponse
+            foreach (StatusQueryRegistrationEntry entry in GetRegistrationSnapshot())
             {
-                Success = true,
-                Manifest = _customClothingManager.GetManifest()
-            }));
+                try
+                {
+                    ServerStatusQueryContext context = new ServerStatusQueryContext(request);
+                    entry.HandlerCallback?.Invoke(context);
+                    if (!context.IsHandled)
+                    {
+                        continue;
+                    }
+
+                    writer.WriteLine(context.ResponseLine ?? string.Empty);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning($"Status query extension error from '{entry.RegistrationId}': {ex.Message}");
+                }
+            }
+
+            return false;
         }
 
-        private void WriteAssetResponse(StreamWriter writer, string itemId)
+        private List<StatusQueryRegistrationEntry> GetRegistrationSnapshot()
         {
-            if (_customClothingManager != null && _customClothingManager.TryGetAssetPayload(itemId, out CustomClothingAssetPayload payload))
+            lock (_registrations)
             {
-                writer.WriteLine(JsonConvert.SerializeObject(new CustomClothingAssetResponse
-                {
-                    Success = true,
-                    Asset = payload
-                }));
-                return;
+                return _registrations
+                    .OrderByDescending(entry => entry.Priority)
+                    .ThenBy(entry => entry.Order)
+                    .ToList();
+            }
+        }
+
+        private sealed class StatusQueryRegistrationEntry
+        {
+            public StatusQueryRegistrationEntry(Guid token, string registrationId, int priority, long order, Action<ServerStatusQueryContext> handlerCallback)
+            {
+                Token = token;
+                RegistrationId = registrationId;
+                Priority = priority;
+                Order = order;
+                HandlerCallback = handlerCallback;
             }
 
-            writer.WriteLine(JsonConvert.SerializeObject(new CustomClothingAssetResponse
-            {
-                Success = false,
-                Error = string.IsNullOrWhiteSpace(itemId)
-                    ? "Custom clothing asset request did not specify an item id."
-                    : $"Custom clothing asset '{itemId}' was not found."
-            }));
+            public Guid Token { get; }
+
+            public string RegistrationId { get; }
+
+            public int Priority { get; }
+
+            public long Order { get; }
+
+            public Action<ServerStatusQueryContext> HandlerCallback { get; }
         }
     }
 }

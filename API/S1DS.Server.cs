@@ -40,6 +40,11 @@ namespace DedicatedServerMod.API
             public static PersistenceManager Persistence => ServerBootstrap.Persistence;
 
             /// <summary>
+            /// Access to the TCP status-query service and its addon registration surface.
+            /// </summary>
+            public static ServerStatusQueryService StatusQuery => ServerBootstrap.StatusQuery;
+
+            /// <summary>
             /// Access to the authoritative permission service.
             /// </summary>
             public static ServerPermissionService Permissions => ServerBootstrap.Permissions;

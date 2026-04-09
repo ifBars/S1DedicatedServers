@@ -12,7 +12,6 @@ using DedicatedServerMod.Utils;
 using DedicatedServerMod.Server.HostConsole;
 using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Server.WebPanel;
-using DedicatedServerMod.Server.CustomClothing;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -41,7 +40,6 @@ namespace DedicatedServerMod.Server.Core
         private static WebPanelManager _webPanelManager;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
-        private static ServerCustomClothingManager _customClothingManager;
         
         // Server state
         private static bool _autoStartServer = false;
@@ -86,7 +84,10 @@ namespace DedicatedServerMod.Server.Core
         /// </summary>
         public static SteamNetworkLibCompatService SteamNetworkLibCompat => _steamNetworkLibCompatService;
 
-        internal static ServerCustomClothingManager CustomClothing => _customClothingManager;
+        /// <summary>
+        /// Gets the TCP status-query service used for server browser and addon query extensions.
+        /// </summary>
+        public static ServerStatusQueryService StatusQuery => _serverStatusQueryService;
 
         public override void OnInitializeMelon()
         {
@@ -131,9 +132,6 @@ namespace DedicatedServerMod.Server.Core
             _permissionService = new ServerPermissionService(_logger);
             _permissionService.Initialize();
             DebugLog.StartupDebug("Permission service initialized");
-
-            _customClothingManager = new ServerCustomClothingManager(_logger);
-            DebugLog.StartupDebug("Custom clothing manager created");
             
             // Step 3: Apply Harmony patches via GameSystemManager (which owns patch manager)
             
@@ -247,14 +245,6 @@ namespace DedicatedServerMod.Server.Core
                 _logger?.Warning($"Web panel tick error: {ex.Message}");
             }
 
-            try
-            {
-                _customClothingManager?.Tick();
-            }
-            catch (Exception ex)
-            {
-                _logger?.Warning($"Custom clothing tick error: {ex.Message}");
-            }
         }
 
         public override void OnApplicationQuit()
@@ -397,7 +387,7 @@ namespace DedicatedServerMod.Server.Core
         {
             try
             {
-                _serverStatusQueryService = new ServerStatusQueryService(_logger, _playerManager, _customClothingManager);
+                _serverStatusQueryService = new ServerStatusQueryService(_logger, _playerManager);
                 _serverStatusQueryService.Start();
                 DebugLog.StartupDebug("Status query service initialized");
             }
