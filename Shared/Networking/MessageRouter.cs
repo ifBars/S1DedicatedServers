@@ -57,13 +57,6 @@ namespace DedicatedServerMod.Shared.Networking
     /// </remarks>
     public static class MessageRouter
     {
-        /// <summary>
-        /// Initializes the message router with a logger.
-        /// </summary>
-        public static void Initialize()
-        {
-        }
-
         #region Server Message Routing
 
         /// <summary>
@@ -183,33 +176,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                ServerPlayerManager playerManager = ServerBootstrap.Players;
-                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
-                if (playerInfo == null)
-                {
-                    DebugLog.Warning($"HandleAuthHello: no player tracked for ClientId {conn.ClientId}");
-                    return;
-                }
-
-                AuthChallengeMessage challenge = playerManager.Authentication.CreateChallenge(playerInfo);
-                if (challenge != null)
-                {
-                    string payload = JsonConvert.SerializeObject(challenge);
-                    CustomMessaging.SendToClientOrDeferUntilReady(conn, Constants.Messages.AuthChallenge, payload);
-                    return;
-                }
-
-                if (playerInfo.IsAuthenticated)
-                {
-                    var result = new AuthResultMessage
-                    {
-                        Success = true,
-                        Message = "Authentication already satisfied",
-                        SteamId = playerInfo.AuthenticatedSteamId ?? playerInfo.SteamId ?? string.Empty
-                    };
-
-                    CustomMessaging.SendToClientOrDeferUntilReady(conn, Constants.Messages.AuthResult, JsonConvert.SerializeObject(result));
-                }
+                ServerBootstrap.Players?.HandleAuthHello(conn);
             }
             catch (Exception ex)
             {
@@ -221,31 +188,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                ServerPlayerManager playerManager = ServerBootstrap.Players;
-                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
-                if (playerInfo == null)
-                {
-                    DebugLog.Warning($"HandleAuthTicket: no player tracked for ClientId {conn.ClientId}");
-                    return;
-                }
-
-                AuthTicketMessage ticketMessage;
-                try
-                {
-                    ticketMessage = JsonConvert.DeserializeObject<AuthTicketMessage>(data ?? string.Empty);
-                }
-                catch (JsonException ex)
-                {
-                    DebugLog.Error($"HandleAuthTicket: invalid payload from ClientId {conn.ClientId}", ex);
-                    playerManager.NotifyAndDisconnectPlayer(playerInfo, "Authentication Failed", "Authentication payload was invalid.");
-                    return;
-                }
-
-                AuthenticationResult beginResult = playerManager.Authentication.SubmitTicket(playerInfo, ticketMessage);
-                if (beginResult.IsPending)
-                {
-                    DebugLog.MessageRoutingDebug($"HandleAuthTicket: pending auth validation for ClientId {conn.ClientId}");
-                }
+                ServerBootstrap.Players?.HandleAuthTicket(conn, data);
             }
             catch (Exception ex)
             {
@@ -255,65 +198,14 @@ namespace DedicatedServerMod.Shared.Networking
 
         private static bool IsCommandAllowedForConnection(NetworkConnection conn, string command)
         {
-            if (string.Equals(command, Constants.Messages.AuthHello, StringComparison.Ordinal) ||
-                string.Equals(command, Constants.Messages.AuthTicket, StringComparison.Ordinal))
-            {
-                return true;
-            }
-
-            ServerPlayerManager playerManager = ServerBootstrap.Players;
-            ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
-            if (playerInfo == null)
-            {
-                return false;
-            }
-
-            bool authenticationRequired = ServerConfig.Instance.AuthenticationEnabled &&
-                                          !playerManager.Authentication.ShouldBypassAuthentication(playerInfo);
-            if (authenticationRequired && !playerInfo.IsAuthenticated)
-            {
-                return false;
-            }
-
-            if (string.Equals(command, Constants.Messages.ModVerifyReport, StringComparison.Ordinal))
-            {
-                return !playerInfo.IsModVerificationComplete;
-            }
-
-            bool verificationRequired = playerManager.ModVerification.IsVerificationRequiredForPlayer(playerInfo);
-            if (!verificationRequired)
-            {
-                return true;
-            }
-
-            return playerInfo.IsModVerificationComplete;
+            return ServerBootstrap.Players?.IsCommandAllowedForConnection(conn, command) == true;
         }
 
         private static void HandleModVerificationReport(NetworkConnection conn, string data)
         {
             try
             {
-                ServerPlayerManager playerManager = ServerBootstrap.Players;
-                ConnectedPlayerInfo playerInfo = playerManager?.GetPlayer(conn);
-                if (playerInfo == null)
-                {
-                    DebugLog.Warning($"HandleModVerificationReport: no player tracked for ClientId {conn.ClientId}");
-                    return;
-                }
-
-                ModVerificationReportMessage reportMessage;
-                try
-                {
-                    reportMessage = JsonConvert.DeserializeObject<ModVerificationReportMessage>(data ?? string.Empty);
-                }
-                catch (JsonException ex)
-                {
-                    DebugLog.Error($"HandleModVerificationReport: invalid payload from ClientId {conn.ClientId}", ex);
-                    playerManager.NotifyAndDisconnectPlayer(playerInfo, "Verification Failed", "Client mod verification payload was invalid.");
-                    return;
-                }
-
-                playerManager.ModVerification.SubmitReport(playerInfo, reportMessage);
+                ServerBootstrap.Players?.HandleModVerificationReport(conn, data);
             }
             catch (Exception ex)
             {
@@ -616,8 +508,9 @@ namespace DedicatedServerMod.Shared.Networking
         }
 
         #endregion
-
+        
         #region Server Data Request Handling
+#if SERVER
 
         /// <summary>
         /// Handles a request for server data from a client.
@@ -627,22 +520,7 @@ namespace DedicatedServerMod.Shared.Networking
         {
             try
             {
-                var config = ServerConfig.Instance;
-                var serverData = new DedicatedServerMod.Shared.ServerData
-                {
-                    ServerName = config.ServerName,
-                    ServerDescription = config.ServerDescription,
-#if SERVER
-                    CurrentPlayers = ServerBootstrap.Players?.GetVisiblePlayerCount() ?? 0,
-#else
-                    CurrentPlayers = 0,
-#endif
-                    MaxPlayers = config.MaxPlayers,
-                    AllowSleeping = config.AllowSleeping
-                };
-
-                string payload = JsonConvert.SerializeObject(serverData);
-                CustomMessaging.SendToClient(conn, Constants.Messages.ServerData, payload);
+                ServerBootstrap.Players?.SendInitialServerDataToClient(conn);
             }
             catch (Exception ex)
             {
@@ -650,6 +528,7 @@ namespace DedicatedServerMod.Shared.Networking
             }
         }
 
+#endif
         #endregion
 
         #region Console Command Initialization

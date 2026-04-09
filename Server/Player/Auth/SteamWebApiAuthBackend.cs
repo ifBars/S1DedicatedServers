@@ -15,7 +15,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// Steam game server authentication is implemented first for hosted environments.
     /// This backend keeps the provider architecture extensible for future web API support.
     /// </remarks>
-    public sealed class SteamWebApiAuthBackend : IPlayerAuthBackend
+    internal sealed class SteamWebApiAuthBackend : IPlayerAuthBackend
     {
         /// <summary>
         /// Initializes a web API auth backend placeholder.

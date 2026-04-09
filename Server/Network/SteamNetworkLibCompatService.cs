@@ -307,7 +307,7 @@ namespace DedicatedServerMod.Server.Network
 
         private void RebuildMembersFromPlayerManager()
         {
-            List<ConnectedPlayerInfo> players = _playerManager.GetConnectedPlayers();
+            IReadOnlyList<ConnectedPlayerInfo> players = _playerManager.GetConnectedPlayers();
             for (int i = 0; i < players.Count; i++)
             {
                 ConnectedPlayerInfo player = players[i];

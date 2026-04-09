@@ -250,12 +250,6 @@ namespace DedicatedServerMod.Server.Commands
             {
                 if (GameConsoleAccess.TryGetCommandDictionary(out var gameCommands))
                 {
-                    if (!gameCommands.ContainsKey("settime") || !gameCommands.ContainsKey("give"))
-                    {
-                        CustomMessaging.InitializeConsoleCommands();
-                        DebugLog.StartupDebug("Initialized base game console commands");
-                    }
-
                     foreach (IServerCommand serverCommand in serverCommands.Values)
                     {
                         if (!gameCommands.ContainsKey(serverCommand.CommandWord))
@@ -290,7 +284,7 @@ namespace DedicatedServerMod.Server.Commands
 
             foreach (string discoveryNode in discoveryNodes)
             {
-                if (string.IsNullOrWhiteSpace(discoveryNode) || playerManager.Permissions.CanExecuteCommand(player, discoveryNode))
+                if (string.IsNullOrWhiteSpace(discoveryNode) || permissionService?.HasPermission(player.TrustedUniqueId, discoveryNode) == true)
                 {
                     return true;
                 }
@@ -312,7 +306,7 @@ namespace DedicatedServerMod.Server.Commands
                 return true;
             }
 
-            return playerManager.Permissions.CanExecuteCommand(player, requiredPermissionNode);
+            return permissionService?.HasPermission(player.TrustedUniqueId, requiredPermissionNode) == true;
         }
     }
 }

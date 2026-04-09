@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DedicatedServerMod.Server.Commands.Execution;
 using DedicatedServerMod.Server.Player;
 
@@ -71,7 +72,7 @@ namespace DedicatedServerMod.Server.Commands.Contracts
 
             if (int.TryParse(identifier, out int clientId))
             {
-                return PlayerManager.GetConnectedPlayers().Find(p => p.ClientId == clientId);
+                return PlayerManager.GetConnectedPlayers().FirstOrDefault(player => player.ClientId == clientId);
             }
 
             return null;

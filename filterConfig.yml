@@ -15,8 +15,5 @@ apiRules:
     uidRegex: ^DedicatedServerMod\.Shared\.Permissions$
     type: Namespace
 - exclude:
-    uidRegex: ^DedicatedServerMod\.API\.ExampleMod$
-    type: Type
-- exclude:
     uidRegex: ^DedicatedServerMod\.Shared\.Networking\.MessageRouter$
     type: Type

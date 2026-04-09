@@ -15,28 +15,26 @@ The API uses **partial classes** with **conditional compilation** to provide typ
 ### 1. Create a Mod
 
 ```csharp
-using MelonLoader;
 using DedicatedServerMod.API;
 
-public class MyMod : MelonMod, IServerMod, IClientMod
+public sealed class MyServerMod : ServerMelonModBase
 {
-    public override void OnInitializeMelon()
+    public override void OnServerInitialize()
     {
-        S1DS.Log($"MyMod loaded! Build: {S1DS.BuildConfig}");
+        S1DS.Log($"Server mod loaded. Players: {S1DS.Server.PlayerCount}");
     }
+}
+```
 
-    // Server-side events
-    public void OnServerInitialize() { /* Server startup logic */ }
-    public void OnServerShutdown() { /* Server cleanup logic */ }
-    public void OnPlayerConnected(string playerId) { /* Player join logic */ }
-    public void OnPlayerDisconnected(string playerId) { /* Player leave logic */ }
+```csharp
+using DedicatedServerMod.API;
 
-    // Client-side events  
-    public void OnClientInitialize() { /* Client startup logic */ }
-    public void OnClientShutdown() { /* Client cleanup logic */ }
-    public void OnConnectedToServer() { /* Connected to server logic */ }
-    public void OnClientPlayerReady() { /* Player spawned + messaging ready */ }
-    public void OnDisconnectedFromServer() { /* Disconnected logic */ }
+public sealed class MyClientMod : ClientMelonModBase
+{
+    public override void OnClientPlayerReady()
+    {
+        S1DS.Log($"Client mod loaded. Connected: {S1DS.Client.IsConnected}");
+    }
 }
 ```
 
@@ -83,12 +81,11 @@ var config = S1DS.Shared.Config;
 | Property/Method | Description |
 |-----------------|-------------|
 | `Bootstrap` | ServerBootstrap instance |
-| `Players` | PlayerManager instance |
+| `Players` | Player session queries and moderation facade. Use `S1DS.Server.Permissions` for permission evaluation. |
 | `Network` | NetworkManager instance |
 | `GameSystems` | GameSystemManager instance |
 | `Persistence` | PersistenceManager instance |
 | `Patches` | GamePatchManager instance |
-| `IsRunning` | True if server is running |
 | `PlayerCount` | Number of connected players |
 | `IsRunning` | True if server is running |
 
@@ -105,8 +102,6 @@ var config = S1DS.Shared.Config;
 | `Console` | ClientConsoleManager instance |
 | `Quests` | ClientQuestManager instance |
 | `AdminStatus` | AdminStatusManager instance |
-| `IsConnected` | True if connected to server |
-| `IsInitialized` | True if client core initialized |
 | `IsConnected` | True if connected |
 | `IsInitialized` | True if initialized |
 
@@ -173,7 +168,7 @@ ModManager.RegisterClientMod(myClientMod);
 
 Use one pattern per runtime object:
 
-- Auto-discovery for `MelonMod`, `ServerMelonModBase`, `ClientMelonModBase`, or `SideAwareMelonModBase`
+- Auto-discovery for `MelonMod`, `ServerMelonModBase`, `ClientMelonModBase`, or direct `IServerMod` / `IClientMod` implementations
 - Manual registration for `ServerModBase`, `ClientModBase`, or other non-Melon handler instances
 
 Do not manually register a `MelonMod` that is already auto-discoverable, or the mod can receive duplicate lifecycle callbacks.
@@ -204,13 +199,14 @@ Example:
 
 ## Build Configuration Compatibility
 
-The API respects your csproj's conditional compilation:
+The API respects the side-specific build/distribution model used by DedicatedServerMod:
 
 - **Mono_Server**: Only server classes available
-- **Mono_Client**: Only client classes available  
-- **Combined builds**: Both available (if you add such a config)
+- **Mono_Client**: Only client classes available
+- **Il2cpp_Server**: Only server classes available
+- **Il2cpp_Client**: Only client classes available
 
-This ensures compile-time safety and prevents referencing unavailable namespaces.
+This keeps addon assemblies side-aware at compile time and avoids referencing unavailable namespaces from the wrong runtime.
 
 ## Example: Per-Player Organizations Mod
 
@@ -269,6 +265,5 @@ To avoid implementing every interface method, you can inherit from base classes 
 
 - `ServerModBase` or `ServerMelonModBase` for server-side mods
 - `ClientModBase` or `ClientMelonModBase` for client-side mods
-- `SideAwareMelonModBase` if you want both server and client hooks in one class
 
-These bases still satisfy `IServerMod`/`IClientMod`, so discovery and lifecycle management continue to work with no other changes.
+DedicatedServerMod is distributed as side-specific server/client assemblies, so addons should ship side-specific mod DLLs as well.

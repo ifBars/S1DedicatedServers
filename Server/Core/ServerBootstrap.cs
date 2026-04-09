@@ -146,7 +146,7 @@ namespace DedicatedServerMod.Server.Core
             _playerManager = new PlayerManager(
                 new PlayerAuthentication(),
                 new ClientModVerificationManager(_logger),
-                new PlayerPermissions());
+                _permissionService);
             _playerManager.Initialize();
             _permissionService.AttachPlayerManager(_playerManager);
             DebugLog.StartupDebug("Player manager initialized");

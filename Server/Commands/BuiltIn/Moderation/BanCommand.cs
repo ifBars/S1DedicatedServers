@@ -61,7 +61,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
         /// </summary>
         private bool CanBanPlayer(ConnectedPlayerInfo executor, ConnectedPlayerInfo target)
         {
-            return PlayerManager.Permissions.HasDominanceOver(executor, target);
+            return DedicatedServerMod.Server.Core.ServerBootstrap.Permissions?.HasDominanceOver(executor?.TrustedUniqueId, target?.TrustedUniqueId) == true;
         }
     }
 }

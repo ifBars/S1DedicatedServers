@@ -18,7 +18,7 @@ namespace DedicatedServerMod.Server.Player
     /// <summary>
     /// Coordinates player authentication flow, pending state, and provider backend integration.
     /// </summary>
-    public class PlayerAuthentication
+    internal sealed class PlayerAuthentication
     {
         private readonly Dictionary<NetworkConnection, PendingAuthenticationState> _pendingAuthentications;
 
@@ -577,7 +577,7 @@ namespace DedicatedServerMod.Server.Player
     /// <summary>
     /// Result of a player authentication attempt.
     /// </summary>
-    public class AuthenticationResult
+    internal sealed class AuthenticationResult
     {
         /// <summary>
         /// Whether authentication was successful.

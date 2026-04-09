@@ -10,7 +10,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// <summary>
     /// Contract for pluggable player authentication backends.
     /// </summary>
-    public interface IPlayerAuthBackend
+    internal interface IPlayerAuthBackend
     {
         /// <summary>
         /// Gets the provider served by this backend implementation.
@@ -62,7 +62,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// <summary>
     /// Result returned by BeginAuthentication.
     /// </summary>
-    public sealed class AuthBeginResult
+    internal sealed class AuthBeginResult
     {
         /// <summary>
         /// Whether authentication is now pending and waiting for async completion.
@@ -78,7 +78,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// <summary>
     /// Completed backend authentication callback result.
     /// </summary>
-    public sealed class AuthCompletion
+    internal sealed class AuthCompletion
     {
         /// <summary>
         /// Connection associated with the completed authentication.

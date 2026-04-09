@@ -14,7 +14,7 @@ namespace DedicatedServerMod.Server.Player
     /// Information about a connected player including connection details,
     /// identity information, and status.
     /// </summary>
-    public class ConnectedPlayerInfo
+    public sealed class ConnectedPlayerInfo
     {
         /// <summary>
         /// The FishNet network connection
@@ -37,7 +37,7 @@ namespace DedicatedServerMod.Server.Player
         public string PlayerName { get; set; }
 
         /// <summary>
-        /// When the player connected
+        /// When the player connected, in UTC.
         /// </summary>
         public DateTime ConnectTime { get; set; }
 
@@ -158,7 +158,7 @@ namespace DedicatedServerMod.Server.Player
         /// <summary>
         /// How long the player has been connected
         /// </summary>
-        public TimeSpan ConnectionDuration => DateTime.Now - ConnectTime;
+        public TimeSpan ConnectionDuration => DateTime.UtcNow - ConnectTime;
 
         /// <summary>
         /// A display name for the player (prioritizes PlayerName, falls back to ClientId)

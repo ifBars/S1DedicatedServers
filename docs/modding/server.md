@@ -45,7 +45,6 @@ public override void OnServerStarted()
 
 Any `MelonMod` that implements `IServerMod` is discovered automatically. This includes:
 
-- `SideAwareMelonModBase`
 - `ServerMelonModBase`
 - direct `IServerMod` implementations
 
@@ -72,7 +71,7 @@ public sealed class MyMod : MelonMod
 
 If registration happens after the server is already live, `OnServerInitialize()` is invoked immediately.
 
-Do not manually register a `MelonMod` that already implements `IServerMod` or inherits `ServerMelonModBase` / `SideAwareMelonModBase`.
+Do not manually register a `MelonMod` that already implements `IServerMod` or inherits `ServerMelonModBase`.
 
 ## Declaring A Client Companion
 

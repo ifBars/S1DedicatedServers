@@ -58,7 +58,7 @@ namespace DedicatedServerMod.Server.WebPanel
 
         public List<WebPanelPlayerRow> CreatePlayers()
         {
-            List<ConnectedPlayerInfo> players = _playerManager.GetConnectedPlayers();
+            IReadOnlyList<ConnectedPlayerInfo> players = _playerManager.GetConnectedPlayers();
             return players
                 .Where(player => player != null)
                 .OrderByDescending(player => player.IsConnected)
@@ -94,7 +94,6 @@ namespace DedicatedServerMod.Server.WebPanel
                     SteamGameServerLogOnAnonymous = config.SteamGameServerLogOnAnonymous,
                     SteamGameServerToken = config.SteamGameServerToken,
                     SteamGameServerQueryPort = config.SteamGameServerQueryPort,
-                    SteamGameServerVersion = config.SteamGameServerVersion,
                     SteamGameServerMode = config.SteamGameServerMode.ToString(),
                     SteamWebApiKey = config.SteamWebApiKey,
                     SteamWebApiIdentity = config.SteamWebApiIdentity
@@ -185,7 +184,6 @@ namespace DedicatedServerMod.Server.WebPanel
             config.SteamGameServerLogOnAnonymous = snapshot.Authentication.SteamGameServerLogOnAnonymous;
             config.SteamGameServerToken = snapshot.Authentication.SteamGameServerToken ?? string.Empty;
             config.SteamGameServerQueryPort = snapshot.Authentication.SteamGameServerQueryPort;
-            config.SteamGameServerVersion = snapshot.Authentication.SteamGameServerVersion ?? string.Empty;
             config.SteamGameServerMode = ParseEnum(snapshot.Authentication.SteamGameServerMode, config.SteamGameServerMode);
             config.SteamWebApiKey = snapshot.Authentication.SteamWebApiKey ?? string.Empty;
             config.SteamWebApiIdentity = snapshot.Authentication.SteamWebApiIdentity ?? string.Empty;
