@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0-beta - 2026-04-09
+
+- Bump the DedicatedServerMod release line to `0.8.0-beta`.
+- Bump the public API version to `0.8.0`.
+- Refresh release-facing documentation and configuration examples for the new beta version.
+
 ## 0.7.0-beta - 2026-04-09
 
 - Bump the DedicatedServerMod release line to `0.7.0-beta`.

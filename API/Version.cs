@@ -6,7 +6,7 @@ namespace DedicatedServerMod.API
     /// </summary>
     /// <remarks>
     /// Version Format: {MOD_VERSION} (API {API_VERSION})
-    /// Example: "0.7.0-beta (API 0.7.0)"
+    /// Example: "0.8.0-beta (API 0.8.0)"
     /// </remarks>
     public static class Version
     {
@@ -15,7 +15,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The mod version following semantic versioning (MAJOR.MINOR.PATCH with prerelease).
         /// </summary>
-        public const string ModVersion = "0.7.0-beta";
+        public const string ModVersion = "0.8.0-beta";
 
         /// <summary>
         /// The major version number for breaking change tracking.
@@ -25,7 +25,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The minor version number for feature additions.
         /// </summary>
-        public const int MinorVersion = 7;
+        public const int MinorVersion = 8;
 
         /// <summary>
         /// The patch version number for bug fixes.
@@ -35,7 +35,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The API version for compatibility checking between mods and core.
         /// </summary>
-        public const string APIVersion = "0.7.0";
+        public const string APIVersion = "0.8.0";
 
         /// <summary>
         /// The major API version number.
@@ -45,7 +45,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The minor API version number.
         /// </summary>
-        public const int APIMinorVersion = 7;
+        public const int APIMinorVersion = 8;
 
         #endregion
 
