@@ -55,7 +55,7 @@ authTimeoutSeconds = 60
 authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = true
 steamGameServerQueryPort = 27016
-steamGameServerVersion = '0.5.0-beta'
+steamGameServerVersion = '0.6.0-beta'
 steamGameServerMode = 'Authentication'
 ```
 
@@ -69,7 +69,7 @@ authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = false
 steamGameServerToken = 'YOUR_GAME_SERVER_TOKEN_HERE'
 steamGameServerQueryPort = 27016
-steamGameServerVersion = '0.5.0-beta'
+steamGameServerVersion = '0.6.0-beta'
 steamGameServerMode = 'Authentication'
 ```
 
@@ -117,7 +117,7 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 | `steamGameServerLogOnAnonymous` | `bool` | `true` | Use anonymous Steam game server login |
 | `steamGameServerToken` | `string` | `""` | Game server login token when anonymous login is disabled |
 | `steamGameServerQueryPort` | `int` | `27016` | Steam query/listing port |
-| `steamGameServerVersion` | `string` | `"0.5.0-beta"` | Version string announced to Steam |
+| `steamGameServerVersion` | `string` | `"0.6.0-beta"` | Version string announced to Steam |
 | `steamGameServerMode` | `string` | `"Authentication"` | Mode: `NoAuthentication`, `Authentication`, `AuthenticationAndSecure` |
 
 ### Steam Web API Settings

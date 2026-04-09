@@ -341,7 +341,7 @@ What you expected to happen.
 What actually happened.
 
 ## Environment
-- DedicatedServerMod Version: 0.5.0-beta
+- DedicatedServerMod Version: 0.6.0-beta
 - MelonLoader Version: 0.6.5
 - Schedule I Version: [version]
 - OS: Windows 10/11 / Windows Server 2019 / Linux
