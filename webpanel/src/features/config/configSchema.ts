@@ -151,12 +151,6 @@ export const CONFIG_SECTIONS: ConfigSectionDefinition[] = [
         min: 1,
       },
       {
-        key: "steamGameServerVersion",
-        label: "Steam server version",
-        description: "Version string sent to Steam query and discovery endpoints.",
-        kind: "text",
-      },
-      {
         key: "steamGameServerMode",
         label: "Steam visibility mode",
         description: "Steam server advertising mode label.",

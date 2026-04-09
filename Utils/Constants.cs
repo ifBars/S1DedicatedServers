@@ -445,7 +445,6 @@ namespace DedicatedServerMod.Utils
             public const string SteamGameServerLogOnAnonymous = "steamGameServerLogOnAnonymous";
             public const string SteamGameServerToken = "steamGameServerToken";
             public const string SteamGameServerQueryPort = "steamGameServerQueryPort";
-            public const string SteamGameServerVersion = "steamGameServerVersion";
             public const string SteamGameServerMode = "steamGameServerMode";
             public const string MessagingBackend = "messagingBackend";
             public const string SteamP2PAllowRelay = "steamP2PAllowRelay";

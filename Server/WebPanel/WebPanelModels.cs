@@ -142,7 +142,6 @@ namespace DedicatedServerMod.Server.WebPanel
         public bool SteamGameServerLogOnAnonymous { get; set; }
         public string SteamGameServerToken { get; set; } = string.Empty;
         public int SteamGameServerQueryPort { get; set; }
-        public string SteamGameServerVersion { get; set; } = string.Empty;
         public string SteamGameServerMode { get; set; } = string.Empty;
         public string SteamWebApiKey { get; set; } = string.Empty;
         public string SteamWebApiIdentity { get; set; } = string.Empty;

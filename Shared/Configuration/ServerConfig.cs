@@ -185,12 +185,6 @@ namespace DedicatedServerMod.Shared.Configuration
         public int SteamGameServerQueryPort { get; set; } = Constants.DefaultSteamGameServerQueryPort;
 
         /// <summary>
-        /// Game server version string announced to Steam.
-        /// </summary>
-        [JsonProp(Constants.ConfigKeys.SteamGameServerVersion)]
-        public string SteamGameServerVersion { get; set; } = Constants.ModVersion;
-
-        /// <summary>
         /// Steam game server API mode announced to Steam.
         /// This does not disable DedicatedServerMod auth by itself; use <see cref="AuthProvider"/> = <see cref="AuthenticationProvider.None"/> for that.
         /// </summary>

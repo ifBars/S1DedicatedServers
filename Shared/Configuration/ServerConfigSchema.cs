@@ -38,7 +38,6 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.SteamGameServerLogOnAnonymous, option => option.Comment("Use anonymous Steam game server login. Disable to use a server token."))
                     .Option(config => config.SteamGameServerToken, option => option.Comment("Steam game server login token used when anonymous login is disabled."))
                     .Option(config => config.SteamGameServerQueryPort, option => option.Comment("Steam query/status port."))
-                    .Option(config => config.SteamGameServerVersion, option => option.Comment("Version string announced to Steam."))
                     .Option(config => config.SteamGameServerMode, option => option.Comment("Steam game server mode: 'NoAuthentication', 'Authentication', or 'AuthenticationAndSecure'."))
                     .Option(config => config.SteamWebApiKey, option => option.Comment("Steam Web API key for SteamWebApi auth mode."))
                     .Option(config => config.SteamWebApiIdentity, option => option.Comment("Optional Steam Web API identity string.")))

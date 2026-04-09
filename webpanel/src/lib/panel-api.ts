@@ -66,7 +66,6 @@ export type ConfigSnapshot = {
     steamGameServerLogOnAnonymous: boolean
     steamGameServerToken: string
     steamGameServerQueryPort: number
-    steamGameServerVersion: string
     steamGameServerMode: string
     steamWebApiKey: string
     steamWebApiIdentity: string
