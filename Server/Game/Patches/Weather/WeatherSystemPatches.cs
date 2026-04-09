@@ -21,19 +21,11 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
     [HarmonyPatch(typeof(MaskControllerType), nameof(MaskControllerType.Initialise))]
     internal static class MaskControllerInitialisePatches
     {
-        private static bool _loggedSkip;
-
         private static bool Prefix()
         {
             if (!DedicatedHeadlessWeatherCompatibility.ShouldBypassHeadlessWeatherMask())
             {
                 return true;
-            }
-
-            if (!_loggedSkip)
-            {
-                DebugLog.Info("Skipping weather mask compute initialization on dedicated headless server.");
-                _loggedSkip = true;
             }
 
             return false;
@@ -84,8 +76,6 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
     [HarmonyPatch(typeof(EnvironmentManagerType), nameof(EnvironmentManagerType.IsPositionUnderCover))]
     internal static class EnvironmentManagerIsPositionUnderCoverPatches
     {
-        private static bool _loggedFallback;
-
         private static bool Prefix(EnvironmentManagerType __instance, ref bool __result)
         {
             if (!DedicatedHeadlessWeatherCompatibility.ShouldBypassHeadlessWeatherMask())
@@ -100,12 +90,6 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
                 maskController.HeightMapResolution > 0)
             {
                 return true;
-            }
-
-            if (!_loggedFallback)
-            {
-                DebugLog.Info("Dedicated headless server is running weather cover checks without a generated height map. Weather entities will be treated as uncovered.");
-                _loggedFallback = true;
             }
 
             __result = false;
