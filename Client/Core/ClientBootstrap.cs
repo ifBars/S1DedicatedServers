@@ -210,7 +210,6 @@ namespace DedicatedServerMod.Client.Core
                 Shared.Configuration.ServerConfig.Initialize();
 
                 // Initialize MessageRouter for client-side message handling
-                Shared.Networking.MessageRouter.Initialize();
                 PermissionSnapshotStore.Initialize();
                 API.ClientSteamAvatarService.Instance.Initialize();
 
@@ -260,6 +259,7 @@ namespace DedicatedServerMod.Client.Core
                 // Initialize attribute-based patches with logger
                 // MelonLoader will automatically apply patches marked with [HarmonyPatch]
                 Patches.SleepPatches.Initialize();
+                Patches.PolicePatches.Initialize();
                 Patches.GhostHostUiPatches.Initialize();
                 Patches.MessagingPatches.Initialize();
                 Patches.LoadingScreenPatches.Initialize();

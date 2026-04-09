@@ -11,7 +11,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// <summary>
     /// No-op authentication backend used when authentication is disabled.
     /// </summary>
-    public sealed class NoAuthenticationBackend : IPlayerAuthBackend
+    internal sealed class NoAuthenticationBackend : IPlayerAuthBackend
     {
         /// <summary>
         /// Initializes a no-op auth backend.

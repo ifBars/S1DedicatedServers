@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Player.Auth
     /// <summary>
     /// Steam game server authentication backend using BeginAuthSession and callback validation.
     /// </summary>
-    public sealed class SteamGameServerAuthBackend : IPlayerAuthBackend
+    internal sealed class SteamGameServerAuthBackend : IPlayerAuthBackend
     {
         private readonly Dictionary<ulong, NetworkConnection> _pendingBySteamId;
         private readonly Dictionary<ulong, NetworkConnection> _activeBySteamId;
@@ -98,7 +98,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                     SteamGameServer.SetMapName("Main");
                     SteamGameServer.SetMaxPlayerCount(config.MaxPlayers);
                     SteamGameServer.SetPasswordProtected(!string.IsNullOrEmpty(config.ServerPassword));
-                    SteamGameServer.SetGameTags($"ver:{config.SteamGameServerVersion}");
+                    SteamGameServer.SetGameTags($"ver:{DedicatedServerMod.Utils.Constants.ModVersion}");
 
                     if (SteamGameServer.BLoggedOn())
                     {
@@ -453,7 +453,7 @@ namespace DedicatedServerMod.Server.Player.Auth
                 (ushort)config.ServerPort,
                 (ushort)config.SteamGameServerQueryPort,
                 serverMode,
-                config.SteamGameServerVersion);
+                DedicatedServerMod.Utils.Constants.ModVersion);
 
             if (initialized)
             {

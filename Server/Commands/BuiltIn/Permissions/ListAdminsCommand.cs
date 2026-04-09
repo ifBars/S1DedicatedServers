@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using DedicatedServerMod.Server.Commands.Contracts;
 using DedicatedServerMod.Server.Commands.Execution;
 using DedicatedServerMod.Server.Player;
+using DedicatedServerMod.Shared.Permissions;
 
 namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 {
@@ -16,7 +19,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
         public override void Execute(CommandContext context)
         {
-            var administrators = PlayerManager.Permissions.GetAdministrators();
+            IReadOnlyList<string> administrators = context.Permissions?.GetDirectUsersInGroup(PermissionBuiltIns.Groups.Administrator) ?? Array.Empty<string>();
             
             if (administrators.Count == 0)
             {

@@ -49,7 +49,6 @@ public override void OnClientPlayerReady()
 
 Any `MelonMod` that implements `IClientMod` is discovered automatically. This includes:
 
-- `SideAwareMelonModBase`
 - `ClientMelonModBase`
 - direct `IClientMod` implementations
 
@@ -76,7 +75,7 @@ public sealed class MyMod : MelonMod
 
 Registration ensures client message forwarding is wired so `OnCustomMessage` can be delivered.
 
-Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase` / `SideAwareMelonModBase`.
+Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase`.
 
 ## Declaring Client Mod Identity
 

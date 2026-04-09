@@ -2,7 +2,7 @@
 title: Mod API Overview
 ---
 
-The S1 Dedicated Server Mod API lets you write server-side and client-side mods with clear lifecycle hooks and safe access to core systems. It is designed around partial classes and conditional compilation so the same codebase can compile for server or client.
+The S1 Dedicated Server Mod API lets you write server-side and client-side mods with clear lifecycle hooks and safe access to core systems. It is designed around partial classes and conditional compilation so side-specific addons can compile cleanly for server or client.
 
 Use these guides for workflows and architecture, then use the generated API reference for exact signatures and XML documentation.
 
@@ -16,24 +16,28 @@ Use these guides for workflows and architecture, then use the generated API refe
 ## Quick Start
 
 ```csharp
-using MelonLoader;
 using DedicatedServerMod.API;
 
-public sealed class MyMod : SideAwareMelonModBase
+public sealed class MyServerMod : ServerMelonModBase
 {
     public override void OnServerInitialize()
     {
         MelonLogger.Msg($"Server running? {S1DS.Server.IsRunning}, players: {S1DS.Server.PlayerCount}");
     }
+}
+```
 
+```csharp
+using DedicatedServerMod.API;
+
+public sealed class MyClientMod : ClientMelonModBase
+{
     public override void OnClientPlayerReady()
     {
         // Client UI and messaging are ready here.
     }
 }
 ```
-
-If you prefer separate types, use `ServerMelonModBase` and `ClientMelonModBase`.
 
 ## Registration Approaches
 

@@ -744,7 +744,6 @@
 	  <Compile Include="API\ModManager.cs" />
 	  <Compile Include="API\ServerModBase.cs" />
 	  <Compile Include="API\ClientModBase.cs" />
-	  <Compile Include="API\SideAwareMelonModBase.cs" />
 	</ItemGroup>
 	
 	<!-- Shared layer (shared by server and client) -->
@@ -813,12 +812,13 @@
 		<EmbeddedResource Include="Server\WebPanel\Static\**\*" />
 		
 		<!-- Player management -->
-		<Compile Include="Server\Player\PlayerManager.cs" />
-		<Compile Include="Server\Player\ConnectedPlayerInfo.cs" />
-		<Compile Include="Server\Player\PlayerAuthentication.cs" />
-		<Compile Include="Server\Player\ClientModVerificationManager.cs" />
-		<Compile Include="Server\Player\PlayerPermissions.cs" />
-		<Compile Include="Server\Player\Auth\*.cs" />
+	  <Compile Include="Server\Player\PlayerManager.cs" />
+	  <Compile Include="Server\Player\ConnectedPlayerInfo.cs" />
+	  <Compile Include="Server\Player\PlayerStats.cs" />
+	  <Compile Include="Server\Player\PlayerAuthentication.cs" />
+	  <Compile Include="Server\Player\ClientModVerificationManager.cs" />
+	  <Compile Include="Server\Player\Runtime\*.cs" />
+	  <Compile Include="Server\Player\Auth\*.cs" />
 		
 		<!-- Command system -->
 		<Compile Include="Server\Commands\*.cs" />
