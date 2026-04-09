@@ -7,6 +7,7 @@ using InstanceFinderType = Il2CppFishNet.InstanceFinder;
 using CombatBehaviourType = Il2CppScheduleOne.Combat.CombatBehaviour;
 using DriveFlagsType = Il2CppScheduleOne.Vehicles.AI.DriveFlags;
 using PoliceStationType = Il2CppScheduleOne.Map.PoliceStation;
+using PoliceOfficerType = Il2CppScheduleOne.Police.PoliceOfficer;
 using PlayerCrimeDataType = Il2CppScheduleOne.PlayerScripts.PlayerCrimeData;
 using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 using PursuitBehaviourType = Il2CppScheduleOne.NPCs.Behaviour.PursuitBehaviour;
@@ -17,6 +18,7 @@ using FishNet;
 using CombatBehaviourType = ScheduleOne.Combat.CombatBehaviour;
 using DriveFlagsType = ScheduleOne.Vehicles.AI.DriveFlags;
 using PoliceStationType = ScheduleOne.Map.PoliceStation;
+using PoliceOfficerType = ScheduleOne.Police.PoliceOfficer;
 using PlayerCrimeDataType = ScheduleOne.PlayerScripts.PlayerCrimeData;
 using PlayerType = ScheduleOne.PlayerScripts.Player;
 using PursuitBehaviourType = ScheduleOne.NPCs.Behaviour.PursuitBehaviour;
@@ -45,6 +47,53 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             return crimeData != null
                 && ShouldRunForPlayer(crimeData.Player)
                 && !crimeData.Player.IsOwner;
+        }
+
+        internal static bool IsInvalidPursuitTarget(PlayerType player)
+        {
+            return player == null
+                || player.CrimeData == null
+                || player.IsArrested
+                || player.IsUnconscious
+                || player.CrimeData.CurrentPursuitLevel == PlayerCrimeDataType.EPursuitLevel.None;
+        }
+
+        internal static void ClearPoliceTargeting(PlayerType player)
+        {
+            if (!ShouldRunForPlayer(player) || player.NetworkObject == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < PoliceOfficerType.Officers.Count; i++)
+            {
+                PoliceOfficerType officer = PoliceOfficerType.Officers[i];
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                if (officer.BodySearchBehaviour != null
+                    && officer.BodySearchBehaviour.Enabled
+                    && officer.BodySearchBehaviour.TargetPlayer == player)
+                {
+                    officer.BodySearchBehaviour.Disable_Networked(null);
+                }
+
+                if (officer.PursuitBehaviour != null
+                    && officer.PursuitBehaviour.Enabled
+                    && officer.PursuitBehaviour.TargetPlayer == player)
+                {
+                    officer.PursuitBehaviour.Disable_Networked(null);
+                }
+
+                if (officer.VehiclePursuitBehaviour != null
+                    && officer.VehiclePursuitBehaviour.Enabled
+                    && officer.VehiclePursuitBehaviour.Target == player)
+                {
+                    officer.VehiclePursuitBehaviour.Disable_Networked(null);
+                }
+            }
         }
 
         internal static void RefreshServerSight(PlayerType player)
@@ -194,6 +243,31 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     }
 
     /// <summary>
+    /// Ensures dedicated police behaviours release a player immediately once pursuit is
+    /// cleared. Vanilla host play relies on owner-side combat updates to naturally unwind
+    /// these targets, but dedicated authority patches can otherwise leave stale target
+    /// bindings alive long enough to re-trigger false sight reacquisition.
+    /// </summary>
+    [HarmonyPatch(typeof(PlayerCrimeDataType), nameof(PlayerCrimeDataType.SetPursuitLevel))]
+    internal static class PlayerCrimeDataSetPursuitLevelPatches
+    {
+        private static void Postfix(PlayerCrimeDataType __instance, PlayerCrimeDataType.EPursuitLevel level)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer || __instance?.Player == null)
+            {
+                return;
+            }
+
+            if (level != PlayerCrimeDataType.EPursuitLevel.None)
+            {
+                return;
+            }
+
+            DedicatedPolicePursuitAuthority.ClearPoliceTargeting(__instance.Player);
+        }
+    }
+
+    /// <summary>
     /// Allows dedicated servers to complete arrests for remote-client-owned players.
     /// Vanilla only reports arrest progress from the owner side.
     /// </summary>
@@ -298,6 +372,39 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             }
 
             __instance.Target.CrimeData.Escalate();
+        }
+    }
+
+    /// <summary>
+    /// Prevents dedicated vehicle pursuits from handing an already-invalid target back into
+    /// foot pursuit when the chase is being torn down after arrest or release.
+    /// Without this guard, officers can repeatedly re-arm pursuit reacquisition against a
+    /// cleared target and spam local notice popups while never committing to a real chase.
+    /// </summary>
+    [HarmonyPatch(typeof(VehiclePursuitBehaviourType), "Deactivate")]
+    internal static class VehiclePursuitDeactivatePatches
+    {
+        private static void Postfix(VehiclePursuitBehaviourType __instance)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer || __instance == null)
+            {
+                return;
+            }
+
+            PlayerType targetPlayer = __instance.Target;
+            if (!DedicatedPolicePursuitAuthority.IsInvalidPursuitTarget(targetPlayer))
+            {
+                return;
+            }
+
+            PoliceOfficerType officer = __instance.Npc as PoliceOfficerType;
+            PursuitBehaviourType pursuitBehaviour = officer?.PursuitBehaviour;
+            if (pursuitBehaviour == null || pursuitBehaviour.TargetPlayer != targetPlayer || !pursuitBehaviour.Enabled)
+            {
+                return;
+            }
+
+            pursuitBehaviour.Disable_Networked(null);
         }
     }
 

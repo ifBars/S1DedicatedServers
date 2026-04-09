@@ -53,6 +53,33 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 && !officer.IgnorePlayers;
         }
 
+        internal static bool IsPlayerInvalidForPoliceResponse(PlayerType player)
+        {
+            return player == null
+                || player.CrimeData == null
+                || player.IsArrested
+                || player.IsUnconscious;
+        }
+
+        internal static bool IsOfficerAlreadyPursuingPlayer(PoliceOfficerType officer, PlayerType player)
+        {
+            return officer != null
+                && player != null
+                && ((officer.PursuitBehaviour != null
+                        && officer.PursuitBehaviour.Enabled
+                        && officer.PursuitBehaviour.TargetPlayer == player)
+                    || (officer.VehiclePursuitBehaviour != null
+                        && officer.VehiclePursuitBehaviour.Enabled
+                        && officer.VehiclePursuitBehaviour.Target == player));
+        }
+
+        internal static bool IsOfficerAlreadySearchingPlayer(PoliceOfficerType officer, PlayerType player)
+        {
+            return officer?.BodySearchBehaviour != null
+                && officer.BodySearchBehaviour.Enabled
+                && officer.BodySearchBehaviour.TargetPlayer == player;
+        }
+
         internal static void RaisePursuitTo(PlayerType player, PlayerCrimeDataType.EPursuitLevel minimumLevel)
         {
             if (player.CrimeData.CurrentPursuitLevel < minimumLevel)
@@ -221,7 +248,10 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private static void Postfix(NpcResponsesPoliceType __instance, PlayerType player)
         {
             if (!DedicatedPoliceResponseAuthority.TryGetOfficer(__instance, out PoliceOfficerType officer)
-                || !DedicatedPoliceResponseAuthority.ShouldHandle(player, officer))
+                || !DedicatedPoliceResponseAuthority.ShouldHandle(player, officer)
+                || DedicatedPoliceResponseAuthority.IsPlayerInvalidForPoliceResponse(player)
+                || player.CrimeData.CurrentPursuitLevel == PlayerCrimeDataType.EPursuitLevel.None
+                || DedicatedPoliceResponseAuthority.IsOfficerAlreadyPursuingPlayer(officer, player))
             {
                 return;
             }
@@ -237,7 +267,11 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private static void Postfix(NpcResponsesPoliceType __instance, PlayerType player)
         {
             if (!DedicatedPoliceResponseAuthority.TryGetOfficer(__instance, out PoliceOfficerType officer)
-                || !DedicatedPoliceResponseAuthority.ShouldHandle(player, officer))
+                || !DedicatedPoliceResponseAuthority.ShouldHandle(player, officer)
+                || DedicatedPoliceResponseAuthority.IsPlayerInvalidForPoliceResponse(player)
+                || player.CrimeData.CurrentPursuitLevel != PlayerCrimeDataType.EPursuitLevel.None
+                || player.CrimeData.BodySearchPending
+                || DedicatedPoliceResponseAuthority.IsOfficerAlreadySearchingPlayer(officer, player))
             {
                 return;
             }
