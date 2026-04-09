@@ -84,6 +84,16 @@ namespace DedicatedServerMod.API
             public static ClientConsoleManager Console => ClientBootstrap.Instance?.ConsoleManager;
 
             /// <summary>
+            /// Gets the client-side Steam avatar helper used to resolve player profile images.
+            /// </summary>
+            /// <remarks>
+            /// This helper is available only in client builds. It provides Steam-backed avatar
+            /// lookup and caching by SteamID64 without requiring mods to register Steam callbacks
+            /// directly.
+            /// </remarks>
+            public static ClientSteamAvatarService Avatars => ClientSteamAvatarService.Instance;
+
+            /// <summary>
             /// Gets the client quest manager used by dedicated-server quest integration.
             /// </summary>
             public static ClientQuestManager Quests => ClientBootstrap.Instance?.QuestManager;

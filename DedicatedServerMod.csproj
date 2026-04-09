@@ -785,6 +785,7 @@
 		<!-- Client data -->
 		<Compile Include="Client\Data\*.cs" />
 		
+		<Compile Include="API\ClientSteamAvatarService.cs" />
 		<Compile Include="API\S1DS.Client.cs" />
 		<Compile Include="Assets\AssetBundleLoader.cs" />
 		<EmbeddedResource Remove="Server\**" />

@@ -128,7 +128,7 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 default:
-                    DebugLog.MessageRoutingDebug($"Unhandled server message: {command}");
+                    DebugLog.MessageRoutingDebug($"No core server handler for message '{command}'; message may still be forwarded to API mods.");
                     break;
             }
 #else
@@ -168,7 +168,7 @@ namespace DedicatedServerMod.Shared.Networking
                     break;
 
                 default:
-                    DebugLog.MessageRoutingDebug($"Unhandled client message: {command}");
+                    DebugLog.MessageRoutingDebug($"No core client handler for message '{command}'; message may still be forwarded to API mods.");
                     break;
             }
         }

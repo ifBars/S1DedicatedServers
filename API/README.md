@@ -57,6 +57,7 @@ if (S1DS.IsClient)
     // Client managers are valid after OnClientInitialize
     var ui = S1DS.Client.UI;
     var connection = S1DS.Client.Connection;
+    var avatarService = S1DS.Client.Avatars;
 }
 
 // Access shared functionality (available once the mod initializes)
@@ -98,6 +99,7 @@ var config = S1DS.Shared.Config;
 | `Core` | Client Core instance |
 | `Connection` | ClientConnectionManager instance |
 | `UI` | ClientUIManager instance |
+| `Avatars` | `ClientSteamAvatarService` for Steam avatar lookup/caching |
 | `PlayerSetup` | ClientPlayerSetup instance |
 | `Time` | ClientTimeManager instance |
 | `Console` | ClientConsoleManager instance |
@@ -107,6 +109,41 @@ var config = S1DS.Shared.Config;
 | `IsInitialized` | True if client core initialized |
 | `IsConnected` | True if connected |
 | `IsInitialized` | True if initialized |
+
+### Steam Avatar Helper
+
+Client mods can resolve Steam avatar textures for connected players through `S1DS.Client.Avatars`.
+
+```csharp
+using DedicatedServerMod.API;
+using DedicatedServerMod.Shared.Permissions;
+using ScheduleOne.PlayerScripts;
+
+public sealed class AvatarExampleMod : ClientMelonModBase
+{
+    public override void OnClientPlayerReady()
+    {
+        foreach (var player in Player.PlayerList)
+        {
+            string steamId = PlayerResolver.GetSteamId(player);
+            if (string.IsNullOrWhiteSpace(steamId))
+            {
+                continue;
+            }
+
+            S1DS.Client.Avatars.RequestSteamAvatar(steamId, texture =>
+            {
+                if (texture != null)
+                {
+                    LoggerInstance.Msg($"Loaded avatar for {player.PlayerName}");
+                }
+            });
+        }
+    }
+}
+```
+
+`GetSteamAvatar(steamId)` returns a cached texture immediately when available and starts a Steam lookup when it is not. `RequestSteamAvatar(steamId, callback)` is the preferred helper when your mod wants a callback once the image is ready.
 
 ### S1DS.Shared (Both builds)
 

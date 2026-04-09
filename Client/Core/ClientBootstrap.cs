@@ -212,6 +212,7 @@ namespace DedicatedServerMod.Client.Core
                 // Initialize MessageRouter for client-side message handling
                 Shared.Networking.MessageRouter.Initialize();
                 PermissionSnapshotStore.Initialize();
+                API.ClientSteamAvatarService.Instance.Initialize();
 
                 // Initialize messaging service (backend selection)
                 Shared.Networking.CustomMessaging.Initialize();
@@ -393,6 +394,7 @@ namespace DedicatedServerMod.Client.Core
 
                 // Handle auth updates
                 _authManager?.Update();
+                API.ClientSteamAvatarService.Instance.Tick();
 
                 // Handle debug input
                 HandleDebugInput();
@@ -448,6 +450,15 @@ namespace DedicatedServerMod.Client.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Error shutting down client mod verification manager: {ex.Message}");
+            }
+
+            try
+            {
+                API.ClientSteamAvatarService.Instance.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down Steam avatar service: {ex.Message}");
             }
 
             try
