@@ -198,6 +198,7 @@ jobs:
           Copy-Item 'bin/Mono_Client/netstandard2.1/DedicatedServerMod_Mono_Client.dll' (Join-Path $clientRoot 'Mods/DedicatedServerMod_Mono_Client.dll')
           Copy-Item 'packaging/Server/start_server.bat' (Join-Path $serverRoot 'start_server.bat')
           Copy-Item 'Docker/Dockerfile' (Join-Path $dockerRoot 'Dockerfile')
+          Copy-Item 'Docker/docker-compose.example.yml' (Join-Path $dockerRoot 'docker-compose.example.yml')
           Copy-Item 'Docker/run.sh' (Join-Path $dockerRoot 'run.sh')
           Copy-Item 'Docker/.dockerignore' (Join-Path $dockerRoot '.dockerignore')
           Copy-Item 'Docker/README.md' (Join-Path $dockerRoot 'README.md')
