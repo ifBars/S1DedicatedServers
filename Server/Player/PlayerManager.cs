@@ -177,7 +177,19 @@ namespace DedicatedServerMod.Server.Player
                 if (!isExistingPlayer && ConnectedPlayerCount >= ServerConfig.Instance.MaxPlayers)
                 {
                     logger.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
-                    connection.Disconnect(true);
+                    if (playerInfo == null)
+                    {
+                        playerInfo = new ConnectedPlayerInfo
+                        {
+                            Connection = connection,
+                            ConnectTime = DateTime.Now,
+                            ClientId = connection.ClientId,
+                            IsLoopbackConnection = IsLoopbackConnection(connection),
+                            IsDisconnectProcessed = false
+                        };
+                    }
+
+                    NotifyAndDisconnectPlayer(playerInfo, "Server Full", "The server is full.");
                     return;
                 }
 
@@ -371,7 +383,7 @@ namespace DedicatedServerMod.Server.Player
             foreach (var playerInfo in pendingAuthDisconnects)
             {
                 logger.Warning($"Disconnecting ClientId {playerInfo.ClientId}: authentication handshake timed out");
-                playerInfo.Connection.Disconnect(true);
+                NotifyAndDisconnectPlayer(playerInfo, "Authentication Failed", $"Authentication timed out after {ServerConfig.Instance.AuthTimeoutSeconds}s.");
             }
 
             foreach (var playerInfo in pendingVerificationDisconnects)
@@ -400,7 +412,7 @@ namespace DedicatedServerMod.Server.Player
             if (result.ShouldDisconnect && playerInfo.Connection != null && playerInfo.Connection.IsActive)
             {
                 logger.Warning($"Disconnecting ClientId {playerInfo.ClientId} due to auth failure: {result.Message}");
-                playerInfo.Connection.Disconnect(true);
+                NotifyAndDisconnectPlayer(playerInfo, "Authentication Failed", result.Message);
             }
         }
 

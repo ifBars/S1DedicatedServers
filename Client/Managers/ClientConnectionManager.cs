@@ -520,6 +520,46 @@ namespace DedicatedServerMod.Client.Managers
             MelonCoroutines.Start(ReturnToMenuCoroutine(reason, isFailure, requestPlayerSave));
         }
 
+        private string GetUnexpectedDisconnectReason()
+        {
+            if (IsConnecting)
+            {
+                if (!_worldLoadCompleted)
+                {
+                    if (!_authSucceeded)
+                    {
+                        return "Lost connection while joining the dedicated server before authentication completed.";
+                    }
+
+                    if (!_modVerificationSucceeded)
+                    {
+                        return "Lost connection while joining the dedicated server before client mod verification completed.";
+                    }
+
+                    return "Lost connection while joining the dedicated server before world load completed.";
+                }
+
+                if (!_authSucceeded)
+                {
+                    return "Lost connection during authentication.";
+                }
+
+                if (!_modVerificationSucceeded)
+                {
+                    return "Lost connection during client mod verification.";
+                }
+
+                return "Lost connection while finalizing the dedicated server join.";
+            }
+
+            if (IsConnectedToDedicatedServer)
+            {
+                return "Connection to the dedicated server was lost unexpectedly.";
+            }
+
+            return "Disconnected from dedicated server.";
+        }
+
         private IEnumerator ReturnToMenuCoroutine(string reason, bool isFailure, bool requestPlayerSave)
         {
             _isReturningToMenu = true;
@@ -751,7 +791,7 @@ namespace DedicatedServerMod.Client.Managers
             if (IsConnecting || IsConnectedToDedicatedServer)
             {
                 logger.Warning("Dedicated server connection stopped unexpectedly; returning to menu");
-                ReturnToMenu("Disconnected from dedicated server", isFailure: true, requestPlayerSave: false);
+                ReturnToMenu(GetUnexpectedDisconnectReason(), isFailure: true, requestPlayerSave: false);
             }
         }
 

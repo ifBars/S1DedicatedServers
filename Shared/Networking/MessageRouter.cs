@@ -237,7 +237,7 @@ namespace DedicatedServerMod.Shared.Networking
                 catch (JsonException ex)
                 {
                     DebugLog.Error($"HandleAuthTicket: invalid payload from ClientId {conn.ClientId}", ex);
-                    conn.Disconnect(true);
+                    playerManager.NotifyAndDisconnectPlayer(playerInfo, "Authentication Failed", "Authentication payload was invalid.");
                     return;
                 }
 
