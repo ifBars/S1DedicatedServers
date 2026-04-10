@@ -92,7 +92,7 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// Default timeout for player authentication in seconds.
         /// </summary>
-        public const int DefaultAuthTimeoutSeconds = 15;
+        public const int DefaultAuthTimeoutSeconds = 30;
 
         /// <summary>
         /// Default timeout for the client mod verification handshake in seconds.
