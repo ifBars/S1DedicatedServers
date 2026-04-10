@@ -105,7 +105,7 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `authProvider` | `string` | `"None"` | Authentication backend: `None`, `SteamWebApi`, `SteamGameServer` |
+| `authProvider` | `string` | `"SteamGameServer"` | Authentication backend: `None`, `SteamWebApi`, `SteamGameServer` |
 | `authTimeoutSeconds` | `int` | `15` | Timeout for handshake completion (1-120 seconds). Keep this at `30` seconds minimum; `60` seconds is recommended so slower clients can finish auth reliably. |
 | `authAllowLoopbackBypass` | `bool` | `true` | Allow local loopback/ghost host to bypass auth |
 
