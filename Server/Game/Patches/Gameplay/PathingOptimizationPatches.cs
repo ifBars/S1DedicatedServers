@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using HarmonyLib;
@@ -209,6 +208,19 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         internal float CreatedAt { get; }
     }
 
+    internal readonly struct NodeLinkDistance
+    {
+        internal NodeLinkDistance(NodeLink link, float distanceSqr)
+        {
+            Link = link;
+            DistanceSqr = distanceSqr;
+        }
+
+        internal NodeLink Link { get; }
+
+        internal float DistanceSqr { get; }
+    }
+
     internal static class VehicleNodeLinkCache
     {
         private static readonly Dictionary<Vector3CellKey, CachedNodeLinkResult> Entries = new();
@@ -224,6 +236,21 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             if (!Entries.TryGetValue(Vector3CellKey.From(point, CacheCellSize), out CachedNodeLinkResult entry))
             {
                 return false;
+            }
+
+            if (entry.Links == null || entry.Links.Count == 0)
+            {
+                return false;
+            }
+
+            for (int i = entry.Links.Count - 1; i >= 0; i--)
+            {
+                NodeLink link = entry.Links[i];
+                if (link == null || link.Start == null || link.End == null)
+                {
+                    Entries.Remove(Vector3CellKey.From(point, CacheCellSize));
+                    return false;
+                }
             }
 
             links = new List<NodeLink>(entry.Links);
@@ -291,9 +318,24 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     /// <summary>
     /// Expands the built-in NPC path cache tolerance slightly on dedicated servers so repeated job destinations reuse existing NavMesh paths.
     /// </summary>
+    /// <remarks>
+    /// This is an adaptive performance optimization. If NPCs start showing delayed reroutes, stalls, or other
+    /// movement/pathfinding regressions, revisit this repath gate before changing broader navigation systems.
+    /// </remarks>
     [HarmonyPatch]
     internal static class NpcMovementSetDestinationPatches
     {
+        private sealed class RepathGateState
+        {
+            internal Vector3 LastDestination { get; set; }
+
+            internal float LastIssuedAt { get; set; }
+        }
+
+        private static readonly Dictionary<int, RepathGateState> RepathGateStates = new();
+
+        private const int RepathGateCapacityBeforeReset = 4096;
+
         private static MethodBase TargetMethod()
         {
             return AccessTools.Method(
@@ -309,63 +351,230 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 });
         }
 
-        private static void Prefix(ref float cacheMaxDistSqr)
+        private static bool Prefix(
+            NPCMovement __instance,
+            Vector3 pos,
+            Action<NPCMovement.WalkResult> callback,
+            bool interruptExistingCallback,
+            ref float cacheMaxDistSqr)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
             {
-                return;
+                return true;
             }
 
             // Combat and pursuit paths intentionally pass a tiny cache tolerance
             // (for example 0.1f) so moving-target repaths stay accurate.
             // Only widen the broader default/static travel paths.
-            if (cacheMaxDistSqr < 1f)
+            bool usesBroadCacheTolerance = cacheMaxDistSqr >= 1f;
+            ServerAdaptivePerformanceSnapshot tuning = ServerAdaptivePerformanceTuning.GetSnapshot();
+            if (usesBroadCacheTolerance)
             {
-                return;
+                cacheMaxDistSqr = Mathf.Max(cacheMaxDistSqr, tuning.NpcPathCacheToleranceSqr);
             }
 
-            cacheMaxDistSqr = Mathf.Max(cacheMaxDistSqr, ServerAdaptivePerformanceTuning.GetSnapshot().NpcPathCacheToleranceSqr);
+            if (ShouldSkipDuplicateRepath(__instance, pos, callback, interruptExistingCallback, usesBroadCacheTolerance, tuning))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ShouldSkipDuplicateRepath(
+            NPCMovement movement,
+            Vector3 destination,
+            Action<NPCMovement.WalkResult> callback,
+            bool interruptExistingCallback,
+            bool usesBroadCacheTolerance,
+            ServerAdaptivePerformanceSnapshot tuning)
+        {
+            if (movement == null ||
+                callback != null ||
+                interruptExistingCallback ||
+                !usesBroadCacheTolerance ||
+                !movement.HasDestination ||
+                movement.Agent == null ||
+                (!movement.Agent.pathPending && !movement.IsMoving))
+            {
+                return false;
+            }
+
+            float similaritySqr = GetDestinationSimilaritySqr(tuning);
+            if ((movement.CurrentDestination - destination).sqrMagnitude > similaritySqr)
+            {
+                return false;
+            }
+
+            int instanceId = movement.GetInstanceID();
+            float now = Time.realtimeSinceStartup;
+            float minIntervalSeconds = GetMinimumRepathIntervalSeconds(tuning);
+            if (RepathGateStates.TryGetValue(instanceId, out RepathGateState existingState))
+            {
+                if (now - existingState.LastIssuedAt < minIntervalSeconds &&
+                    (existingState.LastDestination - destination).sqrMagnitude <= similaritySqr)
+                {
+                    return true;
+                }
+
+                existingState.LastDestination = destination;
+                existingState.LastIssuedAt = now;
+                return false;
+            }
+
+            if (RepathGateStates.Count > RepathGateCapacityBeforeReset)
+            {
+                RepathGateStates.Clear();
+            }
+
+            RepathGateStates[instanceId] = new RepathGateState
+            {
+                LastDestination = destination,
+                LastIssuedAt = now
+            };
+            return false;
+        }
+
+        private static float GetMinimumRepathIntervalSeconds(ServerAdaptivePerformanceSnapshot tuning)
+        {
+            float cadenceFloor = tuning.TickDeltaSeconds > 0f ? tuning.TickDeltaSeconds : 0.05f;
+
+            switch (tuning.PressureLevel)
+            {
+                case ServerPressureLevel.High:
+                    return Mathf.Max(0.5f, cadenceFloor * 10f);
+
+                case ServerPressureLevel.Medium:
+                    return Mathf.Max(0.3f, cadenceFloor * 6f);
+
+                default:
+                    return Mathf.Max(0.2f, cadenceFloor * 4f);
+            }
+        }
+
+        private static float GetDestinationSimilaritySqr(ServerAdaptivePerformanceSnapshot tuning)
+        {
+            // Keep the repath gate only for materially identical destinations.
+            return Mathf.Max(0.25f, tuning.NpcPathCacheToleranceSqr * 0.25f);
         }
     }
 
     /// <summary>
     /// Reuses recently-computed foot NPC NavMesh paths across different NPCs on dedicated servers.
     /// </summary>
+    /// <remarks>
+    /// Shared path reuse lowers NavMesh churn, but it can possibly surface NPC pathfinding issues if nearby agents
+    /// with different local constraints are forced through the same cached route shape.
+    /// </remarks>
     [HarmonyPatch(typeof(NPCPathCache), nameof(NPCPathCache.GetPath))]
     internal static class NpcPathCacheGetPathPatches
     {
         private static void Postfix(Vector3 start, Vector3 end, float sqrMaxDistance, ref NavMeshPath __result)
         {
-            return;
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || __result != null)
+            {
+                return;
+            }
+
+            if (SharedNpcPathCache.TryGet(start, end, sqrMaxDistance, out NavMeshPath cachedPath))
+            {
+                __result = cachedPath;
+            }
         }
     }
 
     /// <summary>
     /// Stores successful foot NPC NavMesh paths into a shared server cache for reuse by nearby NPCs.
     /// </summary>
+    /// <remarks>
+    /// This cache should be treated as a performance hint, not a correctness guarantee. If NPC navigation starts to
+    /// diverge or oscillate, audit this shared cache first.
+    /// </remarks>
     [HarmonyPatch(typeof(NPCPathCache), nameof(NPCPathCache.AddPath))]
     internal static class NpcPathCacheAddPathPatches
     {
         private static void Postfix(Vector3 start, Vector3 end, NavMeshPath path)
         {
-            return;
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
+            {
+                return;
+            }
+
+            SharedNpcPathCache.Store(start, end, path);
         }
     }
 
     /// <summary>
     /// Reduces dedicated-server vehicle road search breadth by caching and capping the nearest node-link candidates used for route generation.
     /// </summary>
+    /// <remarks>
+    /// This optimization can possibly affect vehicle movement/pathfinding if stale or over-pruned node-link sets stop
+    /// a vehicle from considering the route it would normally choose. Revisit this patch first if vehicle routing
+    /// becomes hesitant, incorrect, or fails outright.
+    /// </remarks>
     [HarmonyPatch(typeof(NodeLink), nameof(NodeLink.GetClosestLinks))]
     internal static class NodeLinkGetClosestLinksPatches
     {
         private static bool Prefix(Vector3 point, ref List<NodeLink> __result)
         {
-            return true;
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
+            {
+                return true;
+            }
+
+            if (VehicleNodeLinkCache.TryGet(point, out List<NodeLink> cachedLinks))
+            {
+                __result = cachedLinks;
+                return false;
+            }
+
+            List<NodeLink> orderedLinks = CreateOrderedLinks(point);
+            VehicleNodeLinkCache.Store(point, orderedLinks);
+            __result = orderedLinks;
+            return false;
         }
 
         private static void Postfix(Vector3 point, ref List<NodeLink> __result)
         {
-            return;
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || __result == null || __result.Count == 0)
+            {
+                return;
+            }
+
+            VehicleNodeLinkCache.Store(point, __result);
+        }
+
+        private static List<NodeLink> CreateOrderedLinks(Vector3 point)
+        {
+            List<NodeLink> validLinks = NodeLink.validNodeLinks;
+            if (validLinks == null || validLinks.Count == 0)
+            {
+                return new List<NodeLink>();
+            }
+
+            List<NodeLinkDistance> orderedDistances = new(validLinks.Count);
+            for (int i = 0; i < validLinks.Count; i++)
+            {
+                NodeLink link = validLinks[i];
+                if (link == null || link.Start == null || link.End == null)
+                {
+                    continue;
+                }
+
+                Vector3 closestPoint = link.GetClosestPoint(point);
+                float distanceSqr = (closestPoint - point).sqrMagnitude;
+                orderedDistances.Add(new NodeLinkDistance(link, distanceSqr));
+            }
+
+            orderedDistances.Sort((left, right) => left.DistanceSqr.CompareTo(right.DistanceSqr));
+
+            List<NodeLink> orderedLinks = new(orderedDistances.Count);
+            for (int i = 0; i < orderedDistances.Count; i++)
+            {
+                orderedLinks.Add(orderedDistances[i].Link);
+            }
+
+            return orderedLinks;
         }
     }
 }
