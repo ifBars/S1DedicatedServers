@@ -409,7 +409,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
                 DebugLog.PlayerLifecycleDebug($"Player connecting: ClientId {connection.ClientId}");
 
                 bool isExistingPlayer = _registry.GetPlayer(connection) != null;
-                if (!isExistingPlayer && _registry.ConnectedPlayerCount >= ServerConfig.Instance.MaxPlayers)
+                if (!isExistingPlayer && _registry.GetVisiblePlayerCount() >= ServerConfig.Instance.MaxPlayers)
                 {
                     DebugLog.Warning($"Server full, disconnecting ClientId {connection.ClientId}");
                     ConnectedPlayerInfo rejectedPlayer = new ConnectedPlayerInfo
@@ -440,7 +440,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
                 }
 
                 DebugLog.PlayerLifecycleDebug(
-                    $"Player tracked: ClientId {connection.ClientId} ({_registry.ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers})");
+                    $"Player tracked: ClientId {connection.ClientId} ({_registry.GetVisiblePlayerCount()}/{ServerConfig.Instance.MaxPlayers} visible)");
 
                 bool requiresAuthentication = _authentication.IsAuthenticationRequiredForPlayer(playerInfo);
                 if (!requiresAuthentication)
@@ -702,7 +702,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
             removedPlayer.Connection = null;
             removedPlayer.PlayerInstance = null;
 
-            DebugLog.Info($"Current players: {_registry.ConnectedPlayerCount}/{ServerConfig.Instance.MaxPlayers}");
+            DebugLog.Info($"Current players: {_registry.GetVisiblePlayerCount()}/{ServerConfig.Instance.MaxPlayers}");
         }
 
         private void TrySatisfyNoAuthFlow(ConnectedPlayerInfo playerInfo)

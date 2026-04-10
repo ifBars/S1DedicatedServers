@@ -44,9 +44,9 @@ namespace DedicatedServerMod.Server.Player
         }
 
         /// <summary>
-        /// Gets the number of connected tracked players.
+        /// Gets the number of connected non-loopback players.
         /// </summary>
-        public int ConnectedPlayerCount => _registry.ConnectedPlayerCount;
+        public int ConnectedPlayerCount => _registry.GetVisiblePlayerCount();
 
         /// <summary>
         /// Ticks runtime player lifecycle work.
@@ -57,11 +57,11 @@ namespace DedicatedServerMod.Server.Player
         }
 
         /// <summary>
-        /// Gets all connected tracked players.
+        /// Gets all connected non-loopback players visible to gameplay and administration surfaces.
         /// </summary>
         public IReadOnlyList<ConnectedPlayerInfo> GetConnectedPlayers()
         {
-            return _registry.GetConnectedPlayers(includeLoopbackConnections: true);
+            return _registry.GetConnectedPlayers(includeLoopbackConnections: false);
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace DedicatedServerMod.Server.Player
         /// <returns>Current connected-player statistics.</returns>
         public PlayerStats GetPlayerStats()
         {
-            IReadOnlyList<ConnectedPlayerInfo> players = _registry.GetConnectedPlayers(includeLoopbackConnections: true);
+            IReadOnlyList<ConnectedPlayerInfo> players = GetConnectedPlayers();
             return new PlayerStats
             {
                 ConnectedPlayers = players.Count,
@@ -186,6 +186,11 @@ namespace DedicatedServerMod.Server.Player
         public void NotifyShutdownAndDisconnectAll(string reason, int noticeDelayMilliseconds = 500)
         {
             _moderation.NotifyShutdownAndDisconnectAll(reason, noticeDelayMilliseconds);
+        }
+
+        internal IReadOnlyList<ConnectedPlayerInfo> GetTrackedConnectedPlayers()
+        {
+            return _registry.GetConnectedPlayers(includeLoopbackConnections: true);
         }
 
         internal void Initialize()

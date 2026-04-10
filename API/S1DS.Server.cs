@@ -55,7 +55,7 @@ namespace DedicatedServerMod.API
             public static bool IsRunning => ServerBootstrap.IsInitialized;
 
             /// <summary>
-            /// Gets the number of connected players
+            /// Gets the number of connected non-loopback players.
             /// </summary>
             public static int PlayerCount => Players?.ConnectedPlayerCount ?? 0;
         }

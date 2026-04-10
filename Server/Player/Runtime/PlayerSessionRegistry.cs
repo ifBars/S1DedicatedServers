@@ -17,7 +17,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
         private readonly Dictionary<int, ConnectedPlayerInfo> _playersByClientId = new Dictionary<int, ConnectedPlayerInfo>();
 
-        internal int ConnectedPlayerCount => GetConnectedPlayers(includeLoopbackConnections: true).Count;
+        internal int TrackedConnectionCount => GetConnectedPlayers(includeLoopbackConnections: true).Count;
 
         internal ConnectedPlayerInfo GetPlayer(NetworkConnection connection)
         {

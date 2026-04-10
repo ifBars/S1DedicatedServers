@@ -21,7 +21,7 @@ namespace DedicatedServerMod.Server.Player
         public int TotalBannedPlayers { get; set; }
 
         /// <summary>
-        /// Gets or sets the current connected-player snapshot.
+        /// Gets or sets the current non-loopback connected-player snapshot.
         /// </summary>
         public IReadOnlyList<ConnectedPlayerInfo> Players { get; set; } = Array.Empty<ConnectedPlayerInfo>();
 

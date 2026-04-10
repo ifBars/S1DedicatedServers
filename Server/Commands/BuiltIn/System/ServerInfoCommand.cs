@@ -24,14 +24,14 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.System
             {
                 bool isRunning = networkManager?.IsServerRunning ?? false;
                 TimeSpan uptime = networkManager?.Uptime ?? TimeSpan.Zero;
-                var playerStats = PlayerManager.GetPlayerStats();
+                int visiblePlayerCount = PlayerManager.GetVisiblePlayerCount();
                 var permissionSummary = context.Permissions?.GetSummary();
 
                 context.Reply("=== Server Information ===");
                 context.Reply($"Server Name: {ServerConfig.Instance.ServerName}");
                 context.Reply($"Status: {(isRunning ? "Running" : "Stopped")}");
                 context.Reply($"Port: {ServerConfig.Instance.ServerPort}");
-                context.Reply($"Players: {playerStats.ConnectedPlayers}/{ServerConfig.Instance.MaxPlayers}");
+                context.Reply($"Players: {visiblePlayerCount}/{ServerConfig.Instance.MaxPlayers}");
                 
                 if (isRunning)
                 {
