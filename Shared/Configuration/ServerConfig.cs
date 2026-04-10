@@ -55,11 +55,12 @@ namespace DedicatedServerMod.Shared.Configuration
 
         /// <summary>
         /// Authentication provider used for dedicated-server client validation.
+        /// Defaults to <see cref="AuthenticationProvider.SteamGameServer"/>.
         /// Set to <see cref="AuthenticationProvider.None"/> to disable authentication entirely.
         /// </summary>
         [JsonProp(Constants.ConfigKeys.AuthProvider)]
         [JsonConv(typeof(StringEnumConverter))]
-        public AuthenticationProvider AuthProvider { get; set; } = AuthenticationProvider.None;
+        public AuthenticationProvider AuthProvider { get; set; } = AuthenticationProvider.SteamGameServer;
 
         /// <summary>
         /// Legacy compatibility shim for old configs that still persist <c>requireAuthentication</c>.
