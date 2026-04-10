@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useMounted } from "@/hooks/useMounted";
 
 const steps = [
   { num: "01", title: "Download The Release", desc: "Grab the latest GitHub release, then use `server.zip` for hosting and `client.zip` for players who need the dedicated-server client mod." },
@@ -10,14 +11,17 @@ const steps = [
 
 const GettingStarted = () => {
   const { ref, visible } = useScrollReveal(0.1);
+  const mounted = useMounted();
+  const sectionAnimation = mounted && !visible ? { opacity: 0, y: 30 } : { opacity: 1, y: 0 };
+  const stepAnimation = mounted && !visible ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 };
 
   return (
     <section id="getting-started" className="py-32 md:py-40">
       <div ref={ref} className="container px-4 md:px-8 max-w-4xl mx-auto">
         <motion.div
           className="text-center mb-20"
-          initial={{ opacity: 0, y: 30 }}
-          animate={visible ? { opacity: 1, y: 0 } : {}}
+          initial={false}
+          animate={sectionAnimation}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
@@ -37,8 +41,8 @@ const GettingStarted = () => {
               <motion.div
                 key={num}
                 className="relative flex gap-8 md:gap-12 py-8 group"
-                initial={{ opacity: 0, y: 20 }}
-                animate={visible ? { opacity: 1, y: 0 } : {}}
+                initial={false}
+                animate={stepAnimation}
                 transition={{
                   duration: 0.5,
                   delay: 0.15 + i * 0.1,
@@ -68,8 +72,8 @@ const GettingStarted = () => {
 
         <motion.div
           className="mt-16 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={visible ? { opacity: 1, y: 0 } : {}}
+          initial={false}
+          animate={stepAnimation}
           transition={{ duration: 0.6, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="flex flex-col items-center gap-4">

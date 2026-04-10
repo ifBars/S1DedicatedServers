@@ -23,7 +23,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.System
             {
                 string reason = context.Arguments.Count > 0 
                     ? string.Join(" ", context.Arguments) 
-                    : "Server shutdown";
+                    : "Server is shutting down";
 
                 context.Reply($"Initiating server shutdown: {reason}");
                 DebugLog.Info($"Server shutdown initiated by {context.Executor?.DisplayName ?? "Console"}: {reason}");

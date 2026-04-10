@@ -1,10 +1,14 @@
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useMounted } from "@/hooks/useMounted";
 import nightCity from "@/assets/banners/night-city.png";
 import logoIcon from "@/assets/logo-icon.png";
 
 const Footer = () => {
   const { ref, visible } = useScrollReveal(0.1);
+  const mounted = useMounted();
+  const sectionAnimation = mounted && !visible ? { opacity: 0, y: 30 } : { opacity: 1, y: 0 };
+  const ctaAnimation = mounted && !visible ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 };
 
   return (
     <>
@@ -23,24 +27,24 @@ const Footer = () => {
         <div ref={ref} className="relative z-10 container px-4 md:px-8 max-w-2xl mx-auto text-center">
           <motion.h2
             className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={visible ? { opacity: 1, y: 0 } : {}}
+            initial={false}
+            animate={sectionAnimation}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
             Ready to Host?
           </motion.h2>
           <motion.p
             className="text-muted-foreground text-lg mb-10 max-w-md mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={visible ? { opacity: 1, y: 0 } : {}}
+            initial={false}
+            animate={ctaAnimation}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
             Download, configure, and launch your dedicated server in minutes.
           </motion.p>
           <motion.div
             className="flex items-center justify-center gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={visible ? { opacity: 1, y: 0 } : {}}
+            initial={false}
+            animate={ctaAnimation}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <a

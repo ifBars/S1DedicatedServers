@@ -69,9 +69,14 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container px-4 md:px-8 max-w-4xl mx-auto text-center pt-24 pb-32">
+      <motion.div
+        className="relative z-10 container px-4 md:px-8 max-w-4xl mx-auto text-center pt-24 pb-32"
+        initial={false}
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
+      >
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -82,7 +87,7 @@ const Hero = () => {
 
         <motion.h1
           className="mb-8 flex flex-col items-center text-4xl font-extrabold leading-[0.93] tracking-tight [text-shadow:0_10px_36px_hsl(0_0%_7%/0.48)] sm:text-6xl md:text-7xl lg:text-[7rem]"
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -92,7 +97,7 @@ const Hero = () => {
 
         <motion.p
           className="text-lg md:text-xl text-foreground/88 max-w-xl mx-auto mb-12 leading-relaxed [text-shadow:0_8px_28px_hsl(0_0%_7%/0.42)]"
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -102,9 +107,12 @@ const Hero = () => {
 
         <motion.div
           className="flex flex-col items-center justify-center gap-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          initial={false}
+          animate={{ opacity: 1, y: [0, -3, 0] }}
+          transition={{
+            opacity: { duration: 0.7, delay: 0.55, ease: [0.22, 1, 0.36, 1] },
+            y: { duration: 6, ease: "easeInOut", repeat: Infinity },
+          }}
         >
           <div className="flex items-center justify-center gap-4">
             <a
@@ -135,7 +143,7 @@ const Hero = () => {
             Open the dedicated server docs
           </a>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Bottom gradient transition */}
       <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />

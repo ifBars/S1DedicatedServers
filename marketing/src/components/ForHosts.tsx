@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useMounted } from "@/hooks/useMounted";
 import gasMart from "@/assets/web-panel.png";
 import { Check } from "lucide-react";
 
@@ -13,6 +14,10 @@ const capabilities = [
 
 const ForHosts = () => {
   const { ref, visible } = useScrollReveal(0.1);
+  const mounted = useMounted();
+  const sectionAnimation = mounted && !visible ? { opacity: 0, y: 40 } : { opacity: 1, y: 0 };
+  const listItemAnimation = mounted && !visible ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 };
+  const imageAnimation = mounted && !visible ? { opacity: 0, scale: 0.97 } : { opacity: 1, scale: 1 };
 
   return (
     <section id="for-hosts" className="py-24 md:py-24">
@@ -20,8 +25,8 @@ const ForHosts = () => {
         <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(520px,700px)] lg:gap-20">
           {/* Text column */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={visible ? { opacity: 1, y: 0 } : {}}
+            initial={false}
+            animate={sectionAnimation}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-xl"
           >
@@ -43,8 +48,8 @@ const ForHosts = () => {
                   <motion.li
                     key={label}
                     className="flex items-start gap-4"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={visible ? { opacity: 1, x: 0 } : {}}
+                    initial={false}
+                    animate={listItemAnimation}
                     transition={{
                       duration: 0.5,
                       delay: 0.2 + i * 0.08,
@@ -71,8 +76,8 @@ const ForHosts = () => {
           {/* Image column */}
           <motion.div
             className="relative lg:sticky lg:top-28"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={visible ? { opacity: 1, scale: 1 } : {}}
+            initial={false}
+            animate={imageAnimation}
             transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-muted/10 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] lg:aspect-[16/10]">
