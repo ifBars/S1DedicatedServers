@@ -5,6 +5,7 @@ using DedicatedServerMod.Server.Commands;
 using DedicatedServerMod.Server.Commands.Output;
 using DedicatedServerMod.Utils;
 using MelonLoader;
+using System.Threading.Tasks;
 
 namespace DedicatedServerMod.Server.HostConsole
 {
@@ -20,7 +21,8 @@ namespace DedicatedServerMod.Server.HostConsole
         private readonly CommandManager _commandManager;
         private readonly MelonLogger.Instance _logger;
         private TcpListener _listener;
-        private Thread _acceptThread;
+        private CancellationTokenSource _acceptCancellation;
+        private Task _acceptTask;
         private int _activeClientCount;
         private volatile bool _isRunning;
 
@@ -60,12 +62,8 @@ namespace DedicatedServerMod.Server.HostConsole
             _listener = new TcpListener(IPAddress.Parse(_bindAddress), _port);
             _listener.Start();
             _isRunning = true;
-            _acceptThread = new Thread(AcceptLoop)
-            {
-                IsBackground = true,
-                Name = "HostConsole-tcp-accept"
-            };
-            _acceptThread.Start();
+            _acceptCancellation = new CancellationTokenSource();
+            _acceptTask = AcceptLoopAsync(_listener, _acceptCancellation.Token);
         }
 
         /// <inheritdoc />
@@ -74,6 +72,7 @@ namespace DedicatedServerMod.Server.HostConsole
             try
             {
                 _isRunning = false;
+                _acceptCancellation?.Cancel();
                 _listener?.Stop();
             }
             catch
@@ -81,13 +80,13 @@ namespace DedicatedServerMod.Server.HostConsole
             }
         }
 
-        private void AcceptLoop()
+        private async Task AcceptLoopAsync(TcpListener listener, CancellationToken cancellationToken)
         {
             try
             {
-                while (_isRunning)
+                while (_isRunning && !cancellationToken.IsCancellationRequested)
                 {
-                    TcpClient client = _listener.AcceptTcpClient();
+                    TcpClient client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     ConfigureClient(client);
 
                     int currentClientCount = Interlocked.Increment(ref _activeClientCount);
@@ -99,18 +98,16 @@ namespace DedicatedServerMod.Server.HostConsole
                         continue;
                     }
 
-                    Thread clientThread = new Thread(() => HandleClient(client))
-                    {
-                        IsBackground = true,
-                        Name = "HostConsole-tcp-client"
-                    };
-                    clientThread.Start();
+                    _ = Task.Run(() => HandleClient(client));
                 }
             }
             catch (SocketException)
             {
             }
             catch (ObjectDisposedException)
+            {
+            }
+            catch (OperationCanceledException)
             {
             }
             catch (Exception ex)

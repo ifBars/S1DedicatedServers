@@ -264,7 +264,9 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 return;
             }
 
-            if (_useBootstrapOnlyMode || !IsAvailable)
+            // Availability is validated during initialization and handled again during shutdown.
+            // Avoid probing Steam every frame in the hot tick path.
+            if (_useBootstrapOnlyMode)
             {
                 _bootstrapBackend?.Tick();
                 return;

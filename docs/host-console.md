@@ -11,10 +11,9 @@ The optional localhost web panel is a separate surface intended for local operat
 
 Use:
 
-```json
-{
-  "stdioConsoleMode": "Auto"
-}
+```toml
+[tcpConsole]
+stdioConsoleMode = 'Auto'
 ```
 
 `Auto` starts the stdio host console only when stdin is redirected. That matches hosted environments while avoiding accidental takeover of the local interactive console on normal desktop launches.

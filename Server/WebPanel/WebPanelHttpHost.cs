@@ -10,6 +10,7 @@ using DedicatedServerMod.Utils;
 using MelonLoader;
 using MelonLoader.Utils;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace DedicatedServerMod.Server.WebPanel
 {
@@ -39,7 +40,8 @@ namespace DedicatedServerMod.Server.WebPanel
         private readonly PersistenceManager _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
 
         private TcpListener _listener;
-        private Thread _listenerThread;
+        private CancellationTokenSource _listenerCancellation;
+        private Task _listenerTask;
         private volatile bool _isRunning;
 
         public string LaunchUrl { get; private set; } = string.Empty;
@@ -57,18 +59,14 @@ namespace DedicatedServerMod.Server.WebPanel
             _listener.Start();
             _isRunning = true;
             LaunchUrl = _sessionService.BuildLaunchUrl(address.ToString(), config.WebPanelPort);
-
-            _listenerThread = new Thread(AcceptLoop)
-            {
-                IsBackground = true,
-                Name = "DedicatedServerWebPanel"
-            };
-            _listenerThread.Start();
+            _listenerCancellation = new CancellationTokenSource();
+            _listenerTask = AcceptLoopAsync(_listener, _listenerCancellation.Token);
         }
 
         public void Dispose()
         {
             _isRunning = false;
+            _listenerCancellation?.Cancel();
 
             try
             {
@@ -79,20 +77,23 @@ namespace DedicatedServerMod.Server.WebPanel
             }
         }
 
-        private void AcceptLoop()
+        private async Task AcceptLoopAsync(TcpListener listener, CancellationToken cancellationToken)
         {
             try
             {
-                while (_isRunning)
+                while (_isRunning && !cancellationToken.IsCancellationRequested)
                 {
-                    TcpClient client = _listener.AcceptTcpClient();
-                    ThreadPool.QueueUserWorkItem(_ => HandleClient(client));
+                    TcpClient client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
+                    _ = HandleClientAsync(client, cancellationToken);
                 }
             }
             catch (SocketException)
             {
             }
             catch (ObjectDisposedException)
+            {
+            }
+            catch (OperationCanceledException)
             {
             }
             catch (Exception ex)
@@ -104,7 +105,7 @@ namespace DedicatedServerMod.Server.WebPanel
             }
         }
 
-        private void HandleClient(TcpClient client)
+        private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
         {
             using (client)
             using (NetworkStream stream = client.GetStream())
@@ -139,7 +140,7 @@ namespace DedicatedServerMod.Server.WebPanel
                             return;
                         }
 
-                        RouteApiRequest(stream, request, sessionExpiresAtUtc);
+                        await RouteApiRequestAsync(stream, request, sessionExpiresAtUtc, cancellationToken).ConfigureAwait(false);
                         return;
                     }
 
@@ -153,7 +154,7 @@ namespace DedicatedServerMod.Server.WebPanel
             }
         }
 
-        private void RouteApiRequest(NetworkStream stream, HttpRequestData request, DateTime sessionExpiresAtUtc)
+        private async Task RouteApiRequestAsync(NetworkStream stream, HttpRequestData request, DateTime sessionExpiresAtUtc, CancellationToken cancellationToken)
         {
             if (request.Method == "GET" && string.Equals(request.Path, "/api/bootstrap", StringComparison.OrdinalIgnoreCase))
             {
@@ -236,7 +237,7 @@ namespace DedicatedServerMod.Server.WebPanel
 
             if (request.Method == "GET" && string.Equals(request.Path, "/api/events", StringComparison.OrdinalIgnoreCase))
             {
-                ServeEventStream(stream);
+                await ServeEventStreamAsync(stream, cancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -282,7 +283,7 @@ namespace DedicatedServerMod.Server.WebPanel
             WriteBytes(stream, 503, "Service Unavailable", fallback, "text/html; charset=utf-8");
         }
 
-        private void ServeEventStream(NetworkStream stream)
+        private async Task ServeEventStreamAsync(NetworkStream stream, CancellationToken cancellationToken)
         {
             WebPanelEventSubscription subscription = _eventStream.Subscribe();
             try
@@ -297,25 +298,34 @@ namespace DedicatedServerMod.Server.WebPanel
 
                 using (StreamWriter writer = new StreamWriter(stream, new UTF8Encoding(false), 1024, true))
                 {
-                    writer.Write("event: connected\ndata: {}\n\n");
-                    writer.Flush();
+                    await writer.WriteAsync("event: connected\ndata: {}\n\n").ConfigureAwait(false);
+                    await writer.FlushAsync().ConfigureAwait(false);
 
                     while (_isRunning)
                     {
-                        if (subscription.TryTake(out string message, 15000))
+                        string message = await subscription.WaitForMessageAsync(15000, cancellationToken).ConfigureAwait(false);
+                        if (!_isRunning)
                         {
-                            writer.Write(message);
+                            break;
+                        }
+
+                        if (message != null)
+                        {
+                            await writer.WriteAsync(message).ConfigureAwait(false);
                         }
                         else
                         {
-                            writer.Write(": keepalive\n\n");
+                            await writer.WriteAsync(": keepalive\n\n").ConfigureAwait(false);
                         }
 
-                        writer.Flush();
+                        await writer.FlushAsync().ConfigureAwait(false);
                     }
                 }
             }
             catch (IOException)
+            {
+            }
+            catch (OperationCanceledException)
             {
             }
             finally

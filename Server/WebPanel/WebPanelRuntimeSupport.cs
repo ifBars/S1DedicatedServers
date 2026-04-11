@@ -6,6 +6,7 @@ using DedicatedServerMod.Server.Commands.Execution;
 using DedicatedServerMod.Server.Commands.Output;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace DedicatedServerMod.Server.WebPanel
 {
@@ -137,35 +138,97 @@ namespace DedicatedServerMod.Server.WebPanel
     /// </summary>
     internal sealed class WebPanelEventSubscription : IDisposable
     {
-        private readonly BlockingCollection<string> _queue = new BlockingCollection<string>();
+        private readonly ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
+        private readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
+        private int _isDisposed;
 
         public bool TryTake(out string message, int timeoutMilliseconds)
         {
-            return _queue.TryTake(out message, timeoutMilliseconds);
+            message = null;
+            try
+            {
+                if (!TryDequeue(out message) && !_signal.Wait(timeoutMilliseconds))
+                {
+                    return false;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                return false;
+            }
+
+            return TryDequeue(out message);
+        }
+
+        public async Task<string> WaitForMessageAsync(int timeoutMilliseconds, CancellationToken cancellationToken)
+        {
+            if (!TryDequeue(out string message))
+            {
+                try
+                {
+                    bool signaled = await _signal.WaitAsync(timeoutMilliseconds, cancellationToken).ConfigureAwait(false);
+                    if (!signaled)
+                    {
+                        return null;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return null;
+                }
+                catch (ObjectDisposedException)
+                {
+                    return null;
+                }
+
+                if (!TryDequeue(out message))
+                {
+                    return null;
+                }
+            }
+
+            return message;
         }
 
         public void Enqueue(string message)
         {
-            if (!_queue.IsAddingCompleted)
+            if (Volatile.Read(ref _isDisposed) != 0)
             {
-                try
-                {
-                    _queue.Add(message ?? string.Empty);
-                }
-                catch (InvalidOperationException)
-                {
-                }
+                return;
             }
+
+            _queue.Enqueue(message ?? string.Empty);
+            _signal.Release();
         }
 
         public void Dispose()
         {
-            if (!_queue.IsAddingCompleted)
+            if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
             {
-                _queue.CompleteAdding();
+                try
+                {
+                    _signal.Release();
+                }
+                catch (SemaphoreFullException)
+                {
+                }
+
+                _signal.Dispose();
+            }
+        }
+
+        private bool TryDequeue(out string message)
+        {
+            while (_queue.TryDequeue(out message))
+            {
+                if (message != null)
+                {
+                    return true;
+                }
             }
 
-            _queue.Dispose();
+            message = null;
+            return false;
         }
     }
 
