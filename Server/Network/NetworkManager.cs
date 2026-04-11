@@ -67,9 +67,10 @@ namespace DedicatedServerMod.Server.Network
             serverManager.OnServerConnectionState -= OnServerConnectionState;
             serverManager.OnServerConnectionState += OnServerConnectionState;
 #else
-                DebugLog.ServerNetworkDebug("Skipping direct OnServerConnectionState hook on IL2CPP runtime");
+            serverManager.OnServerConnectionState -= new Action<ServerConnectionStateArgs>(OnServerConnectionState);
+            serverManager.OnServerConnectionState += new Action<ServerConnectionStateArgs>(OnServerConnectionState);
 #endif
-                hooksRegistered = true;
+            hooksRegistered = true;
             DebugLog.ServerNetworkDebug("Network event hooks established");
             return true;
         }
@@ -258,6 +259,8 @@ namespace DedicatedServerMod.Server.Network
                 {
 #if MONO
                     InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionState;
+#else
+                    InstanceFinder.ServerManager.OnServerConnectionState -= new Action<ServerConnectionStateArgs>(OnServerConnectionState);
 #endif
                 }
                 hooksRegistered = false;

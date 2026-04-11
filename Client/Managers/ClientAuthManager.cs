@@ -34,9 +34,6 @@ namespace DedicatedServerMod.Client.Managers
         private bool _isHandshakeStarted;
         private bool _isConnectionStateHooked;
         private DateTime _nextHandshakeAttemptUtc;
-#if MONO
-        private readonly Action<ClientConnectionStateArgs> _connectionStateHandler;
-#endif
 
         /// <summary>
         /// Initializes a new client auth manager.
@@ -45,9 +42,6 @@ namespace DedicatedServerMod.Client.Managers
         {
             _activeAuthTicket = HAuthTicket.Invalid;
             _nextHandshakeAttemptUtc = DateTime.MinValue;
-#if MONO
-            _connectionStateHandler = OnClientConnectionState;
-#endif
         }
 
         /// <summary>
@@ -150,8 +144,10 @@ namespace DedicatedServerMod.Client.Managers
 
             if (_isConnectionStateHooked && InstanceFinder.ClientManager != null)
             {
-#if MONO
-                InstanceFinder.ClientManager.OnClientConnectionState -= _connectionStateHandler;
+#if IL2CPP
+                InstanceFinder.ClientManager.OnClientConnectionState -= new Action<ClientConnectionStateArgs>(OnClientConnectionState);
+#else
+                InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionState;
 #endif
                 _isConnectionStateHooked = false;
             }
@@ -329,12 +325,13 @@ namespace DedicatedServerMod.Client.Managers
             }
 
 #if IL2CPP
-            _isConnectionStateHooked = true;
-            DebugLog.Info("Skipping direct client connection state hook on IL2CPP runtime");
+            InstanceFinder.ClientManager.OnClientConnectionState -= new Action<ClientConnectionStateArgs>(OnClientConnectionState);
+            InstanceFinder.ClientManager.OnClientConnectionState += new Action<ClientConnectionStateArgs>(OnClientConnectionState);
 #else
-            InstanceFinder.ClientManager.OnClientConnectionState += _connectionStateHandler;
-            _isConnectionStateHooked = true;
+            InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionState;
+            InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionState;
 #endif
+            _isConnectionStateHooked = true;
         }
 
         private void OnClientConnectionState(ClientConnectionStateArgs args)

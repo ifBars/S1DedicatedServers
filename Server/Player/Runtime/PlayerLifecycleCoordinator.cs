@@ -76,6 +76,8 @@ namespace DedicatedServerMod.Server.Player.Runtime
             {
 #if MONO
                 InstanceFinder.ServerManager.OnRemoteConnectionState -= OnClientConnectionState;
+#else
+                InstanceFinder.ServerManager.OnRemoteConnectionState -= new Action<NetworkConnection, RemoteConnectionStateArgs>(OnClientConnectionState);
 #endif
             }
 
@@ -88,6 +90,9 @@ namespace DedicatedServerMod.Server.Player.Runtime
                 (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(
                     ScheduleOne.PlayerScripts.Player.onPlayerDespawned,
                     OnPlayerDespawned);
+#else
+            PlayerScript.onPlayerSpawned -= new Action<PlayerScript>(HandleOnPlayerSpawned);
+            PlayerScript.onPlayerDespawned -= new Action<PlayerScript>(OnPlayerDespawned);
 #endif
         }
 
@@ -346,7 +351,8 @@ namespace DedicatedServerMod.Server.Player.Runtime
                 InstanceFinder.ServerManager.OnRemoteConnectionState -= OnClientConnectionState;
                 InstanceFinder.ServerManager.OnRemoteConnectionState += OnClientConnectionState;
 #else
-                DebugLog.PlayerLifecycleDebug("Skipping direct remote connection hook on IL2CPP runtime");
+                InstanceFinder.ServerManager.OnRemoteConnectionState -= new Action<NetworkConnection, RemoteConnectionStateArgs>(OnClientConnectionState);
+                InstanceFinder.ServerManager.OnRemoteConnectionState += new Action<NetworkConnection, RemoteConnectionStateArgs>(OnClientConnectionState);
 #endif
                 DebugLog.PlayerLifecycleDebug("Player connection hooks established");
             }
@@ -372,7 +378,11 @@ namespace DedicatedServerMod.Server.Player.Runtime
                         OnPlayerDespawned);
                 DebugLog.PlayerLifecycleDebug("Player spawn hooks established");
 #else
-                DebugLog.PlayerLifecycleDebug("Skipping player spawn hook wiring on IL2CPP runtime");
+                PlayerScript.onPlayerSpawned -= new Action<PlayerScript>(HandleOnPlayerSpawned);
+                PlayerScript.onPlayerSpawned += new Action<PlayerScript>(HandleOnPlayerSpawned);
+                PlayerScript.onPlayerDespawned -= new Action<PlayerScript>(OnPlayerDespawned);
+                PlayerScript.onPlayerDespawned += new Action<PlayerScript>(OnPlayerDespawned);
+                DebugLog.PlayerLifecycleDebug("Player spawn hooks established");
 #endif
             }
             catch (Exception ex)
@@ -605,7 +615,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
             try
             {
-                ModManager.NotifyPlayerConnected(playerInfo.DisplayName ?? $"ClientId {playerInfo.ClientId}");
+                ModManager.NotifyPlayerConnected(playerInfo);
             }
             catch
             {
@@ -693,7 +703,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
             try
             {
-                ModManager.NotifyPlayerDisconnected(removedPlayer.DisplayName ?? $"ClientId {removedPlayer.ClientId}");
+                ModManager.NotifyPlayerDisconnected(removedPlayer);
             }
             catch
             {

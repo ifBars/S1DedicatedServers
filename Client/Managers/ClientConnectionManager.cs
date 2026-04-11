@@ -33,6 +33,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DedicatedServerMod.API;
+using DedicatedServerMod.API.Client;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
@@ -57,10 +58,6 @@ namespace DedicatedServerMod.Client.Managers
 
         private static readonly MethodInfo CleanUpMethod =
             typeof(LoadManager).GetMethod("CleanUp", BindingFlags.NonPublic | BindingFlags.Instance);
-#if MONO
-        private static readonly Action LocalPlayerSpawnedHandler = OnLocalPlayerSpawned;
-        private readonly Action<ClientConnectionStateArgs> _clientConnectionStateHandler;
-#endif
 
         private bool _worldLoadCompleted;
         private bool _authSucceeded;
@@ -82,9 +79,6 @@ namespace DedicatedServerMod.Client.Managers
 
         internal ClientConnectionManager()
         {
-#if MONO
-            _clientConnectionStateHandler = OnClientConnectionState;
-#endif
         }
 
         internal void Initialize()
@@ -225,9 +219,10 @@ namespace DedicatedServerMod.Client.Managers
             // Must be AFTER CleanUp which clears Player.onLocalPlayerSpawned.
 #if MONO
             Player.onLocalPlayerSpawned = (Action)Delegate.Combine(
-                Player.onLocalPlayerSpawned, LocalPlayerSpawnedHandler);
+                Player.onLocalPlayerSpawned, new Action(OnLocalPlayerSpawned));
 #else
-            DebugLog.Info("Skipping local player spawned delegate hook on IL2CPP runtime");
+            Player.onLocalPlayerSpawned -= new Action(OnLocalPlayerSpawned);
+            Player.onLocalPlayerSpawned += new Action(OnLocalPlayerSpawned);
 #endif
 
             // --- Step 10 (native 693): Wait for Main scene ---
@@ -393,7 +388,9 @@ namespace DedicatedServerMod.Client.Managers
         {
 #if MONO
             Player.onLocalPlayerSpawned = (Action)Delegate.Remove(
-                Player.onLocalPlayerSpawned, LocalPlayerSpawnedHandler);
+                Player.onLocalPlayerSpawned, new Action(OnLocalPlayerSpawned));
+#else
+            Player.onLocalPlayerSpawned -= new Action(OnLocalPlayerSpawned);
 #endif
         }
 
@@ -771,10 +768,12 @@ namespace DedicatedServerMod.Client.Managers
             }
 
 #if IL2CPP
-            DebugLog.Info("Skipping direct client connection state hook on IL2CPP runtime");
+            InstanceFinder.ClientManager.OnClientConnectionState -= new Action<ClientConnectionStateArgs>(OnClientConnectionState);
+            InstanceFinder.ClientManager.OnClientConnectionState += new Action<ClientConnectionStateArgs>(OnClientConnectionState);
             _isConnectionStateHooked = true;
 #else
-            InstanceFinder.ClientManager.OnClientConnectionState += _clientConnectionStateHandler;
+            InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionState;
+            InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionState;
             _isConnectionStateHooked = true;
 #endif
         }

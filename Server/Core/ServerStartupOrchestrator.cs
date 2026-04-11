@@ -270,7 +270,8 @@ namespace DedicatedServerMod.Server.Core
             ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
             ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Combine(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
 #else
-            DebugLog.StartupDebug("Skipping loopback spawn hook wiring on IL2CPP runtime");
+            ScheduleOne.PlayerScripts.Player.onPlayerSpawned -= new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned);
+            ScheduleOne.PlayerScripts.Player.onPlayerSpawned += new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned);
 #endif
             TryHandleExistingLoopbackPlayer();
 
@@ -500,6 +501,8 @@ namespace DedicatedServerMod.Server.Core
                     _loopbackHandled = true;
 #if MONO
                     ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));
+#else
+                    ScheduleOne.PlayerScripts.Player.onPlayerSpawned -= new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned);
 #endif
                     DebugLog.StartupDebug("Loopback player hidden/teleported");
                 }
