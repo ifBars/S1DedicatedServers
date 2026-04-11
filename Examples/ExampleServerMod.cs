@@ -1,4 +1,6 @@
 using System;
+using DedicatedServerMod.API.Metadata;
+using DedicatedServerMod.Server.Player;
 using MelonLoader;
 
 [assembly: MelonInfo(typeof(ExampleServerMod), "ExampleServerMod", "1.0.0", "Example Author")]
@@ -17,21 +19,23 @@ namespace DedicatedServerMod.Examples.Server
     /// 3. Implement your mod logic
     /// 4. Build and place in Schedule I/Mods/
     /// </remarks>
-    public class ExampleServerMod : API.ServerModBase
+    public class ExampleServerMod : API.ServerMelonModBase
     {
         /// <summary>
         /// Called when the server is starting up.
         /// Use this for initialization that should happen before players connect.
         /// </summary>
-        protected override void OnServerInitialize()
+        public override void OnServerInitialize()
         {
             LoggerInstance.Msg("ExampleServerMod initializing...");
 
             // Example: Register custom commands
             // CommandManager.Instance.RegisterCommand(new MyCustomCommand());
 
-            // Example: Subscribe to player events
-            // API.ModManager.NotifyPlayerConnected += OnPlayerConnected;
+            // Example: Subscribe to event-first lifecycle hooks.
+            API.ModManager.ServerPlayerConnected += HandlePlayerConnected;
+            API.ModManager.ServerPlayerDisconnected += HandlePlayerDisconnected;
+            API.ModManager.ServerCustomMessageReceived += HandleCustomMessageReceived;
 
             LoggerInstance.Msg("ExampleServerMod initialized successfully");
         }
@@ -39,44 +43,19 @@ namespace DedicatedServerMod.Examples.Server
         /// <summary>
         /// Called when the server is fully started and ready to accept connections.
         /// </summary>
-        protected override void OnServerStarted()
+        public override void OnServerStarted()
         {
             LoggerInstance.Msg("ExampleServerMod: Server is now running!");
 
             // Example: Broadcast a welcome message
-            // S1DS.Server.Messaging.BroadcastToClients("welcome", "Welcome to my modded server!");
-        }
-
-        /// <summary>
-        /// Called when a player connects to the server.
-        /// </summary>
-        /// <param name="playerId">The connecting player's ID (typically Steam ID)</param>
-        protected override void OnPlayerConnected(string playerId)
-        {
-            LoggerInstance.Msg($"Player connected: {playerId}");
-
-            // Example: Send a personal welcome
-            // var player = Permissions.PlayerResolver.GetPlayerBySteamId(playerId);
-            // if (player != null)
-            // {
-            //     S1DS.Server.Messaging.SendToClient(player.Owner, "welcome", "Welcome to my server!");
-            // }
-        }
-
-        /// <summary>
-        /// Called when a player disconnects from the server.
-        /// </summary>
-        /// <param name="playerId">The disconnecting player's ID</param>
-        protected override void OnPlayerDisconnected(string playerId)
-        {
-            LoggerInstance.Msg($"Player disconnected: {playerId}");
+            // Shared.Networking.CustomMessaging.BroadcastToClients("welcome", "Welcome to my modded server!");
         }
 
         /// <summary>
         /// Called before the server saves data.
         /// Use this to save your mod's custom data.
         /// </summary>
-        protected override void OnBeforeSave()
+        public override void OnBeforeSave()
         {
             LoggerInstance.Msg("ExampleServerMod: Saving custom data...");
 
@@ -87,7 +66,7 @@ namespace DedicatedServerMod.Examples.Server
         /// <summary>
         /// Called after the server saves data.
         /// </summary>
-        protected override void OnAfterSave()
+        public override void OnAfterSave()
         {
             LoggerInstance.Msg("ExampleServerMod: Save complete");
         }
@@ -95,7 +74,7 @@ namespace DedicatedServerMod.Examples.Server
         /// <summary>
         /// Called before the server loads data.
         /// </summary>
-        protected override void OnBeforeLoad()
+        public override void OnBeforeLoad()
         {
             LoggerInstance.Msg("ExampleServerMod: Preparing to load data...");
         }
@@ -104,7 +83,7 @@ namespace DedicatedServerMod.Examples.Server
         /// Called after the server loads data.
         /// Use this to load your mod's custom data.
         /// </summary>
-        protected override void OnAfterLoad()
+        public override void OnAfterLoad()
         {
             LoggerInstance.Msg("ExampleServerMod: Load complete");
 
@@ -116,8 +95,12 @@ namespace DedicatedServerMod.Examples.Server
         /// Called when the server is shutting down.
         /// Use this for cleanup and final saves.
         /// </summary>
-        protected override void OnServerShutdown()
+        public override void OnServerShutdown()
         {
+            API.ModManager.ServerCustomMessageReceived -= HandleCustomMessageReceived;
+            API.ModManager.ServerPlayerDisconnected -= HandlePlayerDisconnected;
+            API.ModManager.ServerPlayerConnected -= HandlePlayerConnected;
+
             LoggerInstance.Msg("ExampleServerMod: Shutting down...");
 
             // Example: Perform cleanup
@@ -125,26 +108,40 @@ namespace DedicatedServerMod.Examples.Server
         }
 
         /// <summary>
-        /// Called when the server receives a custom message from a client mod.
-        /// Return true if this mod handled the message, false otherwise.
+        /// Handles the event-first player-connected hook.
         /// </summary>
-        /// <param name="messageType">Type of the message</param>
-        /// <param name="data">Message data (typically JSON)</param>
-        /// <param name="senderId">ID of the sender</param>
-        /// <returns>True if handled, false to pass to other mods</returns>
-        protected override bool OnCustomMessage(string messageType, byte[] data, string senderId)
+        /// <param name="player">The tracked player that completed the join flow.</param>
+        private void HandlePlayerConnected(ConnectedPlayerInfo player)
         {
-            LoggerInstance.Msg($"Received custom message from {senderId}: {messageType}");
+            LoggerInstance.Msg($"Player connected: {player.DisplayName} ({player.TrustedUniqueId})");
 
-            // Example: Handle specific message types
-            // if (messageType == "player_action")
+            // Example: Send a personal welcome
+            // if (player?.Connection != null)
             // {
-            //     var actionData = System.Text.Encoding.UTF8.GetString(data);
-            //     ProcessPlayerAction(senderId, actionData);
-            //     return true;
+            //     Shared.Networking.CustomMessaging.SendToClient(player.Connection, "welcome", "Welcome to my server!");
             // }
+        }
 
-            return false; // Not handled by this mod
+        /// <summary>
+        /// Handles the event-first player-disconnected hook.
+        /// </summary>
+        /// <param name="player">The tracked player captured at disconnect time.</param>
+        private void HandlePlayerDisconnected(ConnectedPlayerInfo player)
+        {
+            LoggerInstance.Msg($"Player disconnected: {player.DisplayName} ({player.TrustedUniqueId})");
+        }
+
+        /// <summary>
+        /// Handles forwarded custom messages from client mods.
+        /// </summary>
+        /// <param name="messageType">Type of the message.</param>
+        /// <param name="data">Message data, typically JSON.</param>
+        /// <param name="sender">Tracked sender details when available.</param>
+        private void HandleCustomMessageReceived(string messageType, byte[] data, ConnectedPlayerInfo sender)
+        {
+            LoggerInstance.Msg($"Received custom message from {sender?.TrustedUniqueId ?? "unknown"}: {messageType}");
+
+            // Example: Handle specific message types here.
         }
     }
 }

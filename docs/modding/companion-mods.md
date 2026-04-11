@@ -28,10 +28,10 @@ The normal path is:
 Apply `S1DSClientCompanionAttribute` at the assembly level in the server mod project:
 
 ```csharp
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Metadata;
 
 [assembly: S1DSClientCompanion(
-    modId: "ghost.mycoolmod",
+    modId: "bars.mycoolmod",
     displayName: "My Cool Mod",
     Required = true,
     MinVersion = "1.2.0")]
@@ -56,9 +56,9 @@ For normal compatibility-first servers, `modId` plus `MinVersion` is the intende
 Apply `S1DSClientModIdentityAttribute` at the assembly level in the client mod project:
 
 ```csharp
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Metadata;
 
-[assembly: S1DSClientModIdentity("ghost.mycoolmod", "1.2.3")]
+[assembly: S1DSClientModIdentity("bars.mycoolmod", "1.2.3")]
 ```
 
 Fields:
@@ -73,10 +73,10 @@ The `modId` must match the server companion declaration.
 Server assembly:
 
 ```csharp
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Metadata;
 
 [assembly: S1DSClientCompanion(
-    modId: "ghost.marketterminal",
+    modId: "bars.marketterminal",
     displayName: "Market Terminal",
     Required = true,
     MinVersion = "2.0.0")]
@@ -85,9 +85,9 @@ using DedicatedServerMod.API;
 Client assembly:
 
 ```csharp
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Metadata;
 
-[assembly: S1DSClientModIdentity("ghost.marketterminal", "2.1.0")]
+[assembly: S1DSClientModIdentity("bars.marketterminal", "2.1.0")]
 ```
 
 Result:
@@ -102,7 +102,7 @@ If a server-side feature can work without the client mod but improves UX when pr
 
 ```csharp
 [assembly: S1DSClientCompanion(
-    modId: "ghost.mapmarkers",
+    modId: "bars.mapmarkers",
     displayName: "Map Markers",
     Required = false,
     MinVersion = "1.0.0")]
@@ -126,7 +126,7 @@ That is recommended because it gives server owners a stable mod ID they can:
 Example:
 
 ```csharp
-[assembly: S1DSClientModIdentity("ghost.visualtrees", "1.0.0")]
+[assembly: S1DSClientModIdentity("bars.visualtrees", "1.0.0")]
 ```
 
 ## Guidance For Mod Authors

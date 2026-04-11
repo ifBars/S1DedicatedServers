@@ -9,15 +9,23 @@ Server mods implement `IServerMod` or inherit `ServerModBase` / `ServerMelonModB
 - `OnServerInitialize()`
 - `OnServerStarted()`
 - `OnServerShutdown()`
-- `OnPlayerConnected(string playerId)`
-- `OnPlayerDisconnected(string playerId)`
 - `OnBeforeSave()`
 - `OnAfterSave()`
 - `OnBeforeLoad()`
 - `OnAfterLoad()`
-- `OnCustomMessage(string messageType, byte[] data, string senderId)`
+- `ModManager.ServerPlayerConnected`
+- `ModManager.ServerPlayerDisconnected`
+- `ModManager.ServerCustomMessageReceived`
 
 Keep connect/disconnect hooks light and move heavy work elsewhere when possible.
+
+Legacy string-based `playerId` and `senderId` callbacks still exist for compatibility, but they are now obsolete compatibility hooks and should not be used for new code. Their identifier resolution order is:
+
+1. trusted unique ID, which normally means the authenticated SteamID64
+2. tracked SteamID64
+3. FishNet client ID
+
+New code should prefer the typed `ModManager` events above. The `ConnectedPlayerInfo` overloads on `ServerModBase` and `ServerMelonModBase` remain available when an override is cleaner than an event subscription.
 
 ## Server Systems
 
@@ -27,13 +35,30 @@ Available in `SERVER` builds via `S1DS.Server`:
 - `Network`
 - `GameSystems`
 - `Persistence`
+- `StatusQuery`
+- `Permissions`
 - `IsRunning`
 - `PlayerCount`
+
+`Players` is the main server-side API most addons should build on today. `StatusQuery` and `Permissions` are the intended extension points for status-query registration and authorization lookups. Some other properties currently expose lower-level managers and may narrow into cleaner facades over time.
 
 Example:
 
 ```csharp
-public override void OnServerStarted()
+using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Player;
+
+public override void OnServerInitialize()
+{
+    ModManager.ServerPlayerConnected += HandlePlayerConnected;
+}
+
+public override void OnServerShutdown()
+{
+    ModManager.ServerPlayerConnected -= HandlePlayerConnected;
+}
+
+private void HandlePlayerConnected(ConnectedPlayerInfo player)
 {
     int total = S1DS.Server.PlayerCount;
 }
@@ -78,10 +103,10 @@ Do not manually register a `MelonMod` that already implements `IServerMod` or in
 If your server mod expects or supports a client companion, declare it at the assembly level:
 
 ```csharp
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Metadata;
 
 [assembly: S1DSClientCompanion(
-    modId: "ghost.marketterminal",
+    modId: "bars.marketterminal",
     displayName: "Market Terminal",
     Required = true,
     MinVersion = "2.0.0")]

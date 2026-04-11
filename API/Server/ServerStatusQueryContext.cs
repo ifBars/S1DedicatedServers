@@ -1,4 +1,4 @@
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Server
 {
     /// <summary>
     /// Provides context for a server status-query handler invocation.

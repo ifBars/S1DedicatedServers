@@ -1,4 +1,4 @@
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Metadata
 {
     /// <summary>
     /// Declares the stable identity of a client-side mod assembly for server compatibility checks.
@@ -15,7 +15,7 @@ namespace DedicatedServerMod.API
     /// </remarks>
     /// <example>
     /// <code>
-    /// [assembly: S1DSClientModIdentity("ghost.mycoolmod", "1.2.3")]
+    /// [assembly: S1DSClientModIdentity("bars.mycoolmod", "1.2.3")]
     /// </code>
     /// </example>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false, Inherited = false)]

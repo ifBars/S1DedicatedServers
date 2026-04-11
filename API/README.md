@@ -1,118 +1,178 @@
 # S1DS Mod API
 
-A simple, streamlined API for developing mods for the Schedule One Dedicated Server system. This API provides conditional access to server and client functionality while respecting the build configuration constraints.
+DedicatedServerMod exposes a side-aware API for server mods and client mods. The root `DedicatedServerMod.API` namespace stays intentionally small around entry points and lifecycle, while specialized helper types now live in dedicated sub-namespaces.
 
-## Architecture
+## Core Entry Points
 
-The API uses **partial classes** with **conditional compilation** to provide typed access to the appropriate namespaces based on build configuration:
+`S1DS` is the primary facade:
 
-- **S1DS.cs** - Shared base class with side detection and logging
-- **S1DS.Server.cs** - Server-only functionality (compiled only when `SERVER` is defined)
-- **S1DS.Client.cs** - Client-only functionality (compiled only when `CLIENT` is defined)
+- `S1DS.Server` in `SERVER` builds
+- `S1DS.Client` in `CLIENT` builds
+- `S1DS.Shared.Config` in both builds
+- `S1DS.IsServer`, `S1DS.IsClient`, and `S1DS.BuildConfiguration` for side detection
+
+## Namespace Layout
+
+Use the root namespace for the main lifecycle and facade types:
+
+- `DedicatedServerMod.API`
+  - `S1DS`
+  - `IServerMod`
+  - `IClientMod`
+  - `ServerModBase` / `ServerMelonModBase`
+  - `ClientModBase` / `ClientMelonModBase`
+  - `ModManager`
+  - `S1DSBuildConfiguration`
+  - `Version`
+
+Use the focused sub-namespaces for specialized API surfaces:
+
+- `DedicatedServerMod.API.Client`
+  - `ClientJoinPreparationBuilder`
+  - `ClientJoinPreparationContext`
+  - `ClientJoinPreparationRegistration`
+  - `ClientSteamAvatarService`
+- `DedicatedServerMod.API.Server`
+  - `ServerStatusQueryContext`
+  - `ServerStatusQueryHandlerBuilder`
+  - `ServerStatusQueryRegistration`
+- `DedicatedServerMod.API.Metadata`
+  - `S1DSClientCompanionAttribute`
+  - `S1DSClientModIdentityAttribute`
+- `DedicatedServerMod.API.Configuration`
+  - `ModConfigPaths`
+  - `TomlConfigStore<TConfig>`
+  - `TomlConfigSchema<TConfig>`
+  - `TomlConfigLoadResult<TConfig>`
+- `DedicatedServerMod.API.Toml`
+  - `TomlDocument`
+  - `TomlTable`
+  - `TomlValue`
+  - `TomlParser`
 
 ## Quick Start
 
-### 1. Create a Mod
+### Server Mod
 
 ```csharp
 using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Player;
 
 public sealed class MyServerMod : ServerMelonModBase
 {
     public override void OnServerInitialize()
     {
-        S1DS.Log($"Server mod loaded. Players: {S1DS.Server.PlayerCount}");
+        LoggerInstance.Msg($"Server running: {S1DS.Server.IsRunning}");
+        ModManager.ServerPlayerConnected += OnServerPlayerConnected;
+    }
+
+    public override void OnServerShutdown()
+    {
+        ModManager.ServerPlayerConnected -= OnServerPlayerConnected;
+    }
+
+    private void OnServerPlayerConnected(ConnectedPlayerInfo player)
+    {
+        LoggerInstance.Msg($"Player joined: {player.DisplayName} ({player.TrustedUniqueId})");
     }
 }
 ```
+
+### Client Mod
 
 ```csharp
 using DedicatedServerMod.API;
 
 public sealed class MyClientMod : ClientMelonModBase
 {
-    public override void OnClientPlayerReady()
+    public override void OnClientInitialize()
     {
-        S1DS.Log($"Client mod loaded. Connected: {S1DS.Client.IsConnected}");
+        ModManager.ClientPlayerReady += OnClientReady;
+    }
+
+    public override void OnClientShutdown()
+    {
+        ModManager.ClientPlayerReady -= OnClientReady;
+    }
+
+    private void OnClientReady()
+    {
+        if (!S1DS.Client.IsConnected)
+        {
+            return;
+        }
+
+        LoggerInstance.Msg("Dedicated client systems are ready.");
     }
 }
 ```
 
-### 2. Access System Managers
+## Player Lifecycle Migration
 
-```csharp
-// Check which side you're on
-if (S1DS.IsServer)
-{
-    // Server managers are valid after OnServerInitialize
-    var playerCount = S1DS.Server.PlayerCount;
-    var persistence = S1DS.Server.Persistence;
-    var network = S1DS.Server.Network;
-}
+Legacy server lifecycle hooks still exist:
 
-if (S1DS.IsClient)
-{
-    // Client managers are valid after OnClientInitialize
-    var ui = S1DS.Client.UI;
-    var connection = S1DS.Client.Connection;
-    var avatarService = S1DS.Client.Avatars;
-}
+- `OnPlayerConnected(string playerId)`
+- `OnPlayerDisconnected(string playerId)`
+- `OnCustomMessage(string messageType, byte[] data, string senderId)`
 
-// Access shared functionality (available once the mod initializes)
-var messaging = S1DS.Shared.Messaging;
-var config = S1DS.Shared.Config;
-```
+They now receive a compatibility identifier based on the tracked player:
 
-## API Reference
+1. authenticated Steam ID when available
+2. tracked Steam ID
+3. FishNet client ID
 
-### S1DS Core
+New code should prefer the typed event surface:
 
-| Property/Method | Description |
-|-----------------|-------------|
-| `S1DS.IsServer` | True if running server build |
-| `S1DS.IsClient` | True if running client build |
-| `S1DS.BuildConfig` | Current build configuration string |
-| `S1DS.Log(message, color)` | Log with MelonLoader |
-| `S1DS.LogError(message)` | Log error |
-| `S1DS.LogWarning(message)` | Log warning |
+- subscribe to `ModManager.ServerPlayerConnected`, `ModManager.ServerPlayerDisconnected`, and `ModManager.ServerCustomMessageReceived`
+- or override the `ConnectedPlayerInfo` overloads on `ServerModBase` / `ServerMelonModBase` when you are already deriving from those base classes
 
-### S1DS.Server (SERVER builds only)
+This avoids ambiguity around display names, raw client IDs, and partially trusted identity.
 
-| Property/Method | Description |
-|-----------------|-------------|
-| `Bootstrap` | ServerBootstrap instance |
-| `Players` | Player session queries and moderation facade. Use `S1DS.Server.Permissions` for permission evaluation. |
-| `Network` | NetworkManager instance |
-| `GameSystems` | GameSystemManager instance |
-| `Persistence` | PersistenceManager instance |
-| `StatusQuery` | `ServerStatusQueryService` registration surface for custom TCP status-query handlers |
-| `Patches` | GamePatchManager instance |
-| `PlayerCount` | Number of connected players |
-| `IsRunning` | True if server is running |
+## Server Systems
 
-### S1DS.Client (CLIENT builds only)
+Available through `S1DS.Server` in server builds:
 
-| Property/Method | Description |
-|-----------------|-------------|
-| `Core` | Client Core instance |
-| `Connection` | ClientConnectionManager instance |
-| `UI` | ClientUIManager instance |
-| `Avatars` | `ClientSteamAvatarService` for Steam avatar lookup/caching |
-| `PlayerSetup` | ClientPlayerSetup instance |
-| `Time` | ClientTimeManager instance |
-| `Console` | ClientConsoleManager instance |
-| `Quests` | ClientQuestManager instance |
-| `AdminStatus` | AdminStatusManager instance |
-| `IsConnected` | True if connected |
-| `IsInitialized` | True if initialized |
+- `Players`
+- `Network`
+- `GameSystems`
+- `Persistence`
+- `StatusQuery`
+- `Permissions`
+- `IsRunning`
+- `PlayerCount`
 
-### Join Preparation Registration
+`S1DS.Server.Players` is the main server-side player facade. It exposes tracked `ConnectedPlayerInfo` entries, player lookup helpers, moderation helpers, and join/leave events.
 
-Client mods that need to stage content before the dedicated-server join begins should register a join-preparation pipeline step through `S1DS.Client.Connection`.
+## Client Systems
+
+Available through `S1DS.Client` in client builds:
+
+- `ClientCore`
+- `Connection`
+- `UI`
+- `Console`
+- `Avatars`
+- `Quests`
+- `IsConnected`
+- `IsInitialized`
+
+## `S1DS.Shared.Config`
+
+`S1DS.Shared.Config` exposes `ServerConfig.Instance`, but its behavior differs by side:
+
+- on `SERVER`, it is the authoritative persistent config loaded from disk
+- on `CLIENT`, it is an in-memory config object used by shared client/runtime systems
+
+Client mods should not assume `S1DS.Shared.Config` is the live server configuration snapshot. Use the client runtime systems and data stores exposed through `S1DS.Client` for server-driven state.
+
+## Client Join Preparation
+
+Client mods can register a dedicated-server join-preparation step through `S1DS.Client.Connection`.
 
 ```csharp
 using System.Collections;
 using DedicatedServerMod.API;
+using DedicatedServerMod.API.Client;
 
 public sealed class MyClientMod : ClientMelonModBase
 {
@@ -121,7 +181,7 @@ public sealed class MyClientMod : ClientMelonModBase
     public override void OnClientInitialize()
     {
         _registration = S1DS.Client.Connection.RegisterJoinPreparation(
-            "ghost.example-prejoin",
+            "bars.example-prejoin",
             builder => builder
                 .WithPriority(100)
                 .WithPrepare(PrepareForJoin)
@@ -149,14 +209,13 @@ public sealed class MyClientMod : ClientMelonModBase
 }
 ```
 
-Use `context.Fail("reason")` from the prepare or finalize callback to abort the join with a user-facing error.
-
-### Status Query Registration
+## Status Query Extensions
 
 Server mods can extend the lightweight TCP status-query endpoint through `S1DS.Server.StatusQuery`.
 
 ```csharp
 using DedicatedServerMod.API;
+using DedicatedServerMod.API.Server;
 
 public sealed class MyServerMod : ServerMelonModBase
 {
@@ -165,7 +224,7 @@ public sealed class MyServerMod : ServerMelonModBase
     public override void OnServerInitialize()
     {
         _registration = S1DS.Server.StatusQuery.RegisterHandler(
-            "ghost.example-status",
+            "bars.example-status",
             builder => builder
                 .WithPriority(100)
                 .WithHandler(HandleStatusQuery));
@@ -178,19 +237,17 @@ public sealed class MyServerMod : ServerMelonModBase
 
     private void HandleStatusQuery(ServerStatusQueryContext context)
     {
-        if (context.RequestLine != "EXAMPLE_STATUS")
+        if (context.RequestLine == "EXAMPLE_STATUS")
         {
-            return;
+            context.Respond("{\"ok\":true}");
         }
-
-        context.Respond("{\"ok\":true}");
     }
 }
 ```
 
-### Steam Avatar Helper
+## Steam Avatar Helper
 
-Client mods can resolve Steam avatar textures for connected players through `S1DS.Client.Avatars`.
+Client mods can resolve Steam avatar textures through `S1DS.Client.Avatars`.
 
 ```csharp
 using DedicatedServerMod.API;
@@ -201,7 +258,7 @@ public sealed class AvatarExampleMod : ClientMelonModBase
 {
     public override void OnClientPlayerReady()
     {
-        foreach (var player in Player.PlayerList)
+        foreach (Player player in Player.PlayerList)
         {
             string steamId = PlayerResolver.GetSteamId(player);
             if (string.IsNullOrWhiteSpace(steamId))
@@ -221,132 +278,48 @@ public sealed class AvatarExampleMod : ClientMelonModBase
 }
 ```
 
-`GetSteamAvatar(steamId)` returns a cached texture immediately when available and starts a Steam lookup when it is not. `RequestSteamAvatar(steamId, callback)` is the preferred helper when your mod wants a callback once the image is ready.
-
-### S1DS.Shared (Both builds)
-
-| Property/Method | Description |
-|-----------------|-------------|
-| `Messaging` | CustomMessaging instance |
-| `Config` | ServerConfig instance |
-| `IsMessagingAvailable` | True if messaging system available |
-| `IsConfigLoaded` | True if config loaded |
-
-## Mod Interfaces
-
-### IServerMod
-Server mod interface with essential lifecycle events.
-
-### IClientMod  
-Client mod interface with essential lifecycle events.
-
-## ModManager
-
-The `ModManager` automatically discovers `MelonMod` classes that implement the interfaces and handles lifecycle events. You can also register plain handler objects manually:
-
-```csharp
-ModManager.RegisterServerMod(myServerMod);
-ModManager.RegisterClientMod(myClientMod);
-```
-
-Use one pattern per runtime object:
-
-- Auto-discovery for `MelonMod`, `ServerMelonModBase`, `ClientMelonModBase`, or direct `IServerMod` / `IClientMod` implementations
-- Manual registration for `ServerModBase`, `ClientModBase`, or other non-Melon handler instances
-
-Do not manually register a `MelonMod` that is already auto-discoverable, or the mod can receive duplicate lifecycle callbacks.
-
 ## Companion Mod Metadata
 
-DedicatedServerMod also supports join-time verification for paired server/client mods.
-
-Normal usage:
-
-- server assembly declares `S1DSClientCompanionAttribute`
-- client assembly declares `S1DSClientModIdentityAttribute`
-- the server checks `modId` plus minimum version compatibility during join
-
-Example:
+DedicatedServerMod supports paired server/client mods through assembly metadata.
 
 ```csharp
+using DedicatedServerMod.API.Metadata;
+
 [assembly: S1DSClientCompanion(
-    modId: "ghost.marketterminal",
+    modId: "bars.marketterminal",
     displayName: "Market Terminal",
     Required = true,
     MinVersion = "2.0.0")]
 
-[assembly: S1DSClientModIdentity("ghost.marketterminal", "2.1.0")]
+[assembly: S1DSClientModIdentity("bars.marketterminal", "2.1.0")]
 ```
 
-`PinnedSha256` exists for strict-mode servers, but the normal workflow is `modId` plus version compatibility, not per-build hash maintenance.
+Use metadata-based version matching as the normal path. `PinnedSha256` is intended for strict-mode operators, not everyday development.
 
-## Build Configuration Compatibility
+## Registration Rules
 
-The API respects the side-specific build/distribution model used by DedicatedServerMod:
+`ModManager` auto-discovers:
 
-- **Mono_Server**: Only server classes available
-- **Mono_Client**: Only client classes available
-- **Il2cpp_Server**: Only server classes available
-- **Il2cpp_Client**: Only client classes available
+- `MelonMod` implementations of `IServerMod` / `IClientMod`
+- `ServerMelonModBase`
+- `ClientMelonModBase`
 
-This keeps addon assemblies side-aware at compile time and avoids referencing unavailable namespaces from the wrong runtime.
-
-## Example: Per-Player Organizations Mod
+Manual registration is intended for plain handler objects:
 
 ```csharp
-public class PlayerOrganizationsMod : MelonMod, IServerMod
-{
-    private Dictionary<string, PlayerOrganization> _playerOrgs = new();
-
-    public void OnServerInitialize()
-    {
-        S1DS.Log("Player Organizations mod initializing...");
-        
-        LoadPlayerOrganizations();
-    }
-
-    public void OnPlayerConnected(string playerId)
-    {
-        if (!_playerOrgs.ContainsKey(playerId))
-        {
-            // Send UI prompt for organization creation
-            S1DS.Shared.Messaging.SendToClient(playerId, "CreateOrgPrompt", null);
-        }
-    }
-
-    public bool OnCustomMessage(string messageType, byte[] data, string senderId)
-    {
-        if (messageType == "CreateOrganization")
-        {
-            var orgName = System.Text.Encoding.UTF8.GetString(data);
-            CreatePlayerOrganization(senderId, orgName);
-            return true;
-        }
-        return false;
-    }
-
-    private void CreatePlayerOrganization(string playerId, string orgName)
-    {
-        _playerOrgs[playerId] = new PlayerOrganization 
-        { 
-            PlayerId = playerId, 
-            Name = orgName,
-            Balance = 0,
-            Properties = new List<string>()
-        };
-        
-        S1DS.Log($"Created organization '{orgName}' for player {playerId}");
-    }
-}
+ModManager.RegisterServerMod(myServerHandler);
+ModManager.RegisterClientMod(myClientHandler);
 ```
 
-This API provides a clean, type-safe way to access dedicated server functionality while working within the constraints of your conditional compilation setup.
+Do not manually register a `MelonMod` that is already auto-discoverable or it can receive duplicate callbacks.
 
-## Simplified Mod Base Classes
+## Build Compatibility
 
-To avoid implementing every interface method, you can inherit from base classes that provide no-op implementations and override only what you need:
+DedicatedServerMod ships side-specific assemblies:
 
-- `ServerModBase` or `ServerMelonModBase` for server-side mods
-- `ClientModBase` or `ClientMelonModBase` for client-side mods
+- `Mono_Server`
+- `Mono_Client`
+- `Il2cpp_Server`
+- `Il2cpp_Client`
 
-DedicatedServerMod is distributed as side-specific server/client assemblies, so addons should ship side-specific mod DLLs as well.
+Server-only helper types are compiled only into server-capable builds. Client-only helper types are compiled only into client-capable builds. Keep your addon DLLs side-aware in the same way.

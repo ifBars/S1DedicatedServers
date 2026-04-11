@@ -10,19 +10,39 @@ Use these guides for workflows and architecture, then use the generated API refe
 
 - `S1DS.Server` is available in `SERVER` builds
 - `S1DS.Client` is available in `CLIENT` builds
-- shared access lives under `S1DS.IsServer`, `S1DS.IsClient`, `S1DS.BuildConfig`, and `S1DS.Shared.Config`
+- shared access lives under `S1DS.IsServer`, `S1DS.IsClient`, `S1DS.BuildConfiguration`, and `S1DS.Shared.Config`
 - mods implement `IServerMod` and/or `IClientMod`, or inherit the provided base classes
+- specialized helper types live under `DedicatedServerMod.API.Client`, `DedicatedServerMod.API.Server`, `DedicatedServerMod.API.Metadata`, `DedicatedServerMod.API.Configuration`, and `DedicatedServerMod.API.Toml`
+- optional lifecycle and message hooks should prefer `ModManager` events over adding more mod-facing interfaces
+
+`S1DS.Shared.Config` is side-aware:
+
+- on `SERVER`, it is the authoritative persistent server configuration
+- on `CLIENT`, it is a local in-memory config object used by shared runtime systems
+
+Client mods should not treat `S1DS.Shared.Config` as a live snapshot of the remote server's full config file.
 
 ## Quick Start
 
 ```csharp
 using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Player;
 
 public sealed class MyServerMod : ServerMelonModBase
 {
     public override void OnServerInitialize()
     {
-        MelonLogger.Msg($"Server running? {S1DS.Server.IsRunning}, players: {S1DS.Server.PlayerCount}");
+        ModManager.ServerPlayerConnected += HandlePlayerConnected;
+    }
+
+    public override void OnServerShutdown()
+    {
+        ModManager.ServerPlayerConnected -= HandlePlayerConnected;
+    }
+
+    private void HandlePlayerConnected(ConnectedPlayerInfo player)
+    {
+        MelonLogger.Msg($"Player joined: {player.DisplayName} ({player.TrustedUniqueId})");
     }
 }
 ```
@@ -32,7 +52,17 @@ using DedicatedServerMod.API;
 
 public sealed class MyClientMod : ClientMelonModBase
 {
-    public override void OnClientPlayerReady()
+    public override void OnClientInitialize()
+    {
+        ModManager.ClientPlayerReady += HandleClientReady;
+    }
+
+    public override void OnClientShutdown()
+    {
+        ModManager.ClientPlayerReady -= HandleClientReady;
+    }
+
+    private void HandleClientReady()
     {
         // Client UI and messaging are ready here.
     }
@@ -81,11 +111,13 @@ Use one registration style per runtime object. Do not manually register a `Melon
 Lifecycle hooks give you clear timing for:
 
 - server init/start/shutdown
-- player connect/disconnect
+- player connect/disconnect with `ConnectedPlayerInfo`
 - save/load notifications
 - client init/shutdown
 - server connect/disconnect
 - local player readiness
+
+Legacy string-based `playerId` and `senderId` callbacks remain for compatibility, but they are obsolete compatibility hooks now. On the server side, those string identifiers resolve to trusted unique ID first, then tracked SteamID64, then FishNet client ID. New code should prefer `ModManager.ServerPlayerConnected`, `ModManager.ServerPlayerDisconnected`, and `ModManager.ServerCustomMessageReceived`. On the client side, new optional hooks should prefer `ModManager.ClientInitializing`, `ModManager.ClientConnectedToServer`, `ModManager.ClientPlayerReady`, and `ModManager.ClientCustomMessageReceived`. The base-class overrides remain available when a single mod class owns the entire lifecycle.
 
 ## Configuration
 

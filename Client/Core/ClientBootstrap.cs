@@ -10,6 +10,7 @@ using ScheduleOne.PlayerScripts;
 using DedicatedServerMod.Client.Managers;
 using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
+using DedicatedServerMod.API.Client;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -51,6 +52,7 @@ namespace DedicatedServerMod.Client.Core
         /// </summary>
         private ClientConnectionManager _connectionManager;
 
+        /// <summary>
         /// The auth manager for Steam ticket handshake.
         /// </summary>
         private ClientAuthManager _authManager;
@@ -117,6 +119,7 @@ namespace DedicatedServerMod.Client.Core
         /// </remarks>
         internal ClientConnectionManager ConnectionManager => _connectionManager;
 
+        /// <summary>
         /// Gets the client authentication manager used for the dedicated-server Steam ticket handshake.
         /// </summary>
         internal ClientAuthManager AuthManager => _authManager;
@@ -198,7 +201,7 @@ namespace DedicatedServerMod.Client.Core
 
                 // Initialize MessageRouter for client-side message handling
                 PermissionSnapshotStore.Initialize();
-                API.ClientSteamAvatarService.Instance.Initialize();
+                ClientSteamAvatarService.Instance.Initialize();
 
                 // Initialize messaging service (backend selection)
                 Shared.Networking.CustomMessaging.Initialize();
@@ -377,7 +380,7 @@ namespace DedicatedServerMod.Client.Core
 
                 // Handle auth updates
                 _authManager?.Update();
-                API.ClientSteamAvatarService.Instance.Tick();
+                ClientSteamAvatarService.Instance.Tick();
 
                 // Handle debug input
                 HandleDebugInput();
@@ -437,7 +440,7 @@ namespace DedicatedServerMod.Client.Core
 
             try
             {
-                API.ClientSteamAvatarService.Instance.Shutdown();
+                ClientSteamAvatarService.Instance.Shutdown();
             }
             catch (Exception ex)
             {

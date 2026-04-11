@@ -1,4 +1,5 @@
 using DedicatedServerMod.Shared.Configuration;
+using System.ComponentModel;
 
 namespace DedicatedServerMod.API
 {
@@ -39,23 +40,34 @@ namespace DedicatedServerMod.API
         }
 
         /// <summary>
-        /// Gets the current build configuration
+        /// Gets the current typed build configuration for this assembly.
         /// </summary>
-        public static string BuildConfig
+        public static S1DSBuildConfiguration BuildConfiguration
         {
             get
             {
 #if SERVER && CLIENT
-                return "ServerClient";
+                return S1DSBuildConfiguration.ServerClient;
 #elif SERVER
-                return "Server";
+                return S1DSBuildConfiguration.Server;
 #elif CLIENT
-                return "Client";
+                return S1DSBuildConfiguration.Client;
 #else
-                return "Unknown";
+                return S1DSBuildConfiguration.Unknown;
 #endif
             }
         }
+
+        /// <summary>
+        /// Gets the current build configuration as a legacy string value.
+        /// </summary>
+        /// <remarks>
+        /// New code should prefer <see cref="BuildConfiguration"/> so build checks remain typed and
+        /// resilient to future API evolution.
+        /// </remarks>
+        [Obsolete("Use BuildConfiguration instead.", false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static string BuildConfig => BuildConfiguration.ToString();
 
         /// <summary>
         /// Shared functionality available on both server and client
@@ -63,15 +75,29 @@ namespace DedicatedServerMod.API
         public static class Shared
         {
             /// <summary>
-            /// Access to server configuration
+            /// Gets the runtime <see cref="ServerConfig"/> instance used by the current build.
             /// </summary>
+            /// <remarks>
+            /// In <c>SERVER</c> builds, this is the authoritative configuration loaded from disk and
+            /// persisted through <see cref="ServerConfig.SaveConfig()"/>.
+            /// <para>
+            /// In <c>CLIENT</c> builds, this is an in-memory configuration instance used by shared
+            /// DedicatedServerMod client/runtime systems. It is not the authoritative server config,
+            /// is not automatically synchronized from the server, and client-side changes only update
+            /// the local in-memory copy.
+            /// </para>
+            /// <para>
+            /// If your client mod needs server-advertised gameplay or session metadata, prefer the
+            /// dedicated client managers and data stores exposed through <see cref="S1DS.Client"/>
+            /// rather than assuming <see cref="Config"/> mirrors the active server.
+            /// </para>
+            /// </remarks>
             public static ServerConfig Config => ServerConfig.Instance;
 
             /// <summary>
-            /// Checks if server config is loaded
+            /// Gets a value indicating whether the runtime configuration object is available.
             /// </summary>
             public static bool IsConfigLoaded => Config != null;
-
         }
     }
 }

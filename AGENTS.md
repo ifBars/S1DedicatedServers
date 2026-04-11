@@ -91,8 +91,9 @@ DedicatedServerMod/
    - Organized by concern (e.g., `Client.Patches.SleepPatches`)
 
 7. **Mod API**
-   - `API.IServerMod`, `API.IClientMod`: Modder interfaces
-   - `API.ModManager`: Lifecycle notifications (init, player events, save/load)
+   - `API.IServerMod`, `API.IClientMod`: Coarse mod lifecycle contracts
+   - `API.ModManager`: Event-first lifecycle notifications (init, player events, save/load, custom messages)
+   - `API.Client`, `API.Server`, `API.Metadata`: Focused helper namespaces for specialized public API types
    - Custom messaging for inter-mod communication
 
 ---
@@ -180,6 +181,8 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 - Treat `public` as a supported contract: if a type/member does not need to be called by external assemblies, keep it `internal` or `private`
 - Internal services should not expose `public` constructors or helper methods unless they are part of a deliberate extension seam
 - Do not leak raw `Il2Cpp*`, Unity game, or FishNet implementation types through the supported external surface unless explicitly intended and documented
+- Prefer event-based or registration-based extension points over adding more optional mod-facing interfaces
+- Keep `IServerMod` and `IClientMod` small; route optional hooks such as player lifecycle and custom messaging through `ModManager` or subsystem events with typed payloads like `ConnectedPlayerInfo`
 
 ---
 
@@ -187,7 +190,7 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 
 ### Adding a Public API Method
 
-1. Add to appropriate partial class (`API/S1DS.Server.cs` or `API/S1DS.Client.cs`)
+1. Add to the appropriate partial facade (`API/S1DS.Server.cs` or `API/S1DS.Client.cs`) or the focused API sub-namespace that owns the feature
 2. Write comprehensive XML documentation
 3. Implement in relevant manager/subsystem
 4. Update `docs/` if significant feature

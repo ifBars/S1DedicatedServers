@@ -22,7 +22,8 @@ namespace DedicatedServerMod.API
         /// callbacks tell you when those managers are ready to use.
         /// <para>
         /// Use <see cref="IsInitialized"/> to determine whether client systems have been created.
-        /// Use <see cref="IClientMod.OnClientPlayerReady"/> when your mod needs the local player,
+        /// Use <see cref="ModManager.ClientPlayerReady"/> or
+        /// <see cref="IClientMod.OnClientPlayerReady"/> when your mod needs the local player,
         /// custom messaging, or UI interactions to be fully ready.
         /// </para>
         /// </remarks>
@@ -32,16 +33,18 @@ namespace DedicatedServerMod.API
         /// {
         ///     public override void OnClientInitialize()
         ///     {
-        ///         if (S1DS.Client.IsInitialized)
-        ///         {
-        ///             var connection = S1DS.Client.Connection;
-        ///         }
+        ///         ModManager.ClientPlayerReady += OnClientReady;
         ///     }
         ///
-        ///     public override void OnClientPlayerReady()
+        ///     public override void OnClientShutdown()
         ///     {
+        ///         ModManager.ClientPlayerReady -= OnClientReady;
+        ///     }
+        ///
+        ///     private void OnClientReady()
+        ///     {
+        ///         var connection = S1DS.Client.Connection;
         ///         var ui = S1DS.Client.UI;
-        ///         var serverName = Client.Managers.ServerDataStore.Current?.ServerName;
         ///     }
         /// }
         /// </code>
@@ -73,8 +76,9 @@ namespace DedicatedServerMod.API
             /// Gets the client UI manager used by the dedicated-server client experience.
             /// </summary>
             /// <remarks>
-            /// Prefer using this from <see cref="IClientMod.OnClientPlayerReady"/> when your mod
-            /// depends on scene objects, player presence, or server-driven UI state.
+            /// Prefer using this from <see cref="ModManager.ClientPlayerReady"/> or
+            /// <see cref="IClientMod.OnClientPlayerReady"/> when your mod depends on scene objects,
+            /// player presence, or server-driven UI state.
             /// </remarks>
             public static ClientUIManager UI => ClientBootstrap.Instance?.UIManager;
 
@@ -91,7 +95,8 @@ namespace DedicatedServerMod.API
             /// lookup and caching by SteamID64 without requiring mods to register Steam callbacks
             /// directly.
             /// </remarks>
-            public static ClientSteamAvatarService Avatars => ClientSteamAvatarService.Instance;
+            public static DedicatedServerMod.API.Client.ClientSteamAvatarService Avatars =>
+                DedicatedServerMod.API.Client.ClientSteamAvatarService.Instance;
 
             /// <summary>
             /// Gets the client quest manager used by dedicated-server quest integration.
@@ -104,8 +109,8 @@ namespace DedicatedServerMod.API
             /// <remarks>
             /// This reports the dedicated-server connection state tracked by
             /// <see cref="Connection"/>. It does not imply that the player-facing systems are fully
-            /// ready; use <see cref="IClientMod.OnClientPlayerReady"/> for that point in the
-            /// lifecycle.
+            /// ready; use <see cref="ModManager.ClientPlayerReady"/> or
+            /// <see cref="IClientMod.OnClientPlayerReady"/> for that point in the lifecycle.
             /// </remarks>
             public static bool IsConnected => Connection?.IsConnectedToDedicatedServer ?? false;
 

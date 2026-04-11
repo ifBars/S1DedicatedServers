@@ -19,6 +19,8 @@ See [BUILD_SETUP.md](BUILD_SETUP.md) for local build requirements and [AGENTS.md
 
 * All classes must exist in a logical namespace matching the folder structure.
 * Public API code belongs under `DedicatedServerMod.API`.
+* Keep the root API namespace intentionally small around entry points and broad lifecycle contracts.
+* Place specialized public API helpers in focused sub-namespaces such as `DedicatedServerMod.API.Client`, `DedicatedServerMod.API.Server`, and `DedicatedServerMod.API.Metadata`.
 * Side-specific implementation belongs under `DedicatedServerMod.Server` or `DedicatedServerMod.Client`.
 * Shared code belongs under `DedicatedServerMod.Shared`.
 
@@ -125,6 +127,16 @@ DedicatedServerMod is a framework with a supported extension surface, not just a
 * Do not expose bootstrap, patch, cache, or coordination internals as part of the supported API.
 * Do not leak raw Unity, FishNet, or `Il2Cpp*` implementation types through the supported external surface unless that is an explicit and documented design decision.
 * If external consumers need narrow access to behavior or state, prefer a deliberate facade or project-owned abstraction.
+
+### Event-First Extension Points
+
+DedicatedServerMod is moving optional extension hooks toward events and disposable registrations rather than more mod-facing interfaces.
+
+* Keep `IServerMod` and `IClientMod` as the coarse lifecycle contracts for discovery and broad participation.
+* Prefer `ModManager` events or subsystem-owned events for optional hooks such as player lifecycle and custom messaging.
+* Prefer typed payloads such as `ConnectedPlayerInfo` or dedicated context objects over ambiguous identifiers like `playerId` when exposing new extension points.
+* If a hook needs ordering, teardown, or scoped ownership, prefer an explicit registration API that returns a project-owned registration/disposable type.
+* Do not add a new public interface only to expose a small optional callback surface when an event or registration API would be clearer.
 
 ## Documentation
 

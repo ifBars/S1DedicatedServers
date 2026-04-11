@@ -1,4 +1,4 @@
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Client
 {
     /// <summary>
     /// Provides context for a client join-preparation registration during a dedicated-server connection attempt.

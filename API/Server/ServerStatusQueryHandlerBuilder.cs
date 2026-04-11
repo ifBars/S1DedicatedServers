@@ -1,4 +1,4 @@
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Server
 {
     /// <summary>
     /// Builds a server status-query handler registration.

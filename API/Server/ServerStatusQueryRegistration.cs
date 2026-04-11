@@ -1,7 +1,7 @@
 #if SERVER
 using DedicatedServerMod.Server.Network;
 
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Server
 {
     /// <summary>
     /// Represents a registered server status-query handler.

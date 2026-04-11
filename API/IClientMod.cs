@@ -9,6 +9,15 @@ namespace DedicatedServerMod.API
     /// dedicated-server connection flow, client messaging, or client-only manager systems exposed
     /// through <see cref="S1DS.Client"/>.
     /// <para>
+    /// For new work, prefer the event-based hooks exposed by <see cref="ModManager"/>, such as
+    /// <see cref="ModManager.ClientInitializing"/>,
+    /// <see cref="ModManager.ClientConnectedToServer"/>,
+    /// <see cref="ModManager.ClientPlayerReady"/>, and
+    /// <see cref="ModManager.ClientCustomMessageReceived"/>. Implement
+    /// <see cref="IClientMod"/> directly only when the mod itself owns broad client lifecycle
+    /// participation.
+    /// </para>
+    /// <para>
     /// If you only need a subset of these callbacks, inherit from <see cref="ClientModBase"/> or
     /// <see cref="ClientMelonModBase"/> instead of implementing every member manually.
     /// </para>
@@ -67,6 +76,10 @@ namespace DedicatedServerMod.API
         /// <see langword="true"/> if this mod handled the message and no additional processing is
         /// required; otherwise, <see langword="false"/>.
         /// </returns>
+        /// <remarks>
+        /// New mods should generally prefer <see cref="ModManager.ClientCustomMessageReceived"/>
+        /// unless they already route all client lifecycle handling through a single mod class.
+        /// </remarks>
         bool OnCustomMessage(string messageType, byte[] data);
     }
 }

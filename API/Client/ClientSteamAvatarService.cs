@@ -8,7 +8,7 @@ using Il2CppSteamworks;
 using Steamworks;
 #endif
 
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Client
 {
     /// <summary>
     /// Client-side helper for retrieving Steam avatar textures for connected players.

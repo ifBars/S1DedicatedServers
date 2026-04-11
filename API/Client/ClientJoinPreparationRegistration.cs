@@ -1,7 +1,7 @@
 #if CLIENT
 using DedicatedServerMod.Client.Managers;
 
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Client
 {
     /// <summary>
     /// Represents a registered client join-preparation callback set.

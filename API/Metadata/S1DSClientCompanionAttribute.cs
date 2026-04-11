@@ -1,4 +1,4 @@
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Metadata
 {
     /// <summary>
     /// Declares the dedicated-server client companion expected by a server-side mod assembly.
@@ -17,7 +17,7 @@ namespace DedicatedServerMod.API
     /// <example>
     /// <code>
     /// [assembly: S1DSClientCompanion(
-    ///     modId: "ghost.mycoolmod",
+    ///     modId: "bars.mycoolmod",
     ///     displayName: "My Cool Mod",
     ///     Required = true,
     ///     MinVersion = "1.2.0")]

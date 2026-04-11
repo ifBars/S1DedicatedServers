@@ -41,8 +41,8 @@ Server owners do not normally maintain allowlists for ordinary paired mods.
 
 Instead:
 
-- server-side mods declare their expected client companion through `S1DSClientCompanionAttribute`
-- client-side mods declare their identity through `S1DSClientModIdentityAttribute`
+- server-side mods declare their expected client companion through `DedicatedServerMod.API.Metadata.S1DSClientCompanionAttribute`
+- client-side mods declare their identity through `DedicatedServerMod.API.Metadata.S1DSClientModIdentityAttribute`
 - DedicatedServerMod reads that metadata automatically during startup and join verification
 
 See [Companion Mods and Verification Metadata](../modding/companion-mods.md) for the mod-author side.
@@ -106,7 +106,7 @@ When enabled:
 
 Pinned hashes can come from:
 
-- a mod author’s `S1DSClientCompanionAttribute.PinnedSha256`
+- a mod author’s `DedicatedServerMod.API.Metadata.S1DSClientCompanionAttribute.PinnedSha256`
 - `strictPinnedCompanionHashes` in `client_mod_policy.toml`
 
 If a required companion mod has no strict-mode hash source, server startup fails fast instead of silently weakening policy.
@@ -119,13 +119,13 @@ deniedClientModIds = []
 deniedClientModNames = []
 deniedClientModHashes = []
 
-[approvedUnpairedClientMods.ghost.visualtrees]
-modId = 'ghost.visualtrees'
+[approvedUnpairedClientMods.bars.visualtrees]
+modId = 'bars.visualtrees'
 displayName = 'Visual Trees'
 pinnedSha256 = ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']
 
-[strictPinnedCompanionHashes.ghost.mycoolmod]
-modId = 'ghost.mycoolmod'
+[strictPinnedCompanionHashes.bars.mycoolmod]
+modId = 'bars.mycoolmod'
 pinnedSha256 = ['bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
 ```
 

@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace DedicatedServerMod.API
+namespace DedicatedServerMod.API.Client
 {
     /// <summary>
     /// Builds a client join-preparation registration for the dedicated-server connection pipeline.

@@ -9,6 +9,8 @@ namespace DedicatedServerMod.API
 	/// Inherit from this type when another base class already owns your Melon lifecycle and you only
 	/// need DedicatedServerMod client callbacks. Override the members relevant to your mod and use
 	/// <see cref="S1DS.Client"/> to access client systems.
+	/// New code should generally prefer <see cref="ModManager"/> events for optional hooks and keep
+	/// these overrides for coarse startup or shutdown ownership.
 	/// </remarks>
 	public abstract class ClientModBase : IClientMod
 	{
@@ -32,6 +34,8 @@ namespace DedicatedServerMod.API
 	/// <remarks>
 	/// This is the usual base class for a dedicated-server-aware client mod. MelonLoader discovers
 	/// the mod normally, while DedicatedServerMod invokes the <see cref="IClientMod"/> callbacks.
+	/// Prefer <see cref="ModManager"/> events for optional client hooks such as message handling,
+	/// readiness notifications, and connection-state reactions.
 	/// </remarks>
 	public abstract class ClientMelonModBase : MelonMod, IClientMod
 	{

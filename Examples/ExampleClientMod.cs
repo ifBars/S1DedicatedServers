@@ -1,5 +1,5 @@
-using System;
 using MelonLoader;
+using DedicatedServerMod.Shared.Networking;
 
 [assembly: MelonInfo(typeof(ExampleClientMod), "ExampleClientMod", "1.0.0", "Example Author")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -17,94 +17,80 @@ namespace DedicatedServerMod.Examples.Client
     /// 3. Implement your mod logic
     /// 4. Build and place in Schedule I/Mods/
     /// </remarks>
-    public class ExampleClientMod : API.ClientModBase
+    public class ExampleClientMod : API.ClientMelonModBase
     {
         /// <summary>
         /// Called when the client mod is initializing.
-        /// Use this for general initialization.
+        /// Use this to attach event-first client hooks.
         /// </summary>
-        protected override void OnClientInitialize()
+        public override void OnClientInitialize()
         {
             LoggerInstance.Msg("ExampleClientMod initializing...");
 
-            // Example: Subscribe to custom messages from server
-            // API.ModManager.NotifyConnectedToServer += OnConnectedToServer;
+            API.ModManager.ClientConnectedToServer += HandleConnectedToServer;
+            API.ModManager.ClientDisconnectedFromServer += HandleDisconnectedFromServer;
+            API.ModManager.ClientPlayerReady += HandleClientPlayerReady;
+            API.ModManager.ClientCustomMessageReceived += HandleCustomMessage;
 
             LoggerInstance.Msg("ExampleClientMod initialized successfully");
         }
 
         /// <summary>
-        /// Called when the client connects to a dedicated server.
+        /// Called when the client is shutting down.
         /// </summary>
-        protected override void OnConnectedToServer()
+        public override void OnClientShutdown()
         {
-            LoggerInstance.Msg("ExampleClientMod: Connected to server!");
+            API.ModManager.ClientCustomMessageReceived -= HandleCustomMessage;
+            API.ModManager.ClientPlayerReady -= HandleClientPlayerReady;
+            API.ModManager.ClientDisconnectedFromServer -= HandleDisconnectedFromServer;
+            API.ModManager.ClientConnectedToServer -= HandleConnectedToServer;
 
-            // Example: Request server data or send identification
-            // S1DS.Client.Messaging.SendToServer("request_info");
+            LoggerInstance.Msg("ExampleClientMod: Shutting down...");
         }
 
         /// <summary>
-        /// Called when the local player is spawned and systems are ready.
-        /// This is the best place for player-specific initialization.
+        /// Handles the event-first dedicated-server connection notification.
         /// </summary>
-        protected override void OnClientPlayerReady()
+        private void HandleConnectedToServer()
+        {
+            LoggerInstance.Msg("ExampleClientMod: Connected to server!");
+
+            // Example: Request server data or send identification.
+            // CustomMessaging.SendToServer("request_info");
+        }
+
+        /// <summary>
+        /// Handles the event-first local-player-ready notification.
+        /// </summary>
+        private void HandleClientPlayerReady()
         {
             LoggerInstance.Msg("ExampleClientMod: Player is ready!");
 
-            // Example: Show custom UI or enable features
+            // Example: Show custom UI or enable features.
             // ShowCustomHUD();
         }
 
         /// <summary>
-        /// Called when the client disconnects from a server.
+        /// Handles the event-first dedicated-server disconnect notification.
         /// </summary>
-        protected override void OnDisconnectedFromServer()
+        private void HandleDisconnectedFromServer()
         {
             LoggerInstance.Msg("ExampleClientMod: Disconnected from server");
 
-            // Example: Clean up UI or state
+            // Example: Clean up UI or state.
             // HideCustomHUD();
         }
 
         /// <summary>
-        /// Called when the client is shutting down.
+        /// Handles forwarded custom messages from the server.
         /// </summary>
-        protected override void OnClientShutdown()
-        {
-            LoggerInstance.Msg("ExampleClientMod: Shutting down...");
-
-            // Example: Perform cleanup
-            // CleanupResources();
-        }
-
-        /// <summary>
-        /// Called when the client receives a custom message from the server.
-        /// Return true if this mod handled the message, false otherwise.
-        /// </summary>
-        /// <param name="messageType">Type of the message</param>
-        /// <param name="data">Message data (typically JSON)</param>
-        /// <returns>True if handled, false to pass to other mods</returns>
-        protected override bool OnCustomMessage(string messageType, byte[] data)
+        /// <param name="messageType">Type of the message.</param>
+        /// <param name="data">Message data, typically JSON.</param>
+        private void HandleCustomMessage(string messageType, byte[] data)
         {
             LoggerInstance.Msg($"Received message from server: {messageType}");
 
-            // Example: Handle specific message types
-            // if (messageType == "welcome")
-            // {
-            //     var welcomeMessage = System.Text.Encoding.UTF8.GetString(data);
-            //     ShowWelcomeToast(welcomeMessage);
-            //     return true;
-            // }
-
-            // if (messageType == "server_info")
-            // {
-            //     var info = Newtonsoft.Json.JsonConvert.DeserializeObject<ServerInfo>(data);
-            //     UpdateServerInfoDisplay(info);
-            //     return true;
-            // }
-
-            return false; // Not handled by this mod
+            // Example: Handle specific message types here.
         }
     }
 }

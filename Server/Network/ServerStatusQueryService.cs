@@ -3,11 +3,12 @@ using System.Net.Sockets;
 using System.Text;
 using System.Linq;
 using MelonLoader;
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Server;
 using Newtonsoft.Json;
 using DedicatedServerMod.Server.Player;
 using DedicatedServerMod.Shared;
 using DedicatedServerMod.Shared.Configuration;
+using System.Threading.Tasks;
 
 namespace DedicatedServerMod.Server.Network
 {
@@ -22,7 +23,7 @@ namespace DedicatedServerMod.Server.Network
         private readonly PlayerManager _playerManager;
         private readonly List<StatusQueryRegistrationEntry> _registrations = new List<StatusQueryRegistrationEntry>();
         private TcpListener _listener;
-        private Thread _listenerThread;
+        private Task _listenerTask;
         private CancellationTokenSource _cancellation;
         private long _nextRegistrationOrder;
 
@@ -43,13 +44,7 @@ namespace DedicatedServerMod.Server.Network
             _cancellation = new CancellationTokenSource();
             _listener = new TcpListener(IPAddress.Any, port);
             _listener.Start();
-
-            _listenerThread = new Thread(ListenLoop)
-            {
-                IsBackground = true,
-                Name = "DedicatedServerStatusQuery"
-            };
-            _listenerThread.Start();
+            _listenerTask = ListenLoopAsync(_listener, _cancellation.Token);
 
             _logger.Msg($"Status query endpoint listening on TCP {port}");
         }
@@ -68,7 +63,7 @@ namespace DedicatedServerMod.Server.Network
             finally
             {
                 _listener = null;
-                _listenerThread = null;
+                _listenerTask = null;
                 _cancellation?.Dispose();
                 _cancellation = null;
             }
@@ -115,21 +110,32 @@ namespace DedicatedServerMod.Server.Network
             }
         }
 
-        private void ListenLoop()
+        private async Task ListenLoopAsync(TcpListener listener, CancellationToken cancellationToken)
         {
-            while (_cancellation != null && !_cancellation.IsCancellationRequested)
+            while (_cancellation != null && !cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    TcpClient client = _listener.AcceptTcpClient();
+                    TcpClient client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     ThreadPool.QueueUserWorkItem(_ => HandleClient(client));
                 }
                 catch (SocketException)
                 {
-                    if (_cancellation == null || _cancellation.IsCancellationRequested)
+                    if (_cancellation == null || cancellationToken.IsCancellationRequested)
                     {
                         return;
                     }
+                }
+                catch (ObjectDisposedException)
+                {
+                    if (_cancellation == null || cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
                 }
                 catch (Exception ex)
                 {

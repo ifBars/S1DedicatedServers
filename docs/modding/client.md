@@ -11,9 +11,15 @@ Client mods implement `IClientMod` or inherit `ClientModBase` / `ClientMelonModB
 - `OnConnectedToServer()`
 - `OnDisconnectedFromServer()`
 - `OnClientPlayerReady()`
-- `OnCustomMessage(string messageType, byte[] data)`
+- `ModManager.ClientInitializing`
+- `ModManager.ClientConnectedToServer`
+- `ModManager.ClientDisconnectedFromServer`
+- `ModManager.ClientPlayerReady`
+- `ModManager.ClientCustomMessageReceived`
 
 Use `OnClientPlayerReady()` for logic that depends on UI and messaging already being initialized.
+
+Prefer the `ModManager` events above for optional client hooks. Keep `IClientMod` and the base classes for coarse lifecycle participation, registration boundaries, and auto-discovery.
 
 ## Client Systems
 
@@ -23,22 +29,26 @@ Available in `CLIENT` builds via `S1DS.Client`:
 - `Connection`
 - `UI`
 - `Console`
+- `Avatars`
 - `Quests`
-- `Loopback`
-- `Transport`
 - `IsConnected`
 - `IsInitialized`
 
 Example:
 
 ```csharp
-public override void OnClientPlayerReady()
+public override void OnClientInitialize()
 {
-    if (!S1DS.Client.IsConnected)
-    {
-        return;
-    }
+    ModManager.ClientPlayerReady += HandleClientReady;
+}
 
+public override void OnClientShutdown()
+{
+    ModManager.ClientPlayerReady -= HandleClientReady;
+}
+
+private void HandleClientReady()
+{
     // Messaging and UI are safe to use here.
 }
 ```
@@ -73,7 +83,7 @@ public sealed class MyMod : MelonMod
 }
 ```
 
-Registration ensures client message forwarding is wired so `OnCustomMessage` can be delivered.
+Registration ensures client message forwarding is wired so `OnCustomMessage` and `ModManager.ClientCustomMessageReceived` can be delivered.
 
 Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase`.
 
@@ -82,9 +92,9 @@ Do not manually register a `MelonMod` that already implements `IClientMod` or in
 If your client mod may be checked by a dedicated server, declare its stable identity at the assembly level:
 
 ```csharp
-using DedicatedServerMod.API;
+using DedicatedServerMod.API.Metadata;
 
-[assembly: S1DSClientModIdentity("ghost.marketterminal", "2.1.0")]
+[assembly: S1DSClientModIdentity("bars.marketterminal", "2.1.0")]
 ```
 
 This is strongly recommended for:

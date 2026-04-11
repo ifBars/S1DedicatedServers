@@ -716,22 +716,17 @@
 	<!-- API layer (shared by all builds) -->
 	<ItemGroup>
 	  <Compile Include="API\Version.cs" />
+	  <Compile Include="API\S1DSBuildConfiguration.cs" />
 	  <Compile Include="API\Toml\*.cs" />
 	  <Compile Include="API\Configuration\*.cs" />
 	  <Compile Include="API\S1DS.cs" />
-	  <Compile Include="API\S1DSClientCompanionAttribute.cs" />
-	  <Compile Include="API\S1DSClientModIdentityAttribute.cs" />
-	  <Compile Include="API\ClientJoinPreparationBuilder.cs" />
-	  <Compile Include="API\ClientJoinPreparationContext.cs" />
-	  <Compile Include="API\ClientJoinPreparationRegistration.cs" />
 	  <Compile Include="API\IServerMod.cs" />
-	  <Compile Include="API\ServerStatusQueryContext.cs" />
-	  <Compile Include="API\ServerStatusQueryHandlerBuilder.cs" />
-	  <Compile Include="API\ServerStatusQueryRegistration.cs" />
 	  <Compile Include="API\IClientMod.cs" />
 	  <Compile Include="API\ModManager.cs" />
+	  <Compile Include="API\ModManager.*.cs" />
 	  <Compile Include="API\ServerModBase.cs" />
 	  <Compile Include="API\ClientModBase.cs" />
+	  <Compile Include="API\Metadata\*.cs" />
 	</ItemGroup>
 	
 	<!-- Shared layer (shared by server and client) -->
@@ -771,7 +766,7 @@
 		<!-- Client data -->
 		<Compile Include="Client\Data\*.cs" />
 		
-		<Compile Include="API\ClientSteamAvatarService.cs" />
+		<Compile Include="API\Client\*.cs" />
 		<Compile Include="API\S1DS.Client.cs" />
 		<Compile Include="Assets\AssetBundleLoader.cs" />
 		<EmbeddedResource Remove="Server\**" />
@@ -825,6 +820,7 @@
 		<Compile Include="Server\Game\GamePatchManager.cs" />
 		<Compile Include="Server\Game\PatchInfo.cs" />
 		<Compile Include="Server\Game\Patches\**\*.cs" />
+		<Compile Include="API\Server\*.cs" />
 		<Compile Include="API\S1DS.Server.cs" />
 	</ItemGroup>
 
