@@ -1,3 +1,4 @@
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using BehaviourType = Il2CppScheduleOne.NPCs.Behaviour.Behaviour;
@@ -17,7 +18,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(NpcBehaviourType), "Update")]
     internal static class NpcBehaviourUpdatePatches
     {
-        private static bool Prefix(NpcBehaviourType __instance, BehaviourListType ___enabledBehaviours)
+        private static bool Prefix(NpcBehaviourType __instance)
         {
             if (__instance == null || __instance.DEBUG_MODE)
             {
@@ -26,8 +27,9 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             if (__instance.IsServerInitialized)
             {
-                BehaviourType enabledBehaviour = ___enabledBehaviours != null && ___enabledBehaviours.Count > 0
-                    ? ___enabledBehaviours[0]
+                SafeReflection.TryGetInstanceFieldOrProperty(__instance, "enabledBehaviours", out BehaviourListType enabledBehaviours);
+                BehaviourType enabledBehaviour = enabledBehaviours != null && enabledBehaviours.Count > 0
+                    ? enabledBehaviours[0]
                     : null;
                 if (enabledBehaviour != __instance.activeBehaviour)
                 {

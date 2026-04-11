@@ -5,15 +5,18 @@ using System.Runtime.Serialization;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using HarmonyLib;
 #if IL2CPP
+using Il2CppInterop.Runtime;
 using DrawingType = Il2CppScheduleOne.Graffiti.Drawing;
 using PixelDataType = Il2CppScheduleOne.Graffiti.PixelData;
 using SprayStrokeType = Il2CppScheduleOne.Graffiti.SprayStroke;
 using SpraySurfaceType = Il2CppScheduleOne.Graffiti.SpraySurface;
+using TextureChangedCallbackType = Il2CppSystem.Action;
 #else
 using DrawingType = ScheduleOne.Graffiti.Drawing;
 using PixelDataType = ScheduleOne.Graffiti.PixelData;
 using SprayStrokeType = ScheduleOne.Graffiti.SprayStroke;
 using SpraySurfaceType = ScheduleOne.Graffiti.SpraySurface;
+using TextureChangedCallbackType = System.Action;
 #endif
 
 namespace DedicatedServerMod.Server.Game.Patches.Gameplay
@@ -148,11 +151,19 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             return total;
         }
 
-        internal static Action CreateDrawingChangedCallback(SpraySurfaceType surface)
+        internal static TextureChangedCallbackType CreateDrawingChangedCallback(SpraySurfaceType surface)
         {
-            return DrawingChangedMethod == null || surface == null
-                ? null
-                : (Action)Delegate.CreateDelegate(typeof(Action), surface, DrawingChangedMethod);
+            if (DrawingChangedMethod == null || surface == null)
+            {
+                return null;
+            }
+
+#if IL2CPP
+            System.Action callback = (System.Action)Delegate.CreateDelegate(typeof(System.Action), surface, DrawingChangedMethod);
+            return DelegateSupport.ConvertDelegate<TextureChangedCallbackType>(callback);
+#else
+            return (TextureChangedCallbackType)Delegate.CreateDelegate(typeof(TextureChangedCallbackType), surface, DrawingChangedMethod);
+#endif
         }
 
         internal static void NotifyTextureChanged(DrawingType drawing)
@@ -179,17 +190,28 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return true;
             }
 
-            Action callback = HeadlessGraffitiPatchState.CreateDrawingChangedCallback(__instance);
+            TextureChangedCallbackType callback = HeadlessGraffitiPatchState.CreateDrawingChangedCallback(__instance);
             DrawingType current = HeadlessGraffitiPatchState.GetDrawing(__instance);
             if (current != null && callback != null)
             {
-                current.onTextureChanged = (Action)Delegate.Remove(current.onTextureChanged, callback);
+#if IL2CPP
+                Il2CppSystem.Delegate remaining = Il2CppSystem.Delegate.Remove(current.onTextureChanged, callback);
+                current.onTextureChanged = remaining != null ? remaining.Cast<TextureChangedCallbackType>() : null;
+#else
+                current.onTextureChanged = (TextureChangedCallbackType)Delegate.Remove(current.onTextureChanged, callback);
+#endif
             }
 
             DrawingType drawing = HeadlessGraffitiPatchState.CreateHeadlessDrawing(__instance.Width, __instance.Height);
             if (callback != null)
             {
-                drawing.onTextureChanged = (Action)Delegate.Combine(drawing.onTextureChanged, callback);
+#if IL2CPP
+                drawing.onTextureChanged = drawing.onTextureChanged != null
+                    ? Il2CppSystem.Delegate.Combine(drawing.onTextureChanged, callback).Cast<TextureChangedCallbackType>()
+                    : callback;
+#else
+                drawing.onTextureChanged = (TextureChangedCallbackType)Delegate.Combine(drawing.onTextureChanged, callback);
+#endif
             }
 
             HeadlessGraffitiPatchState.SetDrawing(__instance, drawing);

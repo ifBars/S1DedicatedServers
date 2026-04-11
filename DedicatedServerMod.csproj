@@ -53,6 +53,9 @@
 		<Reference Include="Il2CppInterop.Runtime">
 			<HintPath>$(MelonLoaderPath)\Il2CppInterop.Runtime.dll</HintPath>
 		</Reference>
+		<Reference Include="UnityEngine.Il2CppAssetBundleManager">
+			<HintPath>$(MelonLoaderPath)\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(EffectiveConfiguration)'=='Documentation'">
@@ -74,9 +77,10 @@
 		<DefineConstants>MONO;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Client</AssemblyName>
 		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
-		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<!-- Prefer runtime-specific deployment path, then shared client override, then default ModsPath -->
+		<DeploymentPath Condition="'$(MonoClientDeploymentPath)' != ''">$(MonoClientDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ClientDeploymentPath)' != ''">$(ClientDeploymentPath)</DeploymentPath>
-		<DeploymentPath Condition="'$(ClientDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(DeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Mono_Server'">
@@ -89,9 +93,10 @@
 		<DefineConstants>MONO;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Mono_Server</AssemblyName>
 		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
-		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<!-- Prefer runtime-specific deployment path, then shared server override, then default ModsPath -->
+		<DeploymentPath Condition="'$(MonoServerDeploymentPath)' != ''">$(MonoServerDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
-		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(DeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Documentation'">
@@ -117,9 +122,10 @@
 		<DefineConstants>IL2CPP;CLIENT</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Il2cpp_Client</AssemblyName>
 		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
-		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<!-- Prefer runtime-specific deployment path, then shared client override, then default ModsPath -->
+		<DeploymentPath Condition="'$(Il2CppClientDeploymentPath)' != ''">$(Il2CppClientDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ClientDeploymentPath)' != ''">$(ClientDeploymentPath)</DeploymentPath>
-		<DeploymentPath Condition="'$(ClientDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(DeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Server'">
@@ -130,9 +136,10 @@
 		<DefineConstants>IL2CPP;SERVER</DefineConstants>
 		<AssemblyName>DedicatedServerMod_Il2cpp_Server</AssemblyName>
 		<OutputPath>bin\$(EffectiveConfiguration)\</OutputPath>
-		<!-- Use custom deployment path if specified, otherwise use default ModsPath -->
+		<!-- Prefer runtime-specific deployment path, then shared server override, then default ModsPath -->
+		<DeploymentPath Condition="'$(Il2CppServerDeploymentPath)' != ''">$(Il2CppServerDeploymentPath)</DeploymentPath>
 		<DeploymentPath Condition="'$(ServerDeploymentPath)' != ''">$(ServerDeploymentPath)</DeploymentPath>
-		<DeploymentPath Condition="'$(ServerDeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
+		<DeploymentPath Condition="'$(DeploymentPath)' == ''">$(ModsPath)</DeploymentPath>
 	</PropertyGroup>
 
 	<!-- Mono references -->
@@ -421,8 +428,8 @@
 		<Reference Include="Il2CppFishNet.Runtime">
 			<HintPath>$(ManagedPath)\Il2CppFishNet.Runtime.dll</HintPath>
 		</Reference>
-		<Reference Include="Il2CppOokii.Dialogs">
-			<HintPath>$(ManagedPath)\Il2CppOokii.Dialogs.dll</HintPath>
+		<Reference Include="Il2CppAstarPathfindingProject">
+			<HintPath>$(ManagedPath)\Il2CppAstarPathfindingProject.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppPathfinding.ClipperLib">
 			<HintPath>$(ManagedPath)\Il2CppPathfinding.ClipperLib.dll</HintPath>
@@ -830,8 +837,8 @@
 	</PropertyGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(AutomateLocalDeployment)' == 'true'">
-		<!-- Client builds: copy to deployment path and restart game -->
-		<Exec Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied&#xD;&#xA;START &quot;&quot; &quot;$(GamePath)\Schedule I.exe&quot;" />
+		<!-- Client builds: copy to deployment path only -->
+		<Exec Condition="'$(EffectiveConfiguration)'=='Mono_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Client'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 		<!-- Server builds: copy to deployment path only -->
 		<Exec Condition="'$(EffectiveConfiguration)'=='Mono_Server' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'" Command="for /L %%i in (1,1,5) do (COPY &quot;$(TargetPath)&quot; &quot;$(DeploymentPath)&quot; &amp;&amp; goto copied || timeout /t 1 /nobreak &gt;nul)&#xD;&#xA;:copied" />
 	</Target>

@@ -159,7 +159,7 @@ namespace DedicatedServerMod.Client.Patchers
             if (poi == null)
                 return false;
 
-            player = poi.GetComponentInParent<Player>(includeInactive: true);
+            player = UnityComponentAccess.GetComponentInParent<Player>(poi, includeInactive: true);
             if (player != null && player.IsGhostHost())
                 return true;
 
@@ -172,7 +172,7 @@ namespace DedicatedServerMod.Client.Patchers
                 }
             }
 
-            foreach (var candidate in UnityEngine.Object.FindObjectsOfType<Player>(includeInactive: true))
+            foreach (var candidate in UnityComponentAccess.FindObjectsOfType<Player>(includeInactive: true))
             {
                 if (candidate?.PoI == poi && candidate.IsGhostHost())
                 {

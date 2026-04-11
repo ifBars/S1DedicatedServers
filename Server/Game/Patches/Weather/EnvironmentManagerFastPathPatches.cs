@@ -4,11 +4,13 @@ using DedicatedServerMod.Server.Game.Patches.Common;
 using HarmonyLib;
 using UnityEngine;
 #if IL2CPP
+using Il2CppInterop.Runtime;
 using EnvironmentManagerType = Il2CppScheduleOne.Weather.EnvironmentManager;
 using LandVehicleType = Il2CppScheduleOne.Vehicles.LandVehicle;
 using NpcType = Il2CppScheduleOne.NPCs.NPC;
 using SkateboardType = Il2CppScheduleOne.Skating.Skateboard;
 using WeatherEntityType = Il2CppScheduleOne.Weather.IWeatherEntity;
+using WeatherEntityListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Weather.IWeatherEntity>;
 using WeatherProfileType = Il2CppScheduleOne.Weather.WeatherProfile;
 #else
 using EnvironmentManagerType = ScheduleOne.Weather.EnvironmentManager;
@@ -16,6 +18,7 @@ using LandVehicleType = ScheduleOne.Vehicles.LandVehicle;
 using NpcType = ScheduleOne.NPCs.NPC;
 using SkateboardType = ScheduleOne.Skating.Skateboard;
 using WeatherEntityType = ScheduleOne.Weather.IWeatherEntity;
+using WeatherEntityListType = System.Collections.Generic.IList<ScheduleOne.Weather.IWeatherEntity>;
 using WeatherProfileType = ScheduleOne.Weather.WeatherProfile;
 #endif
 
@@ -145,7 +148,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
             return state;
         }
 
-        private static void CleanupEntityStates(WeatherManagerState state, IList<WeatherEntityType> entities)
+        private static void CleanupEntityStates(WeatherManagerState state, WeatherEntityListType entities)
         {
             if (state.EntityStates.Count == 0)
             {
@@ -180,7 +183,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
         private static void ProcessDynamicEntities(
             EnvironmentManagerType manager,
             WeatherManagerState state,
-            IList<WeatherEntityType> entities,
+            WeatherEntityListType entities,
             ServerAdaptivePerformanceSnapshot tuning,
             float now)
         {
@@ -199,7 +202,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
         private static void ProcessNpcBatch(
             EnvironmentManagerType manager,
             WeatherManagerState state,
-            IList<WeatherEntityType> entities,
+            WeatherEntityListType entities,
             ServerAdaptivePerformanceSnapshot tuning,
             float now)
         {
@@ -343,12 +346,27 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
 
         private static bool IsNpcWeatherEntity(WeatherEntityType entity)
         {
+#if IL2CPP
+            object candidate = entity;
+            return candidate is Il2CppSystem.Object entityObject && entityObject.TryCast<NpcType>() != null;
+#else
             return entity is NpcType;
+#endif
         }
 
         private static bool IsDynamicWeatherEntity(WeatherEntityType entity)
         {
+#if IL2CPP
+            object candidate = entity;
+            if (candidate is not Il2CppSystem.Object entityObject)
+            {
+                return false;
+            }
+
+            return entityObject.TryCast<LandVehicleType>() != null || entityObject.TryCast<SkateboardType>() != null;
+#else
             return entity is LandVehicleType || entity is SkateboardType;
+#endif
         }
     }
 

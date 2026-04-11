@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 using UnityEngine;
 
@@ -14,35 +15,38 @@ internal static class UnityLoggingPatches
     [HarmonyTargetMethods]
     private static IEnumerable<MethodBase> TargetMethods()
     {
-        MethodBase applicationLogCallback = AccessTools.Method(
+        MethodBase applicationLogCallback = SafeReflection.FindMethod(
             typeof(Application),
             "CallLogCallback",
-            new[] { typeof(string), typeof(string), typeof(LogType), typeof(bool) });
-        Type debugLogHandlerType = AccessTools.TypeByName("UnityEngine.DebugLogHandler");
+            typeof(string),
+            typeof(string),
+            typeof(LogType),
+            typeof(bool));
+        Type debugLogHandlerType = SafeReflection.FindType("UnityEngine.DebugLogHandler");
         MethodBase[] candidates =
         {
             applicationLogCallback,
-            AccessTools.Method(typeof(Debug), nameof(Debug.LogWarning), new[] { typeof(object) }),
-            AccessTools.Method(typeof(Debug), nameof(Debug.LogWarning), new[] { typeof(object), typeof(UnityEngine.Object) }),
-            AccessTools.Method(typeof(Debug), nameof(Debug.LogWarningFormat), new[] { typeof(string), typeof(object[]) }),
-            AccessTools.Method(typeof(Debug), nameof(Debug.LogWarningFormat), new[] { typeof(UnityEngine.Object), typeof(string), typeof(object[]) }),
-            AccessTools.Method(typeof(Debug), nameof(Debug.LogFormat), new[] { typeof(LogType), typeof(LogOption), typeof(UnityEngine.Object), typeof(string), typeof(object[]) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.Log), new[] { typeof(LogType), typeof(object) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.Log), new[] { typeof(LogType), typeof(object), typeof(UnityEngine.Object) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.Log), new[] { typeof(LogType), typeof(string), typeof(object) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.Log), new[] { typeof(LogType), typeof(string), typeof(object), typeof(UnityEngine.Object) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.LogFormat), new[] { typeof(LogType), typeof(UnityEngine.Object), typeof(string), typeof(object[]) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.LogFormat), new[] { typeof(LogType), typeof(string), typeof(object[]) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.LogWarning), new[] { typeof(string), typeof(object) }),
-            AccessTools.Method(typeof(Logger), nameof(Logger.LogWarning), new[] { typeof(string), typeof(object), typeof(UnityEngine.Object) }),
+            SafeReflection.FindMethod(typeof(Debug), nameof(Debug.LogWarning), typeof(object)),
+            SafeReflection.FindMethod(typeof(Debug), nameof(Debug.LogWarning), typeof(object), typeof(UnityEngine.Object)),
+            SafeReflection.FindMethod(typeof(Debug), nameof(Debug.LogWarningFormat), typeof(string), typeof(object[])),
+            SafeReflection.FindMethod(typeof(Debug), nameof(Debug.LogWarningFormat), typeof(UnityEngine.Object), typeof(string), typeof(object[])),
+            SafeReflection.FindMethod(typeof(Debug), nameof(Debug.LogFormat), typeof(LogType), typeof(LogOption), typeof(UnityEngine.Object), typeof(string), typeof(object[])),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.Log), typeof(LogType), typeof(object)),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.Log), typeof(LogType), typeof(object), typeof(UnityEngine.Object)),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.Log), typeof(LogType), typeof(string), typeof(object)),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.Log), typeof(LogType), typeof(string), typeof(object), typeof(UnityEngine.Object)),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.LogFormat), typeof(LogType), typeof(UnityEngine.Object), typeof(string), typeof(object[])),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.LogFormat), typeof(LogType), typeof(string), typeof(object[])),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.LogWarning), typeof(string), typeof(object)),
+            SafeReflection.FindMethod(typeof(Logger), nameof(Logger.LogWarning), typeof(string), typeof(object), typeof(UnityEngine.Object)),
             debugLogHandlerType != null
-                ? AccessTools.Method(debugLogHandlerType, "LogFormat", new[] { typeof(LogType), typeof(UnityEngine.Object), typeof(string), typeof(object[]) })
+                ? SafeReflection.FindMethod(debugLogHandlerType, "LogFormat", typeof(LogType), typeof(UnityEngine.Object), typeof(string), typeof(object[]))
                 : null,
             debugLogHandlerType != null
-                ? AccessTools.Method(debugLogHandlerType, "LogFormat", new[] { typeof(LogType), typeof(LogOption), typeof(UnityEngine.Object), typeof(string), typeof(object[]) })
+                ? SafeReflection.FindMethod(debugLogHandlerType, "LogFormat", typeof(LogType), typeof(LogOption), typeof(UnityEngine.Object), typeof(string), typeof(object[]))
                 : null,
             debugLogHandlerType != null
-                ? AccessTools.Method(debugLogHandlerType, "Internal_Log", new[] { typeof(LogType), typeof(LogOption), typeof(string), typeof(UnityEngine.Object) })
+                ? SafeReflection.FindMethod(debugLogHandlerType, "Internal_Log", typeof(LogType), typeof(LogOption), typeof(string), typeof(UnityEngine.Object))
                 : null
         };
 

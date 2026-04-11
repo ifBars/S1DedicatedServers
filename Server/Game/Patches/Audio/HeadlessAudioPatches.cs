@@ -1,4 +1,5 @@
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 using System;
 using System.Reflection;
@@ -31,17 +32,17 @@ namespace DedicatedServerMod.Server.Game.Patches.Audio
         internal static Type GetTypeByName(string typeName)
         {
 #if IL2CPP
-            return AccessTools.TypeByName($"Il2CppScheduleOne.Audio.{typeName}")
-                ?? AccessTools.TypeByName($"ScheduleOne.Audio.{typeName}");
+            return SafeReflection.FindType($"Il2CppScheduleOne.Audio.{typeName}")
+                ?? SafeReflection.FindType($"ScheduleOne.Audio.{typeName}");
 #else
-            return AccessTools.TypeByName($"ScheduleOne.Audio.{typeName}");
+            return SafeReflection.FindType($"ScheduleOne.Audio.{typeName}");
 #endif
         }
 
         internal static MethodBase GetUpdateMethod(string typeName)
         {
             Type type = GetTypeByName(typeName);
-            return type != null ? AccessTools.Method(type, "Update") : null;
+            return type != null ? SafeReflection.FindMethod(type, "Update") : null;
         }
     }
 

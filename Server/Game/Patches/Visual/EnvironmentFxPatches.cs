@@ -45,7 +45,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Visual
 
         private static bool Prepare()
         {
-            _targetMethod = AccessTools.Method(GetFogType(), "LateUpdate");
+            _targetMethod = SafeReflection.FindMethod(GetFogType(), "LateUpdate");
             if (_targetMethod != null)
             {
                 return true;
@@ -73,10 +73,10 @@ namespace DedicatedServerMod.Server.Game.Patches.Visual
         private static Type GetFogType()
         {
 #if IL2CPP
-            return AccessTools.TypeByName("Il2CppVolumetricFogAndMist2.VolumetricFog")
-                ?? AccessTools.TypeByName("VolumetricFogAndMist2.VolumetricFog");
+            return SafeReflection.FindType("Il2CppVolumetricFogAndMist2.VolumetricFog")
+                ?? SafeReflection.FindType("VolumetricFogAndMist2.VolumetricFog");
 #else
-            return AccessTools.TypeByName("VolumetricFogAndMist2.VolumetricFog");
+            return SafeReflection.FindType("VolumetricFogAndMist2.VolumetricFog");
 #endif
         }
     }

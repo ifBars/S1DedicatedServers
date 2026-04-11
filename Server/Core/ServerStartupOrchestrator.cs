@@ -5,29 +5,40 @@ using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
 #if IL2CPP
+using GuidManagerType = Il2Cpp.GUIDManager;
+using Il2CppInterop.Runtime;
 using Il2CppFishNet;
 using Il2CppFishNet.Component.Scenes;
 using Il2CppFishNet.Transporting;
 using Il2CppFishNet.Transporting.Multipass;
 using Il2CppFishNet.Transporting.Tugboat;
+using GuidValueType = Il2CppSystem.Guid;
+using LoadRequestListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Persistence.LoadRequest>;
+using SaveableContractType = Il2CppScheduleOne.Persistence.IBaseSaveable;
 #else
 using FishNet;
 using FishNet.Component.Scenes;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using GuidManagerType = global::GUIDManager;
+using GuidValueType = System.Guid;
+using LoadRequestListType = System.Collections.Generic.List<ScheduleOne.Persistence.LoadRequest>;
+using SaveableContractType = ScheduleOne.Persistence.IBaseSaveable;
 #endif
 using MelonLoader;
 #if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.Persistence.Datas;
+using SaveLoaderType = Il2CppScheduleOne.Persistence.Loaders.Loader;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Quests;
 #else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence;
 using ScheduleOne.Persistence.Datas;
+using SaveLoaderType = ScheduleOne.Persistence.Loaders.Loader;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Quests;
 #endif
@@ -372,10 +383,6 @@ namespace DedicatedServerMod.Server.Core
 
         private static void TryRegisterDefaultQuestsWithGuidManager()
         {
-#if IL2CPP
-            DebugLog.StartupDebug("Skipping GUIDManager quest registration on IL2CPP runtime");
-            return;
-#else
             try
             {
                 var questManager = NetworkSingleton<QuestManager>.Instance ?? UnityEngine.Object.FindObjectOfType<QuestManager>();
@@ -390,13 +397,13 @@ namespace DedicatedServerMod.Server.Core
                     try
                     {
                         string guidString = quest.StaticGUID;
-                        if (!GUIDManager.IsGUIDValid(guidString))
+                        if (!GuidManagerType.IsGUIDValid(guidString))
                         {
-                            var newGuid = GUIDManager.GenerateUniqueGUID();
+                            GuidValueType newGuid = GuidManagerType.GenerateUniqueGUID();
                             guidString = newGuid.ToString();
                             quest.StaticGUID = guidString;
                         }
-                        var guid = new Guid(guidString);
+                        GuidValueType guid = new GuidValueType(guidString);
                         quest.SetGUID(guid);
                         registered++;
                     }
@@ -409,7 +416,6 @@ namespace DedicatedServerMod.Server.Core
             {
                 DebugLog.Warning($"Quest pre-registration failed: {ex.Message}");
             }
-#endif
         }
 
         private static string FindMostRecentSave()
@@ -445,19 +451,51 @@ namespace DedicatedServerMod.Server.Core
             loadManager.onPreLoad?.Invoke();
 
             DebugLog.StartupDebug("Creating load requests for save data");
-#if MONO
+            int queuedLoadRequests = 0;
+            int skippedLoadRequests = 0;
             foreach (var baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
             {
-                // The game's loaders expect per saveable subfolders; preserve per-loader path
-                string loadPath = Path.Combine(loadManager.LoadedGameFolderPath, baseSaveable.SaveFolderName);
-                new LoadRequest(loadPath, baseSaveable.Loader);
-            }
+#if IL2CPP
+                object saveableCandidate = baseSaveable;
+                SaveableContractType saveable = saveableCandidate is Il2CppSystem.Object saveableObject
+                    ? saveableObject.TryCast<SaveableContractType>()
+                    : null;
 #else
-            DebugLog.StartupDebug("Skipping manual load request queue creation on IL2CPP runtime");
+                SaveableContractType saveable = baseSaveable;
 #endif
+                if (saveable == null)
+                {
+                    skippedLoadRequests++;
+                    continue;
+                }
 
-            var loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
-            var loadRequests = loadRequestsField?.GetValue(loadManager) as List<LoadRequest>;
+                string saveFolderName = null;
+                SaveLoaderType loader = null;
+                SafeReflection.TryGetInstanceFieldOrProperty(saveable, "SaveFolderName", out saveFolderName);
+                SafeReflection.TryGetInstanceFieldOrProperty(saveable, "Loader", out loader);
+
+                if ((string.IsNullOrWhiteSpace(saveFolderName) || loader == null) && baseSaveable != null)
+                {
+                    SafeReflection.TryGetInstanceFieldOrProperty(baseSaveable, "SaveFolderName", out saveFolderName);
+                    SafeReflection.TryGetInstanceFieldOrProperty(baseSaveable, "Loader", out loader);
+                }
+
+                if (string.IsNullOrWhiteSpace(saveFolderName) || loader == null)
+                {
+                    skippedLoadRequests++;
+                    DebugLog.StartupDebug($"Skipping save load request for {baseSaveable?.GetType().FullName ?? "<null>"}; SaveFolderName or Loader was unavailable.");
+                    continue;
+                }
+
+                // The game's loaders expect per saveable subfolders; preserve per-loader path
+                string loadPath = Path.Combine(loadManager.LoadedGameFolderPath, saveFolderName);
+                new LoadRequest(loadPath, loader);
+                queuedLoadRequests++;
+            }
+
+            DebugLog.StartupDebug($"Queued {queuedLoadRequests} save load requests{(skippedLoadRequests > 0 ? $" ({skippedLoadRequests} skipped)" : string.Empty)}.");
+
+            LoadRequestListType loadRequests = GetLoadRequests(loadManager);
             if (loadRequests != null)
             {
                 while (loadRequests.Count > 0)
@@ -466,8 +504,18 @@ namespace DedicatedServerMod.Server.Core
                     {
                         if (loadRequests.Count <= 0) break;
                         var lr = loadRequests[0];
-                        try { lr.Complete(); }
-                        catch { if (loadRequests.Count > 0 && loadRequests[0] == lr) loadRequests.RemoveAt(0); }
+                        try
+                        {
+                            lr.Complete();
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugLog.Error($"LOAD ERROR for load request: {lr.Path} : {ex.Message}\nSite: {ex.TargetSite}");
+                            if (loadRequests.Count > 0 && loadRequests[0] == lr)
+                            {
+                                loadRequests.RemoveAt(0);
+                            }
+                        }
                     }
                     yield return new WaitForEndOfFrame();
                 }
@@ -478,8 +526,24 @@ namespace DedicatedServerMod.Server.Core
             yield return new WaitForEndOfFrame();
             yield return new WaitForEndOfFrame();
             loadManager.onLoadComplete?.Invoke();
+            yield return new WaitForSeconds(NativeInvariants.POST_LOAD_DELAY_SECONDS);
             ModManager.NotifyAfterLoad();
             DebugLog.Info("Save data loaded successfully");
+        }
+
+        private static LoadRequestListType GetLoadRequests(LoadManager loadManager)
+        {
+            if (loadManager == null)
+            {
+                return null;
+            }
+
+#if IL2CPP
+            return loadManager.loadRequests;
+#else
+            FieldInfo loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
+            return loadRequestsField?.GetValue(loadManager) as LoadRequestListType;
+#endif
         }
 
         private static void OnLoopbackSpawned(ScheduleOne.PlayerScripts.Player p)
@@ -496,8 +560,6 @@ namespace DedicatedServerMod.Server.Core
                     var mv = p.GetComponent<PlayerMovement>();
                     if (mv != null) mv.Teleport(new Vector3(16.456f, 31.176f, -165.366f));
                     else p.transform.position = new Vector3(16.456f, 31.176f, -165.366f);
-                    // Ensure server-side quests are initialized once the ghost exists
-                    MelonCoroutines.Start(InitializeServerQuests());
                     _loopbackHandled = true;
 #if MONO
                     ScheduleOne.PlayerScripts.Player.onPlayerSpawned = (Action<ScheduleOne.PlayerScripts.Player>)Delegate.Remove(ScheduleOne.PlayerScripts.Player.onPlayerSpawned, new Action<ScheduleOne.PlayerScripts.Player>(OnLoopbackSpawned));

@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using DedicatedServerMod.Client.Managers;
 using DedicatedServerMod.Utils;
+using DedicatedServerMod.Shared.Networking;
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Patchers
@@ -35,12 +36,6 @@ namespace DedicatedServerMod.Client.Patchers
     internal class ClientTransportPatcher
     {
         private static bool isExiting = false;
-
-        private static readonly FieldInfo ClientTransportField =
-            typeof(Multipass).GetField("_clientTransport", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        private static readonly FieldInfo TransportsListField =
-            typeof(Multipass).GetField("_transports", BindingFlags.NonPublic | BindingFlags.Instance);
 
         [HarmonyPatch]
         private static class StartConnectionPatch
@@ -71,8 +66,8 @@ namespace DedicatedServerMod.Client.Patchers
                 {
                     var (serverIP, serverPort) = ClientConnectionManager.GetTargetServer();
 
-                    var multipass = InstanceFinder.NetworkManager?.TransportManager?.Transport as Multipass;
-                    if (multipass == null)
+                    Transport activeTransport = InstanceFinder.NetworkManager?.TransportManager?.Transport;
+                    if (!MultipassTransportResolver.TryResolve(activeTransport, out var multipass))
                         return true;
 
                     var tugboat = multipass.gameObject.GetComponent<Tugboat>();
@@ -187,11 +182,47 @@ namespace DedicatedServerMod.Client.Patchers
         /// </summary>
         internal static bool SetMultipassClientTransport(Multipass multipass, Transport transport)
         {
-            if (ClientTransportField != null)
+            if (multipass == null || transport == null)
             {
-                ClientTransportField.SetValue(multipass, transport);
-                return true;
+                return false;
             }
+
+            try
+            {
+                MethodInfo[] methods = typeof(Multipass).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+                for (int i = 0; i < methods.Length; i++)
+                {
+                    MethodInfo method = methods[i];
+                    if (!string.Equals(method.Name, "SetClientTransport", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    ParameterInfo[] parameters = method.GetParameters();
+                    if (parameters.Length != 1 || !parameters[0].ParameterType.IsAssignableFrom(typeof(Transport)))
+                    {
+                        continue;
+                    }
+
+                    method.Invoke(multipass, new object[] { transport });
+                    return true;
+                }
+
+                if (SafeReflection.TrySetInstanceFieldOrProperty(multipass, "ClientTransport", transport))
+                {
+                    return true;
+                }
+
+                if (SafeReflection.TrySetInstanceFieldOrProperty(multipass, "_clientTransport", transport))
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error("Error setting Multipass client transport", ex);
+            }
+
             return false;
         }
 
@@ -202,12 +233,35 @@ namespace DedicatedServerMod.Client.Patchers
         {
             try
             {
-                if (TransportsListField != null)
+                if (multipass == null || tugboat == null)
                 {
-                    var transports = TransportsListField.GetValue(multipass) as List<Transport>;
-                    if (transports != null && !transports.Contains(tugboat))
-                        transports.Add(tugboat);
+                    return;
                 }
+
+                object transports = null;
+                if (!SafeReflection.TryGetInstanceFieldOrProperty(multipass, "Transports", out transports))
+                {
+                    SafeReflection.TryGetInstanceFieldOrProperty(multipass, "_transports", out transports);
+                }
+
+                if (transports == null)
+                {
+                    return;
+                }
+
+                MethodInfo containsMethod = transports.GetType().GetMethod("Contains", BindingFlags.Public | BindingFlags.Instance);
+                if (containsMethod != null && containsMethod.Invoke(transports, new object[] { tugboat }) is bool contains && contains)
+                {
+                    return;
+                }
+
+                MethodInfo addMethod = transports.GetType().GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
+                addMethod?.Invoke(transports, new object[] { tugboat });
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                var logger = new MelonLogger.Instance("ClientTransportPatcher");
+                logger.Error($"Error adding Tugboat to transports list: {ex.InnerException}");
             }
             catch (Exception ex)
             {
@@ -216,15 +270,26 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
-        #endregion
+        internal static bool TryResolveMultipass(out Multipass multipass)
+        {
+            Transport activeTransport = InstanceFinder.NetworkManager?.TransportManager?.Transport;
+            return MultipassTransportResolver.TryResolve(activeTransport, out multipass);
+        }
+
+        internal static string DescribeActiveTransport()
+        {
+            Transport activeTransport = InstanceFinder.NetworkManager?.TransportManager?.Transport;
+            return MultipassTransportResolver.Describe(activeTransport);
+        }
 
         internal string GetTransportInfo()
         {
             try
             {
-                var multipass = InstanceFinder.NetworkManager?.TransportManager?.Transport as Multipass;
-                if (multipass == null)
-                    return "Multipass transport not found";
+                if (!TryResolveMultipass(out var multipass))
+                {
+                    return $"Multipass transport not found. {DescribeActiveTransport()}";
+                }
 
                 var components = multipass.gameObject.GetComponents<Transport>();
                 var info = $"Available transports on Multipass: {components.Length}\n";
@@ -237,5 +302,7 @@ namespace DedicatedServerMod.Client.Patchers
                 return $"Error getting transport info: {ex.Message}";
             }
         }
+
+        #endregion
     }
 }

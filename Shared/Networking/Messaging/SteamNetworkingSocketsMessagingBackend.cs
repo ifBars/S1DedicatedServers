@@ -5,6 +5,7 @@ using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppFishNet.Connection;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 #else
 using FishNet;
 using FishNet.Connection;
@@ -38,6 +39,12 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         private const int ReliableSendFlag = 8;
         private const string ServerSteamIdArg = "--server-steamid";
         private const string ServerSteamIdAltArg = "--server-steam-id";
+
+#if IL2CPP
+        private static readonly ConnectionStatusChangedNativeCallback _connectionStatusChangedNativeThunk = OnConnectionStatusChangedNative;
+        private static IntPtr _connectionStatusChangedNativeThunkPtr;
+        private static SteamNetworkingSocketsMessagingBackend _connectionStatusChangedNativeTarget;
+#endif
 
         private MelonLogger.Instance _logger;
         private bool _isInitialized;
@@ -154,7 +161,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
 #if SERVER
                     SteamGameServerNetworkingUtils.InitRelayNetworkAccess();
-                    _listenSocket = SteamGameServerNetworkingSockets.CreateListenSocketP2P(_virtualPort, 0, null);
+                    _listenSocket = CreateListenSocket();
                     if (IsInvalid(_listenSocket))
                     {
                         _logger.Error($"Failed to create Steam sockets listen socket for virtual port {_virtualPort}");
@@ -236,6 +243,12 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
                 _serverConnection = HSteamNetConnection.Invalid;
                 _connectionStatusCallback = null;
+#if IL2CPP
+                if (ReferenceEquals(_connectionStatusChangedNativeTarget, this))
+                {
+                    _connectionStatusChangedNativeTarget = null;
+                }
+#endif
 
                 if (_bootstrapBackend != null)
                 {
@@ -696,7 +709,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
             SteamNetworkingIdentity identity = default;
             identity.SetSteamID64(serverSteamId);
-            HSteamNetConnection conn = SteamNetworkingSockets.ConnectP2P(ref identity, _virtualPort, 0, null);
+            HSteamNetConnection conn = ConnectClientSocket(ref identity);
             if (IsInvalid(conn))
             {
                 _logger?.Warning($"Failed to connect Steam sockets to server SteamID {serverSteamId}");
@@ -709,6 +722,66 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             return conn;
 #endif
         }
+
+#if IL2CPP
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void ConnectionStatusChangedNativeCallback(IntPtr callbackPtr);
+
+        private static void OnConnectionStatusChangedNative(IntPtr callbackPtr)
+        {
+            SteamNetworkingSocketsMessagingBackend target = _connectionStatusChangedNativeTarget;
+            if (target == null || callbackPtr == IntPtr.Zero)
+            {
+                return;
+            }
+
+            target.OnConnectionStatusChanged(new SteamNetConnectionStatusChangedCallback_t(callbackPtr));
+        }
+
+        private HSteamListenSocket CreateListenSocket()
+        {
+            Il2CppStructArray<SteamNetworkingConfigValue_t> options = CreateConnectionStatusChangedOptions();
+            return SteamGameServerNetworkingSockets.CreateListenSocketP2P(_virtualPort, GetOptionCount(options), options);
+        }
+
+        private HSteamNetConnection ConnectClientSocket(ref SteamNetworkingIdentity identity)
+        {
+            Il2CppStructArray<SteamNetworkingConfigValue_t> options = CreateConnectionStatusChangedOptions();
+            return SteamNetworkingSockets.ConnectP2P(ref identity, _virtualPort, GetOptionCount(options), options);
+        }
+
+        private static Il2CppStructArray<SteamNetworkingConfigValue_t> CreateConnectionStatusChangedOptions()
+        {
+            if (_connectionStatusChangedNativeThunkPtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            var options = new Il2CppStructArray<SteamNetworkingConfigValue_t>(1);
+            SteamNetworkingConfigValue_t option = default;
+            option.m_eValue = ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged;
+            option.m_eDataType = ESteamNetworkingConfigDataType.k_ESteamNetworkingConfig_Ptr;
+            option.m_val = default;
+            option.m_val.m_functionPtr = _connectionStatusChangedNativeThunkPtr;
+            options[0] = option;
+            return options;
+        }
+
+        private static int GetOptionCount(Il2CppStructArray<SteamNetworkingConfigValue_t> options)
+        {
+            return options?.Length ?? 0;
+        }
+#else
+        private HSteamListenSocket CreateListenSocket()
+        {
+            return SteamGameServerNetworkingSockets.CreateListenSocketP2P(_virtualPort, 0, null);
+        }
+
+        private HSteamNetConnection ConnectClientSocket(ref SteamNetworkingIdentity identity)
+        {
+            return SteamNetworkingSockets.ConnectP2P(ref identity, _virtualPort, 0, null);
+        }
+#endif
 
         private static bool ShouldPreferBootstrapClientToServer(string command)
         {
@@ -970,25 +1043,44 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
         {
             try
             {
+#if IL2CPP
+                if (_connectionStatusChangedNativeThunkPtr == IntPtr.Zero)
+                {
+                    _connectionStatusChangedNativeThunkPtr = Marshal.GetFunctionPointerForDelegate(_connectionStatusChangedNativeThunk);
+                }
+
+                if (_connectionStatusChangedNativeThunkPtr == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("Failed to acquire native function pointer for Steam sockets connection-status callback.");
+                }
+
+                _connectionStatusChangedNativeTarget = this;
+                return true;
+#else
                 _connectionStatusCallback = Callback<SteamNetConnectionStatusChangedCallback_t>.Create(CreateConnectionStatusChangedDelegate());
                 return true;
+#endif
             }
             catch (Exception ex)
             {
                 _logger?.Warning($"Steam sockets native callback registration failed; using bootstrap fallback path instead: {ex.Message}");
                 _connectionStatusCallback = null;
+#if IL2CPP
+                if (ReferenceEquals(_connectionStatusChangedNativeTarget, this))
+                {
+                    _connectionStatusChangedNativeTarget = null;
+                }
+#endif
                 return false;
             }
         }
 
+#if !IL2CPP
         private Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate CreateConnectionStatusChangedDelegate()
         {
-#if IL2CPP
-            return (Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate)new Action<SteamNetConnectionStatusChangedCallback_t>(OnConnectionStatusChanged);
-#else
             return new Callback<SteamNetConnectionStatusChangedCallback_t>.DispatchDelegate(OnConnectionStatusChanged);
-#endif
         }
+#endif
 
         private HSteamNetPollGroup CreatePollGroup()
         {

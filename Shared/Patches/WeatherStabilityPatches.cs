@@ -95,7 +95,7 @@ namespace DedicatedServerMod.Shared.Patches
 
             WheelDataType defaultData = __instance._defaultData;
             WheelOverrideDataType rainOverrideData = __instance._rainOverrideData;
-            LandVehicleType resolvedVehicle = __instance.vehicle ?? __instance.GetComponentInParent<LandVehicleType>();
+            LandVehicleType resolvedVehicle = __instance.vehicle ?? UnityComponentAccess.GetComponentInParent<LandVehicleType>(__instance);
             VehicleSettingsType resolvedSettings = defaultData?.Settings?.Clone()
                 ?? __instance._settings?.Clone()
                 ?? new VehicleSettingsType();
@@ -147,7 +147,7 @@ namespace DedicatedServerMod.Shared.Patches
             VehicleSettingsType resolvedSettings = ____defaultData?.Settings?.Clone()
                 ?? ____settings?.Clone()
                 ?? new VehicleSettingsType();
-            LandVehicleType resolvedVehicle = ___vehicle ?? __instance?.GetComponentInParent<LandVehicleType>();
+            LandVehicleType resolvedVehicle = ___vehicle ?? UnityComponentAccess.GetComponentInParent<LandVehicleType>(__instance);
 
             if (newConditions == null)
             {

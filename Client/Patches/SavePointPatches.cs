@@ -1,5 +1,6 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using MelonLoader;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppScheduleOne.Interaction;
 using Il2CppScheduleOne.Persistence;
@@ -41,8 +42,8 @@ namespace DedicatedServerMod.Client.Patches
                 return false;
             }
 
-            return interactableObject.GetComponent<SavePoint>() != null
-                || interactableObject.GetComponentInParent<SavePoint>() != null;
+            return UnityComponentAccess.GetComponent<SavePoint>(interactableObject) != null
+                || UnityComponentAccess.GetComponentInParent<SavePoint>(interactableObject) != null;
         }
     }
 }

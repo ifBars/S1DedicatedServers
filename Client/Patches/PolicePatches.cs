@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using HarmonyLib;
 #if IL2CPP
+using Il2CppInterop.Runtime;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Police;
 using Il2CppScheduleOne.Vision;
@@ -101,7 +102,7 @@ namespace DedicatedServerMod.Client.Patches
         private static bool ShouldSuppressPoliceVisibleNotice(VisionCone visionCone, VisionEvent visionEvent)
         {
             Player localPlayer = Player.Local;
-            Player targetPlayer = visionEvent?.Target as Player;
+            Player targetPlayer = TryGetTargetPlayer(visionEvent);
             if (!FishNet.InstanceFinder.IsClient
                 || visionCone == null
                 || visionEvent?.Target == null
@@ -118,7 +119,22 @@ namespace DedicatedServerMod.Client.Patches
                 return false;
             }
 
-            return visionCone.GetComponentInParent<PoliceOfficer>() != null;
+            return UnityComponentAccess.GetComponentInParent<PoliceOfficer>(visionCone) != null;
+        }
+
+        private static Player TryGetTargetPlayer(VisionEvent visionEvent)
+        {
+#if IL2CPP
+            object target = visionEvent?.Target;
+            if (target is Il2CppSystem.Object targetObject)
+            {
+                return targetObject.TryCast<Player>();
+            }
+
+            return null;
+#else
+            return visionEvent?.Target as Player;
+#endif
         }
     }
 }

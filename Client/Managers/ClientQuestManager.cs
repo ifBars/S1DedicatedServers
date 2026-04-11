@@ -29,6 +29,10 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientQuestManager
     {
+        private const float QuestManagerInitialDelaySeconds = 2f;
+        private const float QuestManagerRetryIntervalSeconds = 0.5f;
+        private const float QuestManagerResolveTimeoutSeconds = 15f;
+
         // Quest system state
         private bool questSystemInitialized = false;
         private QuestManager questManagerInstance;
@@ -78,10 +82,17 @@ namespace DedicatedServerMod.Client.Managers
         private IEnumerator EnsureQuestInitialization()
         {
             // Wait for systems to be ready
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(QuestManagerInitialDelaySeconds);
             
             // Get QuestManager instance
-            questManagerInstance = NetworkSingleton<QuestManager>.Instance;
+            float elapsed = 0f;
+            while ((questManagerInstance = NetworkSingleton<QuestManager>.Instance) == null
+                && elapsed < QuestManagerResolveTimeoutSeconds)
+            {
+                yield return new WaitForSeconds(QuestManagerRetryIntervalSeconds);
+                elapsed += QuestManagerRetryIntervalSeconds;
+            }
+
             if (questManagerInstance != null)
             {
                 DebugLog.Info("QuestManager found - ensuring proper quest initialization");

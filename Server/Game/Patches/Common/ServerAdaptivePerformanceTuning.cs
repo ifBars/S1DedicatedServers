@@ -1,5 +1,9 @@
 using System;
+#if IL2CPP
+using Il2CppFishNet;
+#else
 using FishNet;
+#endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Server.Game.Patches.Common

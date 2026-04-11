@@ -125,11 +125,12 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
                 _maxPayloadBytes = Math.Max(256, config.SteamP2PMaxPayloadBytes);
 
                 SteamNetworking.AllowP2PPacketRelay(_allowRelay);
-#if MONO
+#if IL2CPP
+                _p2pSessionRequestCallback = Callback<P2PSessionRequest_t>.Create(new System.Action<P2PSessionRequest_t>(OnP2PSessionRequest));
+                _p2pSessionConnectFailCallback = Callback<P2PSessionConnectFail_t>.Create(new System.Action<P2PSessionConnectFail_t>(OnP2PSessionConnectFail));
+#else
                 _p2pSessionRequestCallback = Callback<P2PSessionRequest_t>.Create(new Callback<P2PSessionRequest_t>.DispatchDelegate(OnP2PSessionRequest));
                 _p2pSessionConnectFailCallback = Callback<P2PSessionConnectFail_t>.Create(new Callback<P2PSessionConnectFail_t>.DispatchDelegate(OnP2PSessionConnectFail));
-#else
-                _logger.Warning("Steam P2P session callbacks are disabled on IL2CPP runtime.");
 #endif
 
                 _bootstrapBackend = new FishNetRpcMessagingBackend();

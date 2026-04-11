@@ -2,9 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
+#if IL2CPP
+using Il2CppPathfinding;
+using Il2CppScheduleOne.NPCs;
+using WalkResultCallbackType = Il2CppSystem.Action<Il2CppScheduleOne.NPCs.NPCMovement.WalkResult>;
+using NodeLinkListType = Il2CppSystem.Collections.Generic.List<Il2CppPathfinding.NodeLink>;
+#else
 using Pathfinding;
 using ScheduleOne.NPCs;
+using WalkResultCallbackType = System.Action<ScheduleOne.NPCs.NPCMovement.WalkResult>;
+using NodeLinkListType = System.Collections.Generic.List<Pathfinding.NodeLink>;
+#endif
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -197,13 +207,13 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
     internal sealed class CachedNodeLinkResult
     {
-        internal CachedNodeLinkResult(List<NodeLink> links, float createdAt)
+        internal CachedNodeLinkResult(NodeLinkListType links, float createdAt)
         {
             Links = links;
             CreatedAt = createdAt;
         }
 
-        internal List<NodeLink> Links { get; }
+        internal NodeLinkListType Links { get; }
 
         internal float CreatedAt { get; }
     }
@@ -228,7 +238,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private const float CacheCellSize = 2f;
         private const int MaximumEntries = 256;
 
-        internal static bool TryGet(Vector3 point, out List<NodeLink> links)
+        internal static bool TryGet(Vector3 point, out NodeLinkListType links)
         {
             links = null;
             Prune();
@@ -253,11 +263,11 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 }
             }
 
-            links = new List<NodeLink>(entry.Links);
+            links = CloneLinks(entry.Links);
             return true;
         }
 
-        internal static void Store(Vector3 point, List<NodeLink> links)
+        internal static void Store(Vector3 point, NodeLinkListType links)
         {
             if (links == null || links.Count == 0)
             {
@@ -272,8 +282,24 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 InsertionOrder.Enqueue(key);
             }
 
-            Entries[key] = new CachedNodeLinkResult(new List<NodeLink>(links), Time.realtimeSinceStartup);
+            Entries[key] = new CachedNodeLinkResult(CloneLinks(links), Time.realtimeSinceStartup);
             TrimToCapacity();
+        }
+
+        private static NodeLinkListType CloneLinks(NodeLinkListType links)
+        {
+            if (links == null)
+            {
+                return null;
+            }
+
+            NodeLinkListType clone = new();
+            for (int i = 0; i < links.Count; i++)
+            {
+                clone.Add(links[i]);
+            }
+
+            return clone;
         }
 
         private static void Prune()
@@ -338,13 +364,13 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
         private static MethodBase TargetMethod()
         {
-            return AccessTools.Method(
+            return SafeReflection.FindMethod(
                 typeof(NPCMovement),
                 "SetDestination",
                 new[]
                 {
                     typeof(Vector3),
-                    typeof(Action<NPCMovement.WalkResult>),
+                    typeof(WalkResultCallbackType),
                     typeof(bool),
                     typeof(float),
                     typeof(float)
@@ -354,7 +380,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private static bool Prefix(
             NPCMovement __instance,
             Vector3 pos,
-            Action<NPCMovement.WalkResult> callback,
+            WalkResultCallbackType callback,
             bool interruptExistingCallback,
             ref float cacheMaxDistSqr)
         {
@@ -384,7 +410,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private static bool ShouldSkipDuplicateRepath(
             NPCMovement movement,
             Vector3 destination,
-            Action<NPCMovement.WalkResult> callback,
+            WalkResultCallbackType callback,
             bool interruptExistingCallback,
             bool usesBroadCacheTolerance,
             ServerAdaptivePerformanceSnapshot tuning)
@@ -515,26 +541,26 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(NodeLink), nameof(NodeLink.GetClosestLinks))]
     internal static class NodeLinkGetClosestLinksPatches
     {
-        private static bool Prefix(Vector3 point, ref List<NodeLink> __result)
+        private static bool Prefix(Vector3 point, ref NodeLinkListType __result)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
             {
                 return true;
             }
 
-            if (VehicleNodeLinkCache.TryGet(point, out List<NodeLink> cachedLinks))
+            if (VehicleNodeLinkCache.TryGet(point, out NodeLinkListType cachedLinks))
             {
                 __result = cachedLinks;
                 return false;
             }
 
-            List<NodeLink> orderedLinks = CreateOrderedLinks(point);
+            NodeLinkListType orderedLinks = CreateOrderedLinks(point);
             VehicleNodeLinkCache.Store(point, orderedLinks);
             __result = orderedLinks;
             return false;
         }
 
-        private static void Postfix(Vector3 point, ref List<NodeLink> __result)
+        private static void Postfix(Vector3 point, ref NodeLinkListType __result)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || __result == null || __result.Count == 0)
             {
@@ -544,12 +570,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             VehicleNodeLinkCache.Store(point, __result);
         }
 
-        private static List<NodeLink> CreateOrderedLinks(Vector3 point)
+        private static NodeLinkListType CreateOrderedLinks(Vector3 point)
         {
-            List<NodeLink> validLinks = NodeLink.validNodeLinks;
+            NodeLinkListType validLinks = NodeLink.validNodeLinks;
             if (validLinks == null || validLinks.Count == 0)
             {
-                return new List<NodeLink>();
+                return new NodeLinkListType();
             }
 
             List<NodeLinkDistance> orderedDistances = new(validLinks.Count);
@@ -568,7 +594,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             orderedDistances.Sort((left, right) => left.DistanceSqr.CompareTo(right.DistanceSqr));
 
-            List<NodeLink> orderedLinks = new(orderedDistances.Count);
+            NodeLinkListType orderedLinks = new();
             for (int i = 0; i < orderedDistances.Count; i++)
             {
                 orderedLinks.Add(orderedDistances[i].Link);

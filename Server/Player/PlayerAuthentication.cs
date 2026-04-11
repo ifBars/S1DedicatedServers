@@ -20,7 +20,7 @@ namespace DedicatedServerMod.Server.Player
     /// </summary>
     internal sealed class PlayerAuthentication
     {
-        private readonly Dictionary<NetworkConnection, PendingAuthenticationState> _pendingAuthentications;
+        private readonly Dictionary<int, PendingAuthenticationState> _pendingAuthentications;
 
         private IPlayerAuthBackend _backend;
 
@@ -29,7 +29,7 @@ namespace DedicatedServerMod.Server.Player
         /// </summary>
         public PlayerAuthentication()
         {
-            _pendingAuthentications = new Dictionary<NetworkConnection, PendingAuthenticationState>();
+            _pendingAuthentications = new Dictionary<int, PendingAuthenticationState>();
         }
 
         /// <summary>
@@ -97,9 +97,10 @@ namespace DedicatedServerMod.Server.Player
             string nonce = Guid.NewGuid().ToString("N");
             DateTime startedAtUtc = DateTime.UtcNow;
 
-            _pendingAuthentications[playerInfo.Connection] = new PendingAuthenticationState
+            _pendingAuthentications[playerInfo.ClientId] = new PendingAuthenticationState
             {
                 PlayerInfo = playerInfo,
+                ClientId = playerInfo.ClientId,
                 Nonce = nonce,
                 StartedAtUtc = startedAtUtc
             };
@@ -164,7 +165,7 @@ namespace DedicatedServerMod.Server.Player
                 return missingPayloadResult;
             }
 
-            if (!_pendingAuthentications.TryGetValue(playerInfo.Connection, out PendingAuthenticationState pendingState))
+            if (!_pendingAuthentications.TryGetValue(playerInfo.ClientId, out PendingAuthenticationState pendingState))
             {
                 AuthenticationResult noChallengeResult = new AuthenticationResult
                 {
@@ -259,7 +260,7 @@ namespace DedicatedServerMod.Server.Player
                     continue;
                 }
 
-                if (!_pendingAuthentications.TryGetValue(completion.Connection, out PendingAuthenticationState state))
+                if (!_pendingAuthentications.TryGetValue(completion.Connection.ClientId, out PendingAuthenticationState state))
                 {
                     continue;
                 }
@@ -314,10 +315,7 @@ namespace DedicatedServerMod.Server.Player
                 return;
             }
 
-            if (playerInfo.Connection != null)
-            {
-                _pendingAuthentications.Remove(playerInfo.Connection);
-            }
+            _pendingAuthentications.Remove(playerInfo.ClientId);
 
             if (_backend != null)
             {
@@ -459,10 +457,7 @@ namespace DedicatedServerMod.Server.Player
                 return;
             }
 
-            if (playerInfo.Connection != null)
-            {
-                _pendingAuthentications.Remove(playerInfo.Connection);
-            }
+            _pendingAuthentications.Remove(playerInfo.ClientId);
 
             playerInfo.IsAuthenticationPending = false;
             playerInfo.AuthenticationNonce = null;
@@ -569,6 +564,7 @@ namespace DedicatedServerMod.Server.Player
         private sealed class PendingAuthenticationState
         {
             public ConnectedPlayerInfo PlayerInfo { get; set; }
+            public int ClientId { get; set; }
             public string Nonce { get; set; }
             public DateTime StartedAtUtc { get; set; }
         }

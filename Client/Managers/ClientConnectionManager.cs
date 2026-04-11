@@ -342,18 +342,24 @@ namespace DedicatedServerMod.Client.Managers
                 return false;
             }
 
-            var multipass = networkManager.TransportManager.Transport as Multipass;
-            if (multipass == null)
+            Transport transport = networkManager.TransportManager.Transport;
+            if (!MultipassTransportResolver.TryResolve(transport, out Multipass multipass))
             {
-                DebugLog.Error("Multipass transport not found");
+                DebugLog.Error($"Multipass transport not found. {MultipassTransportResolver.Describe(transport)}");
                 return false;
             }
 
             var tugboat = multipass.gameObject.GetComponent<Tugboat>();
             if (tugboat == null)
             {
-                DebugLog.Error("Tugboat component not found");
-                return false;
+                tugboat = multipass.gameObject.AddComponent<Tugboat>();
+                if (tugboat == null)
+                {
+                    DebugLog.Error("Tugboat component not found and could not be created");
+                    return false;
+                }
+
+                ClientTransportPatcher.AddTugboatToTransportsList(multipass, tugboat);
             }
 
             // Set Tugboat as Multipass client transport (native: SetClientTransport<Tugboat>())

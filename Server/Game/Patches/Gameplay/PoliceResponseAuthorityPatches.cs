@@ -1,4 +1,5 @@
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using InstanceFinderType = Il2CppFishNet.InstanceFinder;
@@ -37,7 +38,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     {
         internal static bool TryGetOfficer(NpcResponsesPoliceType responses, out PoliceOfficerType officer)
         {
-            officer = responses?.GetComponentInParent<PoliceOfficerType>();
+            officer = UnityComponentAccess.GetComponentInParent<PoliceOfficerType>(responses);
             return officer != null;
         }
 

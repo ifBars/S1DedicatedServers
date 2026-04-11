@@ -8,9 +8,11 @@ using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppTMPro;
+using AssetBundleType = UnityEngine.Il2CppAssetBundle;
 #else
 using FishNet;
 using TMPro;
+using AssetBundleType = UnityEngine.AssetBundle;
 #endif
 using UnityEngine;
 using UnityEngine.UI;
@@ -42,7 +44,7 @@ namespace DedicatedServerMod.Client.Managers
         private Button serverMenuCloseButton;
 
         // AssetBundle-driven UI (replaces runtime-created UI)
-        private AssetBundle dedicatedUiBundle;
+        private AssetBundleType dedicatedUiBundle;
         private Transform dsServerBrowserPanel;
         private Transform dsDirectConnectPanel;
         private Button dsOpenDirectConnectButton;
@@ -96,7 +98,6 @@ namespace DedicatedServerMod.Client.Managers
 
         // Captured fonts from existing UI to apply to AssetBundle panels
         private TMP_FontAsset capturedTmpFont;
-        private Material capturedTmpMaterial;
         private Font capturedLegacyFont;
 
         internal ClientUIManager(ClientConnectionManager connectionManager)
@@ -334,7 +335,6 @@ namespace DedicatedServerMod.Client.Managers
                 if (tmpUGUI != null)
                 {
                     capturedTmpFont = tmpUGUI.font ?? capturedTmpFont;
-                    capturedTmpMaterial = tmpUGUI.fontMaterial ?? capturedTmpMaterial;
                 }
                 return;
             }
@@ -711,6 +711,9 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
+                Transform menuRoot = GameObject.Find("MainMenu")?.transform;
+                EnsureCapturedFonts(menuRoot);
+
                 // Only create once
                 if (dsServerBrowserPanel != null && dsDirectConnectPanel != null && dsAddServerPanel != null)
                 {
@@ -744,8 +747,7 @@ namespace DedicatedServerMod.Client.Managers
                     return false;
                 }
 
-                var mainMenu = GameObject.Find("MainMenu");
-                Transform parent = mainMenu != null ? mainMenu.transform : null;
+                Transform parent = menuRoot;
 
                 var serverBrowserGO = parent != null ? GameObject.Instantiate(serverBrowserPrefab, parent) : GameObject.Instantiate(serverBrowserPrefab);
                 var directConnectGO = parent != null ? GameObject.Instantiate(directConnectPrefab, parent) : GameObject.Instantiate(directConnectPrefab);
@@ -1545,13 +1547,24 @@ namespace DedicatedServerMod.Client.Managers
             {
                 if (root == null) return;
 
+                EnsureCapturedFonts(root);
+
                 // Apply to TMP texts
                 var tmpTexts = root.GetComponentsInChildren<TextMeshProUGUI>(true);
                 for (int i = 0; i < tmpTexts.Length; i++)
                 {
                     var t = tmpTexts[i];
-                    if (capturedTmpFont != null) t.font = capturedTmpFont;
-                    if (capturedTmpMaterial != null) t.fontMaterial = capturedTmpMaterial;
+                    if (capturedTmpFont != null)
+                    {
+                        t.font = capturedTmpFont;
+                        if (capturedTmpFont.material != null)
+                        {
+                            t.fontSharedMaterial = capturedTmpFont.material;
+                        }
+                    }
+
+                    t.havePropertiesChanged = true;
+                    t.SetAllDirty();
                 }
 
                 // Apply to legacy Text components
@@ -1565,6 +1578,75 @@ namespace DedicatedServerMod.Client.Managers
             catch (Exception ex)
             {
                 DebugLog.Error("Error applying captured fonts", ex);
+            }
+        }
+
+        private void EnsureCapturedFonts(Transform preferredRoot)
+        {
+            if (capturedTmpFont == null)
+            {
+                TextMeshProUGUI[] preferredTexts = preferredRoot != null
+                    ? preferredRoot.GetComponentsInChildren<TextMeshProUGUI>(true)
+                    : null;
+                CaptureTmpFont(preferredTexts);
+
+                if (capturedTmpFont == null)
+                {
+                    CaptureTmpFont(UnityEngine.Object.FindObjectsOfType<TextMeshProUGUI>(true));
+                }
+            }
+
+            if (capturedLegacyFont == null)
+            {
+                Text[] preferredLegacyTexts = preferredRoot != null
+                    ? preferredRoot.GetComponentsInChildren<Text>(true)
+                    : null;
+                CaptureLegacyFont(preferredLegacyTexts);
+
+                if (capturedLegacyFont == null)
+                {
+                    CaptureLegacyFont(UnityEngine.Object.FindObjectsOfType<Text>(true));
+                }
+            }
+        }
+
+        private void CaptureTmpFont(TextMeshProUGUI[] texts)
+        {
+            if (texts == null || capturedTmpFont != null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < texts.Length; i++)
+            {
+                TextMeshProUGUI text = texts[i];
+                if (text?.font == null)
+                {
+                    continue;
+                }
+
+                capturedTmpFont = text.font;
+                return;
+            }
+        }
+
+        private void CaptureLegacyFont(Text[] texts)
+        {
+            if (texts == null || capturedLegacyFont != null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < texts.Length; i++)
+            {
+                Text text = texts[i];
+                if (text?.font == null)
+                {
+                    continue;
+                }
+
+                capturedLegacyFont = text.font;
+                return;
             }
         }
 

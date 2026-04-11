@@ -1,4 +1,5 @@
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Utils;
 using HarmonyLib;
 using System.Reflection;
 using UnityEngine;
@@ -182,7 +183,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(CombatBehaviourType), "CheckTargetVisibility")]
     internal static class CombatBehaviourCheckTargetVisibilityPatches
     {
-        private static void Postfix(CombatBehaviourType __instance, ref bool ___visionEventReceived)
+        private static void Postfix(CombatBehaviourType __instance)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
             {
@@ -206,7 +207,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return;
             }
 
-            ___visionEventReceived = true;
+            SafeReflection.TrySetInstanceFieldOrProperty(__instance, "visionEventReceived", true);
             DedicatedPolicePursuitAuthority.RefreshServerSight(targetPlayer);
         }
     }
@@ -274,7 +275,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(PursuitBehaviourType), "UpdateArrest")]
     internal static class PursuitBehaviourUpdateArrestPatches
     {
-        private static void Postfix(PursuitBehaviourType __instance, ref float ___timeWithinArrestRange)
+        private static void Postfix(PursuitBehaviourType __instance)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer || __instance == null)
             {
@@ -292,7 +293,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return;
             }
 
-            float progress = ___timeWithinArrestRange / 1.75f;
+            if (!SafeReflection.TryGetInstanceFieldOrProperty(__instance, "timeWithinArrestRange", out float timeWithinArrestRange))
+            {
+                return;
+            }
+
+            float progress = timeWithinArrestRange / 1.75f;
             if (progress > targetPlayer.CrimeData.CurrentArrestProgress)
             {
                 targetPlayer.CrimeData.SetArrestProgress(progress);
@@ -322,7 +328,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(VehiclePursuitBehaviourType), "CheckTargetVisibility")]
     internal static class VehiclePursuitCheckTargetVisibilityPatches
     {
-        private static void Postfix(VehiclePursuitBehaviourType __instance, ref bool ___visionEventReceived)
+        private static void Postfix(VehiclePursuitBehaviourType __instance)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer || __instance == null)
             {
@@ -342,7 +348,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return;
             }
 
-            ___visionEventReceived = true;
+            SafeReflection.TrySetInstanceFieldOrProperty(__instance, "visionEventReceived", true);
             DedicatedPolicePursuitAuthority.RefreshServerSight(targetPlayer);
         }
     }
