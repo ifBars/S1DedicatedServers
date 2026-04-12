@@ -70,7 +70,8 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.IgnoreGhostHostForSleep, option => option.Comment("Ignore the loopback ghost host when checking sleep readiness."))
                     .Option(config => config.TimeProgressionMultiplier, option => option.Comment("Time progression multiplier. 1.0 is the default game speed."))
                     .Option(config => config.AllowSleeping, option => option.Comment("Allow players to sleep to advance time."))
-                    .Option(config => config.PauseGameWhenEmpty, option => option.Comment("Pause the game simulation when no players are connected.")))
+                    .Option(config => config.PauseGameWhenEmpty, option => option.Comment("Pause the game simulation when no players are connected."))
+                    .Option(config => config.FreshSaveQuestBootstrapMode, option => option.Comment("Fresh-save quest bootstrap mode: 'StartFromBeginning' (recommended) or 'StartPostIntro'.")))
                 .Section("autosave", section => section
                     .Comment("Automatic save behavior.")
                     .Option(config => config.AutoSaveEnabled, option => option.Comment("Enable timed auto-saving."))

@@ -355,6 +355,23 @@ namespace DedicatedServerMod.Shared.Configuration
         [JsonProp(Constants.ConfigKeys.PauseEmpty)]
         public bool PauseGameWhenEmpty { get; set; } = false;
 
+        /// <summary>
+        /// Controls how the vanilla quest line is bootstrapped for a freshly prepared save.
+        /// </summary>
+        /// <remarks>
+        /// This applies only when the save folder does not already contain <c>Quests.json</c>.
+        /// <see cref="FreshSaveQuestBootstrapMode.StartFromBeginning"/> starts with
+        /// Welcome to Hyland Point and most closely matches the native new-game flow.
+        /// This is the recommended default for most servers.
+        /// <see cref="FreshSaveQuestBootstrapMode.StartPostIntro"/> starts later in the
+        /// opening sequence, after the dead-drop money pickup segment and the RV explosion/fix event.
+        /// That keeps the RV in its repaired state, but skips early first-time quest beats and is
+        /// generally not recommended unless a server explicitly wants that checkpoint.
+        /// </remarks>
+        [JsonProp(Constants.ConfigKeys.FreshSaveQuestBootstrapMode)]
+        [JsonConv(typeof(StringEnumConverter))]
+        public FreshSaveQuestBootstrapMode FreshSaveQuestBootstrapMode { get; set; } = FreshSaveQuestBootstrapMode.StartFromBeginning;
+
         #endregion
 
         #region Auto-Save Settings

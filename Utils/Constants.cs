@@ -469,6 +469,7 @@ namespace DedicatedServerMod.Utils
             public const string TimeMultiplier = "timeProgressionMultiplier";
             public const string AllowSleeping = "allowSleeping";
             public const string PauseEmpty = "pauseGameWhenEmpty";
+            public const string FreshSaveQuestBootstrapMode = "freshSaveQuestBootstrapMode";
             public const string AutoSaveEnabled = "autoSaveEnabled";
             public const string AutoSaveInterval = "autoSaveIntervalMinutes";
             public const string Operators = "operators";

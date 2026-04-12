@@ -48,22 +48,7 @@ namespace DedicatedServerMod.Server.Persistence
 			// an existing canonical host identity.
 			TryNormalizeLoopbackPlayer(Path.Combine(saveFolderPath, "Players", "Player_0", "Player.json"), serverPlayerCode);
 
-			// Ensure Game.json exists
-			var gameJsonPath = Path.Combine(saveFolderPath, "Game.json");
-			if (!File.Exists(gameJsonPath))
-			{
-				var gameData = new GameData
-				{
-					Seed = UnityEngine.Random.Range(0, int.MaxValue),
-					OrganisationName = string.IsNullOrWhiteSpace(organisationName)
-						? new DirectoryInfo(saveFolderPath).Name
-						: organisationName,
-					Settings = new GameSettings(),
-					GameVersion = Application.version
-				};
-				File.WriteAllText(gameJsonPath, gameData.GetJson());
-				DebugLog.Info($"Wrote default Game.json to {gameJsonPath}");
-			}
+			EnsureGameJson(saveFolderPath, organisationName);
 
 			// Ensure Metadata.json exists with PlayTutorial=false
 			var metaJsonPath = Path.Combine(saveFolderPath, "Metadata.json");
@@ -113,6 +98,39 @@ namespace DedicatedServerMod.Server.Persistence
 			bool hasMeta = File.Exists(Path.Combine(saveFolderPath, "Metadata.json"));
 			bool hasPlayers = Directory.Exists(Path.Combine(saveFolderPath, "Players"));
 			return !(hasGame && hasMeta && hasPlayers);
+		}
+
+		private static void EnsureGameJson(string saveFolderPath, string organisationName)
+		{
+			string gameJsonPath = Path.Combine(saveFolderPath, "Game.json");
+			string resolvedOrganisationName = string.IsNullOrWhiteSpace(organisationName)
+				? new DirectoryInfo(saveFolderPath).Name
+				: organisationName;
+
+			GameData existingData = ReadJsonData<GameData>(gameJsonPath);
+			bool shouldRewrite = existingData == null
+				|| existingData.Seed == 0
+				|| string.IsNullOrWhiteSpace(existingData.OrganisationName)
+				|| string.IsNullOrWhiteSpace(existingData.GameVersion);
+
+			if (!shouldRewrite)
+			{
+				return;
+			}
+
+			int seed = existingData?.Seed > 0 ? existingData.Seed : UnityEngine.Random.Range(1, int.MaxValue);
+			string finalOrganisationName = string.IsNullOrWhiteSpace(existingData?.OrganisationName)
+				? resolvedOrganisationName
+				: existingData.OrganisationName;
+			GameSettings settings = existingData?.Settings ?? new GameSettings();
+
+			GameData gameData = new GameData(finalOrganisationName, seed, settings)
+			{
+				GameVersion = Application.version
+			};
+
+			File.WriteAllText(gameJsonPath, gameData.GetJson());
+			DebugLog.Info($"Wrote normalized Game.json to {gameJsonPath} (Seed={seed}).");
 		}
 
 		private static void TryCopyDefaultSaveToFolder(string destinationDir)

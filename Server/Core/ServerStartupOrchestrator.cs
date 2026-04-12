@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using DedicatedServerMod.API;
 using DedicatedServerMod.Shared.Configuration;
@@ -13,8 +14,9 @@ using Il2CppFishNet.Transporting;
 using Il2CppFishNet.Transporting.Multipass;
 using Il2CppFishNet.Transporting.Tugboat;
 using GuidValueType = Il2CppSystem.Guid;
-using LoadRequestListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Persistence.LoadRequest>;
-using SaveableContractType = Il2CppScheduleOne.Persistence.IBaseSaveable;
+using LoadRequestType = Il2CppScheduleOne.Persistence.LoadRequest;
+using BaseSaveableContractType = Il2CppScheduleOne.Persistence.IBaseSaveable;
+using SaveableContractType = Il2CppScheduleOne.Persistence.ISaveable;
 #else
 using FishNet;
 using FishNet.Component.Scenes;
@@ -23,8 +25,9 @@ using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
 using GuidManagerType = global::GUIDManager;
 using GuidValueType = System.Guid;
-using LoadRequestListType = System.Collections.Generic.List<ScheduleOne.Persistence.LoadRequest>;
-using SaveableContractType = ScheduleOne.Persistence.IBaseSaveable;
+using LoadRequestType = ScheduleOne.Persistence.LoadRequest;
+using BaseSaveableContractType = ScheduleOne.Persistence.IBaseSaveable;
+using SaveableContractType = ScheduleOne.Persistence.ISaveable;
 #endif
 using MelonLoader;
 #if IL2CPP
@@ -147,8 +150,10 @@ namespace DedicatedServerMod.Server.Core
 
             // Prefer explicit argument first. If none provided, use ServerConfig's resolved path (default or custom).
             SaveInfo actualSaveInfo = null;
+            bool shouldBootstrapFreshQuests = false;
             if (!string.IsNullOrEmpty(savePathOverride))
             {
+                shouldBootstrapFreshQuests = !File.Exists(Path.Combine(savePathOverride, "Quests.json"));
                 if (!LoadManager.TryLoadSaveInfo(savePathOverride, 0, out actualSaveInfo))
                 {
                     DebugLog.Error($"Failed to load save info from: {savePathOverride}");
@@ -159,7 +164,8 @@ namespace DedicatedServerMod.Server.Core
             {
                 // Get resolved path (either custom or default)
                 string configuredPath = ServerConfig.GetResolvedSaveGamePath();
-                
+                shouldBootstrapFreshQuests = !File.Exists(Path.Combine(configuredPath, "Quests.json"));
+
                 DebugLog.StartupDebug($"Preparing save folder: {configuredPath}");
 
                 // Prepare/seed the save folder similar to host flow (DefaultSave + Player_0 + metadata)
@@ -311,7 +317,7 @@ namespace DedicatedServerMod.Server.Core
             // Step 6: Load save data
             DebugLog.Info("Loading save data");
             loadManager.LoadStatus = LoadManager.ELoadStatus.LoadingData;
-            yield return MelonCoroutines.Start(LoadSaveData(loadManager));
+            yield return MelonCoroutines.Start(LoadSaveData(loadManager, shouldBootstrapFreshQuests));
 
             // Step 7: Finalize
             DebugLog.StartupDebug("Finalizing server initialization");
@@ -445,7 +451,7 @@ namespace DedicatedServerMod.Server.Core
             }
         }
 
-        private static IEnumerator LoadSaveData(LoadManager loadManager)
+        private static IEnumerator LoadSaveData(LoadManager loadManager, bool shouldBootstrapFreshQuests)
         {
             ModManager.NotifyBeforeLoad();
             loadManager.onPreLoad?.Invoke();
@@ -453,37 +459,31 @@ namespace DedicatedServerMod.Server.Core
             DebugLog.StartupDebug("Creating load requests for save data");
             int queuedLoadRequests = 0;
             int skippedLoadRequests = 0;
-            foreach (var baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
+            foreach (BaseSaveableContractType baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
             {
+                SaveableContractType saveable = null;
 #if IL2CPP
-                object saveableCandidate = baseSaveable;
-                SaveableContractType saveable = saveableCandidate is Il2CppSystem.Object saveableObject
-                    ? saveableObject.TryCast<SaveableContractType>()
-                    : null;
+                if (baseSaveable != null)
+                {
+                    saveable = baseSaveable.TryCast<SaveableContractType>();
+                }
 #else
-                SaveableContractType saveable = baseSaveable;
+                saveable = baseSaveable;
 #endif
+
                 if (saveable == null)
                 {
                     skippedLoadRequests++;
                     continue;
                 }
 
-                string saveFolderName = null;
-                SaveLoaderType loader = null;
-                SafeReflection.TryGetInstanceFieldOrProperty(saveable, "SaveFolderName", out saveFolderName);
-                SafeReflection.TryGetInstanceFieldOrProperty(saveable, "Loader", out loader);
-
-                if ((string.IsNullOrWhiteSpace(saveFolderName) || loader == null) && baseSaveable != null)
-                {
-                    SafeReflection.TryGetInstanceFieldOrProperty(baseSaveable, "SaveFolderName", out saveFolderName);
-                    SafeReflection.TryGetInstanceFieldOrProperty(baseSaveable, "Loader", out loader);
-                }
+                string saveFolderName = saveable.SaveFolderName;
+                SaveLoaderType loader = saveable.Loader;
 
                 if (string.IsNullOrWhiteSpace(saveFolderName) || loader == null)
                 {
                     skippedLoadRequests++;
-                    DebugLog.StartupDebug($"Skipping save load request for {baseSaveable?.GetType().FullName ?? "<null>"}; SaveFolderName or Loader was unavailable.");
+                    DebugLog.StartupDebug($"Skipping save load request for {saveable.GetType().FullName}; SaveFolderName or Loader was unavailable.");
                     continue;
                 }
 
@@ -493,17 +493,20 @@ namespace DedicatedServerMod.Server.Core
                 queuedLoadRequests++;
             }
 
-            DebugLog.StartupDebug($"Queued {queuedLoadRequests} save load requests{(skippedLoadRequests > 0 ? $" ({skippedLoadRequests} skipped)" : string.Empty)}.");
+            DebugLog.Info($"Queued {queuedLoadRequests} save load requests{(skippedLoadRequests > 0 ? $" ({skippedLoadRequests} skipped)" : string.Empty)}.");
 
-            LoadRequestListType loadRequests = GetLoadRequests(loadManager);
-            if (loadRequests != null)
+            if (loadManager.loadRequests != null)
             {
-                while (loadRequests.Count > 0)
+                while (loadManager.loadRequests.Count > 0)
                 {
                     for (int i = 0; i < 50; i++)
                     {
-                        if (loadRequests.Count <= 0) break;
-                        var lr = loadRequests[0];
+                        if (loadManager.loadRequests.Count <= 0)
+                        {
+                            break;
+                        }
+
+                        LoadRequestType lr = loadManager.loadRequests[0];
                         try
                         {
                             lr.Complete();
@@ -511,9 +514,9 @@ namespace DedicatedServerMod.Server.Core
                         catch (Exception ex)
                         {
                             DebugLog.Error($"LOAD ERROR for load request: {lr.Path} : {ex.Message}\nSite: {ex.TargetSite}");
-                            if (loadRequests.Count > 0 && loadRequests[0] == lr)
+                            if (loadManager.loadRequests.Count > 0 && loadManager.loadRequests[0] == lr)
                             {
-                                loadRequests.RemoveAt(0);
+                                loadManager.loadRequests.RemoveAt(0);
                             }
                         }
                     }
@@ -527,23 +530,122 @@ namespace DedicatedServerMod.Server.Core
             yield return new WaitForEndOfFrame();
             loadManager.onLoadComplete?.Invoke();
             yield return new WaitForSeconds(NativeInvariants.POST_LOAD_DELAY_SECONDS);
+            BootstrapFreshSaveQuestsIfNeeded(shouldBootstrapFreshQuests, ServerConfig.Instance.FreshSaveQuestBootstrapMode);
             ModManager.NotifyAfterLoad();
             DebugLog.Info("Save data loaded successfully");
         }
 
-        private static LoadRequestListType GetLoadRequests(LoadManager loadManager)
+        private static void BootstrapFreshSaveQuestsIfNeeded(bool shouldBootstrapFreshQuests, FreshSaveQuestBootstrapMode bootstrapMode)
         {
-            if (loadManager == null)
+            if (!shouldBootstrapFreshQuests)
+            {
+                return;
+            }
+
+            try
+            {
+                QuestManager questManager = NetworkSingleton<QuestManager>.Instance ?? UnityEngine.Object.FindObjectOfType<QuestManager>();
+                if (questManager == null || questManager.DefaultQuests == null || questManager.DefaultQuests.Length == 0)
+                {
+                    DebugLog.Warning("Fresh save quest bootstrap skipped because QuestManager default quests were unavailable.");
+                    return;
+                }
+
+                bool hasActiveOrTrackedQuest = false;
+                for (int i = 0; i < questManager.DefaultQuests.Length; i++)
+                {
+                    Quest quest = questManager.DefaultQuests[i];
+                    if (quest == null)
+                    {
+                        continue;
+                    }
+
+                    if (quest.State != EQuestState.Inactive || quest.IsTracked)
+                    {
+                        hasActiveOrTrackedQuest = true;
+                        break;
+                    }
+                }
+
+                if (hasActiveOrTrackedQuest)
+                {
+                    DebugLog.Info("Fresh save quest bootstrap skipped because quest state was already initialized.");
+                    return;
+                }
+
+                Quest questToBootstrap = ResolveFreshSaveBootstrapQuest(questManager, bootstrapMode);
+                if (questToBootstrap == null)
+                {
+                    DebugLog.Warning($"Fresh save quest bootstrap could not resolve a quest for mode '{bootstrapMode}'.");
+                    return;
+                }
+
+                questToBootstrap.Begin(network: false);
+                if (!questToBootstrap.IsTracked)
+                {
+                    questToBootstrap.SetIsTracked(tracked: true);
+                }
+
+                DebugLog.Info($"Bootstrapped fresh save quest '{questToBootstrap.GetQuestTitle()}' using mode '{bootstrapMode}'.");
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Fresh save quest bootstrap failed: {ex.Message}");
+            }
+        }
+
+        private static Quest ResolveFreshSaveBootstrapQuest(QuestManager questManager, FreshSaveQuestBootstrapMode bootstrapMode)
+        {
+            if (questManager?.DefaultQuests == null || questManager.DefaultQuests.Length == 0)
             {
                 return null;
             }
 
-#if IL2CPP
-            return loadManager.loadRequests;
-#else
-            FieldInfo loadRequestsField = typeof(LoadManager).GetField("loadRequests", BindingFlags.NonPublic | BindingFlags.Instance);
-            return loadRequestsField?.GetValue(loadManager) as LoadRequestListType;
-#endif
+            switch (bootstrapMode)
+            {
+                case FreshSaveQuestBootstrapMode.StartFromBeginning:
+                {
+                    Quest welcomeQuest = FindDefaultQuest(
+                        questManager,
+                        typeNameFragment: "WelcomeToHylandPoint",
+                        questTitle: "Welcome to Hyland Point");
+                    return welcomeQuest ?? questManager.DefaultQuests.FirstOrDefault(quest => quest != null);
+                }
+
+                case FreshSaveQuestBootstrapMode.StartPostIntro:
+                    return FindDefaultQuest(
+                        questManager,
+                        typeNameFragment: "GettingStarted",
+                        questTitle: "Getting Started");
+
+                default:
+                    return null;
+            }
+        }
+
+        private static Quest FindDefaultQuest(QuestManager questManager, string typeNameFragment, string questTitle)
+        {
+            if (questManager?.DefaultQuests == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < questManager.DefaultQuests.Length; i++)
+            {
+                Quest quest = questManager.DefaultQuests[i];
+                if (quest == null)
+                {
+                    continue;
+                }
+
+                if ((!string.IsNullOrWhiteSpace(typeNameFragment) && quest.GetType().Name.Contains(typeNameFragment, StringComparison.Ordinal))
+                    || string.Equals(quest.GetQuestTitle(), questTitle, StringComparison.Ordinal))
+                {
+                    return quest;
+                }
+            }
+
+            return null;
         }
 
         private static void OnLoopbackSpawned(ScheduleOne.PlayerScripts.Player p)

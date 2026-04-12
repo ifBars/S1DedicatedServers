@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Audio
 
             if (!_loggedSkip)
             {
-                DebugLog.Info("Skipping AmbientOneShot startup on dedicated headless server.");
+                DebugLog.StartupDebug("Skipping AmbientOneShot startup on dedicated headless server.");
                 _loggedSkip = true;
             }
 

@@ -140,6 +140,7 @@ See [Auto-Save](configuration/autosave.md) for details.
 - `allowSleeping`
 - `pauseGameWhenEmpty`
 - `timeProgressionMultiplier`
+- `freshSaveQuestBootstrapMode`: `StartFromBeginning` (recommended) or `StartPostIntro`
 
 Current builds already force headless time progression to remain positive at runtime, so there is no separate `timeNeverStops` toggle.
 
