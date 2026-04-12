@@ -209,7 +209,7 @@ jobs:
           test -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll"
           test -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll"
 
-      - name: Create CI Build Properties
+      - name: Create Mono CI Build Properties
         shell: bash
         run: |
           cat > ci.build.props << 'EOF'
@@ -231,6 +231,26 @@ jobs:
 
       - name: Build Mono Client
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v minimal
+
+      - name: Prepare IL2CPP Assembly Layout
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf ScheduleOneAssemblies/Managed
+          find ScheduleOneAssemblies/MelonLoader -maxdepth 1 -type f -delete
+
+      - name: Create IL2CPP CI Build Properties
+        shell: bash
+        run: |
+          cat > ci.build.props << 'EOF'
+          <Project>
+              <PropertyGroup>
+                  <AutomateLocalDeployment>false</AutomateLocalDeployment>
+                  <Il2CppGamePath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies</Il2CppGamePath>
+              </PropertyGroup>
+          </Project>
+          EOF
 
       - name: Restore IL2CPP Dependencies
         run: dotnet restore DedicatedServerMod.csproj -p:EffectiveConfiguration=Il2cpp_Server
