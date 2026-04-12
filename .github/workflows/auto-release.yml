@@ -141,9 +141,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-release-v4-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-release-v4-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-
 
       - name: Checkout Mono Game Assemblies
         if: steps.cache-assemblies.outputs.cache-hit != 'true'
@@ -208,6 +208,37 @@ jobs:
           test -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll"
           test -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll"
           test -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll"
+
+      - name: Check Assembly Files
+        id: assembly-files
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=true
+
+          if [ ! -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
+            echo "Missing Assembly-CSharp.dll"
+            ready=false
+          fi
+
+          if [ ! -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
+            echo "Missing MelonLoader.dll"
+            ready=false
+          fi
+
+          if [ ! -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
+            echo "Missing IL2CPP Assembly-CSharp.dll"
+            find il2cpp-assemblies -maxdepth 4 -type f \( -name "Assembly-CSharp.dll" -o -name "MelonLoader.dll" \) 2>/dev/null || true
+            ready=false
+          fi
+
+          if [ ! -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll" ]; then
+            echo "Missing IL2CPP MelonLoader.dll"
+            find il2cpp-assemblies -maxdepth 4 -type f \( -name "Assembly-CSharp.dll" -o -name "MelonLoader.dll" \) 2>/dev/null || true
+            ready=false
+          fi
+
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
 
       - name: Create Mono CI Build Properties
         shell: bash
@@ -364,11 +395,11 @@ jobs:
           Set-Content 'release_notes.md' $releaseNotes
 
       - name: Save Game Assemblies to Cache
-        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
+        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         uses: actions/cache/save@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-release-v4-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
