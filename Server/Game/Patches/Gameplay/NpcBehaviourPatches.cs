@@ -1,4 +1,3 @@
-using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using BehaviourType = Il2CppScheduleOne.NPCs.Behaviour.Behaviour;
@@ -13,7 +12,8 @@ using NpcBehaviourType = ScheduleOne.NPCs.Behaviour.NPCBehaviour;
 namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 {
     /// <summary>
-    /// Removes per-frame LINQ allocation and lookup overhead from NPC behavior selection on dedicated headless servers.
+    /// Removes per-frame LINQ allocation and reflection overhead from NPC behavior selection on dedicated headless servers.
+    /// Uses the Krafs-publicized <c>enabledBehaviours</c> field directly so the hot path stays out of <see cref="Utils.SafeReflection"/>.
     /// </summary>
     [HarmonyPatch(typeof(NpcBehaviourType), "Update")]
     internal static class NpcBehaviourUpdatePatches
@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             if (__instance.IsServerInitialized)
             {
-                SafeReflection.TryGetInstanceFieldOrProperty(__instance, "enabledBehaviours", out BehaviourListType enabledBehaviours);
+                BehaviourListType enabledBehaviours = __instance.enabledBehaviours;
                 BehaviourType enabledBehaviour = enabledBehaviours != null && enabledBehaviours.Count > 0
                     ? enabledBehaviours[0]
                     : null;
