@@ -223,14 +223,17 @@ jobs:
           </Project>
           EOF
 
-      - name: Restore Dependencies
-        run: dotnet restore DedicatedServerMod.csproj
+      - name: Restore Mono Dependencies
+        run: dotnet restore DedicatedServerMod.csproj -p:EffectiveConfiguration=Mono_Server
 
       - name: Build Mono Server
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Server -v minimal
 
       - name: Build Mono Client
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v minimal
+
+      - name: Restore IL2CPP Dependencies
+        run: dotnet restore DedicatedServerMod.csproj -p:EffectiveConfiguration=Il2cpp_Server
 
       - name: Build IL2CPP Server
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Il2cpp_Server -v minimal
