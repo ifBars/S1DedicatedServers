@@ -294,22 +294,24 @@ jobs:
             $releaseSummary = $commitText
           }
 
-          @"
-          ## DedicatedServerMod v$version
+          $releaseNotes = @(
+            "## DedicatedServerMod v$version"
+            ""
+            "### Release Notes"
+            ""
+            $releaseSummary
+            ""
+            "<details>"
+            "<summary>Commit Summary</summary>"
+            ""
+            $commitText
+            ""
+            "</details>"
+            ""
+            $compareLine
+          ) -join "`n"
 
-          ### Release Notes
-
-$releaseSummary
-
-          <details>
-          <summary>Commit Summary</summary>
-
-$commitText
-
-          </details>
-
-          $compareLine
-          "@ | Set-Content 'release_notes.md'
+          Set-Content 'release_notes.md' $releaseNotes
 
       - name: Save Game Assemblies to Cache
         if: always() && steps.cache-assemblies.outputs.cache-hit != 'true'
