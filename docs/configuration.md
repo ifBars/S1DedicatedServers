@@ -40,7 +40,7 @@ Use Steam ticket authentication on public servers to verify player identities:
 ```toml
 [authentication]
 authProvider = 'SteamGameServer'
-authTimeoutSeconds = 15
+authTimeoutSeconds = 30
 authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = true
 steamGameServerQueryPort = 27016
@@ -51,6 +51,7 @@ Quick reference:
 
 - `authProvider` options: `None`, `SteamGameServer`, `SteamWebApi`
 - `SteamGameServer` is recommended for public servers
+- Keep `authTimeoutSeconds` at `30` seconds minimum; `60` seconds is preferred for public or slower environments
 - `None` is acceptable for private LAN servers
 - `SteamWebApi` is not fully implemented yet
 - `requireAuthentication` is still accepted as a legacy compatibility flag, but new configs should prefer `authProvider`
@@ -105,6 +106,7 @@ Recommended:
 
 - `FishNetRpc` for Mono builds
 - `SteamNetworkingSockets` for IL2CPP and dedicated server deployments
+- If you are testing the new IL2CPP path, prefer `SteamNetworkingSockets` first and report runtime-specific issues on GitHub with logs
 
 Avoid:
 

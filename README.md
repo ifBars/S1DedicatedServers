@@ -1,10 +1,12 @@
 # S1DS - S1 DedicatedServerMod
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ifBars/S1DedicatedServers)
-[![Version](https://img.shields.io/badge/version-0.8.0--beta-blue)](https://github.com/ifBars/S1DedicatedServers/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0--beta-blue)](https://github.com/ifBars/S1DedicatedServers/releases)
 [![License](https://img.shields.io/github/license/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/blob/master/LICENSE)
 
 DedicatedServerMod adds authoritative, headless dedicated servers to Schedule I, along with admin tooling, remote console support, an optional localhost web panel, and a public mod API for server and client extensions.
+
+`0.9.0-beta` introduces initial IL2CPP support for dedicated server and client workflows. Treat IL2CPP support as beta: if you hit IL2CPP-specific regressions or startup issues, report them on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps.
 
 ## What It Provides
 

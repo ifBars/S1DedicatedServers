@@ -18,7 +18,7 @@ on:
           - beta
 
 jobs:
-  build-mono:
+  build:
     runs-on: windows-latest
     steps:
       - name: Checkout DedicatedServerMod
@@ -63,23 +63,35 @@ jobs:
         run: |
           mkdir -p ScheduleOneAssemblies/Managed
           mkdir -p ScheduleOneAssemblies/MelonLoader
+          mkdir -p ScheduleOneAssemblies/MelonLoader/net6
+          mkdir -p ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies
 
       - name: Restore Game Assemblies from Cache
         id: cache-assemblies
         uses: actions/cache/restore@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-v6-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-v6-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-
 
-      - name: Checkout Game Assemblies
+      - name: Checkout Mono Game Assemblies
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.GAME_ASSEMBLIES_REPO }}
           token: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
           ref: ${{ steps.assembly-branch.outputs.branch }}
           path: game-assemblies
+          fetch-depth: 1
+        if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+
+      - name: Checkout IL2CPP Game Assemblies
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.IL2CPP_ASSEMBLIES_REPO }}
+          token: ${{ secrets.IL2CPP_ASSEMBLIES_TOKEN }}
+          ref: ${{ steps.assembly-branch.outputs.branch }}
+          path: il2cpp-assemblies
           fetch-depth: 1
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
@@ -94,6 +106,16 @@ jobs:
           if [ -d "game-assemblies/MelonLoader" ]; then
             cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
             echo "Copied MelonLoader assemblies"
+          fi
+
+          if [ -d "il2cpp-assemblies/Il2CppAssemblies" ]; then
+            cp -r il2cpp-assemblies/Il2CppAssemblies/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/ || echo "Failed to copy IL2CPP assemblies"
+            echo "Copied IL2CPP assemblies"
+          fi
+
+          if [ -d "il2cpp-assemblies/net6" ]; then
+            cp -r il2cpp-assemblies/net6/* ScheduleOneAssemblies/MelonLoader/net6/ || echo "Failed to copy IL2CPP MelonLoader net6 assemblies"
+            echo "Copied IL2CPP MelonLoader net6 assemblies"
           fi
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
@@ -110,6 +132,16 @@ jobs:
 
           if [ ! -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
             echo "Missing MelonLoader.dll"
+            ready=false
+          fi
+
+          if [ ! -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
+            echo "Missing IL2CPP Assembly-CSharp.dll"
+            ready=false
+          fi
+
+          if [ ! -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll" ]; then
+            echo "Missing IL2CPP MelonLoader.dll"
             ready=false
           fi
 
@@ -132,6 +164,20 @@ jobs:
             exit 1
           fi
 
+          if [ -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
+            echo "Found IL2CPP Assembly-CSharp.dll"
+          else
+            echo "Missing IL2CPP Assembly-CSharp.dll"
+            exit 1
+          fi
+
+          if [ -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll" ]; then
+            echo "Found IL2CPP MelonLoader.dll"
+          else
+            echo "Missing IL2CPP MelonLoader.dll"
+            exit 1
+          fi
+
       - name: Create CI Build Properties
         shell: bash
         run: |
@@ -141,6 +187,7 @@ jobs:
                   <AutomateLocalDeployment>false</AutomateLocalDeployment>
                   <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
                   <MonoAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/Managed</MonoAssembliesPath>
+                  <Il2CppGamePath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies</Il2CppGamePath>
               </PropertyGroup>
           </Project>
           EOF
@@ -154,6 +201,12 @@ jobs:
       - name: Build Mono Client
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v normal
 
+      - name: Build IL2CPP Server
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Il2cpp_Server -v normal
+
+      - name: Build IL2CPP Client
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Il2cpp_Client -v normal
+
       - name: Upload Mono Server Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -166,20 +219,34 @@ jobs:
           name: DedicatedServerMod-Mono-Client
           path: bin/Mono_Client/netstandard2.1/*.dll
 
+      - name: Upload IL2CPP Server Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DedicatedServerMod-Il2cpp-Server
+          path: bin/Il2cpp_Server/net6.0/*.dll
+
+      - name: Upload IL2CPP Client Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DedicatedServerMod-Il2cpp-Client
+          path: bin/Il2cpp_Client/net6.0/*.dll
+
       - name: Save Game Assemblies to Cache
         uses: actions/cache/save@v4
         if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-v6-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
   summary:
     runs-on: ubuntu-latest
-    needs: [build-mono]
+    needs: [build]
     if: always()
     steps:
       - name: Build Summary
         run: |
           echo "=== Build Complete ==="
-          echo "Mono Server: ${{ needs.build-mono.result }}"
-          echo "Mono Client: ${{ needs.build-mono.result }}"
+          echo "Mono Server: ${{ needs.build.result }}"
+          echo "Mono Client: ${{ needs.build.result }}"
+          echo "IL2CPP Server: ${{ needs.build.result }}"
+          echo "IL2CPP Client: ${{ needs.build.result }}"

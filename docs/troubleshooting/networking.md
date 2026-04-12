@@ -19,7 +19,7 @@ Guides:
 If you cannot forward ports (CGNAT/ISP restrictions), consider hosting on a VPS or having a friend host it for you.
 
 ### Connects then disconnects after a short delay
-- This is commonly an authentication handshake timeout (`authTimeoutSeconds`, default 15s), not a raw network failure.
+- This is commonly an authentication handshake timeout (`authTimeoutSeconds`, default 30s), not a raw network failure.
 - Check server logs for auth-specific messages and failure reasons.
 - Confirm `authProvider` and Steam game server login settings are configured correctly.
 - Keep `authTimeoutSeconds` at `30` seconds minimum, and prefer `60` seconds for public servers or slower client hardware/network conditions.

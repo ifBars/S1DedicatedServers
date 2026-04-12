@@ -5,14 +5,17 @@ Run authoritative, headless Schedule I servers and build server/client mods agai
 ## Download the Release
 
 1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
-2. Use `server.zip` for the dedicated server install.
-3. Use `client.zip` for normal game installs that will connect to dedicated servers.
+2. Use `Server.zip` for Mono dedicated server installs.
+3. Use `Client.zip` for Mono game installs that will connect to dedicated servers.
+4. Use `Il2cpp_Server.zip` for IL2CPP dedicated server installs.
+5. Use `Il2cpp_Client.zip` for IL2CPP game installs that will connect to dedicated servers.
 
 ## Compatibility
 
 - Server and client should use matching Schedule I builds.
 - Supported MelonLoader versions are `0.6.x`, `0.7.0`, and `0.7.2+`.
 - Avoid MelonLoader `0.7.1`.
+- `0.9.0-beta` adds initial IL2CPP support for both dedicated-server and client installs. Expect rough edges, and report IL2CPP issues on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps.
 - Windows is the primary target for server hosting. Linux hosting typically requires Wine or Proton.
 
 ## Host Sizing Baseline
@@ -35,7 +38,7 @@ For containerized hosting, use the Docker release package and follow [Docker Dep
 ## Create a Server Install
 
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.
-2. Extract `server.zip` into that server install.
+2. Extract `Server.zip` into that server install for Mono, or `Il2cpp_Server.zip` for IL2CPP.
 3. Confirm that `Mods/` merged into the install and `start_server.bat` was placed at the install root.
 4. Run `start_server.bat` once so the mod generates `server_config.toml`, then close it.
 5. Edit `server_config.toml` and set `saveGamePath`.
@@ -69,7 +72,7 @@ For home-hosted environments where you want a browser-based operator UI on the s
 ## Prepare a Client Install
 
 1. Use your main game install, or another separate client copy.
-2. Extract `client.zip` so the included `Mods/` contents merge into that install.
+2. Extract `Client.zip` for Mono or `Il2cpp_Client.zip` for IL2CPP so the included `Mods/` contents merge into that install.
 3. Launch the game normally and connect to the server.
 
 ## After First Boot

@@ -341,11 +341,12 @@ What you expected to happen.
 What actually happened.
 
 ## Environment
-- DedicatedServerMod Version: 0.8.0-beta
+- DedicatedServerMod Version: 0.9.0-beta
 - MelonLoader Version: 0.6.5
 - Schedule I Version: [version]
 - OS: Windows 10/11 / Windows Server 2019 / Linux
 - Build Type: Mono_Server / Il2cpp_Server
+- Runtime Notes: Mention whether the issue reproduces only on IL2CPP, only on Mono, or on both
 
 ## Logs
 ```

@@ -31,6 +31,7 @@ jobs:
       new-version: ${{ steps.check.outputs.version }}
       prerelease: ${{ steps.check.outputs.prerelease }}
       make-latest: ${{ steps.check.outputs.make_latest }}
+      release-name: ${{ steps.check.outputs.release_name }}
 
     steps:
       - name: Checkout code
@@ -68,6 +69,12 @@ jobs:
           fi
 
           echo "version=$current_version" >> "$GITHUB_OUTPUT"
+
+          if [[ "$current_version" == "0.9.0-beta" ]]; then
+            echo "release_name=DedicatedServerMod v$current_version - Initial IL2CPP Support" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_name=DedicatedServerMod v$current_version" >> "$GITHUB_OUTPUT"
+          fi
 
           if [[ "$current_version" == *-* ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
@@ -126,17 +133,19 @@ jobs:
         run: |
           mkdir -p ScheduleOneAssemblies/Managed
           mkdir -p ScheduleOneAssemblies/MelonLoader
+          mkdir -p ScheduleOneAssemblies/MelonLoader/net6
+          mkdir -p ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies
 
       - name: Restore Game Assemblies from Cache
         id: cache-assemblies
         uses: actions/cache/restore@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-release-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-release-v4-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-release-v3-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-release-v4-${{ steps.assembly-branch.outputs.branch }}-
 
-      - name: Checkout Game Assemblies
+      - name: Checkout Mono Game Assemblies
         if: steps.cache-assemblies.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
@@ -146,18 +155,32 @@ jobs:
           path: game-assemblies
           fetch-depth: 1
 
+      - name: Checkout IL2CPP Game Assemblies
+        if: steps.cache-assemblies.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.IL2CPP_ASSEMBLIES_REPO }}
+          token: ${{ secrets.IL2CPP_ASSEMBLIES_TOKEN }}
+          ref: ${{ steps.assembly-branch.outputs.branch }}
+          path: il2cpp-assemblies
+          fetch-depth: 1
+
       - name: Copy Game Assemblies
         if: steps.cache-assemblies.outputs.cache-hit != 'true'
         shell: bash
         run: |
           cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/
           cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/
+          cp -r il2cpp-assemblies/Il2CppAssemblies/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/
+          cp -r il2cpp-assemblies/net6/* ScheduleOneAssemblies/MelonLoader/net6/
 
       - name: Verify Assemblies
         shell: bash
         run: |
           test -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll"
           test -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll"
+          test -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll"
+          test -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll"
 
       - name: Create CI Build Properties
         shell: bash
@@ -168,6 +191,7 @@ jobs:
                   <AutomateLocalDeployment>false</AutomateLocalDeployment>
                   <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
                   <MonoAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/Managed</MonoAssembliesPath>
+                  <Il2CppGamePath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies</Il2CppGamePath>
               </PropertyGroup>
           </Project>
           EOF
@@ -181,22 +205,35 @@ jobs:
       - name: Build Mono Client
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v minimal
 
+      - name: Build IL2CPP Server
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Il2cpp_Server -v minimal
+
+      - name: Build IL2CPP Client
+        run: dotnet build DedicatedServerMod.csproj --no-restore -c Il2cpp_Client -v minimal
+
       - name: Prepare Release Packages
         shell: pwsh
         run: |
           $releaseRoot = Join-Path $PWD 'release'
           $serverRoot = Join-Path $releaseRoot 'Server'
           $clientRoot = Join-Path $releaseRoot 'Client'
+          $il2cppServerRoot = Join-Path $releaseRoot 'Il2cpp_Server'
+          $il2cppClientRoot = Join-Path $releaseRoot 'Il2cpp_Client'
           $dockerRoot = Join-Path $releaseRoot 'Docker'
 
           Remove-Item $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path (Join-Path $serverRoot 'Mods') -Force | Out-Null
           New-Item -ItemType Directory -Path (Join-Path $clientRoot 'Mods') -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $il2cppServerRoot 'Mods') -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $il2cppClientRoot 'Mods') -Force | Out-Null
           New-Item -ItemType Directory -Path $dockerRoot -Force | Out-Null
 
           Copy-Item 'bin/Mono_Server/netstandard2.1/DedicatedServerMod_Mono_Server.dll' (Join-Path $serverRoot 'Mods/DedicatedServerMod_Mono_Server.dll')
           Copy-Item 'bin/Mono_Client/netstandard2.1/DedicatedServerMod_Mono_Client.dll' (Join-Path $clientRoot 'Mods/DedicatedServerMod_Mono_Client.dll')
+          Copy-Item 'bin/Il2cpp_Server/net6.0/DedicatedServerMod_Il2cpp_Server.dll' (Join-Path $il2cppServerRoot 'Mods/DedicatedServerMod_Il2cpp_Server.dll')
+          Copy-Item 'bin/Il2cpp_Client/net6.0/DedicatedServerMod_Il2cpp_Client.dll' (Join-Path $il2cppClientRoot 'Mods/DedicatedServerMod_Il2cpp_Client.dll')
           Copy-Item 'packaging/Server/start_server.bat' (Join-Path $serverRoot 'start_server.bat')
+          Copy-Item 'packaging/Server/start_server.bat' (Join-Path $il2cppServerRoot 'start_server.bat')
           Copy-Item 'Docker/Dockerfile' (Join-Path $dockerRoot 'Dockerfile')
           Copy-Item 'Docker/docker-compose.example.yml' (Join-Path $dockerRoot 'docker-compose.example.yml')
           Copy-Item 'Docker/run.sh' (Join-Path $dockerRoot 'run.sh')
@@ -205,6 +242,8 @@ jobs:
 
           Compress-Archive -Path (Join-Path $serverRoot '*') -DestinationPath (Join-Path $releaseRoot 'Server.zip') -Force
           Compress-Archive -Path (Join-Path $clientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Client.zip') -Force
+          Compress-Archive -Path (Join-Path $il2cppServerRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Server.zip') -Force
+          Compress-Archive -Path (Join-Path $il2cppClientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Client.zip') -Force
           Compress-Archive -Path (Get-ChildItem -Path $dockerRoot -Force | ForEach-Object { $_.FullName }) -DestinationPath (Join-Path $releaseRoot 'Docker.zip') -Force
 
       - name: Generate Release Notes
@@ -212,6 +251,29 @@ jobs:
         run: |
           $version = '${{ needs.check-version.outputs.new-version }}'
           $lastTag = (git for-each-ref refs/tags --sort=-creatordate --format='%(refname:strip=2)' | Select-Object -First 1)
+          $changelogLines = Get-Content 'CHANGELOG.md'
+          $currentHeader = "## $version -"
+          $entryStart = -1
+
+          for ($i = 0; $i -lt $changelogLines.Count; $i++) {
+            if ($changelogLines[$i].StartsWith($currentHeader)) {
+              $entryStart = $i
+              break
+            }
+          }
+
+          $releaseSummary = $null
+          if ($entryStart -ge 0) {
+            $entryEnd = $changelogLines.Count
+            for ($i = $entryStart + 1; $i -lt $changelogLines.Count; $i++) {
+              if ($changelogLines[$i].StartsWith('## ')) {
+                $entryEnd = $i
+                break
+              }
+            }
+
+            $releaseSummary = ($changelogLines[($entryStart + 1)..($entryEnd - 1)] -join "`n").Trim()
+          }
 
           if ($lastTag) {
             $commits = git log "$lastTag..HEAD" --pretty=format:"- %s (%h)" --no-merges
@@ -228,14 +290,23 @@ jobs:
             $commitText = [string]::Join("`n", $commitLines)
           }
 
+          if ([string]::IsNullOrWhiteSpace($releaseSummary)) {
+            $releaseSummary = $commitText
+          }
+
           @"
           ## DedicatedServerMod v$version
 
-          ### Changes
+          ### Release Notes
 
-          $commitText
+$releaseSummary
 
-          ---
+          <details>
+          <summary>Commit Summary</summary>
+
+$commitText
+
+          </details>
 
           $compareLine
           "@ | Set-Content 'release_notes.md'
@@ -245,13 +316,13 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-release-v3-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-release-v4-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.new-version }}
-          name: DedicatedServerMod v${{ needs.check-version.outputs.new-version }}
+          name: ${{ needs.check-version.outputs.release-name }}
           body_path: release_notes.md
           draft: false
           prerelease: ${{ needs.check-version.outputs.prerelease == 'true' }}
@@ -259,6 +330,8 @@ jobs:
           files: |
             release/Server.zip
             release/Client.zip
+            release/Il2cpp_Server.zip
+            release/Il2cpp_Client.zip
             release/Docker.zip
 
       - name: Summary
@@ -272,4 +345,6 @@ jobs:
           Add-Content $env:GITHUB_STEP_SUMMARY "**Artifacts:**"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Server.zip"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Client.zip"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Il2cpp_Server.zip"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Il2cpp_Client.zip"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Docker.zip"

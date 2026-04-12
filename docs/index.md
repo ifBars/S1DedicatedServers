@@ -20,6 +20,7 @@ Key docs:
 ### Notes
 
 - Please search existing issues before opening a new one; if you don't see your problem reported, opening an issue on GitHub is encouraged.
+- `0.9.0-beta` includes initial IL2CPP support. If you hit IL2CPP-specific issues, please open a GitHub issue and include logs, runtime type, and reproduction steps.
 - Reproduction steps, logs, and any installed mods details are extremely helpful.
 - Feedback, suggestions, and pull requests are welcome and appreciated.
 

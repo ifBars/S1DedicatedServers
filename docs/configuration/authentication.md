@@ -106,7 +106,7 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `authProvider` | `string` | `"SteamGameServer"` | Authentication backend: `None`, `SteamWebApi`, `SteamGameServer` |
-| `authTimeoutSeconds` | `int` | `15` | Timeout for handshake completion (1-120 seconds). Keep this at `30` seconds minimum; `60` seconds is recommended so slower clients can finish auth reliably. |
+| `authTimeoutSeconds` | `int` | `30` | Timeout for handshake completion (1-120 seconds). Keep this at `30` seconds minimum; `60` seconds is recommended so slower clients can finish auth reliably. |
 | `authAllowLoopbackBypass` | `bool` | `true` | Allow local loopback/ghost host to bypass auth |
 
 ### Steam Game Server Settings
@@ -182,6 +182,7 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 - Clients disconnecting shortly after connect are often hitting an auth timeout that is set too low.
 - Do not set `authTimeoutSeconds` below `30` seconds unless you are deliberately optimizing a controlled local test environment.
 - For public servers, mixed hardware, or heavier mod stacks, use `60` seconds.
+- If the failure appears only on IL2CPP, include that runtime detail when filing the GitHub issue so it can be triaged separately from Mono behavior.
 
 ### Authentication always times out
 

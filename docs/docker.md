@@ -24,7 +24,7 @@ Download both of these assets from the same release:
 - `.dockerignore`
 - package-local Docker instructions
 
-`Server.zip` contains the server mod DLL that the image needs during `docker build`.
+`Server.zip` contains the Mono server mod DLL that the current Docker image expects during `docker build`.
 
 ## Prepare The Build Context
 
@@ -99,6 +99,7 @@ docker compose up -d --build
 - Edit the generated `server_config.toml` in the mounted game directory
 - Keep your save path, auth settings, and query port aligned with your deployment
 - Rebuild the image with a newer `DedicatedServerMod_Mono_Server.dll` when upgrading to a new release
+- Use `Il2cpp_Server.zip` for native IL2CPP server installs outside Docker; the provided Docker package still targets the Mono server artifact.
 
 ## Container Notes
 

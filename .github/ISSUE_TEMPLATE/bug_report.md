@@ -28,6 +28,7 @@ What actually happened.
 - Game Version: 
 - OS: Windows 10/11 / Windows Server 2019 / Linux
 - Build Type: Mono_Server / Il2cpp_Server
+- Runtime Scope: Mono only / IL2CPP only / both
 
 ## Logs
 ```log
