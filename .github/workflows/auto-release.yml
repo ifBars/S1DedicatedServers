@@ -169,10 +169,37 @@ jobs:
         if: steps.cache-assemblies.outputs.cache-hit != 'true'
         shell: bash
         run: |
+          set -euo pipefail
+
           cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/
           cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/
-          cp -r il2cpp-assemblies/Il2CppAssemblies/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/
-          cp -r il2cpp-assemblies/net6/* ScheduleOneAssemblies/MelonLoader/net6/
+
+          il2cppAssembliesSource=""
+          if [ -d "il2cpp-assemblies/MelonLoader/Il2CppAssemblies" ]; then
+            il2cppAssembliesSource="il2cpp-assemblies/MelonLoader/Il2CppAssemblies"
+          elif [ -d "il2cpp-assemblies/Il2CppAssemblies" ]; then
+            il2cppAssembliesSource="il2cpp-assemblies/Il2CppAssemblies"
+          fi
+
+          if [ -z "$il2cppAssembliesSource" ]; then
+            echo "IL2CPP assemblies directory not found in il2cpp-assemblies checkout" >&2
+            exit 1
+          fi
+
+          il2cppNet6Source=""
+          if [ -d "il2cpp-assemblies/MelonLoader/net6" ]; then
+            il2cppNet6Source="il2cpp-assemblies/MelonLoader/net6"
+          elif [ -d "il2cpp-assemblies/net6" ]; then
+            il2cppNet6Source="il2cpp-assemblies/net6"
+          fi
+
+          if [ -z "$il2cppNet6Source" ]; then
+            echo "IL2CPP net6 directory not found in il2cpp-assemblies checkout" >&2
+            exit 1
+          fi
+
+          cp -r "$il2cppAssembliesSource"/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/
+          cp -r "$il2cppNet6Source"/* ScheduleOneAssemblies/MelonLoader/net6/
 
       - name: Verify Assemblies
         shell: bash

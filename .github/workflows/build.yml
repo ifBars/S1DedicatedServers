@@ -98,24 +98,44 @@ jobs:
       - name: Copy Game Assemblies
         shell: bash
         run: |
+          set -euo pipefail
+
           if [ -d "game-assemblies/Managed" ]; then
-            cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/ || echo "Failed to copy Mono assemblies"
+            cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/
             echo "Copied Mono assemblies"
           fi
 
           if [ -d "game-assemblies/MelonLoader" ]; then
-            cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/ || echo "Failed to copy MelonLoader assemblies"
+            cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/
             echo "Copied MelonLoader assemblies"
           fi
 
-          if [ -d "il2cpp-assemblies/Il2CppAssemblies" ]; then
-            cp -r il2cpp-assemblies/Il2CppAssemblies/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/ || echo "Failed to copy IL2CPP assemblies"
-            echo "Copied IL2CPP assemblies"
+          il2cppAssembliesSource=""
+          if [ -d "il2cpp-assemblies/MelonLoader/Il2CppAssemblies" ]; then
+            il2cppAssembliesSource="il2cpp-assemblies/MelonLoader/Il2CppAssemblies"
+          elif [ -d "il2cpp-assemblies/Il2CppAssemblies" ]; then
+            il2cppAssembliesSource="il2cpp-assemblies/Il2CppAssemblies"
           fi
 
-          if [ -d "il2cpp-assemblies/net6" ]; then
-            cp -r il2cpp-assemblies/net6/* ScheduleOneAssemblies/MelonLoader/net6/ || echo "Failed to copy IL2CPP MelonLoader net6 assemblies"
+          if [ -n "$il2cppAssembliesSource" ]; then
+            cp -r "$il2cppAssembliesSource"/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/
+            echo "Copied IL2CPP assemblies"
+          else
+            echo "IL2CPP assemblies directory not found in il2cpp-assemblies checkout"
+          fi
+
+          il2cppNet6Source=""
+          if [ -d "il2cpp-assemblies/MelonLoader/net6" ]; then
+            il2cppNet6Source="il2cpp-assemblies/MelonLoader/net6"
+          elif [ -d "il2cpp-assemblies/net6" ]; then
+            il2cppNet6Source="il2cpp-assemblies/net6"
+          fi
+
+          if [ -n "$il2cppNet6Source" ]; then
+            cp -r "$il2cppNet6Source"/* ScheduleOneAssemblies/MelonLoader/net6/
             echo "Copied IL2CPP MelonLoader net6 assemblies"
+          else
+            echo "IL2CPP net6 directory not found in il2cpp-assemblies checkout"
           fi
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
@@ -123,6 +143,7 @@ jobs:
         id: assembly-files
         shell: bash
         run: |
+          set -euo pipefail
           ready=true
 
           if [ ! -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
@@ -137,11 +158,13 @@ jobs:
 
           if [ ! -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
             echo "Missing IL2CPP Assembly-CSharp.dll"
+            find il2cpp-assemblies -maxdepth 4 -type f \( -name "Assembly-CSharp.dll" -o -name "MelonLoader.dll" \) 2>/dev/null || true
             ready=false
           fi
 
           if [ ! -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll" ]; then
             echo "Missing IL2CPP MelonLoader.dll"
+            find il2cpp-assemblies -maxdepth 4 -type f \( -name "Assembly-CSharp.dll" -o -name "MelonLoader.dll" \) 2>/dev/null || true
             ready=false
           fi
 
