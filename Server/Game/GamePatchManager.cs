@@ -1,5 +1,6 @@
 using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Console;
+using DedicatedServerMod.Server.Game.Patches.Gameplay;
 using DedicatedServerMod.Server.Game.Patches.Player;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ConsoleSupport;
@@ -62,6 +63,7 @@ namespace DedicatedServerMod.Server.Game
                 appliedPatches.Add("PlayerNameRPCPatch");
                 PatchPlayerServerNameValidation();
                 appliedPatches.Add("PlayerNameFriendGatePatch");
+                PatchCasinoRemoteClientFlow();
 
                 // 3) Console command permissions
                 PatchConsoleSubmitCommand();
@@ -215,6 +217,66 @@ namespace DedicatedServerMod.Server.Game
             catch (Exception ex)
             {
                 DebugLog.Error($"Error patching Console.SubmitCommand", ex);
+            }
+        }
+
+        /// <summary>
+        /// Patches casino table state transitions so remote dedicated-server clients can
+        /// start waiting casino games once all seated players are ready.
+        /// </summary>
+        private void PatchCasinoRemoteClientFlow()
+        {
+            try
+            {
+                Type casinoGamePlayersType = CasinoGamePatches.GetCasinoGamePlayersType();
+                if (casinoGamePlayersType == null)
+                {
+                    DebugLog.Warning("Could not find CasinoGamePlayers type; casino dedicated-server patch was skipped.");
+                    return;
+                }
+
+                MethodInfo receivePlayerBoolTarget = AccessTools.Method(casinoGamePlayersType, "ReceivePlayerBool");
+                MethodInfo setPlayerListTarget = AccessTools.Method(casinoGamePlayersType, "SetPlayerList");
+
+                MethodInfo receivePlayerBoolPostfix = typeof(CasinoGamePatches).GetMethod(
+                    nameof(CasinoGamePatches.ReceivePlayerBoolPostfix),
+                    BindingFlags.Public | BindingFlags.Static);
+                MethodInfo setPlayerListPostfix = typeof(CasinoGamePatches).GetMethod(
+                    nameof(CasinoGamePatches.SetPlayerListPostfix),
+                    BindingFlags.Public | BindingFlags.Static);
+
+                bool patchedAny = false;
+
+                if (receivePlayerBoolTarget != null && receivePlayerBoolPostfix != null)
+                {
+                    harmony.Patch(receivePlayerBoolTarget, postfix: new HarmonyMethod(receivePlayerBoolPostfix));
+                    patchedAny = true;
+                    DebugLog.StartupDebug("Patched CasinoGamePlayers.ReceivePlayerBool for dedicated-server casino readiness.");
+                }
+                else
+                {
+                    DebugLog.Warning("Could not patch CasinoGamePlayers.ReceivePlayerBool; remote casino readiness may stay blocked.");
+                }
+
+                if (setPlayerListTarget != null && setPlayerListPostfix != null)
+                {
+                    harmony.Patch(setPlayerListTarget, postfix: new HarmonyMethod(setPlayerListPostfix));
+                    patchedAny = true;
+                    DebugLog.StartupDebug("Patched CasinoGamePlayers.SetPlayerList for dedicated-server casino roster reevaluation.");
+                }
+                else
+                {
+                    DebugLog.Warning("Could not patch CasinoGamePlayers.SetPlayerList; casino roster reevaluation may be incomplete.");
+                }
+
+                if (patchedAny)
+                {
+                    appliedPatches.Add("CasinoRemoteClientPatch");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error("Error patching casino remote-client flow", ex);
             }
         }
 
