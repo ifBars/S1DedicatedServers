@@ -664,7 +664,7 @@ Current version: **0.9.0-beta**
 Version bumping:
 1. Update `API/Version.cs`
 2. Update release-facing docs that embed the current version (`README.md`, `CONTRIBUTING.md`, `docs/configuration/authentication.md`, and this file when needed)
-3. Create `CHANGELOG.md` entry
+3. Ensure the GitHub release workflow can derive release notes from git history
 4. Tag release: `git tag v0.9.0-beta`
 
 ---

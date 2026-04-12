@@ -332,33 +332,10 @@ jobs:
         run: |
           $version = '${{ needs.check-version.outputs.new-version }}'
           $lastTag = (git for-each-ref refs/tags --sort=-creatordate --format='%(refname:strip=2)' | Select-Object -First 1)
-          $changelogLines = Get-Content 'CHANGELOG.md'
-          $currentHeader = "## $version -"
-          $entryStart = -1
-
-          for ($i = 0; $i -lt $changelogLines.Count; $i++) {
-            if ($changelogLines[$i].StartsWith($currentHeader)) {
-              $entryStart = $i
-              break
-            }
-          }
-
-          $releaseSummary = $null
-          if ($entryStart -ge 0) {
-            $entryEnd = $changelogLines.Count
-            for ($i = $entryStart + 1; $i -lt $changelogLines.Count; $i++) {
-              if ($changelogLines[$i].StartsWith('## ')) {
-                $entryEnd = $i
-                break
-              }
-            }
-
-            $releaseSummary = ($changelogLines[($entryStart + 1)..($entryEnd - 1)] -join "`n").Trim()
-          }
 
           if ($lastTag) {
             $commits = git log "$lastTag..HEAD" --pretty=format:"- %s (%h)" --no-merges
-            $compareLine = "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$lastTag...v$version"
+            $compareLine = "**Compare**: https://github.com/${{ github.repository }}/compare/$lastTag...v$version"
           } else {
             $commits = git log --pretty=format:"- %s (%h)" --no-merges -n 10
             $compareLine = "**Repository**: https://github.com/${{ github.repository }}/releases"
@@ -371,23 +348,12 @@ jobs:
             $commitText = [string]::Join("`n", $commitLines)
           }
 
-          if ([string]::IsNullOrWhiteSpace($releaseSummary)) {
-            $releaseSummary = $commitText
-          }
-
           $releaseNotes = @(
             "## DedicatedServerMod v$version"
             ""
-            "### Release Notes"
-            ""
-            $releaseSummary
-            ""
-            "<details>"
-            "<summary>Commit Summary</summary>"
+            "### Changes"
             ""
             $commitText
-            ""
-            "</details>"
             ""
             $compareLine
           ) -join "`n"
