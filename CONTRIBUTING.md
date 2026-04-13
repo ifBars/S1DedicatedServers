@@ -416,13 +416,11 @@ Mockups, examples from other projects, etc.
 **Server**:
 ```bash
 # Enable debug logging
-# In server_config.json:
-{
-  "enabledLoggingOptions": [
-    "debugMode",
-    "verboseLogging"
-  ]
-}
+# In server_config.toml:
+enabledLoggingOptions = [
+  "debugMode",
+  "verboseLogging",
+]
 
 # Check logs
 tail -f UserData/MelonLoader/Latest.log

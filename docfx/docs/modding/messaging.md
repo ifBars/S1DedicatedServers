@@ -47,7 +47,7 @@ Payloads are strings; use JSON if you need structure.
 In most cases:
 
 - Use `CustomMessaging.SendToServer`, `SendToClient`, or `BroadcastToClients` to send messages.
-- Use `ModManager.ClientCustomMessageReceived`, `ModManager.ServerCustomMessageReceived`, or your mod base-class `OnCustomMessage(...)` callback to receive them.
+- Use `ModManager.ClientCustomMessageReceived`, `ModManager.ServerCustomMessageReceived`, `ClientModBase.OnCustomMessage(string, byte[])`, or the typed server override `ServerModBase.OnCustomMessage(string, byte[], ConnectedPlayerInfo)` / `ServerMelonModBase.OnCustomMessage(string, byte[], ConnectedPlayerInfo)` to receive them.
 
 Use `CustomMessaging.ClientMessageReceived` or `CustomMessaging.ServerMessageReceived` directly only when you intentionally want the raw transport events rather than the mod lifecycle layer.
 
@@ -58,7 +58,7 @@ Use `CustomMessaging.ClientMessageReceived` or `CustomMessaging.ServerMessageRec
 It only subscribes `ModManager` to `CustomMessaging.ServerMessageReceived` exactly once so that:
 
 - `ModManager.ServerCustomMessageReceived` fires, and
-- registered server mods receive `OnCustomMessage(...)`.
+- registered server mods receive their normal mod-lifecycle message hooks, including the typed `OnCustomMessage(string, byte[], ConnectedPlayerInfo)` override on the server mod base classes.
 
 Without that wiring, `CustomMessaging` still works, but only code listening directly to `CustomMessaging.ServerMessageReceived` will see incoming client messages.
 

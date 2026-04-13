@@ -2,6 +2,8 @@
 
 DedicatedServerMod exposes a side-aware API for server mods and client mods. The root `DedicatedServerMod.API` namespace stays intentionally small around entry points and lifecycle, while specialized helper types now live in dedicated sub-namespaces.
 
+For new server mods, prefer `ServerModBase` or `ServerMelonModBase`. Direct `IServerMod` implementations remain supported for compatibility, but they still include obsolete string-based player and message callbacks.
+
 ## Core Entry Points
 
 `S1DS` is the primary facade:
@@ -109,11 +111,11 @@ public sealed class MyClientMod : ClientMelonModBase
 
 ## Player Lifecycle Migration
 
-Legacy server lifecycle hooks still exist:
+Legacy server lifecycle hooks still exist as obsolete compatibility members on the server mod surface:
 
-- `OnPlayerConnected(string playerId)`
-- `OnPlayerDisconnected(string playerId)`
-- `OnCustomMessage(string messageType, byte[] data, string senderId)`
+- `IServerMod.OnPlayerConnected(string playerId)`
+- `IServerMod.OnPlayerDisconnected(string playerId)`
+- `IServerMod.OnCustomMessage(string messageType, byte[] data, string senderId)`
 
 They now receive a compatibility identifier based on the tracked player:
 
@@ -300,7 +302,8 @@ Use metadata-based version matching as the normal path. `PinnedSha256` is intend
 
 `ModManager` auto-discovers:
 
-- `MelonMod` implementations of `IServerMod` / `IClientMod`
+- `MelonMod` implementations of `IClientMod`
+- legacy `MelonMod` implementations of `IServerMod`
 - `ServerMelonModBase`
 - `ClientMelonModBase`
 

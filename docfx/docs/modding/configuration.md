@@ -8,6 +8,8 @@ DedicatedServerMod now exposes the same TOML platform that powers `server_config
 
 Use the typed configuration API for normal addon settings. Use the low-level document API only when your file shape is genuinely dynamic.
 
+If you have not used a C# builder or fluent API before, read the typed example from top to bottom as "start a schema, add one section at a time, describe each option, then call `Build()` at the end." Each chained call returns the same builder so you can keep adding configuration rules in a single block.
+
 ## Choose The Right API
 
 Use `DedicatedServerMod.API.Configuration` when:
@@ -45,31 +47,31 @@ public sealed class MyAddonConfig
     };
 }
 
-TomlConfigSchema<MyAddonConfig> schema = TomlConfigSchemaBuilder
+TomlConfigSchema<MyAddonConfig> addonConfigSchema = TomlConfigSchemaBuilder
     .For<MyAddonConfig>()
     .FileHeader(
         "Configuration for MyAddon.",
         "Edit this file while the server is stopped when possible.")
-    .Section("general", section => section
+    .Section("general", generalSection => generalSection
         .Comment("Core behavior.")
-        .Option(x => x.Enabled, option => option
+        .Option(config => config.Enabled, optionBuilder => optionBuilder
             .Key("enabled")
             .Comment("Enable or disable the addon.")
             .Default(true))
-        .Option(x => x.ChannelName, option => option
+        .Option(config => config.ChannelName, optionBuilder => optionBuilder
             .Key("channelName")
             .Comment("Channel used for status broadcasts.")
             .Default("global"))
-        .Option(x => x.BroadcastTargets, option => option
+        .Option(config => config.BroadcastTargets, optionBuilder => optionBuilder
             .Key("broadcastTargets")
             .Comment("Targets that should receive addon broadcasts.")))
-    .Normalize(config =>
+    .Normalize(normalizedConfig =>
     {
-        config.ChannelName = (config.ChannelName ?? "global").Trim();
+        normalizedConfig.ChannelName = (normalizedConfig.ChannelName ?? "global").Trim();
     })
-    .Validate(config =>
+    .Validate(loadedConfig =>
     {
-        if (string.IsNullOrWhiteSpace(config.ChannelName))
+        if (string.IsNullOrWhiteSpace(loadedConfig.ChannelName))
         {
             return new[]
             {
@@ -81,8 +83,8 @@ TomlConfigSchema<MyAddonConfig> schema = TomlConfigSchemaBuilder
     })
     .Build();
 
-TomlConfigStore<MyAddonConfig> store = new TomlConfigStore<MyAddonConfig>(
-    schema,
+TomlConfigStore<MyAddonConfig> addonConfigStore = new TomlConfigStore<MyAddonConfig>(
+    addonConfigSchema,
     new TomlConfigStoreOptions<MyAddonConfig>
     {
         Path = ModConfigPaths.GetDefault("MyAddon"),
@@ -90,14 +92,33 @@ TomlConfigStore<MyAddonConfig> store = new TomlConfigStore<MyAddonConfig>(
         SaveOnNormalize = true
     });
 
-TomlConfigLoadResult<MyAddonConfig> loadResult = store.LoadOrCreate();
-MyAddonConfig config = loadResult.Config;
+TomlConfigLoadResult<MyAddonConfig> addonConfigLoadResult = addonConfigStore.LoadOrCreate();
+MyAddonConfig addonConfig = addonConfigLoadResult.Config;
 
-if (loadResult.RequiresSave)
+if (addonConfigLoadResult.RequiresSave)
 {
-    store.Save(config);
+    addonConfigStore.Save(addonConfig);
 }
 ```
+
+### Reading The Typed Example
+
+The quick-start example above is doing four separate jobs:
+
+1. `MyAddonConfig` defines the in-memory settings object your mod reads at runtime.
+2. `TomlConfigSchemaBuilder.For<MyAddonConfig>()` describes how that object maps to TOML.
+3. `TomlConfigStore<MyAddonConfig>` decides where the file lives and how instances are created.
+4. `LoadOrCreate()` reads the file, applies defaults/normalization/validation, and gives you the usable config object.
+
+The lambda expressions are just selectors and configuration callbacks:
+
+- `config => config.Enabled` means "this TOML option maps to the `Enabled` property on `MyAddonConfig`"
+- `generalSection => ...` means "configure the `general` TOML section here"
+- `optionBuilder => ...` means "configure this one option here"
+- `normalizedConfig => ...` means "clean up loaded values before the mod uses them"
+- `loadedConfig => ...` means "inspect the final loaded config and report validation issues"
+
+If those parameter names feel verbose, that is intentional in docs. Use names that describe the role of the object being configured so the code still reads well months later.
 
 ### What The Typed Layer Gives You
 
@@ -109,6 +130,66 @@ if (loadResult.RequiresSave)
 - `Default(...)`: fills missing values without forcing you to hard-code them elsewhere
 - `Normalize(...)`: clamps or cleans values after binding
 - `Validate(...)`: returns structured `TomlConfigValidationIssue` records
+
+In the property selector passed to `Option(...)`, prefer names like `config`, `settings`, or `addonConfig` over placeholder names. The selector is only there to identify which property the schema should bind.
+
+## Typed Config Example With Alias And Option-Level Validation
+
+This slightly larger example shows a few features new addon authors often need right away:
+
+```csharp
+using System;
+using DedicatedServerMod.API.Configuration;
+
+public sealed class DiscordRelayConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    public string WebhookUrl { get; set; } = string.Empty;
+
+    public int FlushIntervalSeconds { get; set; } = 30;
+}
+
+TomlConfigSchema<DiscordRelayConfig> discordRelaySchema = TomlConfigSchemaBuilder
+    .For<DiscordRelayConfig>()
+    .FileHeader(
+        "Discord relay settings.",
+        "Restart the addon after changing webhook or interval settings.")
+    .Section("general", generalSection => generalSection
+        .Comments(
+            "Core relay behavior.",
+            "Keys stay in a stable order when the file is rewritten.")
+        .Option(config => config.Enabled, optionBuilder => optionBuilder
+            .Key("enabled")
+            .Comment("Enable or disable Discord relays.")
+            .Default(true))
+        .Option(config => config.WebhookUrl, optionBuilder => optionBuilder
+            .Key("webhookUrl")
+            .Alias("discordWebhook")
+            .Comments(
+                "Discord webhook used for outbound relay messages.",
+                "Leave empty to disable delivery until the webhook is configured.")
+            .Default(string.Empty))
+        .Option(config => config.FlushIntervalSeconds, optionBuilder => optionBuilder
+            .Key("flushIntervalSeconds")
+            .Comment("How often queued relay messages are flushed.")
+            .Default(30)
+            .Validate(value => value < 5 || value > 300
+                ? "flushIntervalSeconds must stay between 5 and 300."
+                : null)))
+    .Normalize(loadedConfig =>
+    {
+        loadedConfig.WebhookUrl = (loadedConfig.WebhookUrl ?? string.Empty).Trim();
+    })
+    .Build();
+```
+
+What to notice:
+
+- `Alias("discordWebhook")` lets older files keep loading after a key rename.
+- `optionBuilder.Validate(...)` is useful when the rule only applies to one field.
+- schema-level `Validate(...)` is better when multiple fields must be checked together.
+- `Normalize(...)` is the right place for trimming, clamping, and default cleanup.
 
 ### Load Result Behavior
 
@@ -142,24 +223,24 @@ Example:
 using System.IO;
 using DedicatedServerMod.API.Toml;
 
-string path = ModConfigPaths.GetPath("MyAddon", "rules.toml");
+string rulesFilePath = ModConfigPaths.GetPath("MyAddon", "rules.toml");
 
-TomlDocument document = File.Exists(path)
-    ? TomlParser.ParseFile(path).Document
+TomlDocument rulesDocument = File.Exists(rulesFilePath)
+    ? TomlParser.ParseFile(rulesFilePath).Document
     : new TomlDocument();
 
-TomlTable ruleTable = document.GetOrAddTable("rule.spawn-rate");
-ruleTable.Comments.Clear();
-ruleTable.Comments.Add("Per-rule overrides.");
-ruleTable.Set("enabled", TomlValue.FromBoolean(true));
-ruleTable.Set("multiplier", TomlValue.FromFloat(1.5));
-ruleTable.Set("tags", TomlValue.FromArray(new[]
+TomlTable spawnRateRuleTable = rulesDocument.GetOrAddTable("rule.spawn-rate");
+spawnRateRuleTable.Comments.Clear();
+spawnRateRuleTable.Comments.Add("Per-rule overrides.");
+spawnRateRuleTable.Set("enabled", TomlValue.FromBoolean(true));
+spawnRateRuleTable.Set("multiplier", TomlValue.FromFloat(1.5));
+spawnRateRuleTable.Set("tags", TomlValue.FromArray(new[]
 {
     TomlValue.FromString("night"),
     TomlValue.FromString("event")
 }));
 
-TomlWriter.WriteFile(document, path);
+TomlWriter.WriteFile(rulesDocument, rulesFilePath);
 ```
 
 Useful low-level types:

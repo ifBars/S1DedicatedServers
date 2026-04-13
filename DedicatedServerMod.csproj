@@ -709,6 +709,10 @@
 	  <None Remove="_site\**" />
 	  <EmbeddedResource Remove="packaging\**" />
 	  <None Remove="packaging\**" />
+	  <EmbeddedResource Remove="ScheduleOneAssemblies\**" />
+	  <None Remove="ScheduleOneAssemblies\**" />
+	  <EmbeddedResource Remove="Assets\S1-Assets\**" />
+	  <None Remove="Assets\S1-Assets\**" />
 	</ItemGroup>
 
 	<!-- Utility infrastructure (shared by all builds) -->

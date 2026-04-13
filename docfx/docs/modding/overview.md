@@ -11,7 +11,8 @@ Use these guides for workflows and architecture, then use the generated API refe
 - `S1DS.Server` is available in `SERVER` builds
 - `S1DS.Client` is available in `CLIENT` builds
 - shared access lives under `S1DS.IsServer`, `S1DS.IsClient`, `S1DS.BuildConfiguration`, and `S1DS.Shared.Config`
-- mods implement `IServerMod` and/or `IClientMod`, or inherit the provided base classes
+- server mods should prefer `ServerModBase` / `ServerMelonModBase`; direct `IServerMod` implementation is a compatibility path because it includes obsolete string-based callbacks
+- client mods can implement `IClientMod` directly or inherit the provided base classes
 - specialized helper types live under `DedicatedServerMod.API.Client`, `DedicatedServerMod.API.Server`, `DedicatedServerMod.API.Metadata`, `DedicatedServerMod.API.Configuration`, and `DedicatedServerMod.API.Toml`
 - optional lifecycle and message hooks should prefer `ModManager` events over adding more mod-facing interfaces
 
@@ -73,7 +74,7 @@ public sealed class MyClientMod : ClientMelonModBase
 
 ### Auto-discovery
 
-Any `MelonMod` that inherits from the provided `*MelonModBase` types or directly implements `IServerMod` / `IClientMod` is discovered automatically.
+Any `MelonMod` that inherits from the provided `*MelonModBase` types is discovered automatically. Direct `IClientMod` implementations are also discovered automatically, and direct `IServerMod` implementations remain discovered for compatibility with legacy mods.
 
 ### Manual registration
 
@@ -117,7 +118,7 @@ Lifecycle hooks give you clear timing for:
 - server connect/disconnect
 - local player readiness
 
-Legacy string-based `playerId` and `senderId` callbacks remain for compatibility, but they are obsolete compatibility hooks now. On the server side, those string identifiers resolve to trusted unique ID first, then tracked SteamID64, then FishNet client ID. New code should prefer `ModManager.ServerPlayerConnected`, `ModManager.ServerPlayerDisconnected`, and `ModManager.ServerCustomMessageReceived`. On the client side, new optional hooks should prefer `ModManager.ClientInitializing`, `ModManager.ClientConnectedToServer`, `ModManager.ClientPlayerReady`, and `ModManager.ClientCustomMessageReceived`. The base-class overrides remain available when a single mod class owns the entire lifecycle.
+Legacy string-based `playerId` and `senderId` callbacks remain for compatibility, but they are obsolete compatibility hooks now. On the server side, those string identifiers resolve to trusted unique ID first, then tracked SteamID64, then FishNet client ID. New code should prefer `ModManager.ServerPlayerConnected`, `ModManager.ServerPlayerDisconnected`, and `ModManager.ServerCustomMessageReceived`, or the typed `ConnectedPlayerInfo` overrides on `ServerModBase` / `ServerMelonModBase`. On the client side, new optional hooks should prefer `ModManager.ClientInitializing`, `ModManager.ClientConnectedToServer`, `ModManager.ClientPlayerReady`, and `ModManager.ClientCustomMessageReceived`. The base-class overrides remain available when a single mod class owns the entire lifecycle.
 
 ## Configuration
 

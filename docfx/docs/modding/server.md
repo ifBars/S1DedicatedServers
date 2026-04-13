@@ -2,7 +2,9 @@
 title: Server API
 ---
 
-Server mods implement `IServerMod` or inherit `ServerModBase` / `ServerMelonModBase`. Use `S1DS.Server` for access to server systems.
+For new server mods, inherit `ServerModBase` or `ServerMelonModBase` and use `S1DS.Server` for access to server systems.
+
+Direct `IServerMod` implementations remain supported for compatibility and auto-discovery, but they still include obsolete string-based player and message callbacks. Treat that path as legacy-only.
 
 ## Lifecycle Hooks
 
@@ -13,6 +15,9 @@ Server mods implement `IServerMod` or inherit `ServerModBase` / `ServerMelonModB
 - `OnAfterSave()`
 - `OnBeforeLoad()`
 - `OnAfterLoad()`
+- `ServerModBase.OnPlayerConnected(ConnectedPlayerInfo)` / `ServerMelonModBase.OnPlayerConnected(ConnectedPlayerInfo)`
+- `ServerModBase.OnPlayerDisconnected(ConnectedPlayerInfo)` / `ServerMelonModBase.OnPlayerDisconnected(ConnectedPlayerInfo)`
+- `ServerModBase.OnCustomMessage(string, byte[], ConnectedPlayerInfo)` / `ServerMelonModBase.OnCustomMessage(string, byte[], ConnectedPlayerInfo)`
 - `ModManager.ServerPlayerConnected`
 - `ModManager.ServerPlayerDisconnected`
 - `ModManager.ServerCustomMessageReceived`
@@ -68,10 +73,10 @@ private void HandlePlayerConnected(ConnectedPlayerInfo player)
 
 ### Auto-discovery
 
-Any `MelonMod` that implements `IServerMod` is discovered automatically. This includes:
+Any `MelonMod` that inherits `ServerMelonModBase` is discovered automatically. Direct `IServerMod` implementations are also discovered for compatibility.
 
 - `ServerMelonModBase`
-- direct `IServerMod` implementations
+- direct `IServerMod` implementations for legacy mods
 
 ### Manual registration
 
