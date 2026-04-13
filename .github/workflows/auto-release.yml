@@ -321,8 +321,8 @@ jobs:
           Copy-Item 'Docker/.dockerignore' (Join-Path $dockerRoot '.dockerignore')
           Copy-Item 'Docker/README.md' (Join-Path $dockerRoot 'README.md')
 
-          Compress-Archive -Path (Join-Path $serverRoot '*') -DestinationPath (Join-Path $releaseRoot 'Server.zip') -Force
-          Compress-Archive -Path (Join-Path $clientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Client.zip') -Force
+          Compress-Archive -Path (Join-Path $serverRoot '*') -DestinationPath (Join-Path $releaseRoot 'Mono-Server.zip') -Force
+          Compress-Archive -Path (Join-Path $clientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Mono-Client.zip') -Force
           Compress-Archive -Path (Join-Path $il2cppServerRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Server.zip') -Force
           Compress-Archive -Path (Join-Path $il2cppClientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Client.zip') -Force
           Compress-Archive -Path (Get-ChildItem -Path $dockerRoot -Force | ForEach-Object { $_.FullName }) -DestinationPath (Join-Path $releaseRoot 'Docker.zip') -Force
@@ -377,8 +377,8 @@ jobs:
           prerelease: ${{ needs.check-version.outputs.prerelease == 'true' }}
           make_latest: ${{ needs.check-version.outputs.make_latest }}
           files: |
-            release/Server.zip
-            release/Client.zip
+            release/Mono-Server.zip
+            release/Mono-Client.zip
             release/Il2cpp_Server.zip
             release/Il2cpp_Client.zip
             release/Docker.zip
@@ -392,8 +392,8 @@ jobs:
           Add-Content $env:GITHUB_STEP_SUMMARY "**Prerelease:** ${{ needs.check-version.outputs.prerelease }}"
           Add-Content $env:GITHUB_STEP_SUMMARY ""
           Add-Content $env:GITHUB_STEP_SUMMARY "**Artifacts:**"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- Server.zip"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- Client.zip"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Mono-Server.zip"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Mono-Client.zip"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Il2cpp_Server.zip"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Il2cpp_Client.zip"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Docker.zip"

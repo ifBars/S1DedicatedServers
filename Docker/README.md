@@ -11,12 +11,12 @@ It intentionally does **not** include:
 ## What You Need
 
 1. `Docker.zip` from the release assets
-2. `Server.zip` from the same release
+2. `Mono-Server.zip` from the same release
 3. Your own Steam credentials for the first game install
 
 ## Folder Layout
 
-Extract `Docker.zip`, then copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Server.zip` into the same folder as `Dockerfile`:
+Extract `Docker.zip`, then copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Mono-Server.zip` into the same folder as `Dockerfile`:
 
 ```text
 Docker/

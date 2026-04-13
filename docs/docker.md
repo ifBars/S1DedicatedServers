@@ -15,7 +15,7 @@ That keeps the Docker package small and avoids redistributing loader payloads in
 Download both of these assets from the same release:
 
 1. `Docker.zip`
-2. `Server.zip`
+2. `Mono-Server.zip`
 
 `Docker.zip` contains:
 
@@ -24,11 +24,11 @@ Download both of these assets from the same release:
 - `.dockerignore`
 - package-local Docker instructions
 
-`Server.zip` contains the Mono server mod DLL that the current Docker image expects during `docker build`.
+`Mono-Server.zip` contains the Mono server mod DLL that the current Docker image expects during `docker build`.
 
 ## Prepare The Build Context
 
-Extract `Docker.zip` to a working folder, then copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Server.zip` into that same folder so the layout looks like this:
+Extract `Docker.zip` to a working folder, then copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Mono-Server.zip` into that same folder so the layout looks like this:
 
 ```text
 Docker/
