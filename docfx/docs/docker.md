@@ -2,6 +2,8 @@
 
 Use the Docker release package when you want to run the dedicated server in a container instead of unpacking the server directly onto a Windows host.
 
+Docker deployment currently targets the Mono server artifact. The release also ships IL2CPP packages, but `Il2cpp_Server.zip` is for native installs outside Docker.
+
 The Docker release assets intentionally do **not** ship:
 
 - MelonLoader files

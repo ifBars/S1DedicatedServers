@@ -2,6 +2,8 @@
 
 This folder is the tracked Docker release template for DedicatedServerMod.
 
+Docker deployment currently targets the Mono server artifact. The release also ships IL2CPP packages, but `Il2cpp_Server.zip` is for native installs outside Docker.
+
 It intentionally does **not** include:
 
 - MelonLoader bootstrap files

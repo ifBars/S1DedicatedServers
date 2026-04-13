@@ -127,9 +127,9 @@ Four build configurations (cross-product of runtime x side):
 
 ### Documentation Tooling
 
-- `docfx.json`: DocFX configuration for published documentation
-- `docs/`: Source markdown and table-of-contents files
-- `_site/`: Generated documentation output
+- `docfx/docfx.json`: DocFX configuration for published documentation
+- `docfx/docs/`: Source markdown and table-of-contents files
+- `docfx/_site/`: Generated documentation output
 
 ### Assembly References
 
@@ -193,7 +193,7 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 1. Add to the appropriate partial facade (`API/S1DS.Server.cs` or `API/S1DS.Client.cs`) or the focused API sub-namespace that owns the feature
 2. Write comprehensive XML documentation
 3. Implement in relevant manager/subsystem
-4. Update `docs/` if significant feature
+4. Update `docfx/docs/` if significant feature
 5. Consider example mod usage
 
 ### Adding Configuration Option
@@ -202,7 +202,7 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 2. Add `[JsonProperty("jsonKey")]` attribute
 3. Write XML documentation with default value and valid range
 4. Handle in relevant system (e.g., `Server.Game.TimeSystemManager`)
-5. Update `docs/configuration.md`
+5. Update `docfx/docs/configuration.md`
 
 ### Creating a Harmony Patch
 
@@ -329,7 +329,7 @@ dotnet build -c Il2cpp_Client   # if IL2CPP assemblies available
 dotnet build -c Mono_Server -v normal | grep -i warning
 
 # Regenerate published documentation when API docs or structure changes
-docfx docfx.json
+docfx docfx/docfx.json
 ```
 
 ### Runtime Testing
@@ -543,7 +543,7 @@ When adding/modifying public APIs:
    ```
 
 2. **Markdown Documentation** (for significant features):
-   - Update `docs/` with new feature documentation
+   - Update `docfx/docs/` with new feature documentation
    - Include examples, screenshots, troubleshooting
 
 3. **Example Mods** (for new API surface):
@@ -650,7 +650,7 @@ CI uses `ci.build.props` generated dynamically:
 - **`CODING_STANDARDS.md`**: Code style guide
 - **`CONTRIBUTING.md`**: Contribution guide
 - **`BUILD_SETUP.md`**: Build system documentation
-- **`docs/`**: Detailed feature documentation
+- **`docfx/docs/`**: Detailed feature documentation
 
 ---
 
@@ -663,7 +663,7 @@ Current version: **0.9.0-beta**
 
 Version bumping:
 1. Update `API/Version.cs`
-2. Update release-facing docs that embed the current version (`README.md`, `CONTRIBUTING.md`, `docs/configuration/authentication.md`, and this file when needed)
+2. Update release-facing docs that embed the current version (`README.md`, `CONTRIBUTING.md`, `docfx/docs/configuration/authentication.md`, and this file when needed)
 3. Ensure the GitHub release workflow can derive release notes from git history
 4. Tag release: `git tag v0.9.0-beta`
 

@@ -269,7 +269,7 @@ Before submitting, verify:
    ## Changes Made
    - Added password authentication to TcpConsoleServer
    - Added config options: tcpConsoleRequirePassword, tcpConsolePassword
-   - Updated documentation in docs/tcp-console.md
+   - Updated documentation in docfx/docs/host-console.md
    
    ## Testing Performed
    - [x] Tested with password enabled - authentication works

@@ -305,6 +305,7 @@ obj/
 research/
 /reference/
 reference/
+/docfx/reference/
 .cursor/
 /.cursor/
 Docker/*
@@ -328,6 +329,7 @@ Docker/test.bat
 FishNet-Docs/
 FishNet.Runtime.xml
 _site/
+/docfx/_site/
 s1ds-local.tar
 .agents/
 Assets/S1-Assets

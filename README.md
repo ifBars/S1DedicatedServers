@@ -6,7 +6,7 @@
 
 DedicatedServerMod adds authoritative, headless dedicated servers to Schedule I, along with admin tooling, remote console support, an optional localhost web panel, and a public mod API for server and client extensions.
 
-`0.9.0-beta` introduces initial IL2CPP support for dedicated server and client workflows. Treat IL2CPP support as beta: if you hit IL2CPP-specific regressions or startup issues, report them on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps.
+`0.9.0-beta` introduces initial IL2CPP support for dedicated server and client workflows. Treat IL2CPP support as beta: if you hit IL2CPP-specific regressions or startup issues, report them on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps. Docker deployment still uses the Mono server artifact today; use the IL2CPP server package for native installs outside Docker.
 
 ## What It Provides
 

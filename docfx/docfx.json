@@ -4,7 +4,7 @@
     {
       "src": [
         {
-          "src": "bin/Documentation/netstandard2.1",
+          "src": "../bin/Documentation/netstandard2.1",
           "files": [
             "DedicatedServerMod_Documentation.dll"
           ]

@@ -691,6 +691,8 @@
 		</Reference>
 	</ItemGroup>
 	<ItemGroup>
+	  <EmbeddedResource Remove="docfx\**" />
+	  <None Remove="docfx\**" />
 	  <EmbeddedResource Remove="research\**" />
 	  <None Remove="research\**" />
 	  <EmbeddedResource Remove="reference\**" />

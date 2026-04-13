@@ -10,6 +10,8 @@
   items:
   - name: Overview
     href: configuration.md
+  - name: Startup and Deployment
+    href: configuration/startup-and-deployment.md
   - name: Authentication
     href: configuration/authentication.md
   - name: Client Mod Verification

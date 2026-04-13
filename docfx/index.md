@@ -34,6 +34,7 @@ If you expect multiple players, CPU spikes during save/load, extra mods, or virt
 For containerized hosting, use the Docker release package and follow [Docker Deployment](docs/docker.md).
 
 `Docker.zip` intentionally contains only the Docker template files. Copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Mono-Server.zip` into that Docker folder before running `docker build`.
+Docker deployment currently targets the Mono server artifact; use `Il2cpp_Server.zip` for native IL2CPP installs outside Docker.
 
 ## Create a Server Install
 
@@ -46,29 +47,6 @@ For containerized hosting, use the Docker release package and follow [Docker Dep
 
 For save path details, see [Save Path](docs/configuration/save-path.md).
 
-The integrated localhost web panel is generated with the server build but remains disabled by default. If you want the browser UI on a local or home-hosted machine, enable it in `server_config.toml`:
-
-```toml
-[webPanel]
-webPanelEnabled = true
-```
-
-## Run Fully Headless
-
-If you want the server to run without the MelonLoader console window:
-
-1. Open `UserData/MelonLoader.cfg` in the server install.
-2. In older MelonLoader versions, the file may be named `UserData/Loader.cfg`.
-3. Under `[Console]`, set `HideConsole = true`.
-4. In older config formats, use `hide_console = true` instead.
-5. Restart the server.
-
-Use the TCP console or log files for monitoring once the local console window is hidden.
-
-For panel-hosted environments that control the process through stdin/stdout, prefer the stdio host console and launch with `-logFile -` so logs are emitted to stdout. See [Host Console](docs/host-console.md).
-
-For home-hosted environments where you want a browser-based operator UI on the same machine, see [Web Panel](docs/configuration/web-panel.md).
-
 ## Prepare a Client Install
 
 1. Use your main game install, or another separate client copy.
@@ -80,5 +58,7 @@ For home-hosted environments where you want a browser-based operator UI on the s
 - [Overview](docs/index.md)
 - [Configuration](docs/configuration.md) to harden and tune the server
 - [Authentication](docs/configuration/authentication.md)
+- [Host Console](docs/host-console.md) for panel-hosted stdin/stdout administration
+- [Web Panel](docs/configuration/web-panel.md) for local browser-based administration
 - [Troubleshooting](docs/troubleshooting.md) if startup or connection fails
 - [API Reference](reference/index.md)
