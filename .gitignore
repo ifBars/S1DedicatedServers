@@ -9,6 +9,7 @@
 *.userosscache
 *.sln.docstates
 local.build.props
+ScheduleOneAssemblies/
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 # Mono auto generated files

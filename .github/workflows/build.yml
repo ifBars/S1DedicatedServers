@@ -65,22 +65,21 @@ jobs:
           echo "il2cpp_branch=$il2cpp_branch" >> "$GITHUB_OUTPUT"
           echo "Using Mono assemblies from $mono_branch and IL2CPP assemblies from $il2cpp_branch (requested: $requested_branch)"
 
-      - name: Create Assembly Directory Structure
-        shell: bash
-        run: |
-          mkdir -p ScheduleOneAssemblies/Managed
-          mkdir -p ScheduleOneAssemblies/MelonLoader
-          mkdir -p ScheduleOneAssemblies/MelonLoader/net6
-          mkdir -p ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies
-
-      - name: Restore Game Assemblies from Cache
-        id: cache-assemblies
+      - name: Restore Mono Assembly Cache
+        id: mono-cache
+        if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v4
         with:
-          path: ScheduleOneAssemblies
-          key: game-assemblies-v10-${{ steps.assembly-branch.outputs.mono_branch }}-${{ steps.assembly-branch.outputs.il2cpp_branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
-          restore-keys: |
-            game-assemblies-v10-${{ steps.assembly-branch.outputs.mono_branch }}-${{ steps.assembly-branch.outputs.il2cpp_branch }}-
+          path: game-assemblies
+          key: mono-assemblies-v1-${{ steps.assembly-branch.outputs.mono_branch }}
+
+      - name: Restore IL2CPP Assembly Cache
+        id: il2cpp-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: il2cpp-assemblies
+          key: il2cpp-assemblies-v1-${{ steps.assembly-branch.outputs.il2cpp_branch }}
 
       - name: Checkout Mono Game Assemblies
         uses: actions/checkout@v4
@@ -90,7 +89,7 @@ jobs:
           ref: ${{ steps.assembly-branch.outputs.mono_branch }}
           path: game-assemblies
           fetch-depth: 1
-        if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: github.event_name != 'pull_request' || (steps.mono-cache.outputs.cache-hit != 'true' && github.event.pull_request.head.repo.full_name == github.repository)
 
       - name: Checkout IL2CPP Game Assemblies
         uses: actions/checkout@v4
@@ -100,120 +99,83 @@ jobs:
           ref: ${{ steps.assembly-branch.outputs.il2cpp_branch }}
           path: il2cpp-assemblies
           fetch-depth: 1
-        if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: github.event_name != 'pull_request' || (steps.il2cpp-cache.outputs.cache-hit != 'true' && github.event.pull_request.head.repo.full_name == github.repository)
 
-      - name: Copy Game Assemblies
+      - name: Verify Mono Assemblies
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ -d "game-assemblies/Managed" ]; then
-            cp -r game-assemblies/Managed/* ScheduleOneAssemblies/Managed/
-            echo "Copied Mono assemblies"
+          if [ -f "game-assemblies/Managed/Assembly-CSharp.dll" ]; then
+            echo "Found Mono Assembly-CSharp.dll"
+          else
+            echo "Missing Mono Assembly-CSharp.dll"
+            exit 1
           fi
 
-          if [ -d "game-assemblies/MelonLoader" ]; then
-            cp -r game-assemblies/MelonLoader/* ScheduleOneAssemblies/MelonLoader/
-            echo "Copied MelonLoader assemblies"
+          if [ -f "game-assemblies/MelonLoader/MelonLoader.dll" ]; then
+            echo "Found Mono MelonLoader.dll"
+          else
+            echo "Missing Mono MelonLoader.dll"
+            exit 1
           fi
 
-          il2cppAssembliesSource=""
+      - name: Verify IL2CPP Assemblies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          il2cpp_assemblies_dir=""
           if [ -d "il2cpp-assemblies/MelonLoader/Il2CppAssemblies" ]; then
-            il2cppAssembliesSource="il2cpp-assemblies/MelonLoader/Il2CppAssemblies"
+            il2cpp_assemblies_dir="il2cpp-assemblies/MelonLoader/Il2CppAssemblies"
           elif [ -d "il2cpp-assemblies/Il2CppAssemblies" ]; then
-            il2cppAssembliesSource="il2cpp-assemblies/Il2CppAssemblies"
+            il2cpp_assemblies_dir="il2cpp-assemblies/Il2CppAssemblies"
           fi
 
-          if [ -n "$il2cppAssembliesSource" ]; then
-            cp -r "$il2cppAssembliesSource"/* ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/
-            echo "Copied IL2CPP assemblies"
-          else
-            echo "IL2CPP assemblies directory not found in il2cpp-assemblies checkout"
-          fi
-
-          il2cppNet6Source=""
+          il2cpp_net6_dir=""
           if [ -d "il2cpp-assemblies/MelonLoader/net6" ]; then
-            il2cppNet6Source="il2cpp-assemblies/MelonLoader/net6"
+            il2cpp_net6_dir="il2cpp-assemblies/MelonLoader/net6"
           elif [ -d "il2cpp-assemblies/net6" ]; then
-            il2cppNet6Source="il2cpp-assemblies/net6"
+            il2cpp_net6_dir="il2cpp-assemblies/net6"
           fi
 
-          if [ -n "$il2cppNet6Source" ]; then
-            cp -r "$il2cppNet6Source"/* ScheduleOneAssemblies/MelonLoader/net6/
-            echo "Copied IL2CPP MelonLoader net6 assemblies"
-          else
+          if [ -z "$il2cpp_assemblies_dir" ]; then
+            echo "IL2CPP assemblies directory not found in il2cpp-assemblies checkout"
+            exit 1
+          fi
+
+          if [ -z "$il2cpp_net6_dir" ]; then
             echo "IL2CPP net6 directory not found in il2cpp-assemblies checkout"
-          fi
-        if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-
-      - name: Check Assembly Files
-        id: assembly-files
-        shell: bash
-        run: |
-          set -euo pipefail
-          ready=true
-
-          if [ ! -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
-            echo "Missing Assembly-CSharp.dll"
-            ready=false
-          fi
-
-          if [ ! -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
-            echo "Missing MelonLoader.dll"
-            ready=false
-          fi
-
-          if [ ! -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
-            echo "Missing IL2CPP Assembly-CSharp.dll"
-            find il2cpp-assemblies -maxdepth 4 -type f \( -name "Assembly-CSharp.dll" -o -name "MelonLoader.dll" \) 2>/dev/null || true
-            ready=false
-          fi
-
-          if [ ! -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll" ]; then
-            echo "Missing IL2CPP MelonLoader.dll"
-            find il2cpp-assemblies -maxdepth 4 -type f \( -name "Assembly-CSharp.dll" -o -name "MelonLoader.dll" \) 2>/dev/null || true
-            ready=false
-          fi
-
-          echo "ready=$ready" >> "$GITHUB_OUTPUT"
-
-      - name: Verify Assemblies
-        shell: bash
-        run: |
-          if [ -f "ScheduleOneAssemblies/Managed/Assembly-CSharp.dll" ]; then
-            echo "Found Assembly-CSharp.dll"
-          else
-            echo "Missing Assembly-CSharp.dll"
             exit 1
           fi
 
-          if [ -f "ScheduleOneAssemblies/MelonLoader/MelonLoader.dll" ]; then
-            echo "Found MelonLoader.dll"
-          else
-            echo "Missing MelonLoader.dll"
-            exit 1
-          fi
-
-          if [ -f "ScheduleOneAssemblies/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll" ]; then
+          if [ -f "$il2cpp_assemblies_dir/Assembly-CSharp.dll" ]; then
             echo "Found IL2CPP Assembly-CSharp.dll"
           else
             echo "Missing IL2CPP Assembly-CSharp.dll"
             exit 1
           fi
 
-          if [ -f "ScheduleOneAssemblies/MelonLoader/net6/MelonLoader.dll" ]; then
+          if [ -f "$il2cpp_net6_dir/MelonLoader.dll" ]; then
             echo "Found IL2CPP MelonLoader.dll"
           else
             echo "Missing IL2CPP MelonLoader.dll"
             exit 1
           fi
 
-      - name: Save Game Assemblies to Cache
+      - name: Save Mono Assembly Cache
+        if: always() && github.event_name == 'pull_request' && steps.mono-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
-        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         with:
-          path: ScheduleOneAssemblies
-          key: game-assemblies-v10-${{ steps.assembly-branch.outputs.mono_branch }}-${{ steps.assembly-branch.outputs.il2cpp_branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          path: game-assemblies
+          key: mono-assemblies-v1-${{ steps.assembly-branch.outputs.mono_branch }}
+
+      - name: Save IL2CPP Assembly Cache
+        if: always() && github.event_name == 'pull_request' && steps.il2cpp-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: il2cpp-assemblies
+          key: il2cpp-assemblies-v1-${{ steps.assembly-branch.outputs.il2cpp_branch }}
 
       - name: Create Mono CI Build Properties
         shell: bash
@@ -222,9 +184,8 @@ jobs:
           <Project>
               <PropertyGroup>
                   <AutomateLocalDeployment>false</AutomateLocalDeployment>
-                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/MelonLoader</MelonLoaderAssembliesPath>
-                  <MonoAssembliesPath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies/Managed</MonoAssembliesPath>
-                  <Il2CppGamePath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies</Il2CppGamePath>
+                  <MelonLoaderAssembliesPath>$(MSBuildThisFileDirectory)game-assemblies/MelonLoader</MelonLoaderAssembliesPath>
+                  <MonoAssembliesPath>$(MSBuildThisFileDirectory)game-assemblies/Managed</MonoAssembliesPath>
               </PropertyGroup>
           </Project>
           EOF
@@ -238,14 +199,6 @@ jobs:
       - name: Build Mono Client
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Mono_Client -v normal
 
-      - name: Prepare IL2CPP Assembly Layout
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          rm -rf ScheduleOneAssemblies/Managed
-          find ScheduleOneAssemblies/MelonLoader -maxdepth 1 -type f -delete
-
       - name: Create IL2CPP CI Build Properties
         shell: bash
         run: |
@@ -253,10 +206,26 @@ jobs:
           <Project>
               <PropertyGroup>
                   <AutomateLocalDeployment>false</AutomateLocalDeployment>
-                  <Il2CppGamePath>$(MSBuildThisFileDirectory)ScheduleOneAssemblies</Il2CppGamePath>
+                  <Il2CppGamePath>$(MSBuildThisFileDirectory)il2cpp-assemblies</Il2CppGamePath>
               </PropertyGroup>
           </Project>
           EOF
+
+      - name: Disable Publicizer For IL2CPP
+        shell: bash
+        run: |
+          cat > Directory.Build.targets << 'EOF'
+          <Project>
+              <ItemGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
+                  <Publicize Remove="Assembly-CSharp" />
+              </ItemGroup>
+          </Project>
+          EOF
+
+      - name: Remove Mono Assembly Trees Before IL2CPP Build
+        shell: bash
+        run: |
+          rm -rf game-assemblies ScheduleOneAssemblies
 
       - name: Reset IL2CPP Restore State
         shell: bash
@@ -272,6 +241,11 @@ jobs:
 
       - name: Build IL2CPP Client
         run: dotnet build DedicatedServerMod.csproj --no-restore -c Il2cpp_Client -v normal
+
+      - name: Remove Temporary IL2CPP Build Targets
+        if: always()
+        shell: bash
+        run: rm -f Directory.Build.targets
 
       - name: Upload Mono Server Artifact
         uses: actions/upload-artifact@v4
