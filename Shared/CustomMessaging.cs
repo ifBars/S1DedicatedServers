@@ -18,11 +18,11 @@ namespace DedicatedServerMod.Shared.Networking
     /// messaging backend system. The actual transport implementation is handled
     /// by <see cref="MessagingService"/> and its configured backend.
     /// </summary>
-    /// <remarks>
-    /// This class maintains backward compatibility with existing code while
-    /// allowing runtime selection of messaging backend (FishNet RPC or Steam P2P).
-    /// </remarks>
-    public static class CustomMessaging
+        /// <remarks>
+        /// This class maintains backward compatibility with existing code while
+        /// allowing runtime selection of messaging backend (FishNet RPC or Steam Networking Sockets).
+        /// </remarks>
+        public static class CustomMessaging
     {
         private static MelonLogger.Instance _logger = new MelonLogger.Instance("CustomMessaging");
         private static bool _eventsWired;

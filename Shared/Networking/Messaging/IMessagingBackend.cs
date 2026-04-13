@@ -100,7 +100,7 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
 
         /// <summary>
         /// Supplies an optional server peer hint used by backends that require
-        /// explicit remote identity information (for example, Steam P2P peer routing).
+        /// explicit remote identity information (for example, Steam socket peer routing).
         /// </summary>
         /// <param name="serverSteamId">Server SteamID64 string hint.</param>
         void SetServerPeerHint(string serverSteamId);

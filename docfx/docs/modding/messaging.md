@@ -6,7 +6,7 @@ title: Custom Messaging API
 
 Lightweight client/server messaging is provided by `DedicatedServerMod.Shared.Networking.CustomMessaging`. Mods can send arbitrary string payloads and subscribe to receive events without patching networking internals.
 
-> **Note:** This guide covers the `CustomMessaging` API for mod developers. For server configuration and backend selection (`FishNetRpc`, `SteamP2P`, `SteamNetworkingSockets`), see [Messaging Backends Configuration](../configuration/messaging-backends.md).
+> **Note:** This guide covers the `CustomMessaging` API for mod developers. For server configuration and backend selection (`FishNetRpc` and `SteamNetworkingSockets`), see [Messaging Backends Configuration](../configuration/messaging-backends.md).
 
 There are two layers to this system:
 

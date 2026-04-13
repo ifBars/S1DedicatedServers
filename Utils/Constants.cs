@@ -447,10 +447,9 @@ namespace DedicatedServerMod.Utils
             public const string SteamGameServerQueryPort = "steamGameServerQueryPort";
             public const string SteamGameServerMode = "steamGameServerMode";
             public const string MessagingBackend = "messagingBackend";
-            public const string SteamP2PAllowRelay = "steamP2PAllowRelay";
-            public const string SteamP2PChannel = "steamP2PChannel";
-            public const string SteamP2PMaxPayloadBytes = "steamP2PMaxPayloadBytes";
-            public const string SteamP2PServerSteamId = "steamP2PServerSteamId";
+            public const string SteamNetworkingSocketsVirtualPort = "steamNetworkingSocketsVirtualPort";
+            public const string SteamNetworkingSocketsMaxPayloadBytes = "steamNetworkingSocketsMaxPayloadBytes";
+            public const string SteamNetworkingSocketsServerSteamId = "steamNetworkingSocketsServerSteamId";
             public const string SteamWebApiKey = "steamWebApiKey";
             public const string SteamWebApiIdentity = "steamWebApiIdentity";
             public const string TcpConsoleEnabled = "tcpConsoleEnabled";

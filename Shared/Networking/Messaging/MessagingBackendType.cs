@@ -7,15 +7,9 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
     {
         /// <summary>
         /// FishNet custom RPC messaging using DailySummary NetworkBehaviour.
-        /// Works on Mono builds only (requires FishNet code generation).
-        /// </summary>
-        FishNetRpc,
-
-        /// <summary>
-        /// Steamworks P2P messaging using SteamNetworkingMessages.
         /// Works on both Mono and IL2CPP builds.
         /// </summary>
-        SteamP2P,
+        FishNetRpc,
 
         /// <summary>
         /// Steam Networking Sockets transport using Steam client APIs on clients and

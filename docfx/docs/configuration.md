@@ -48,8 +48,8 @@ The save folder must already contain files such as `Game.json` and `Metadata.jso
 | --- | --- |
 | Local/private Mono testing | `authProvider = 'None'` or `SteamGameServer` if you still want Steam identity checks, plus `messagingBackend = 'FishNetRpc'` |
 | Public native server | `authProvider = 'SteamGameServer'`, `authTimeoutSeconds = 60`, and a reviewed `permissions.toml` |
-| Docker or hosted panel | `authProvider = 'SteamGameServer'`, `messagingBackend = 'SteamNetworkingSockets'`, and stdio host console guidance from [Host Console](host-console.md) |
-| IL2CPP native hosting | Start with `messagingBackend = 'SteamNetworkingSockets'` and treat runtime behavior as beta while IL2CPP support matures |
+| Docker or hosted panel | `authProvider = 'SteamGameServer'`, choose `FishNetRpc` for the simplest path or `SteamNetworkingSockets` if you want Steam relay/routing behavior, and use stdio host console guidance from [Host Console](host-console.md) |
+| IL2CPP native hosting | Start with `messagingBackend = 'FishNetRpc'` unless you specifically want the Steam relay/routing behavior from `SteamNetworkingSockets` |
 
 ## Configuration Areas
 

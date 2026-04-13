@@ -43,11 +43,10 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.SteamWebApiIdentity, option => option.Comment("Optional Steam Web API identity string.")))
                 .Section("messaging", section => section
                     .Comment("Custom server-client messaging backend selection.")
-                    .Option(config => config.MessagingBackend, option => option.Comment("Messaging backend: 'FishNetRpc', 'SteamP2P', or 'SteamNetworkingSockets'. Use 'FishNetRpc' on Mono and prefer 'SteamNetworkingSockets' on IL2CPP."))
-                    .Option(config => config.SteamP2PAllowRelay, option => option.Comment("Allow Steam relay for SteamP2P messaging."))
-                    .Option(config => config.SteamP2PChannel, option => option.Comment("SteamP2P channel number."))
-                    .Option(config => config.SteamP2PMaxPayloadBytes, option => option.Comment("Maximum SteamP2P payload size in bytes."))
-                    .Option(config => config.SteamP2PServerSteamId, option => option.Comment("Optional target server SteamID for client-side SteamP2P routing.")))
+                    .Option(config => config.MessagingBackend, option => option.Comment("Messaging backend: 'FishNetRpc' or 'SteamNetworkingSockets'. FishNetRpc is the default on both Mono and IL2CPP."))
+                    .Option(config => config.SteamNetworkingSocketsVirtualPort, option => option.Comment("Steam Networking Sockets virtual port used for peer routing."))
+                    .Option(config => config.SteamNetworkingSocketsMaxPayloadBytes, option => option.Comment("Maximum Steam Networking Sockets payload size in bytes."))
+                    .Option(config => config.SteamNetworkingSocketsServerSteamId, option => option.Comment("Optional target server SteamID for client-side Steam Networking Sockets routing.")))
                 .Section("tcpConsole", section => section
                     .Comment("Remote and local host console controls.")
                     .Option(config => config.TcpConsoleEnabled, option => option.Comment("Enable the TCP admin console."))

@@ -106,8 +106,8 @@ docker compose up -d --build
 ## Container Notes
 
 - `SteamGameServer` is the preferred authentication provider for containerized deployments
-- `SteamNetworkingSockets` is the preferred messaging backend for containerized deployments
-- `SteamP2P` should not be used in Docker
+- `FishNetRpc` is the simplest messaging backend for containerized deployments
+- Switch to `SteamNetworkingSockets` only when you specifically want Steam relay or Steam-side routing behavior
 - The image reapplies MelonLoader and the server mod DLL on container start because SteamCMD validation may overwrite game files
 - The Compose example also persists `/home/steam/steamcmd` and `/home/steam/Steam` so SteamCMD downloads and runtime data survive container recreation
 

@@ -335,8 +335,6 @@ namespace DedicatedServerMod.Shared.Networking.Messaging
             {
                 case MessagingBackendType.FishNetRpc:
                     return new FishNetRpcMessagingBackend();
-                case MessagingBackendType.SteamP2P:
-                    return new SteamP2PMessagingBackend();
                 case MessagingBackendType.SteamNetworkingSockets:
                     return new SteamNetworkingSocketsMessagingBackend();
                 default:

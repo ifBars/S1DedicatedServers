@@ -11,11 +11,9 @@ The backend changes how those messages travel between server and client. It does
 | Your setup | Recommended backend | Why |
 | --- | --- | --- |
 | Mono dedicated server | `FishNetRpc` | Simplest path and the default |
-| IL2CPP dedicated server | `SteamNetworkingSockets` | Best dedicated-server fit |
-| Docker or cloud hosting | `SteamNetworkingSockets` | Better dedicated-server and Steam relay support |
-| Steam-launched player-hosted workflow | `FishNetRpc` or `SteamNetworkingSockets` | Both can work; `FishNetRpc` is simpler |
-
-Avoid `SteamP2P` for normal dedicated-server deployments. It is a legacy compatibility option and should not be your first choice.
+| IL2CPP dedicated server | `FishNetRpc` | Works well and stays on the same FishNet callback/tick path the game already uses |
+| Docker or cloud hosting | `FishNetRpc` or `SteamNetworkingSockets` | Use `FishNetRpc` for simplicity; use sockets when you specifically want Steam relay/routing behavior |
+| Steam-launched player-hosted workflow | `FishNetRpc` | Closest to the base game path and lowest operational overhead |
 
 ## Configuration
 
@@ -26,21 +24,19 @@ Example:
 ```toml
 [messaging]
 messagingBackend = 'FishNetRpc'
-steamP2PAllowRelay = true
-steamP2PChannel = 0
-steamP2PMaxPayloadBytes = 1200
-steamP2PServerSteamId = ''
+steamNetworkingSocketsVirtualPort = 0
+steamNetworkingSocketsMaxPayloadBytes = 1200
+steamNetworkingSocketsServerSteamId = ''
 ```
 
 ### Keys
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `messagingBackend` | `string` | `'FishNetRpc'` | One of `FishNetRpc`, `SteamP2P`, `SteamNetworkingSockets` |
-| `steamP2PAllowRelay` | `bool` | `true` | Used by `SteamP2P` |
-| `steamP2PChannel` | `int` | `0` | Used by Steam-backed messaging paths |
-| `steamP2PMaxPayloadBytes` | `int` | `1200` | Used by Steam-backed messaging paths |
-| `steamP2PServerSteamId` | `string` | `''` | Optional client-side Steam routing hint |
+| `messagingBackend` | `string` | `'FishNetRpc'` | One of `FishNetRpc` or `SteamNetworkingSockets` |
+| `steamNetworkingSocketsVirtualPort` | `int` | `0` | Virtual port used by Steam Networking Sockets |
+| `steamNetworkingSocketsMaxPayloadBytes` | `int` | `1200` | Maximum Steam Networking Sockets payload size |
+| `steamNetworkingSocketsServerSteamId` | `string` | `''` | Optional client-side Steam routing hint |
 
 The config file is TOML. Message payloads sent over `CustomMessaging` are still strings. Many mods serialize JSON inside those string payloads, but that is an application-level choice, not the config format.
 
@@ -54,6 +50,7 @@ Use this when you want the least operational complexity.
 - Works in Mono and IL2CPP builds
 - Uses the existing FishNet connection
 - No extra Steam messaging setup required
+- Reuses the FishNet callback/tick path that is already active for the normal game server flow
 
 Tradeoffs:
 
@@ -69,16 +66,17 @@ messagingBackend = 'FishNetRpc'
 
 ### SteamNetworkingSockets
 
-Use this for dedicated-server-focused deployments, especially IL2CPP, Docker, or hosted environments where Steam server integration is already part of the plan.
+Use this when you specifically want Steam relay or Steam-side routing behavior on top of the normal dedicated-server flow.
 
 - Modern Steam networking path
 - Dedicated-server compatible
-- Better fit for hosted environments and Steam relay support
+- Gives you Steam relay and Steam-side routing behavior
 - Falls back to `FishNetRpc` during early bootstrap until Steam peer mapping is ready
 
 Tradeoffs:
 
 - More moving parts than `FishNetRpc`
+- Adds its own callback and polling work on top of the FishNet work already happening every frame
 - Requires Steam initialization and valid Steam-side routing
 
 Recommended config:
@@ -86,41 +84,16 @@ Recommended config:
 ```toml
 [messaging]
 messagingBackend = 'SteamNetworkingSockets'
-steamP2PChannel = 0
-steamP2PMaxPayloadBytes = 1200
-steamP2PServerSteamId = ''
-```
-
-### SteamP2P
-
-This exists for legacy compatibility and specialized Steam-launched scenarios. It is not the recommended dedicated-server path.
-
-- Legacy Steam P2P API
-- Can use Steam relay
-- Falls back to `FishNetRpc` during early bootstrap
-
-Tradeoffs:
-
-- Not the preferred path for dedicated servers
-- More operational complexity than `FishNetRpc`
-- Superseded by `SteamNetworkingSockets` for most Steam-based deployments
-
-Example config:
-
-```toml
-[messaging]
-messagingBackend = 'SteamP2P'
-steamP2PAllowRelay = true
-steamP2PChannel = 0
-steamP2PMaxPayloadBytes = 1200
-steamP2PServerSteamId = ''
+steamNetworkingSocketsVirtualPort = 0
+steamNetworkingSocketsMaxPayloadBytes = 1200
+steamNetworkingSocketsServerSteamId = ''
 ```
 
 ## Bootstrap Fallback Behavior
 
-Steam-backed messaging cannot use Steam peer routing until the server and client have enough identity information to map the FishNet connection to the Steam peer.
+Steam Networking Sockets cannot use Steam peer routing until the server and client have enough identity information to map the FishNet connection to the Steam peer.
 
-That is why `SteamP2P` and `SteamNetworkingSockets` temporarily use `FishNetRpc` during early bootstrap.
+That is why `SteamNetworkingSockets` temporarily uses `FishNetRpc` during early bootstrap.
 
 Typical flow:
 
@@ -136,32 +109,26 @@ This fallback is automatic. It does not require mod authors to change their send
 Choose `FishNetRpc` when:
 
 - you want the simplest setup
-- you are on Mono
-- you do not need Steam-backed relay behavior
+- you want the lowest overhead path
+- you do not need Steam relay or Steam-side routing behavior
 
 Choose `SteamNetworkingSockets` when:
 
-- you are running a dedicated server as a long-lived hosted service
-- you are on IL2CPP
-- you want the modern Steam-backed path
-
-Choose `SteamP2P` only when:
-
-- you have a specific legacy requirement for it
-- you understand that it is no longer the preferred dedicated-server backend
+- you specifically want Steam relay
+- you want Steam-side peer routing semantics
+- you are already committed to the additional Steam transport moving parts
 
 ## Command-Line Override
 
 You can override the backend at startup:
 
 ```text
---messaging-backend <fishnetrpc|steamp2p|steamnetworkingsockets>
+--messaging-backend <fishnetrpc|steamnetworkingsockets>
 ```
 
 Accepted aliases include:
 
 - `fishnet`, `fishnetrpc`, `fishnet_rpc`
-- `steamp2p`, `steam_p2p`
 - `steamsockets`, `steam_sockets`, `steamnetworkingsockets`, `steam_networking_sockets`
 
 ## Troubleshooting
@@ -185,8 +152,8 @@ Accepted aliases include:
 
 ### Steam-backed messages are slow or unreliable
 
-- Check whether Steam relay is being used.
-- Review `steamP2PMaxPayloadBytes` if you are sending large payloads.
+- Check whether Steam relay is actually needed for your deployment.
+- Review `steamNetworkingSocketsMaxPayloadBytes` if you are sending large payloads.
 - Keep payloads small and frequent instead of sending large blobs.
 
 ## Security Notes

@@ -196,37 +196,30 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Messaging backend used for custom server-client communication.
         /// FishNetRpc uses FishNet custom RPCs.
-        /// SteamP2P uses legacy Steam P2P packets.
-        /// SteamNetworkingSockets uses modern Steam sockets and is dedicated-server compatible.
+        /// SteamNetworkingSockets uses modern Steam sockets and Steam relay/routing support.
         /// </summary>
         [JsonProp(Constants.ConfigKeys.MessagingBackend)]
         [JsonConv(typeof(StringEnumConverter))]
         public MessagingBackendType MessagingBackend { get; set; } = MessagingBackendType.FishNetRpc;
 
         /// <summary>
-        /// Whether to allow Steam relay (SDR) for P2P messaging.
+        /// Steam Networking Sockets virtual port for messaging.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.SteamP2PAllowRelay)]
-        public bool SteamP2PAllowRelay { get; set; } = true;
+        [JsonProp(Constants.ConfigKeys.SteamNetworkingSocketsVirtualPort)]
+        public int SteamNetworkingSocketsVirtualPort { get; set; } = 0;
 
         /// <summary>
-        /// Steam P2P channel for messaging.
+        /// Steam Networking Sockets max payload size in bytes.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.SteamP2PChannel)]
-        public int SteamP2PChannel { get; set; } = 0;
+        [JsonProp(Constants.ConfigKeys.SteamNetworkingSocketsMaxPayloadBytes)]
+        public int SteamNetworkingSocketsMaxPayloadBytes { get; set; } = 1200;
 
         /// <summary>
-        /// Steam P2P max payload size in bytes.
-        /// </summary>
-        [JsonProp(Constants.ConfigKeys.SteamP2PMaxPayloadBytes)]
-        public int SteamP2PMaxPayloadBytes { get; set; } = 1200;
-
-        /// <summary>
-        /// Target server SteamID for client-side Steam P2P message routing.
+        /// Target server SteamID for client-side Steam Networking Sockets message routing.
         /// Optional when server is discovered from inbound packets.
         /// </summary>
-        [JsonProp(Constants.ConfigKeys.SteamP2PServerSteamId)]
-        public string SteamP2PServerSteamId { get; set; } = string.Empty;
+        [JsonProp(Constants.ConfigKeys.SteamNetworkingSocketsServerSteamId)]
+        public string SteamNetworkingSocketsServerSteamId { get; set; } = string.Empty;
 
         /// <summary>
         /// Steam Web API key for web API ticket validation mode.
@@ -832,28 +825,32 @@ namespace DedicatedServerMod.Shared.Configuration
                         }
                         break;
 
-                    case "--steam-p2p-relay":
-                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool allowRelay))
+                    case "--steam-sockets-virtual-port":
+                    case "--steam-networking-sockets-virtual-port":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int virtualPort))
                         {
-                            Instance.SteamP2PAllowRelay = allowRelay;
-                            DebugLog.Info($"Steam P2P relay set to: {Instance.SteamP2PAllowRelay}");
-                        }
-                        break;
-
-                    case "--steam-p2p-channel":
-                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p2pChannel))
-                        {
-                            Instance.SteamP2PChannel = p2pChannel;
-                            DebugLog.Info($"Steam P2P channel set to: {Instance.SteamP2PChannel}");
+                            Instance.SteamNetworkingSocketsVirtualPort = virtualPort;
+                            DebugLog.Info($"Steam Networking Sockets virtual port set to: {Instance.SteamNetworkingSocketsVirtualPort}");
                         }
                         break;
 
                     case "--server-steamid":
                     case "--server-steam-id":
+                    case "--steam-sockets-server-steam-id":
+                    case "--steam-networking-sockets-server-steam-id":
                         if (i + 1 < args.Length)
                         {
-                            Instance.SteamP2PServerSteamId = args[i + 1];
-                            DebugLog.Info("Steam P2P target server SteamID set");
+                            Instance.SteamNetworkingSocketsServerSteamId = args[i + 1];
+                            DebugLog.Info("Steam Networking Sockets target server SteamID set");
+                        }
+                        break;
+
+                    case "--steam-sockets-max-payload-bytes":
+                    case "--steam-networking-sockets-max-payload-bytes":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int maxPayloadBytes))
+                        {
+                            Instance.SteamNetworkingSocketsMaxPayloadBytes = maxPayloadBytes;
+                            DebugLog.Info($"Steam Networking Sockets max payload set to: {Instance.SteamNetworkingSocketsMaxPayloadBytes}");
                         }
                         break;
 
@@ -1055,16 +1052,16 @@ namespace DedicatedServerMod.Shared.Configuration
                 SteamGameServerQueryPort = Constants.DefaultSteamGameServerQueryPort;
             }
 
-            if (SteamP2PChannel < 0)
+            if (SteamNetworkingSocketsVirtualPort < 0)
             {
-                DebugLog.Warning($"Invalid Steam P2P channel {SteamP2PChannel}, using channel 0");
-                SteamP2PChannel = 0;
+                DebugLog.Warning($"Invalid Steam Networking Sockets virtual port {SteamNetworkingSocketsVirtualPort}, using port 0");
+                SteamNetworkingSocketsVirtualPort = 0;
             }
 
-            if (SteamP2PMaxPayloadBytes < 256 || SteamP2PMaxPayloadBytes > Constants.MaxMessageSize)
+            if (SteamNetworkingSocketsMaxPayloadBytes < 256 || SteamNetworkingSocketsMaxPayloadBytes > Constants.MaxMessageSize)
             {
-                DebugLog.Warning($"Invalid Steam P2P max payload {SteamP2PMaxPayloadBytes}, using 1200");
-                SteamP2PMaxPayloadBytes = 1200;
+                DebugLog.Warning($"Invalid Steam Networking Sockets max payload {SteamNetworkingSocketsMaxPayloadBytes}, using 1200");
+                SteamNetworkingSocketsMaxPayloadBytes = 1200;
             }
 
             // Validate auto-save interval
@@ -1219,19 +1216,17 @@ namespace DedicatedServerMod.Shared.Configuration
                 case "fishnet_rpc":
                     value = MessagingBackendType.FishNetRpc;
                     return true;
-                case "steamp2p":
-                case "steam_p2p":
-                    value = MessagingBackendType.SteamP2P;
-                    return true;
                 case "steamsockets":
                 case "steam_socket":
                 case "steam_sockets":
+                case "steamsocket":
+                case "steamnetworkingsocket":
                 case "steamnetworkingsockets":
                 case "steam_networking_sockets":
                     value = MessagingBackendType.SteamNetworkingSockets;
                     return true;
                 default:
-                    DebugLog.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_p2p, steam_networking_sockets.");
+                    DebugLog.Warning($"Unknown messaging backend '{backend}'. Valid options: fishnet_rpc, steam_networking_sockets.");
                     value = MessagingBackendType.FishNetRpc;
                     return false;
             }

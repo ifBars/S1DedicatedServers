@@ -68,9 +68,9 @@ Permission graph data lives in `permissions.toml` and is managed separately.
 | Argument | Description | Example |
 |----------|-------------|---------|
 | `--messaging-backend <backend>` | Set messaging backend | `--messaging-backend SteamNetworkingSockets` |
-| `--steam-p2p-relay <true/false>` | Allow Steam P2P relay | `--steam-p2p-relay true` |
-| `--steam-p2p-channel <channel>` | Set Steam P2P channel | `--steam-p2p-channel 0` |
-| `--server-steamid <steam_id>` | Set Steam P2P server SteamID | `--server-steamid 90000000000000000` |
+| `--steam-networking-sockets-virtual-port <port>` | Set Steam Networking Sockets virtual port | `--steam-networking-sockets-virtual-port 0` |
+| `--steam-networking-sockets-max-payload-bytes <bytes>` | Set Steam Networking Sockets max payload size | `--steam-networking-sockets-max-payload-bytes 1200` |
+| `--steam-networking-sockets-server-steam-id <steam_id>` | Set Steam Networking Sockets server SteamID hint | `--steam-networking-sockets-server-steam-id 90000000000000000` |
 
 ### Host Console
 
