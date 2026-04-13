@@ -35,11 +35,6 @@ jobs:
       - name: Determine Assembly Branch
         id: assembly-branch
         shell: bash
-        env:
-          GAME_ASSEMBLIES_REPO: ${{ secrets.GAME_ASSEMBLIES_REPO }}
-          GAME_ASSEMBLIES_TOKEN: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
-          IL2CPP_ASSEMBLIES_REPO: ${{ secrets.IL2CPP_ASSEMBLIES_REPO }}
-          IL2CPP_ASSEMBLIES_TOKEN: ${{ secrets.IL2CPP_ASSEMBLIES_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -58,33 +53,13 @@ jobs:
               ;;
           esac
 
-          resolve_repo_branch() {
-            local repo="$1"
-            local token="$2"
-            local requested="$3"
-            local candidate_url="https://x-access-token:${token}@github.com/${repo}.git"
-
-            if git ls-remote --exit-code --heads "$candidate_url" "$requested" >/dev/null 2>&1; then
-              echo "$requested"
-              return 0
-            fi
-
-            if [[ "$requested" == "master" ]] && git ls-remote --exit-code --heads "$candidate_url" main >/dev/null 2>&1; then
-              echo "main"
-              return 0
-            fi
-
-            if [[ "$requested" == "main" ]] && git ls-remote --exit-code --heads "$candidate_url" master >/dev/null 2>&1; then
-              echo "master"
-              return 0
-            fi
-
-            echo "Unable to resolve branch '$requested' for repository '$repo'" >&2
-            return 1
-          }
-
-          mono_branch=$(resolve_repo_branch "$GAME_ASSEMBLIES_REPO" "$GAME_ASSEMBLIES_TOKEN" "$requested_branch")
-          il2cpp_branch=$(resolve_repo_branch "$IL2CPP_ASSEMBLIES_REPO" "$IL2CPP_ASSEMBLIES_TOKEN" "$requested_branch")
+          if [[ "$requested_branch" == "beta" ]]; then
+            mono_branch="beta"
+            il2cpp_branch="beta"
+          else
+            mono_branch="main"
+            il2cpp_branch="main"
+          fi
 
           echo "mono_branch=$mono_branch" >> "$GITHUB_OUTPUT"
           echo "il2cpp_branch=$il2cpp_branch" >> "$GITHUB_OUTPUT"
@@ -282,6 +257,12 @@ jobs:
               </PropertyGroup>
           </Project>
           EOF
+
+      - name: Reset IL2CPP Restore State
+        shell: bash
+        run: |
+          rm -rf obj/Il2cpp_Server obj/Il2cpp_Client
+          rm -f obj/project.assets.json obj/*.nuget.g.props obj/*.nuget.g.targets
 
       - name: Restore IL2CPP Dependencies
         run: dotnet restore DedicatedServerMod.csproj -p:EffectiveConfiguration=Il2cpp_Server

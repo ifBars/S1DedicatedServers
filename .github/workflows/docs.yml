@@ -42,9 +42,6 @@ jobs:
       - name: Determine Assembly Branch
         id: assembly-branch
         shell: bash
-        env:
-          GAME_ASSEMBLIES_REPO: ${{ secrets.GAME_ASSEMBLIES_REPO }}
-          GAME_ASSEMBLIES_TOKEN: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -63,32 +60,12 @@ jobs:
               ;;
           esac
 
-          resolve_repo_branch() {
-            local repo="$1"
-            local token="$2"
-            local requested="$3"
-            local candidate_url="https://x-access-token:${token}@github.com/${repo}.git"
+          if [[ "$requested_branch" == "beta" ]]; then
+            game_branch="beta"
+          else
+            game_branch="main"
+          fi
 
-            if git ls-remote --exit-code --heads "$candidate_url" "$requested" >/dev/null 2>&1; then
-              echo "$requested"
-              return 0
-            fi
-
-            if [[ "$requested" == "master" ]] && git ls-remote --exit-code --heads "$candidate_url" main >/dev/null 2>&1; then
-              echo "main"
-              return 0
-            fi
-
-            if [[ "$requested" == "main" ]] && git ls-remote --exit-code --heads "$candidate_url" master >/dev/null 2>&1; then
-              echo "master"
-              return 0
-            fi
-
-            echo "Unable to resolve branch '$requested' for repository '$repo'" >&2
-            return 1
-          }
-
-          game_branch=$(resolve_repo_branch "$GAME_ASSEMBLIES_REPO" "$GAME_ASSEMBLIES_TOKEN" "$requested_branch")
           echo "game_branch=$game_branch" >> "$GITHUB_OUTPUT"
           echo "Using Mono assemblies from $game_branch (requested: $requested_branch)"
 
