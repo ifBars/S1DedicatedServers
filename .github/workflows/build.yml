@@ -71,9 +71,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-v8-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-v8-${{ steps.assembly-branch.outputs.branch }}-
 
       - name: Checkout Mono Game Assemblies
         uses: actions/checkout@v4
@@ -201,6 +201,13 @@ jobs:
             exit 1
           fi
 
+      - name: Save Game Assemblies to Cache
+        uses: actions/cache/save@v4
+        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
+        with:
+          path: ScheduleOneAssemblies
+          key: game-assemblies-v8-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+
       - name: Create Mono CI Build Properties
         shell: bash
         run: |
@@ -276,13 +283,6 @@ jobs:
         with:
           name: DedicatedServerMod-Il2cpp-Client
           path: bin/Il2cpp_Client/net6.0/*.dll
-
-      - name: Save Game Assemblies to Cache
-        uses: actions/cache/save@v4
-        if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
-        with:
-          path: ScheduleOneAssemblies
-          key: game-assemblies-v7-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
   summary:
     runs-on: ubuntu-latest
