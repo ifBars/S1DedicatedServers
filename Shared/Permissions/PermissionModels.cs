@@ -30,6 +30,9 @@ namespace DedicatedServerMod.Shared.Permissions
             public const string PlayerKick = "player.kick";
             public const string PlayerBan = "player.ban";
             public const string PlayerUnban = "player.unban";
+            public const string PlayerBring = "player.bring";
+            public const string PlayerReturn = "player.return";
+            public const string PlayerVanish = "player.vanish";
             public const string ServerHelp = "server.help";
             public const string ServerInfo = "server.info";
             public const string ServerSave = "server.save";

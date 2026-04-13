@@ -649,6 +649,12 @@ namespace DedicatedServerMod.Shared.Permissions
                     return PermissionBuiltIns.Nodes.PlayerBan;
                 case "unban":
                     return PermissionBuiltIns.Nodes.PlayerUnban;
+                case "bring":
+                    return PermissionBuiltIns.Nodes.PlayerBring;
+                case "return":
+                    return PermissionBuiltIns.Nodes.PlayerReturn;
+                case "vanish":
+                    return PermissionBuiltIns.Nodes.PlayerVanish;
                 case "reloadpermissions":
                     return PermissionBuiltIns.Nodes.PermissionsReload;
                 case "listops":

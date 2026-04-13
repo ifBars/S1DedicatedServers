@@ -28,6 +28,9 @@ These commands are usually used by moderator, administrator, or operator staff g
 - `kick <player_name_or_id> [reason]`: disconnect a player
 - `ban <player_name_or_id> [reason]`: ban a player
 - `unban <steamid>`: remove a ban
+- `bring <player_name_or_id> [destination_player_name_or_id]`: teleport a player to your position or another player's position
+- `return [player_name_or_id]`: return yourself or another player to the last saved teleport position
+- `vanish [player_name_or_id] [on|off|toggle]`: toggle or set vanish mode
 
 ## Notes
 

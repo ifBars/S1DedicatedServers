@@ -1,6 +1,7 @@
 using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Server.Player.Runtime;
 using DedicatedServerMod.Utils;
+using UnityEngine;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 #else
@@ -18,6 +19,8 @@ namespace DedicatedServerMod.Server.Player
         private readonly PlayerLifecycleCoordinator _lifecycle;
         private readonly PlayerJoinBootstrapService _joinBootstrap;
         private readonly PlayerModerationService _moderation;
+        private readonly PlayerTeleportationService _teleportation;
+        private readonly PlayerVisibilityService _visibility;
         private readonly ServerPermissionService _permissionService;
 
         internal PlayerManager(
@@ -31,6 +34,8 @@ namespace DedicatedServerMod.Server.Player
             PlayerClientMessagingService messaging = new PlayerClientMessagingService();
             _joinBootstrap = new PlayerJoinBootstrapService(_registry);
             _moderation = new PlayerModerationService(_registry, messaging, _permissionService);
+            _teleportation = new PlayerTeleportationService();
+            _visibility = new PlayerVisibilityService();
             _lifecycle = new PlayerLifecycleCoordinator(
                 _registry,
                 authentication ?? throw new ArgumentNullException(nameof(authentication)),
@@ -193,6 +198,38 @@ namespace DedicatedServerMod.Server.Player
             return _registry.GetConnectedPlayers(includeLoopbackConnections: true);
         }
 
+        internal bool BringPlayer(ConnectedPlayerInfo targetPlayer, ConnectedPlayerInfo destinationPlayer, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+
+            if (!TryGetArrivalTransform(destinationPlayer, out Vector3 arrivalPosition, out Quaternion arrivalRotation, out errorMessage))
+            {
+                return false;
+            }
+
+            return _teleportation.Teleport(targetPlayer, arrivalPosition, arrivalRotation, alignFeetToPosition: true, out errorMessage);
+        }
+
+        internal bool ReturnPlayerToPreviousPosition(ConnectedPlayerInfo targetPlayer, out string errorMessage)
+        {
+            return _teleportation.ReturnToPreviousPosition(targetPlayer, out errorMessage);
+        }
+
+        internal bool HasReturnPosition(ConnectedPlayerInfo targetPlayer)
+        {
+            return _teleportation.HasReturnPosition(targetPlayer);
+        }
+
+        internal bool IsPlayerVanished(ConnectedPlayerInfo targetPlayer)
+        {
+            return _visibility.IsVanished(targetPlayer);
+        }
+
+        internal bool SetPlayerVanished(ConnectedPlayerInfo targetPlayer, bool isVanished, out string errorMessage)
+        {
+            return _visibility.SetVanished(targetPlayer, isVanished, out errorMessage);
+        }
+
         internal void Initialize()
         {
             try
@@ -269,12 +306,45 @@ namespace DedicatedServerMod.Server.Player
 
         private void PublishPlayerLeft(ConnectedPlayerInfo playerInfo)
         {
+            _teleportation.ClearPlayerState(playerInfo);
+            _visibility.HandlePlayerLeft(playerInfo);
             OnPlayerLeft?.Invoke(playerInfo);
         }
 
         private void PublishPlayerSpawned(ConnectedPlayerInfo playerInfo)
         {
+            _visibility.HandlePlayerSpawned(playerInfo);
             OnPlayerSpawned?.Invoke(playerInfo);
+        }
+
+        private static bool TryGetArrivalTransform(
+            ConnectedPlayerInfo destinationPlayer,
+            out Vector3 arrivalPosition,
+            out Quaternion arrivalRotation,
+            out string errorMessage)
+        {
+            arrivalPosition = default;
+            arrivalRotation = Quaternion.identity;
+            errorMessage = string.Empty;
+
+            if (destinationPlayer?.PlayerInstance == null)
+            {
+                errorMessage = destinationPlayer == null
+                    ? "Destination player is required."
+                    : $"{destinationPlayer.DisplayName} is not spawned.";
+                return false;
+            }
+
+            Transform transform = destinationPlayer.PlayerInstance.transform;
+            Vector3 forward = transform.forward;
+            if (forward.sqrMagnitude < 0.001f)
+            {
+                forward = Vector3.forward;
+            }
+
+            arrivalPosition = transform.position + forward.normalized * 2.25f;
+            arrivalRotation = transform.rotation;
+            return true;
         }
     }
 }

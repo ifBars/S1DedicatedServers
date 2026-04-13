@@ -241,6 +241,9 @@ namespace DedicatedServerMod.Server.Commands
             RegisterCommand(new BanCommand(playerManager));
             RegisterCommand(new UnbanCommand(playerManager));
             RegisterCommand(new ListPlayersCommand(playerManager));
+            RegisterCommand(new BringCommand(playerManager));
+            RegisterCommand(new ReturnCommand(playerManager));
+            RegisterCommand(new VanishCommand(playerManager));
             RegisterCommand(new HelpCommand(playerManager, this));
             RegisterCommand(new ServerInfoCommand(playerManager, networkManager));
             RegisterCommand(new ReloadConfigCommand(playerManager));

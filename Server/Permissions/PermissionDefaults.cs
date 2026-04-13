@@ -41,7 +41,9 @@ namespace DedicatedServerMod.Server.Permissions
                         PermissionBuiltIns.Nodes.PlayerList,
                         PermissionBuiltIns.Nodes.PlayerKick,
                         PermissionBuiltIns.Nodes.PlayerBan,
-                        PermissionBuiltIns.Nodes.PlayerUnban
+                        PermissionBuiltIns.Nodes.PlayerUnban,
+                        PermissionBuiltIns.Nodes.PlayerBring,
+                        PermissionBuiltIns.Nodes.PlayerReturn
                     }),
                 [PermissionBuiltIns.Groups.Administrator] = new BuiltInGroupTemplate(
                     PermissionBuiltIns.Groups.Administrator,
@@ -55,7 +57,8 @@ namespace DedicatedServerMod.Server.Permissions
                         PermissionBuiltIns.Nodes.ServerSave,
                         PermissionBuiltIns.Nodes.ServerReloadConfig,
                         PermissionBuiltIns.Nodes.PermissionsInfo,
-                        PermissionBuiltIns.Nodes.PermissionsGroupList
+                        PermissionBuiltIns.Nodes.PermissionsGroupList,
+                        PermissionBuiltIns.Nodes.PlayerVanish
                     }),
                 [PermissionBuiltIns.Groups.Operator] = new BuiltInGroupTemplate(
                     PermissionBuiltIns.Groups.Operator,
@@ -157,6 +160,9 @@ namespace DedicatedServerMod.Server.Permissions
                 CreateDefinition(PermissionBuiltIns.Nodes.PlayerKick, "Players", "Kick connected players."),
                 CreateDefinition(PermissionBuiltIns.Nodes.PlayerBan, "Players", "Ban players from the server."),
                 CreateDefinition(PermissionBuiltIns.Nodes.PlayerUnban, "Players", "Remove bans from players."),
+                CreateDefinition(PermissionBuiltIns.Nodes.PlayerBring, "Players", "Teleport a player to a staff member or anchor player."),
+                CreateDefinition(PermissionBuiltIns.Nodes.PlayerReturn, "Players", "Return a player to their last saved teleport position."),
+                CreateDefinition(PermissionBuiltIns.Nodes.PlayerVanish, "Players", "Toggle vanish mode for staff."),
                 CreateDefinition(PermissionBuiltIns.Nodes.ServerHelp, "Server", "View help for built-in server commands."),
                 CreateDefinition(PermissionBuiltIns.Nodes.ServerInfo, "Server", "View dedicated server status information."),
                 CreateDefinition(PermissionBuiltIns.Nodes.ServerSave, "Server", "Trigger a server save."),
