@@ -42,7 +42,12 @@ jobs:
       - name: Determine Assembly Branch
         id: assembly-branch
         shell: bash
+        env:
+          GAME_ASSEMBLIES_REPO: ${{ secrets.GAME_ASSEMBLIES_REPO }}
+          GAME_ASSEMBLIES_TOKEN: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
         run: |
+          set -euo pipefail
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
             requested_branch="${{ inputs.assembly_branch }}"
           else
@@ -50,11 +55,7 @@ jobs:
           fi
 
           case "$requested_branch" in
-            main|master)
-              resolved_branch="main"
-              ;;
-            beta)
-              resolved_branch="beta"
+            main|master|beta)
               ;;
             *)
               echo "Unsupported assembly branch: $requested_branch"
@@ -62,7 +63,34 @@ jobs:
               ;;
           esac
 
-          echo "branch=$resolved_branch" >> "$GITHUB_OUTPUT"
+          resolve_repo_branch() {
+            local repo="$1"
+            local token="$2"
+            local requested="$3"
+            local candidate_url="https://x-access-token:${token}@github.com/${repo}.git"
+
+            if git ls-remote --exit-code --heads "$candidate_url" "$requested" >/dev/null 2>&1; then
+              echo "$requested"
+              return 0
+            fi
+
+            if [[ "$requested" == "master" ]] && git ls-remote --exit-code --heads "$candidate_url" main >/dev/null 2>&1; then
+              echo "main"
+              return 0
+            fi
+
+            if [[ "$requested" == "main" ]] && git ls-remote --exit-code --heads "$candidate_url" master >/dev/null 2>&1; then
+              echo "master"
+              return 0
+            fi
+
+            echo "Unable to resolve branch '$requested' for repository '$repo'" >&2
+            return 1
+          }
+
+          game_branch=$(resolve_repo_branch "$GAME_ASSEMBLIES_REPO" "$GAME_ASSEMBLIES_TOKEN" "$requested_branch")
+          echo "game_branch=$game_branch" >> "$GITHUB_OUTPUT"
+          echo "Using Mono assemblies from $game_branch (requested: $requested_branch)"
 
       - name: Create Assembly Directory Structure
         shell: bash
@@ -75,16 +103,16 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-docs-v5-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-docs-v6-${{ steps.assembly-branch.outputs.game_branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
           restore-keys: |
-            game-assemblies-docs-v5-${{ steps.assembly-branch.outputs.branch }}-
+            game-assemblies-docs-v6-${{ steps.assembly-branch.outputs.game_branch }}-
 
       - name: Checkout Game Assemblies
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.GAME_ASSEMBLIES_REPO }}
           token: ${{ secrets.GAME_ASSEMBLIES_TOKEN }}
-          ref: ${{ steps.assembly-branch.outputs.branch }}
+          ref: ${{ steps.assembly-branch.outputs.game_branch }}
           path: game-assemblies
           fetch-depth: 1
         if: steps.cache-assemblies.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -163,7 +191,7 @@ jobs:
         if: always() && steps.cache-assemblies.outputs.cache-hit != 'true' && steps.assembly-files.outputs.ready == 'true'
         with:
           path: ScheduleOneAssemblies
-          key: game-assemblies-docs-v5-${{ steps.assembly-branch.outputs.branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
+          key: game-assemblies-docs-v6-${{ steps.assembly-branch.outputs.game_branch }}-${{ hashFiles('DedicatedServerMod.csproj') }}
 
   deploy:
     runs-on: ubuntu-latest

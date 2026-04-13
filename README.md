@@ -1,8 +1,13 @@
 # S1DS - S1 DedicatedServerMod
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ifBars/S1DedicatedServers)
+[![Build and Test](https://github.com/ifBars/S1DedicatedServers/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/ifBars/S1DedicatedServers/actions/workflows/build.yml)
+[![Build and Deploy Documentation](https://github.com/ifBars/S1DedicatedServers/actions/workflows/docs.yml/badge.svg?branch=master)](https://github.com/ifBars/S1DedicatedServers/actions/workflows/docs.yml)
+[![GitHub stars](https://img.shields.io/github/stars/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/issues)
 [![Version](https://img.shields.io/badge/version-0.9.0--beta-blue)](https://github.com/ifBars/S1DedicatedServers/releases)
-[![License](https://img.shields.io/github/license/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/blob/master/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/blob/master/LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/ifBars/S1DedicatedServers/master)](https://github.com/ifBars/S1DedicatedServers/commits/master)
 
 DedicatedServerMod adds authoritative, headless dedicated servers to Schedule I, along with admin tooling, remote console support, an optional localhost web panel, and a public mod API for server and client extensions.
 
