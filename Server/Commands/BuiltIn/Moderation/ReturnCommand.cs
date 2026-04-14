@@ -34,6 +34,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
         /// <inheritdoc />
         public override void Execute(CommandContext context)
         {
+            ConnectedPlayerInfo executor = GetPlayerExecutor(context);
             ConnectedPlayerInfo targetPlayer = ResolveTargetPlayer(context);
             if (targetPlayer == null)
             {
@@ -43,7 +44,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
                 return;
             }
 
-            if (targetPlayer != context.Executor && context.Executor != null && !CanManagePlayer(context.Executor, targetPlayer))
+            if (targetPlayer != executor && executor != null && !CanManagePlayer(executor, targetPlayer))
             {
                 context.ReplyError($"Cannot return {targetPlayer.DisplayName}: insufficient privileges");
                 return;
@@ -62,7 +63,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
         {
             if (context.Arguments.Count == 0)
             {
-                return context.Executor;
+                return GetPlayerExecutor(context);
             }
 
             return FindPlayerByNameOrId(context.Arguments[0]);

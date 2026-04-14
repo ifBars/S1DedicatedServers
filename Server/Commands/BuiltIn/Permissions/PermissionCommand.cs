@@ -132,7 +132,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
         private void ExecuteGrant(CommandContext context, bool isDeny)
         {
             string requiredNode = isDeny ? PermissionBuiltIns.Nodes.PermissionsDeny : PermissionBuiltIns.Nodes.PermissionsGrant;
-            if (context.Executor != null && context.Permissions?.HasPermission(context.Executor.TrustedUniqueId, requiredNode) != true)
+            string executorId = GetExecutorTrustedUniqueId(context);
+            if (executorId != null && context.Permissions?.HasPermission(executorId, requiredNode) != true)
             {
                 context.ReplyError("You do not have permission to modify direct nodes.");
                 return;
@@ -147,8 +148,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
             string targetId = ResolveTargetId(context.Arguments[1]);
             string node = context.Arguments[2];
             bool changed = isDeny
-                ? context.Permissions?.DenyNode(context.Executor?.TrustedUniqueId, targetId, node, "perm deny") == true
-                : context.Permissions?.GrantNode(context.Executor?.TrustedUniqueId, targetId, node, "perm grant") == true;
+                ? context.Permissions?.DenyNode(executorId, targetId, node, "perm deny") == true
+                : context.Permissions?.GrantNode(executorId, targetId, node, "perm grant") == true;
 
             if (changed)
             {
@@ -161,7 +162,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
         private void ExecuteRevoke(CommandContext context)
         {
-            if (context.Executor != null && context.Permissions?.HasPermission(context.Executor.TrustedUniqueId, PermissionBuiltIns.Nodes.PermissionsRevoke) != true)
+            string executorId = GetExecutorTrustedUniqueId(context);
+            if (executorId != null && context.Permissions?.HasPermission(executorId, PermissionBuiltIns.Nodes.PermissionsRevoke) != true)
             {
                 context.ReplyError("You do not have permission to revoke direct nodes.");
                 return;
@@ -175,7 +177,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
             string targetId = ResolveTargetId(context.Arguments[1]);
             string node = context.Arguments[2];
-            if (context.Permissions?.RevokeNode(context.Executor?.TrustedUniqueId, targetId, node, "perm revoke") == true)
+            if (context.Permissions?.RevokeNode(executorId, targetId, node, "perm revoke") == true)
             {
                 context.Reply($"Revoked '{node}' for '{targetId}'.");
                 return;
@@ -186,7 +188,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
         private void ExecuteTemporaryGrant(CommandContext context)
         {
-            if (context.Executor != null && context.Permissions?.HasPermission(context.Executor.TrustedUniqueId, PermissionBuiltIns.Nodes.PermissionsTempGrant) != true)
+            string executorId = GetExecutorTrustedUniqueId(context);
+            if (executorId != null && context.Permissions?.HasPermission(executorId, PermissionBuiltIns.Nodes.PermissionsTempGrant) != true)
             {
                 context.ReplyError("You do not have permission to grant temporary nodes.");
                 return;
@@ -211,7 +214,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
                 : "Temporary permission grant";
 
             DateTime expiresAtUtc = DateTime.UtcNow.AddMinutes(minutes);
-            if (context.Permissions?.GrantTemporaryNode(context.Executor?.TrustedUniqueId, targetId, node, expiresAtUtc, reason) == true)
+            if (context.Permissions?.GrantTemporaryNode(executorId, targetId, node, expiresAtUtc, reason) == true)
             {
                 context.Reply($"Temporarily granted '{node}' to '{targetId}' until {expiresAtUtc:O}.");
                 return;

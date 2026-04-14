@@ -23,7 +23,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
             ConnectedPlayerInfo targetPlayer = FindPlayerByNameOrId(identifier);
             string targetId = targetPlayer?.TrustedUniqueId ?? identifier;
 
-            if (context.Permissions?.UnassignGroup(context.Executor?.TrustedUniqueId, targetId, Shared.Permissions.PermissionBuiltIns.Groups.Operator, "deop command") == true)
+            if (context.Permissions?.UnassignGroup(GetExecutorTrustedUniqueId(context), targetId, Shared.Permissions.PermissionBuiltIns.Groups.Operator, "deop command") == true)
             {
                 if (targetPlayer != null)
                 {

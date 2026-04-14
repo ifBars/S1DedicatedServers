@@ -244,16 +244,22 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 
 ### Adding a Server Command
 
-1. Create class implementing `IServerCommand` in `Server/Commands/Admin/` or `Server/Commands/Server/`
+1. Create a class implementing `IServerCommand` (typically by inheriting `BaseServerCommand`) in the appropriate `Server/Commands/` folder for the command's concern
 2. Implement interface methods:
    ```csharp
-   public class MyCommand : IServerCommand
+   public sealed class MyCommand : BaseServerCommand
    {
-       public string Name => "mycommand";
-       public string Description => "Does something";
-       public string Usage => "mycommand <arg>";
-       
-       public void Execute(string[] args, NetworkConnection sender = null)
+       public MyCommand(PlayerManager playerMgr)
+           : base(playerMgr)
+       {
+       }
+
+       public override string CommandWord => "mycommand";
+       public override string Description => "Does something";
+       public override string Usage => "mycommand <arg>";
+       public override string RequiredPermissionNode => PermissionBuiltIns.Nodes.SomePermission;
+
+       public override void Execute(CommandContext context)
        {
            // Implementation
        }
@@ -262,10 +268,16 @@ Member order: Constants → Static fields → Fields → Constructors → Proper
 
 3. Register in `CommandManager.RegisterCommands()`:
    ```csharp
-   RegisterCommand(new MyCommand());
+   RegisterCommand(new MyCommand(playerMgr));
    ```
 
-4. Add permission check if needed (CommandManager handles this based on config)
+4. Add permission check if needed (the command pipeline handles node-based access before execution)
+5. Validate executor context up front. Commands may run from TCP/server console or from an in-game player:
+   - Use `context.IsConsoleExecution` and `context.Executor` to distinguish console from player execution
+   - For player-only commands, reject console usage with a clear error instead of assuming a sender exists
+   - For commands that may target `self` when run by a player, require an explicit target when run from console; never treat console/server as a player target
+   - Resolve target players explicitly and fail cleanly when lookup returns null
+   - Guard self-targeting and invalid actor/target combinations where the action only makes sense for real players. For example, follow `Server/Commands/BuiltIn/Moderation/VanishCommand.cs`: console execution may set vanish on a named player, but it must not "vanish itself"
 
 ### Adding Custom Messaging
 

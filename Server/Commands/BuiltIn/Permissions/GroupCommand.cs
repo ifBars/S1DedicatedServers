@@ -89,7 +89,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
         private void ExecuteAssign(CommandContext context)
         {
-            if (context.Executor != null && context.Permissions?.HasPermission(context.Executor.TrustedUniqueId, PermissionBuiltIns.Nodes.PermissionsGroupAssign) != true)
+            string executorId = GetExecutorTrustedUniqueId(context);
+            if (executorId != null && context.Permissions?.HasPermission(executorId, PermissionBuiltIns.Nodes.PermissionsGroupAssign) != true)
             {
                 context.ReplyError("You do not have permission to assign groups.");
                 return;
@@ -103,7 +104,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
             string targetId = ResolveTargetId(context.Arguments[1]);
             string groupName = context.Arguments[2];
-            if (context.Permissions?.AssignGroup(context.Executor?.TrustedUniqueId, targetId, groupName, "group assign") == true)
+            if (context.Permissions?.AssignGroup(executorId, targetId, groupName, "group assign") == true)
             {
                 context.Reply($"Assigned group '{groupName}' to '{targetId}'.");
                 return;
@@ -114,7 +115,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
         private void ExecuteUnassign(CommandContext context)
         {
-            if (context.Executor != null && context.Permissions?.HasPermission(context.Executor.TrustedUniqueId, PermissionBuiltIns.Nodes.PermissionsGroupUnassign) != true)
+            string executorId = GetExecutorTrustedUniqueId(context);
+            if (executorId != null && context.Permissions?.HasPermission(executorId, PermissionBuiltIns.Nodes.PermissionsGroupUnassign) != true)
             {
                 context.ReplyError("You do not have permission to remove groups.");
                 return;
@@ -128,7 +130,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
 
             string targetId = ResolveTargetId(context.Arguments[1]);
             string groupName = context.Arguments[2];
-            if (context.Permissions?.UnassignGroup(context.Executor?.TrustedUniqueId, targetId, groupName, "group unassign") == true)
+            if (context.Permissions?.UnassignGroup(executorId, targetId, groupName, "group unassign") == true)
             {
                 context.Reply($"Removed group '{groupName}' from '{targetId}'.");
                 return;

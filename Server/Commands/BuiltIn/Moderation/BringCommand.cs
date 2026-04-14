@@ -34,6 +34,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
         /// <inheritdoc />
         public override void Execute(CommandContext context)
         {
+            ConnectedPlayerInfo executor = GetPlayerExecutor(context);
+
             if (!ValidateArguments(context, 1))
             {
                 return;
@@ -46,7 +48,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
                 return;
             }
 
-            ConnectedPlayerInfo destinationPlayer = ResolveDestinationPlayer(context);
+            ConnectedPlayerInfo destinationPlayer = ResolveDestinationPlayer(context, executor);
             if (destinationPlayer == null)
             {
                 context.ReplyError(context.IsConsoleExecution
@@ -55,7 +57,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
                 return;
             }
 
-            if (targetPlayer != context.Executor && context.Executor != null && !CanManagePlayer(context.Executor, targetPlayer))
+            if (targetPlayer != executor && executor != null && !CanManagePlayer(executor, targetPlayer))
             {
                 context.ReplyError($"Cannot bring {targetPlayer.DisplayName}: insufficient privileges");
                 return;
@@ -70,7 +72,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
             if (PlayerManager.BringPlayer(targetPlayer, destinationPlayer, out string errorMessage))
             {
                 context.Reply(
-                    destinationPlayer == context.Executor
+                    destinationPlayer == executor
                         ? $"Brought {targetPlayer.DisplayName} to your position."
                         : $"Brought {targetPlayer.DisplayName} to {destinationPlayer.DisplayName}.");
                 return;
@@ -79,14 +81,14 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
             context.ReplyError(errorMessage);
         }
 
-        private ConnectedPlayerInfo ResolveDestinationPlayer(CommandContext context)
+        private ConnectedPlayerInfo ResolveDestinationPlayer(CommandContext context, ConnectedPlayerInfo executor)
         {
             if (context.Arguments.Count > 1)
             {
                 return FindPlayerByNameOrId(context.Arguments[1]);
             }
 
-            return context.Executor;
+            return executor;
         }
 
         private static bool CanManagePlayer(ConnectedPlayerInfo executor, ConnectedPlayerInfo targetPlayer)

@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
                 return;
             }
 
-            if (context.Permissions?.RemoveBan(context.Executor?.TrustedUniqueId, steamId, "unban command") == true)
+            if (context.Permissions?.RemoveBan(GetExecutorTrustedUniqueId(context), steamId, "unban command") == true)
             {
                 context.Reply($"Removed ban for Steam ID: {steamId}");
             }

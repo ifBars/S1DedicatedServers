@@ -16,6 +16,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
 
         public override void Execute(CommandContext context)
         {
+            ConnectedPlayerInfo executor = GetPlayerExecutor(context);
+
             if (!ValidateArguments(context, 1))
                 return;
 
@@ -33,7 +35,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
             }
 
             // Check if trying to kick someone with higher privileges
-            if (context.Executor != null && !CanKickPlayer(context.Executor, targetPlayer))
+            if (executor != null && !CanKickPlayer(executor, targetPlayer))
             {
                 context.ReplyError($"Cannot kick {targetPlayer.DisplayName}: insufficient privileges");
                 return;

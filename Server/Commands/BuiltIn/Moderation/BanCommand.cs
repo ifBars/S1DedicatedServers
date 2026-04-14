@@ -16,6 +16,8 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
 
         public override void Execute(CommandContext context)
         {
+            ConnectedPlayerInfo executor = GetPlayerExecutor(context);
+
             if (!ValidateArguments(context, 1))
                 return;
 
@@ -39,13 +41,13 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
             }
 
             // Check if trying to ban someone with equal or higher privileges
-            if (context.Executor != null && !CanBanPlayer(context.Executor, targetPlayer))
+            if (executor != null && !CanBanPlayer(executor, targetPlayer))
             {
                 context.ReplyError($"Cannot ban {targetPlayer.DisplayName}: insufficient privileges");
                 return;
             }
 
-            if (context.Permissions?.AddBan(context.Executor?.TrustedUniqueId, targetPlayer.TrustedUniqueId, reason) == true)
+            if (context.Permissions?.AddBan(GetExecutorTrustedUniqueId(context), targetPlayer.TrustedUniqueId, reason) == true)
             {
                 PlayerManager.NotifyAndDisconnectPlayer(targetPlayer, "Banned", $"Banned: {reason}");
                 context.Reply($"Banned {targetPlayer.DisplayName} ({targetPlayer.SteamId}): {reason}");

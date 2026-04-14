@@ -34,13 +34,15 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
         /// <inheritdoc />
         public override void Execute(CommandContext context)
         {
+            ConnectedPlayerInfo executor = GetPlayerExecutor(context);
+
             if (!TryResolveInvocation(context, out ConnectedPlayerInfo targetPlayer, out bool desiredState, out string errorMessage))
             {
                 context.ReplyError(errorMessage);
                 return;
             }
 
-            if (targetPlayer != context.Executor && context.Executor != null && !CanManagePlayer(context.Executor, targetPlayer))
+            if (targetPlayer != executor && executor != null && !CanManagePlayer(executor, targetPlayer))
             {
                 context.ReplyError($"Cannot change vanish state for {targetPlayer.DisplayName}: insufficient privileges");
                 return;
@@ -74,13 +76,14 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
 
             if (context.Arguments.Count == 0)
             {
-                if (context.Executor == null)
+                ConnectedPlayerInfo executor = GetPlayerExecutor(context);
+                if (executor == null)
                 {
                     errorMessage = $"Usage: {Usage}";
                     return false;
                 }
 
-                targetPlayer = context.Executor;
+                targetPlayer = executor;
                 desiredState = !PlayerManager.IsPlayerVanished(targetPlayer);
                 return true;
             }
@@ -89,13 +92,14 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Moderation
             {
                 if (TryParseDesiredState(context.Arguments[0], out bool? parsedState))
                 {
-                    if (context.Executor == null)
+                    ConnectedPlayerInfo executor = GetPlayerExecutor(context);
+                    if (executor == null)
                     {
                         errorMessage = "Console usage requires a target player when setting vanish state.";
                         return false;
                     }
 
-                    targetPlayer = context.Executor;
+                    targetPlayer = executor;
                     desiredState = parsedState ?? !PlayerManager.IsPlayerVanished(targetPlayer);
                     return true;
                 }

@@ -91,5 +91,23 @@ namespace DedicatedServerMod.Server.Commands.Contracts
 
             return true;
         }
+
+        /// <summary>
+        /// Get the executing player when the command was run by an in-game player.
+        /// </summary>
+        protected ConnectedPlayerInfo GetPlayerExecutor(CommandContext context)
+        {
+            return context != null && !context.IsConsoleExecution
+                ? context.Executor
+                : null;
+        }
+
+        /// <summary>
+        /// Get the trusted unique identifier for the executor, or <see langword="null"/> for console execution.
+        /// </summary>
+        protected string GetExecutorTrustedUniqueId(CommandContext context)
+        {
+            return GetPlayerExecutor(context)?.TrustedUniqueId;
+        }
     }
 }

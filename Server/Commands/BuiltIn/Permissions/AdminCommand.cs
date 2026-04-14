@@ -23,7 +23,7 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Permissions
             ConnectedPlayerInfo targetPlayer = FindPlayerByNameOrId(identifier);
             string targetId = targetPlayer?.TrustedUniqueId ?? identifier;
 
-            if (context.Permissions?.AssignGroup(context.Executor?.TrustedUniqueId, targetId, Shared.Permissions.PermissionBuiltIns.Groups.Administrator, "admin command") == true)
+            if (context.Permissions?.AssignGroup(GetExecutorTrustedUniqueId(context), targetId, Shared.Permissions.PermissionBuiltIns.Groups.Administrator, "admin command") == true)
             {
                 context.Reply(targetPlayer != null
                     ? $"Granted administrator privileges to {targetPlayer.DisplayName} ({targetId})"
