@@ -5,8 +5,8 @@ namespace DedicatedServerMod.API
     /// This class serves as the authoritative source for all version-related data.
     /// </summary>
     /// <remarks>
-    /// Version Format: {MOD_VERSION} (API {API_VERSION})
-    /// Example: "0.9.0-beta (API 0.9.0)"
+    /// Version Format: {MOD_VERSION}
+    /// Example: "0.0.0-beta"
     /// </remarks>
     public static class Version
     {
@@ -15,7 +15,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The mod version following semantic versioning (MAJOR.MINOR.PATCH with prerelease).
         /// </summary>
-        public const string ModVersion = "0.9.0-beta";
+        public const string ModVersion = "0.9.1-beta";
 
         /// <summary>
         /// The major version number for breaking change tracking.
@@ -30,32 +30,35 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The patch version number for bug fixes.
         /// </summary>
-        public const int PatchVersion = 0;
+        public const int PatchVersion = 1;
 
         /// <summary>
-        /// The API version for compatibility checking between mods and core.
+        /// The public API version.
+        /// This aliases the mod version so callers do not need to track a separate API version.
         /// </summary>
-        public const string APIVersion = "0.9.0";
+        public const string APIVersion = ModVersion;
 
         /// <summary>
         /// The major API version number.
+        /// This aliases the mod major version.
         /// </summary>
-        public const int APIMajorVersion = 0;
+        public const int APIMajorVersion = MajorVersion;
 
         /// <summary>
         /// The minor API version number.
+        /// This aliases the mod minor version.
         /// </summary>
-        public const int APIMinorVersion = 9;
+        public const int APIMinorVersion = MinorVersion;
 
         #endregion
 
         #region Version Information
 
         /// <summary>
-        /// Gets the full version string including mod and API versions.
+        /// Gets the full version string.
         /// </summary>
-        /// <returns>A string in format: "MOD_VERSION (API API_VERSION)"</returns>
-        public static string FullVersion => $"{ModVersion} (API {APIVersion})";
+        /// <returns>A string in format: "MOD_VERSION"</returns>
+        public static string FullVersion => ModVersion;
 
         /// <summary>
         /// Gets the version string for assembly metadata.
@@ -65,7 +68,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Gets the informational version string.
         /// </summary>
-        public static string InformationalVersion => $"{ModVersion}+api{APIVersion}";
+        public static string InformationalVersion => ModVersion;
 
         #endregion
 
@@ -75,19 +78,15 @@ namespace DedicatedServerMod.API
         /// Checks if this version is compatible with the given API version.
         /// </summary>
         /// <param name="apiVersion">The API version to check compatibility with</param>
-        /// <returns>True if the versions are compatible (same major API version)</returns>
+        /// <returns>True if the versions are compatible (same major version)</returns>
         public static bool IsCompatibleWithApi(string apiVersion)
         {
             if (string.IsNullOrEmpty(apiVersion))
                 return false;
 
-            // Extract major version from API version string
-            var parts = apiVersion.Split('.');
-            if (parts.Length < 1 || !int.TryParse(parts[0], out int major))
-                return false;
+            var (major, _, _, _) = ParseVersion(apiVersion);
 
-            // Same major version = compatible
-            return major == APIMajorVersion;
+            return major == MajorVersion;
         }
 
         /// <summary>
@@ -224,14 +223,14 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Gets a short version string suitable for display.
         /// </summary>
-        /// <returns>The mod version without API version</returns>
+        /// <returns>The mod version</returns>
         public static string ShortVersion => ModVersion;
 
         /// <summary>
         /// Gets a detailed version string for logging.
         /// </summary>
         /// <returns>A detailed version string</returns>
-        public static string DetailedVersion => $"DedicatedServerMod v{ModVersion} (API v{APIVersion})";
+        public static string DetailedVersion => $"DedicatedServerMod v{ModVersion}";
 
         /// <summary>
         /// Gets a one-line version summary for console output.

@@ -70,11 +70,7 @@ jobs:
 
           echo "version=$current_version" >> "$GITHUB_OUTPUT"
 
-          if [[ "$current_version" == "0.9.0-beta" ]]; then
-            echo "release_name=DedicatedServerMod v$current_version - Initial IL2CPP Support" >> "$GITHUB_OUTPUT"
-          else
-            echo "release_name=DedicatedServerMod v$current_version" >> "$GITHUB_OUTPUT"
-          fi
+          echo "release_name=DedicatedServerMod v$current_version" >> "$GITHUB_OUTPUT"
 
           if [[ "$current_version" == *-* ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"

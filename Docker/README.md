@@ -31,7 +31,7 @@ docker pull ghcr.io/ifbars/s1dedicatedservers:latest
 You can also pin a specific release:
 
 ```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.0-beta
+docker pull ghcr.io/ifbars/s1dedicatedservers:<release-tag>
 ```
 
 Run the published image with Mono:

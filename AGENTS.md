@@ -668,16 +668,16 @@ CI uses `ci.build.props` generated dynamically:
 
 ## Version & Release
 
-Current version: **0.9.0-beta**
+Current version: See `API/Version.cs`.
 
-- **API Version**: 0.9.0
+- **API Version**: Aliased to the mod version in `API/Version.cs`
 - **Status**: Beta (pre-1.0, expect breaking changes)
 
 Version bumping:
 1. Update `API/Version.cs`
-2. Update release-facing docs that embed the current version (`README.md`, `CONTRIBUTING.md`, `docfx/docs/configuration/authentication.md`, and this file when needed)
+2. Update release-facing docs only when a page intentionally needs a concrete version callout
 3. Ensure the GitHub release workflow can derive release notes from git history
-4. Tag release: `git tag v0.9.0-beta`
+4. Tag release: `git tag v<mod-version>`
 
 ---
 

@@ -15,7 +15,7 @@ Run authoritative, headless Schedule I servers and build server/client mods agai
 - Server and client should use matching Schedule I builds.
 - Supported MelonLoader versions are `0.6.x`, `0.7.0`, and `0.7.2+`.
 - Avoid MelonLoader `0.7.1`.
-- `0.9.0-beta` adds initial IL2CPP support for both dedicated-server and client installs. Expect rough edges, and report IL2CPP issues on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps.
+- Current beta builds continue initial IL2CPP support for both dedicated-server and client installs. Expect rough edges, and report IL2CPP issues on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps.
 - Windows is the primary target for server hosting. Linux hosting typically requires Wine or Proton.
 
 ## Host Sizing Baseline

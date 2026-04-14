@@ -21,14 +21,15 @@ namespace DedicatedServerMod.Utils
         public const string ModVersion = DedicatedServerMod.API.Version.ModVersion;
 
         /// <summary>
-        /// The API version for compatibility checking.
+        /// The public API version.
+        /// This aliases the mod version so runtime metadata and API metadata stay aligned.
         /// </summary>
         public const string APIVersion = DedicatedServerMod.API.Version.APIVersion;
 
         /// <summary>
-        /// Gets the full version string including API version.
+        /// Gets the full version string.
         /// </summary>
-        public static string FullVersion => $"{ModVersion} (API {APIVersion})";
+        public static string FullVersion => ModVersion;
 
         /// <summary>
         /// The author/creator of the mod.
