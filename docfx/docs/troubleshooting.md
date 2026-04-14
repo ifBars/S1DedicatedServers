@@ -29,8 +29,9 @@ Current beta builds continue initial IL2CPP support. If a problem only reproduce
 - If you are running under a hosted panel, leave the web panel disabled and use the stdio host console path instead.
 
 ### Connection/port problems
-- Confirm that you forwarded the correct port in `serverPort` in `server_config.toml`.
-- Confirm port in `serverPort` is open on firewall/NAT.
+- Confirm that `serverPort` is forwarded correctly for both UDP gameplay and TCP status query.
+- If using `SteamGameServer`, confirm `steamGameServerQueryPort` is also open on firewall/NAT over UDP.
+- If using the TCP console remotely, confirm `tcpConsolePort` is forwarded separately over TCP.
 - Check logs for Tugboat startup and that the loopback client connects.
 
 ### Clients disconnect right after connecting

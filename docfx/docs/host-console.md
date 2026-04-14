@@ -49,3 +49,10 @@ That lets the panel capture the game log stream directly. Hidden desktop console
 ### When to use TCP instead
 
 Use the TCP console when you want an explicitly separate remote admin surface with password protection and prompt-driven sessions. Use stdio when the host already owns the process console.
+
+### Exposure guidance
+
+- `tcpConsolePort` defaults to `4050` and uses TCP.
+- The default bind address is `127.0.0.1`, which keeps the console local-only.
+- If you change `tcpConsoleBindAddress` to `0.0.0.0` or another non-loopback address, the console becomes reachable on that interface and you must open or forward `tcpConsolePort` separately.
+- If you expose the TCP console beyond localhost, require a password and treat it as a trusted admin surface, not a public service.

@@ -77,6 +77,8 @@ DedicatedServerMod supports three common operator surfaces:
 
 Keep the web panel loopback-bound unless you intentionally understand the exposure model. For hosted providers, prefer the stdio host console path described in [Host Console](host-console.md).
 
+For public hosting, remember that external players commonly need more than one forwarded port: `serverPort` over UDP for gameplay, `serverPort` over TCP for DedicatedServerMod status query, and `steamGameServerQueryPort` over UDP when using `SteamGameServer` query/listing.
+
 ## Performance Defaults
 
 The main performance settings live under `[performance]`:

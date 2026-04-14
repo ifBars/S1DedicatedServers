@@ -39,6 +39,7 @@ Run the published image with Mono:
 ```bash
 docker run --name s1ds ^
   -p 38465:38465/udp ^
+  -p 38465:38465/tcp ^
   -p 27016:27016/udp ^
   -e STEAM_USER=your_steam_login ^
   -e STEAM_PASS=your_steam_password ^
@@ -52,6 +53,7 @@ Run the published image with IL2CPP:
 ```bash
 docker run --name s1ds ^
   -p 38465:38465/udp ^
+  -p 38465:38465/tcp ^
   -p 27016:27016/udp ^
   -e STEAM_USER=your_steam_login ^
   -e STEAM_PASS=your_steam_password ^
@@ -104,6 +106,7 @@ Mono example:
 ```bash
 docker run --name s1ds ^
   -p 38465:38465/udp ^
+  -p 38465:38465/tcp ^
   -p 27016:27016/udp ^
   -e STEAM_USER=your_steam_login ^
   -e STEAM_PASS=your_steam_password ^
@@ -117,6 +120,7 @@ IL2CPP example:
 ```bash
 docker run --name s1ds ^
   -p 38465:38465/udp ^
+  -p 38465:38465/tcp ^
   -p 27016:27016/udp ^
   -e STEAM_USER=your_steam_login ^
   -e STEAM_PASS=your_steam_password ^
@@ -161,4 +165,7 @@ To build locally from `Docker.zip` instead of pulling from GHCR, replace the `im
 - Leave `STEAM_BRANCH` unset unless you intentionally need a non-default branch for the selected runtime.
 - Switching `S1DS_RUNTIME` on an existing persistent game volume is supported; the container removes the other runtime's DedicatedServerMod DLL before starting.
 - Edit the generated `server_config.toml` under the mounted game directory after first boot.
+- Publish `serverPort` on both UDP and TCP. UDP is gameplay traffic; TCP is DedicatedServerMod's status query endpoint.
+- If you use `SteamGameServer`, also publish `steamGameServerQueryPort` on UDP.
+- Only publish `tcpConsolePort` on TCP when `[tcpConsole].tcpConsoleEnabled = true` and you intentionally bind the console beyond localhost.
 - For auth and networking guidance inside containers, see the docs site Docker page and the authentication/messaging backend guides.

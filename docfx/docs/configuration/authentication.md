@@ -115,7 +115,7 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 |-----|------|---------|-------------|
 | `steamGameServerLogOnAnonymous` | `bool` | `true` | Use anonymous Steam game server login |
 | `steamGameServerToken` | `string` | `""` | Game server login token when anonymous login is disabled |
-| `steamGameServerQueryPort` | `int` | `27016` | Steam query/listing port |
+| `steamGameServerQueryPort` | `int` | `27016` | Steam query/listing port. Forward this over UDP when using `SteamGameServer` outside your LAN. |
 | `steamGameServerMode` | `string` | `"Authentication"` | Mode: `NoAuthentication`, `Authentication`, `AuthenticationAndSecure` |
 
 ### Steam Web API Settings
@@ -191,7 +191,7 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 **Checks:**
 1. Confirm Steam is running on client machines.
 2. Verify the server can reach Steam backend services.
-3. Ensure `steamGameServerQueryPort` is not blocked.
+3. Ensure `steamGameServerQueryPort` is not blocked and is forwarded over UDP when applicable.
 4. Raise `authTimeoutSeconds` to at least `30` seconds, or `60` seconds for slower environments.
 5. Review MelonLoader logs for provider-specific failures.
 
@@ -218,8 +218,9 @@ If you see messages about `SteamWebApi` not being implemented, switch `authProvi
 4. Use `steamGameServerMode: "Authentication"` or stricter.
 5. Use a persistent token for long-lived production hosting.
 6. Keep `authTimeoutSeconds` at `60` seconds unless you have a measured reason to lower it.
-7. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` correctly, and keep tokens out of version control.
-8. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
+7. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` over UDP correctly, and keep tokens out of version control.
+8. Remember that Steam query is separate from DedicatedServerMod status query. Public servers usually need both `steamGameServerQueryPort` over UDP and `serverPort` over TCP.
+9. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
 
 ### Private servers
 

@@ -121,9 +121,19 @@ start_server.bat --dedicated-server --server-name "My Server" --auth-provider St
 
 ## Networking (Port Forwarding)
 
-- Forward the value of `serverPort` from your router to the server machine if players are connecting from outside your LAN.
-- Forward both TCP and UDP.
-- Ensure the OS firewall also allows inbound traffic on that port.
+- If players are connecting from outside your LAN, forward every external surface you actually use to the server machine and allow the same ports through the OS firewall.
+
+| Surface | Config key | Default | Protocol | Forward when |
+|----------|------------|---------|----------|--------------|
+| Game traffic | `serverPort` | `38465` | UDP | Players connect from outside your LAN |
+| DedicatedServerMod status query | `serverPort` | `38465` | TCP | You want the in-game add/favorites flow and status query to work from outside your LAN |
+| Steam query/listing | `steamGameServerQueryPort` | `27016` | UDP | You use `SteamGameServer` and want Steam query/server-browser visibility |
+| TCP console | `tcpConsolePort` | `4050` | TCP | You explicitly enable `[tcpConsole].tcpConsoleEnabled` and want remote admin access |
+
+- `serverPort` is not UDP-only. DedicatedServerMod also listens on the same numeric port over TCP for its lightweight status query endpoint.
+- If you only forward `serverPort` over UDP, players may still be unable to query status or save the server entry cleanly from outside your LAN.
+- Keep `[tcpConsole].tcpConsoleBindAddress = '127.0.0.1'` unless you intentionally want remote socket access. If you leave it loopback-bound, do not forward `tcpConsolePort`.
+- The localhost web panel is designed to stay local. Do not port-forward `webPanelPort` under normal deployments.
 
 Helpful links:
 
