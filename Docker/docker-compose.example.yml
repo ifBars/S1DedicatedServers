@@ -1,9 +1,14 @@
 services:
   s1ds:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: s1ds-dedicated-server
+    image: ${S1DS_IMAGE:-ghcr.io/ifbars/s1dedicatedservers:latest}
+    # Set S1DS_IMAGE in .env when you want to pin a specific release tag.
+    # Set S1DS_RUNTIME in .env to mono or il2cpp. When STEAM_BRANCH is blank, the
+    # container automatically selects the expected game branch for that runtime.
+    # To build locally from Docker.zip instead of pulling from GHCR, replace the
+    # image line above with the build block below and run `docker compose up -d --build`.
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: s1ds
     restart: unless-stopped
     env_file:

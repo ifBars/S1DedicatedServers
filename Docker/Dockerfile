@@ -62,14 +62,15 @@ RUN export DISPLAY=:99 && \
 # so we keep a bootstrap copy and re-apply it in run.sh after updates.
 RUN mkdir -p /home/steam/bootstrap/ml /home/steam/bootstrap/mods ${STEAMAPPDIR}/MelonLoader ${STEAMAPPDIR}/Mods
 
-# Download MelonLoader bootstrap files at build time so the local build context
-# only needs the server mod DLL from the release package.
+# Download MelonLoader bootstrap files at build time so the release Docker package
+# only needs the built DedicatedServerMod server DLLs for the supported runtimes.
 RUN wget -O /tmp/MelonLoader.x64.zip "${MELONLOADER_DOWNLOAD_URL}" && \
     unzip -q /tmp/MelonLoader.x64.zip -d /home/steam/bootstrap/ml && \
     rm -f /tmp/MelonLoader.x64.zip
 
-# Copy the release DLL placed next to this Dockerfile by the user.
+# Copy both release DLLs so the runtime can be selected when the container starts.
 COPY --chown=steam:steam DedicatedServerMod_Mono_Server.dll /home/steam/bootstrap/mods/DedicatedServerMod_Mono_Server.dll
+COPY --chown=steam:steam DedicatedServerMod_Il2cpp_Server.dll /home/steam/bootstrap/mods/DedicatedServerMod_Il2cpp_Server.dll
 
 # Set working directory
 WORKDIR ${STEAMAPPDIR}
@@ -82,7 +83,8 @@ EXPOSE 27016/udp
 COPY --chown=steam:steam run.sh /home/steam/run.sh
 RUN chmod +x /home/steam/run.sh
 
-ENV STEAM_BRANCH=alternate
+ENV STEAM_BRANCH=""
+ENV S1DS_RUNTIME=mono
 ENV STEAM_USER=""
 ENV STEAM_PASS=""
 ENV STEAM_GUARD=""

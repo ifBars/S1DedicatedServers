@@ -25,10 +25,31 @@ XVFB_PID=$!
 sleep 5
 
 # Set default values for missing environment variables
+S1DS_RUNTIME=$(printf '%s' "${S1DS_RUNTIME:-mono}" | tr '[:upper:]' '[:lower:]')
 STEAM_GUARD=${STEAM_GUARD:-""}
 STEAMWORKS_REDIST_DIR=${STEAMWORKS_REDIST_DIR:-"/home/steam/steamworks_redist"}
 FORCE_STEAMCMD_UPDATE=${FORCE_STEAMCMD_UPDATE:-"false"}
 GAME_EXE_PATH="${STEAMAPPDIR}/Schedule I.exe"
+
+case "${S1DS_RUNTIME}" in
+    mono)
+        DEFAULT_STEAM_BRANCH="alternate"
+        MOD_DLL_NAME="DedicatedServerMod_Mono_Server.dll"
+        ;;
+    il2cpp)
+        DEFAULT_STEAM_BRANCH=""
+        MOD_DLL_NAME="DedicatedServerMod_Il2cpp_Server.dll"
+        ;;
+    *)
+        echo "ERROR: Unsupported S1DS_RUNTIME '${S1DS_RUNTIME}'. Expected 'mono' or 'il2cpp'."
+        kill $XVFB_PID 2>/dev/null || true
+        exit 1
+        ;;
+esac
+
+if [ -z "${STEAM_BRANCH}" ]; then
+    STEAM_BRANCH="${DEFAULT_STEAM_BRANCH}"
+fi
 
 should_run_steamcmd_update() {
     if [ "${FORCE_STEAMCMD_UPDATE}" = "true" ]; then
@@ -60,8 +81,15 @@ should_refresh_steamworks_redist() {
 
 # Update/install the game via SteamCMD only when needed.
 echo "SteamCMD update mode: FORCE_STEAMCMD_UPDATE=${FORCE_STEAMCMD_UPDATE}"
+echo "DedicatedServerMod runtime: ${S1DS_RUNTIME}"
+echo "DedicatedServerMod bootstrap DLL: ${MOD_DLL_NAME}"
 echo "App ID: ${STEAMAPPID}"
 echo "Install directory: ${STEAMAPPDIR}"
+if [ -n "${STEAM_BRANCH}" ]; then
+    echo "Steam branch: ${STEAM_BRANCH}"
+else
+    echo "Steam branch: default"
+fi
 
 cd /home/steam/steamcmd
 
@@ -76,11 +104,20 @@ if should_run_steamcmd_update; then
     fi
 
     echo "Running SteamCMD..."
-    ./steamcmd.sh +@sSteamCmdForcePlatformType windows \
-        +force_install_dir "$STEAMAPPDIR" \
-        +login "$STEAM_USER" "$STEAM_PASS" "$STEAM_GUARD" \
-        +app_update "$STEAMAPPID" -beta "$STEAM_BRANCH" validate \
-        +quit
+    STEAMCMD_ARGS=(
+        +@sSteamCmdForcePlatformType windows
+        +force_install_dir "$STEAMAPPDIR"
+        +login "$STEAM_USER" "$STEAM_PASS" "$STEAM_GUARD"
+        +app_update "$STEAMAPPID"
+    )
+
+    if [ -n "${STEAM_BRANCH}" ]; then
+        STEAMCMD_ARGS+=(-beta "$STEAM_BRANCH")
+    fi
+
+    STEAMCMD_ARGS+=(validate +quit)
+
+    ./steamcmd.sh "${STEAMCMD_ARGS[@]}"
 
     STEAMCMD_EXIT_CODE=$?
     if [ $STEAMCMD_EXIT_CODE -ne 0 ]; then
@@ -132,11 +169,12 @@ else
     echo "WARNING: Missing /home/steam/bootstrap/ml/MelonLoader"
 fi
 
-if [ -f "/home/steam/bootstrap/mods/DedicatedServerMod_Mono_Server.dll" ]; then
+if [ -f "/home/steam/bootstrap/mods/${MOD_DLL_NAME}" ]; then
     mkdir -p "${STEAMAPPDIR}/Mods"
-    cp -f "/home/steam/bootstrap/mods/DedicatedServerMod_Mono_Server.dll" "${STEAMAPPDIR}/Mods/DedicatedServerMod_Mono_Server.dll"
+    rm -f "${STEAMAPPDIR}/Mods/DedicatedServerMod_Mono_Server.dll" "${STEAMAPPDIR}/Mods/DedicatedServerMod_Il2cpp_Server.dll"
+    cp -f "/home/steam/bootstrap/mods/${MOD_DLL_NAME}" "${STEAMAPPDIR}/Mods/${MOD_DLL_NAME}"
 else
-    echo "WARNING: Missing bootstrap mod DLL: /home/steam/bootstrap/mods/DedicatedServerMod_Mono_Server.dll"
+    echo "WARNING: Missing bootstrap mod DLL: /home/steam/bootstrap/mods/${MOD_DLL_NAME}"
 fi
 
 # Check if the game executable exists
