@@ -84,7 +84,7 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
             string typeName = instanceType.FullName ?? instanceType.Name;
             if (LoggedStrippedTypes.Add(typeName))
             {
-                DebugLog.Info($"Stripping client-only phone/app root on dedicated server: {typeName}");
+                DebugLog.StartupDebug($"Stripping client-only phone/app root on dedicated server: {typeName}");
             }
 
             GameObject gameObject = __instance.gameObject;
