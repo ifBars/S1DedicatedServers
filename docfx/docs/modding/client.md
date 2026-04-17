@@ -87,6 +87,21 @@ Registration ensures client message forwarding is wired so `OnCustomMessage` and
 
 Do not manually register a `MelonMod` that already implements `IClientMod` or inherits `ClientMelonModBase`.
 
+## Inspecting Loaded Client Mods
+
+Use `ModManager.ClientModMetadata` when you need descriptive information about the local loaded
+client mods, such as display name, version, author, assembly name, or declared mod ID.
+
+```csharp
+foreach (ClientModMetadata mod in ModManager.ClientModMetadata)
+{
+    LoggerInstance.Msg($"{mod.DisplayName} v{mod.Version}");
+}
+```
+
+Use `ModManager.ClientMods` when you need the registered `IClientMod` lifecycle objects instead
+of descriptive metadata.
+
 ## Declaring Client Mod Identity
 
 If your client mod may be checked by a dedicated server, declare its stable identity at the assembly level:

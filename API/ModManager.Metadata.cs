@@ -6,6 +6,13 @@ namespace DedicatedServerMod.API
 {
     public static partial class ModManager
     {
+        private sealed class DiscoveredClientModEntry
+        {
+            public ClientModMetadata Metadata { get; set; } = new ClientModMetadata();
+
+            public string Sha256 { get; set; } = string.Empty;
+        }
+
 #if SERVER
         internal static List<DeclaredClientCompanionRequirement> GetDeclaredServerCompanions()
         {
@@ -60,9 +67,32 @@ namespace DedicatedServerMod.API
         }
 #endif
 
+        internal static List<ClientModMetadata> GetLoadedClientModMetadata(System.Reflection.Assembly coreClientAssembly)
+        {
+            return DiscoverLoadedClientMods(coreClientAssembly)
+                .Select(entry => entry.Metadata)
+                .ToList();
+        }
+
         internal static List<ClientModDescriptor> GetLoadedClientModsForVerification(System.Reflection.Assembly coreClientAssembly)
         {
-            List<ClientModDescriptor> mods = new List<ClientModDescriptor>();
+            return DiscoverLoadedClientMods(coreClientAssembly)
+                .Select(entry => new ClientModDescriptor
+                {
+                    ModId = entry.Metadata.ModId,
+                    Version = entry.Metadata.Version,
+                    DisplayName = entry.Metadata.DisplayName,
+                    Author = entry.Metadata.Author,
+                    AssemblyName = entry.Metadata.AssemblyName,
+                    Sha256 = entry.Sha256,
+                    IdentityDeclared = entry.Metadata.IdentityDeclared
+                })
+                .ToList();
+        }
+
+        private static List<DiscoveredClientModEntry> DiscoverLoadedClientMods(System.Reflection.Assembly coreClientAssembly)
+        {
+            List<DiscoveredClientModEntry> mods = new List<DiscoveredClientModEntry>();
 
             try
             {
@@ -90,19 +120,22 @@ namespace DedicatedServerMod.API
                         .FirstOrDefault();
 
                     MelonInfoAttribute info = melon.Info;
-                    string assemblyName = assembly.GetName().Name ?? string.Empty;
-                    string displayName = info?.Name ?? melon.MelonTypeName ?? assemblyName;
-                    string version = identity?.Version ?? info?.Version ?? assembly.GetName().Version?.ToString() ?? string.Empty;
+                    string assemblyName = ClientModPolicy.NormalizeValue(assembly.GetName().Name);
+                    string displayName = ClientModPolicy.NormalizeValue(info?.Name ?? melon.MelonTypeName ?? assemblyName);
+                    string version = ClientModPolicy.NormalizeValue(identity?.Version ?? info?.Version ?? assembly.GetName().Version?.ToString());
 
-                    mods.Add(new ClientModDescriptor
+                    mods.Add(new DiscoveredClientModEntry
                     {
-                        ModId = identity?.ModId ?? string.Empty,
-                        Version = version,
-                        DisplayName = displayName,
-                        Author = info?.Author ?? string.Empty,
-                        AssemblyName = assemblyName,
-                        Sha256 = ClientModHashUtility.TryResolveSha256(melon),
-                        IdentityDeclared = identity != null
+                        Metadata = new ClientModMetadata
+                        {
+                            ModId = ClientModPolicy.NormalizeValue(identity?.ModId),
+                            DisplayName = displayName,
+                            Version = version,
+                            Author = ClientModPolicy.NormalizeValue(info?.Author),
+                            AssemblyName = assemblyName,
+                            IdentityDeclared = identity != null
+                        },
+                        Sha256 = ClientModPolicy.NormalizeHash(ClientModHashUtility.TryResolveSha256(melon))
                     });
                 }
             }

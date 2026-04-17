@@ -335,7 +335,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Ensures forwarded server custom-message handling is wired exactly once.
         /// </summary>
-        public static void EnsureServerMessageForwarding()
+        internal static void EnsureServerMessageForwarding()
         {
             if (_serverMsgWired)
             {

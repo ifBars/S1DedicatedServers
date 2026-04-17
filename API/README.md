@@ -39,6 +39,7 @@ Use the focused sub-namespaces for specialized API surfaces:
   - `ServerStatusQueryHandlerBuilder`
   - `ServerStatusQueryRegistration`
 - `DedicatedServerMod.API.Metadata`
+  - `ClientModMetadata`
   - `S1DSClientCompanionAttribute`
   - `S1DSClientModIdentityAttribute`
 - `DedicatedServerMod.API.Configuration`
@@ -297,6 +298,21 @@ using DedicatedServerMod.API.Metadata;
 ```
 
 Use metadata-based version matching as the normal path. `PinnedSha256` is intended for strict-mode operators, not everyday development.
+
+## Loaded Client Mod Metadata
+
+Use `ModManager.ClientModMetadata` when you need descriptive information about the local
+client runtime's loaded mods without reaching into MelonLoader types directly.
+
+```csharp
+foreach (ClientModMetadata mod in ModManager.ClientModMetadata)
+{
+    LoggerInstance.Msg($"{mod.DisplayName} v{mod.Version} ({mod.ModId})");
+}
+```
+
+`ModManager.ClientMods` remains the lifecycle surface for registered `IClientMod` instances.
+`ModManager.ClientModMetadata` is the discovery and introspection surface for loaded client mod metadata.
 
 ## Registration Rules
 

@@ -51,9 +51,11 @@ In most cases:
 
 Use `CustomMessaging.ClientMessageReceived` or `CustomMessaging.ServerMessageReceived` directly only when you intentionally want the raw transport events rather than the mod lifecycle layer.
 
-## What `EnsureServerMessageForwarding()` actually does
+## How server message forwarding is wired
 
-`EnsureServerMessageForwarding()` does **not** enable the transport itself and does **not** change how messages move over the network.
+DedicatedServerMod internally wires `ModManager` into `CustomMessaging.ServerMessageReceived`
+during the normal dedicated-server bootstrap. This does **not** enable the transport itself and
+does **not** change how messages move over the network.
 
 It only subscribes `ModManager` to `CustomMessaging.ServerMessageReceived` exactly once so that:
 
@@ -62,16 +64,8 @@ It only subscribes `ModManager` to `CustomMessaging.ServerMessageReceived` exact
 
 Without that wiring, `CustomMessaging` still works, but only code listening directly to `CustomMessaging.ServerMessageReceived` will see incoming client messages.
 
-Under the normal dedicated server startup path, this is already called for you by the server bootstrap. Most server mods do **not** need to call it manually.
-
-You only need to call it yourself if you are hosting or initializing the server messaging stack outside the normal dedicated-server bootstrap and still want `ModManager` server message hooks to run.
-
-Example:
-
-```csharp
-// Only needed in custom hosting scenarios outside the normal bootstrap.
-ModManager.EnsureServerMessageForwarding();
-```
+Under the normal dedicated server startup path, this is already handled for you by the server
+bootstrap. Treat it as runtime plumbing rather than part of the public addon API.
 
 There is no equivalent step most client mods need to perform. Client-side message forwarding into `ModManager` is wired during normal mod registration.
 

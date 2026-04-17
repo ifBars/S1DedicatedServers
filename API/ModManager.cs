@@ -1,5 +1,6 @@
 using DedicatedServerMod.Utils;
 using MelonLoader;
+using DedicatedServerMod.API.Metadata;
 
 namespace DedicatedServerMod.API
 {
@@ -113,6 +114,32 @@ namespace DedicatedServerMod.API
         /// Gets all registered client mods.
         /// </summary>
         public static IReadOnlyList<IClientMod> ClientMods => _clientMods.AsReadOnly();
+
+        /// <summary>
+        /// Gets descriptive metadata for the locally loaded client mods.
+        /// </summary>
+        /// <remarks>
+        /// This list is intended for addon discovery and diagnostics. It mirrors the same local
+        /// Melon-discovered client mods used by the client mod verification handshake and excludes
+        /// the core DedicatedServerMod client runtime assembly.
+        /// <para>
+        /// Use <see cref="ClientMods"/> when you need the registered <see cref="IClientMod"/>
+        /// lifecycle instances. Use <see cref="ClientModMetadata"/> when you need stable metadata
+        /// like display name, version, author, assembly name, or declared mod ID.
+        /// </para>
+        /// </remarks>
+        public static IReadOnlyList<ClientModMetadata> ClientModMetadata
+        {
+            get
+            {
+                if (!S1DS.IsClient)
+                {
+                    return Array.Empty<ClientModMetadata>();
+                }
+
+                return GetLoadedClientModMetadata(typeof(ModManager).Assembly);
+            }
+        }
 
         private static void DiscoverMods()
         {
