@@ -62,7 +62,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that the server is initializing.
         /// </summary>
-        public static void NotifyServerInitialize()
+        internal static void NotifyServerInitialize()
         {
             if (!S1DS.IsServer)
             {
@@ -87,7 +87,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that the server has started.
         /// </summary>
-        public static void NotifyServerStarted()
+        internal static void NotifyServerStarted()
         {
             if (!S1DS.IsServer)
             {
@@ -112,7 +112,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that the server is shutting down.
         /// </summary>
-        public static void NotifyServerShutdown()
+        internal static void NotifyServerShutdown()
         {
             if (!S1DS.IsServer)
             {
@@ -138,7 +138,7 @@ namespace DedicatedServerMod.API
         /// Notifies all server mods that a player connected.
         /// </summary>
         /// <param name="player">Tracked player details for the completed join.</param>
-        public static void NotifyPlayerConnected(ConnectedPlayerInfo player)
+        internal static void NotifyPlayerConnected(ConnectedPlayerInfo player)
         {
             if (!S1DS.IsServer || player == null)
             {
@@ -163,7 +163,7 @@ namespace DedicatedServerMod.API
         /// Notifies all server mods that a player connected using the legacy string identifier.
         /// </summary>
         /// <param name="playerId">The legacy player identifier.</param>
-        public static void NotifyPlayerConnected(string playerId)
+        internal static void NotifyPlayerConnected(string playerId)
         {
             if (!S1DS.IsServer)
             {
@@ -189,7 +189,7 @@ namespace DedicatedServerMod.API
         /// Notifies all server mods that a player disconnected.
         /// </summary>
         /// <param name="player">Tracked player details captured at disconnect time.</param>
-        public static void NotifyPlayerDisconnected(ConnectedPlayerInfo player)
+        internal static void NotifyPlayerDisconnected(ConnectedPlayerInfo player)
         {
             if (!S1DS.IsServer || player == null)
             {
@@ -214,7 +214,7 @@ namespace DedicatedServerMod.API
         /// Notifies all server mods that a player disconnected using the legacy string identifier.
         /// </summary>
         /// <param name="playerId">The legacy player identifier.</param>
-        public static void NotifyPlayerDisconnected(string playerId)
+        internal static void NotifyPlayerDisconnected(string playerId)
         {
             if (!S1DS.IsServer)
             {
@@ -239,7 +239,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that a save is about to begin.
         /// </summary>
-        public static void NotifyBeforeSave()
+        internal static void NotifyBeforeSave()
         {
             if (!S1DS.IsServer)
             {
@@ -263,7 +263,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that a save has completed.
         /// </summary>
-        public static void NotifyAfterSave()
+        internal static void NotifyAfterSave()
         {
             if (!S1DS.IsServer)
             {
@@ -287,7 +287,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that a load is about to begin.
         /// </summary>
-        public static void NotifyBeforeLoad()
+        internal static void NotifyBeforeLoad()
         {
             if (!S1DS.IsServer)
             {
@@ -311,7 +311,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all server mods that a load has completed.
         /// </summary>
-        public static void NotifyAfterLoad()
+        internal static void NotifyAfterLoad()
         {
             if (!S1DS.IsServer)
             {

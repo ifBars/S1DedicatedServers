@@ -39,7 +39,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all client mods that the client is initializing.
         /// </summary>
-        public static void NotifyClientInitialize()
+        internal static void NotifyClientInitialize()
         {
             if (!S1DS.IsClient)
             {
@@ -64,7 +64,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all client mods that the client is shutting down.
         /// </summary>
-        public static void NotifyClientShutdown()
+        internal static void NotifyClientShutdown()
         {
             if (!S1DS.IsClient)
             {
@@ -89,7 +89,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all client mods that they connected to a dedicated server.
         /// </summary>
-        public static void NotifyConnectedToServer()
+        internal static void NotifyConnectedToServer()
         {
             if (!S1DS.IsClient)
             {
@@ -114,7 +114,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all client mods that the local player is spawned and systems are ready.
         /// </summary>
-        public static void NotifyClientPlayerReady()
+        internal static void NotifyClientPlayerReady()
         {
             if (!S1DS.IsClient)
             {
@@ -138,7 +138,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Notifies all client mods that they disconnected from a dedicated server.
         /// </summary>
-        public static void NotifyDisconnectedFromServer()
+        internal static void NotifyDisconnectedFromServer()
         {
             if (!S1DS.IsClient)
             {

@@ -24,7 +24,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Initializes the mod manager and discovers mods.
         /// </summary>
-        public static void Initialize()
+        internal static void Initialize()
         {
             if (_initialized)
             {
