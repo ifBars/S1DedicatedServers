@@ -12,6 +12,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
         private readonly PlayerSessionRegistry _registry;
         private readonly PlayerClientMessagingService _messaging;
         private readonly ServerPermissionService _permissionService;
+        private bool _hasDisconnectedAll;
 
         internal PlayerModerationService(
             PlayerSessionRegistry registry,
@@ -133,6 +134,12 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
         internal void DisconnectAllImmediately(string reason)
         {
+            if (_hasDisconnectedAll)
+            {
+                return;
+            }
+
+            _hasDisconnectedAll = true;
             IReadOnlyList<ConnectedPlayerInfo> playersToDisconnect = _registry.GetAllTrackedPlayers();
             for (int i = 0; i < playersToDisconnect.Count; i++)
             {

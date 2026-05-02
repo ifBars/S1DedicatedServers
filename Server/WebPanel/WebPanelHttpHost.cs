@@ -221,7 +221,7 @@ namespace DedicatedServerMod.Server.WebPanel
 
             if (request.Method == "POST" && string.Equals(request.Path, "/api/actions/shutdown", StringComparison.OrdinalIgnoreCase))
             {
-                ThreadPool.QueueUserWorkItem(_ => ServerBootstrap.Shutdown("Web panel shutdown requested"));
+                ServerBootstrap.RequestShutdown("Web panel shutdown requested");
                 WriteJson(stream, 202, new { accepted = true });
                 return;
             }

@@ -12,6 +12,7 @@ using DedicatedServerMod.Utils;
 using DedicatedServerMod.Server.HostConsole;
 using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Server.WebPanel;
+using System.Collections.Concurrent;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -25,6 +26,7 @@ namespace DedicatedServerMod.Server.Core
     public class ServerBootstrap : MelonMod
     {
         private static MelonLogger.Instance _logger;
+        private static readonly ConcurrentQueue<string> _pendingShutdownReasons = new ConcurrentQueue<string>();
         private static bool _isInitialized = false;
         private static bool _isShuttingDown = false;
         private static bool _quitRequested = false;
@@ -209,6 +211,16 @@ namespace DedicatedServerMod.Server.Core
         /// </summary>
         public override void OnUpdate()
         {
+            while (_pendingShutdownReasons.TryDequeue(out string pendingShutdownReason))
+            {
+                Shutdown(pendingShutdownReason);
+            }
+
+            if (!_isInitialized)
+            {
+                return;
+            }
+
             try
             {
                 _playerManager?.Update();
@@ -325,6 +337,15 @@ namespace DedicatedServerMod.Server.Core
         }
 
         // Orchestrator handles the entire boot sequence now
+
+        /// <summary>
+        /// Requests a graceful server shutdown from any thread.
+        /// </summary>
+        /// <param name="reason">The shutdown reason.</param>
+        public static void RequestShutdown(string reason = "Server shutdown requested")
+        {
+            _pendingShutdownReasons.Enqueue(string.IsNullOrWhiteSpace(reason) ? "Server shutdown requested" : reason);
+        }
 
         /// <summary>
         /// Shutdown the server gracefully
