@@ -69,6 +69,8 @@ namespace DedicatedServerMod.Server.Permissions
                     },
                     allow: new[]
                     {
+                        PermissionBuiltIns.Nodes.ConsoleOpen,
+                        PermissionBuiltIns.Nodes.ConsoleCommandWildcard,
                         PermissionBuiltIns.Nodes.ClientModPolicyBypass,
                         PermissionBuiltIns.Nodes.ServerStop,
                         PermissionBuiltIns.Nodes.PermissionsReload,

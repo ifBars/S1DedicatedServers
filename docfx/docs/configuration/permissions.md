@@ -20,7 +20,7 @@ The default seeded group chain is:
 - `support`: inherits `default` and adds `server.info`
 - `moderator`: inherits `support` and adds player moderation commands such as `player.list`, `player.kick`, `player.ban`, `player.unban`, `player.bring`, and `player.return`
 - `administrator`: inherits `moderator` and adds server maintenance nodes such as `server.save`, `server.reloadconfig`, `permissions.info`, `permissions.group.list`, and `player.vanish`
-- `operator`: inherits `administrator` and adds high-impact nodes such as `server.stop`, `permissions.reload`, `permissions.group.assign`, `permissions.group.unassign`, `permissions.grant`, `permissions.deny`, `permissions.revoke`, and `permissions.tempgrant`
+- `operator`: inherits `administrator` and adds remote console access plus high-impact nodes such as `console.open`, `console.command.*`, `server.stop`, `permissions.reload`, `permissions.group.assign`, `permissions.group.unassign`, `permissions.grant`, `permissions.deny`, `permissions.revoke`, and `permissions.tempgrant`
 
 You can extend the graph with your own groups and custom permission nodes.
 
@@ -70,7 +70,7 @@ deny = []
 [group.operator]
 priority = 40
 inherits = ['administrator']
-allow = ['server.stop', 'permissions.reload', 'permissions.group.assign']
+allow = ['console.open', 'console.command.*', 'server.stop', 'permissions.reload', 'permissions.group.assign']
 deny = []
 
 [user.76561198012345678]
