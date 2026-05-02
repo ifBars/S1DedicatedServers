@@ -105,12 +105,17 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     {
         private static void Postfix(TimeManagerType __instance)
         {
-            if (!InstanceFinder.IsServer || !Application.isBatchMode)
+            ForceHeadlessHostSleepDone(__instance);
+        }
+
+        public static void ForceHeadlessHostSleepDone(TimeManagerType __instance)
+        {
+            if (!InstanceFinder.IsServer || !DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
             {
                 return;
             }
 
-            if (!__instance.IsSleepInProgress || __instance.HostSleepDone)
+            if (__instance == null || !__instance.IsSleepInProgress || __instance.HostSleepDone)
             {
                 return;
             }

@@ -1,4 +1,5 @@
 using HarmonyLib;
+using DedicatedServerMod.Server.Game.Patches.Common;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppScheduleOne.UI;
@@ -15,7 +16,7 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
     {
         private static bool Prefix()
         {
-            if (!InstanceFinder.IsServer || !Application.isBatchMode)
+            if (!InstanceFinder.IsServer || !DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
             {
                 return true;
             }
