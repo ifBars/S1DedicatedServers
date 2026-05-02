@@ -2,6 +2,11 @@ using System;
 using System.Collections;
 using MelonLoader;
 using DedicatedServerMod.Utils;
+#if IL2CPP
+using Il2CppScheduleOne.UI.Polling;
+#else
+using ScheduleOne.UI.Polling;
+#endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Client.Managers
@@ -15,19 +20,26 @@ namespace DedicatedServerMod.Client.Managers
         #region Private Fields
 
         // Main menu (left side - Bank buttons)
-        private GameObject mainMenuHome;
-        private RectTransform mainMenuHomeRect;
-        private CanvasGroup mainMenuHomeCanvasGroup;
-        private Vector2 mainMenuOriginalPosition;
+        private GameObject mainMenuBank;
+        private RectTransform mainMenuBankRect;
+        private CanvasGroup mainMenuBankCanvasGroup;
+        private Vector2 bankOriginalPosition;
 
-        // Socials menu (right side - Discord, Twitter, etc.)
+        // Right-side panel (main menu poll/community column)
+        private GameObject mainMenuRightPanel;
+        private RectTransform mainMenuRightPanelRect;
+        private CanvasGroup mainMenuRightPanelCanvasGroup;
+        private Vector2 rightPanelOriginalPosition;
+
+        // Social links under the poll/community column
         private GameObject mainMenuSocials;
         private RectTransform mainMenuSocialsRect;
         private CanvasGroup mainMenuSocialsCanvasGroup;
         private Vector2 socialsOriginalPosition;
 
         // Coroutine handles to prevent overlapping animations
-        private object mainMenuHomeCoroutine;
+        private object mainMenuBankCoroutine;
+        private object mainMenuRightPanelCoroutine;
         private object mainMenuSocialsCoroutine;
 
         #endregion
@@ -37,8 +49,10 @@ namespace DedicatedServerMod.Client.Managers
         private const float ANIMATION_DURATION = 0.15f;
         private const float SLIDE_X_OFFSET = -300f;
         private const float SLIDE_Y_OFFSET = -50f;
-        private const float SOCIALS_SLIDE_X_OFFSET = 300f;  // Slide right
-        private const float SOCIALS_SLIDE_Y_OFFSET = -50f;  // Slide down
+        private const float RIGHT_PANEL_SLIDE_X_OFFSET = 300f;  // Slide right
+        private const float RIGHT_PANEL_SLIDE_Y_OFFSET = 50f;   // Slide up for RightBank in this layout
+        private const float SOCIALS_SLIDE_X_OFFSET = 160f;      // Slide a bit right
+        private const float SOCIALS_SLIDE_Y_OFFSET = -140f;     // Slide mostly down for Socials in this layout
 
         #endregion
 
@@ -61,34 +75,46 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 // Initialize menu references on first use
-                if (mainMenuHome == null)
+                if (mainMenuBank == null)
                 {
                     InitializeMenuReferences();
                 }
 
                 // Animate main menu (left side)
-                if (mainMenuHome != null && mainMenuHomeRect != null)
+                if (mainMenuBank != null && mainMenuBankRect != null)
                 {
                     // Stop any existing main menu animation to prevent overlaps
-                    if (mainMenuHomeCoroutine != null)
+                    if (mainMenuBankCoroutine != null)
                     {
-                        MelonCoroutines.Stop(mainMenuHomeCoroutine);
-                        mainMenuHomeCoroutine = null;
+                        MelonCoroutines.Stop(mainMenuBankCoroutine);
+                        mainMenuBankCoroutine = null;
                     }
                     
-                    mainMenuHomeCoroutine = MelonCoroutines.Start(AnimateMainMenu(show));
+                    mainMenuBankCoroutine = MelonCoroutines.Start(AnimateMainMenu(show));
                 }
 
-                // Animate socials (right side)
+                // Animate right-side poll/community panel
+                if (mainMenuRightPanel != null && mainMenuRightPanelRect != null)
+                {
+                    // Stop any existing right-panel animation to prevent overlaps
+                    if (mainMenuRightPanelCoroutine != null)
+                    {
+                        MelonCoroutines.Stop(mainMenuRightPanelCoroutine);
+                        mainMenuRightPanelCoroutine = null;
+                    }
+                    
+                    mainMenuRightPanelCoroutine = MelonCoroutines.Start(AnimateRightPanel(show));
+                }
+
+                // Animate socials separately so they continue to fly out toward the lower-right.
                 if (mainMenuSocials != null && mainMenuSocialsRect != null)
                 {
-                    // Stop any existing socials animation to prevent overlaps
                     if (mainMenuSocialsCoroutine != null)
                     {
                         MelonCoroutines.Stop(mainMenuSocialsCoroutine);
                         mainMenuSocialsCoroutine = null;
                     }
-                    
+
                     mainMenuSocialsCoroutine = MelonCoroutines.Start(AnimateSocials(show));
                 }
             }
@@ -105,21 +131,30 @@ namespace DedicatedServerMod.Client.Managers
         public void Reset()
         {
             // Stop any in-flight coroutines
-            if (mainMenuHomeCoroutine != null)
+            if (mainMenuBankCoroutine != null)
             {
-                MelonCoroutines.Stop(mainMenuHomeCoroutine);
-                mainMenuHomeCoroutine = null;
+                MelonCoroutines.Stop(mainMenuBankCoroutine);
+                mainMenuBankCoroutine = null;
             }
             
+            if (mainMenuRightPanelCoroutine != null)
+            {
+                MelonCoroutines.Stop(mainMenuRightPanelCoroutine);
+                mainMenuRightPanelCoroutine = null;
+            }
+
             if (mainMenuSocialsCoroutine != null)
             {
                 MelonCoroutines.Stop(mainMenuSocialsCoroutine);
                 mainMenuSocialsCoroutine = null;
             }
             
-            mainMenuHome = null;
-            mainMenuHomeRect = null;
-            mainMenuHomeCanvasGroup = null;
+            mainMenuBank = null;
+            mainMenuBankRect = null;
+            mainMenuBankCanvasGroup = null;
+            mainMenuRightPanel = null;
+            mainMenuRightPanelRect = null;
+            mainMenuRightPanelCanvasGroup = null;
             mainMenuSocials = null;
             mainMenuSocialsRect = null;
             mainMenuSocialsCanvasGroup = null;
@@ -144,26 +179,70 @@ namespace DedicatedServerMod.Client.Managers
             var home = mainMenu.transform.Find("Home");
             if (home != null)
             {
-                // Initialize main menu (left side)
-                mainMenuHome = home.gameObject;
-                mainMenuHomeRect = mainMenuHome.GetComponent<RectTransform>();
-
-                mainMenuHomeCanvasGroup = mainMenuHome.GetComponent<CanvasGroup>();
-                if (mainMenuHomeCanvasGroup == null)
+                // Initialize main menu (left side) as the Bank panel itself.
+                // Animating Home causes the right-side Socials panel to inherit the left motion.
+                var bank = home.Find("Bank");
+                if (bank != null)
                 {
-                    mainMenuHomeCanvasGroup = mainMenuHome.AddComponent<CanvasGroup>();
+                    mainMenuBank = bank.gameObject;
+                    mainMenuBankRect = mainMenuBank.GetComponent<RectTransform>();
+
+                    mainMenuBankCanvasGroup = mainMenuBank.GetComponent<CanvasGroup>();
+                    if (mainMenuBankCanvasGroup == null)
+                    {
+                        mainMenuBankCanvasGroup = mainMenuBank.AddComponent<CanvasGroup>();
+                    }
+
+                    if (mainMenuBankRect != null)
+                    {
+                        bankOriginalPosition = mainMenuBankRect.anchoredPosition;
+                    }
                 }
 
-                if (mainMenuHomeRect != null)
+                // The real main-menu right column is Home/RightBank.
+                // CommunityVote must stay enabled, so we animate the container rather than disabling the poll object.
+                Transform rightPanelTransform = home.Find("RightBank");
+                if (rightPanelTransform == null)
                 {
-                    mainMenuOriginalPosition = mainMenuHomeRect.anchoredPosition;
+                    Transform communityVote = home.Find("RightBank/CommunityVote");
+                    if (communityVote != null)
+                    {
+                        rightPanelTransform = communityVote.parent != null ? communityVote.parent : communityVote;
+                    }
                 }
 
-                // Initialize socials menu (right side)
-                var socials = home.Find("Socials");
-                if (socials != null)
+                if (rightPanelTransform == null)
                 {
-                    mainMenuSocials = socials.gameObject;
+                    PollPanel pollPanel = UnityEngine.Object.FindObjectOfType<PollPanel>(true);
+                    if (pollPanel != null)
+                    {
+                        rightPanelTransform = pollPanel.transform.parent != null ? pollPanel.transform.parent : pollPanel.transform;
+                    }
+                }
+
+                if (rightPanelTransform != null)
+                {
+                    mainMenuRightPanel = rightPanelTransform.gameObject;
+                    mainMenuRightPanelRect = mainMenuRightPanel.GetComponent<RectTransform>();
+
+                    mainMenuRightPanelCanvasGroup = mainMenuRightPanel.GetComponent<CanvasGroup>();
+                    if (mainMenuRightPanelCanvasGroup == null)
+                    {
+                        mainMenuRightPanelCanvasGroup = mainMenuRightPanel.AddComponent<CanvasGroup>();
+                    }
+
+                    if (mainMenuRightPanelRect != null)
+                    {
+                        rightPanelOriginalPosition = mainMenuRightPanelRect.anchoredPosition;
+                    }
+
+                    DebugLog.StartupDebug($"MenuAnimationController: right panel target = {GetTransformPath(rightPanelTransform)}");
+                }
+
+                Transform socialsTransform = home.Find("Socials");
+                if (socialsTransform != null)
+                {
+                    mainMenuSocials = socialsTransform.gameObject;
                     mainMenuSocialsRect = mainMenuSocials.GetComponent<RectTransform>();
 
                     mainMenuSocialsCanvasGroup = mainMenuSocials.GetComponent<CanvasGroup>();
@@ -176,6 +255,8 @@ namespace DedicatedServerMod.Client.Managers
                     {
                         socialsOriginalPosition = mainMenuSocialsRect.anchoredPosition;
                     }
+
+                    DebugLog.StartupDebug($"MenuAnimationController: socials target = {GetTransformPath(socialsTransform)}");
                 }
             }
         }
@@ -190,8 +271,8 @@ namespace DedicatedServerMod.Client.Managers
         private IEnumerator AnimateMainMenu(bool show)
         {
             float elapsed = 0f;
-            Vector2 startPosition = mainMenuHomeRect.anchoredPosition;
-            float startAlpha = mainMenuHomeCanvasGroup.alpha;
+            Vector2 startPosition = mainMenuBankRect.anchoredPosition;
+            float startAlpha = mainMenuBankCanvasGroup.alpha;
 
             Vector2 targetPosition;
             float targetAlpha;
@@ -199,16 +280,16 @@ namespace DedicatedServerMod.Client.Managers
             if (show)
             {
                 // Animating back to visible
-                targetPosition = mainMenuOriginalPosition;
+                targetPosition = bankOriginalPosition;
                 targetAlpha = 1f;
 
                 // Ensure it's active before animating in
-                mainMenuHome.SetActive(true);
+                mainMenuBank.SetActive(true);
             }
             else
             {
                 // Animating away (slide left and down)
-                targetPosition = mainMenuOriginalPosition + new Vector2(SLIDE_X_OFFSET, SLIDE_Y_OFFSET);
+                targetPosition = bankOriginalPosition + new Vector2(SLIDE_X_OFFSET, SLIDE_Y_OFFSET);
                 targetAlpha = 0f;
             }
 
@@ -222,30 +303,81 @@ namespace DedicatedServerMod.Client.Managers
                 float smoothT = t * t * (3f - 2f * t);
 
                 // Interpolate position
-                mainMenuHomeRect.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, smoothT);
+                mainMenuBankRect.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, smoothT);
 
                 // Interpolate alpha
-                mainMenuHomeCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
+                mainMenuBankCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
 
                 yield return null;
             }
 
             // Ensure final values are set
-            mainMenuHomeRect.anchoredPosition = targetPosition;
-            mainMenuHomeCanvasGroup.alpha = targetAlpha;
+            mainMenuBankRect.anchoredPosition = targetPosition;
+            mainMenuBankCanvasGroup.alpha = targetAlpha;
 
             // Disable after animating out
             if (!show)
             {
-                mainMenuHome.SetActive(false);
+                mainMenuBank.SetActive(false);
             }
 
             // Clear the coroutine handle
-            mainMenuHomeCoroutine = null;
+            mainMenuBankCoroutine = null;
         }
 
         /// <summary>
-        /// Animates the socials menu sliding right and fading.
+        /// Animates the right-side menu panel sliding right and fading.
+        /// </summary>
+        private IEnumerator AnimateRightPanel(bool show)
+        {
+            float elapsed = 0f;
+            Vector2 startPosition = mainMenuRightPanelRect.anchoredPosition;
+            float startAlpha = mainMenuRightPanelCanvasGroup.alpha;
+
+            Vector2 targetPosition;
+            float targetAlpha;
+
+            if (show)
+            {
+                // Animating back to visible
+                targetPosition = rightPanelOriginalPosition;
+                targetAlpha = 1f;
+            }
+            else
+            {
+                // Animating away (slide RIGHT and slightly up)
+                targetPosition = rightPanelOriginalPosition + new Vector2(RIGHT_PANEL_SLIDE_X_OFFSET, RIGHT_PANEL_SLIDE_Y_OFFSET);
+                targetAlpha = 0f;
+            }
+
+            // Animate position and alpha
+            while (elapsed < ANIMATION_DURATION)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / ANIMATION_DURATION;
+
+                // Use ease-in-out curve for smooth animation
+                float smoothT = t * t * (3f - 2f * t);
+
+                // Interpolate position
+                mainMenuRightPanelRect.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, smoothT);
+
+                // Interpolate alpha
+                mainMenuRightPanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
+
+                yield return null;
+            }
+
+            // Ensure final values are set
+            mainMenuRightPanelRect.anchoredPosition = targetPosition;
+            mainMenuRightPanelCanvasGroup.alpha = targetAlpha;
+
+            // Clear the coroutine handle
+            mainMenuRightPanelCoroutine = null;
+        }
+
+        /// <summary>
+        /// Animates the social links sliding to the lower-right and fading.
         /// </summary>
         private IEnumerator AnimateSocials(bool show)
         {
@@ -258,54 +390,56 @@ namespace DedicatedServerMod.Client.Managers
 
             if (show)
             {
-                // Animating back to visible
                 targetPosition = socialsOriginalPosition;
                 targetAlpha = 1f;
-
-                // Ensure it's active before animating in
                 mainMenuSocials.SetActive(true);
             }
             else
             {
-                // Animating away (slide RIGHT and down)
-                // Since Socials is a child of Home, we need to counteract the Home's leftward movement
-                // Home moves left by SLIDE_X_OFFSET (-300), so we need to move right by MORE than that
-                // to get an overall rightward movement
-                float rightwardOffset = SOCIALS_SLIDE_X_OFFSET - SLIDE_X_OFFSET; // 300 - (-300) = 600
-                targetPosition = socialsOriginalPosition + new Vector2(rightwardOffset, SOCIALS_SLIDE_Y_OFFSET);
+                targetPosition = socialsOriginalPosition + new Vector2(SOCIALS_SLIDE_X_OFFSET, SOCIALS_SLIDE_Y_OFFSET);
                 targetAlpha = 0f;
             }
 
-            // Animate position and alpha
             while (elapsed < ANIMATION_DURATION)
             {
                 elapsed += Time.deltaTime;
                 float t = elapsed / ANIMATION_DURATION;
-
-                // Use ease-in-out curve for smooth animation
                 float smoothT = t * t * (3f - 2f * t);
 
-                // Interpolate position
                 mainMenuSocialsRect.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, smoothT);
-
-                // Interpolate alpha
                 mainMenuSocialsCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
 
                 yield return null;
             }
 
-            // Ensure final values are set
             mainMenuSocialsRect.anchoredPosition = targetPosition;
             mainMenuSocialsCanvasGroup.alpha = targetAlpha;
 
-            // Disable after animating out
             if (!show)
             {
                 mainMenuSocials.SetActive(false);
             }
 
-            // Clear the coroutine handle
             mainMenuSocialsCoroutine = null;
+        }
+
+        private static string GetTransformPath(Transform target)
+        {
+            if (target == null)
+            {
+                return string.Empty;
+            }
+
+            string path = target.name;
+            Transform current = target.parent;
+
+            while (current != null)
+            {
+                path = $"{current.name}/{path}";
+                current = current.parent;
+            }
+
+            return path;
         }
 
         #endregion
