@@ -44,6 +44,8 @@
     href: modding/overview.md
   - name: Addon Configuration
     href: modding/configuration.md
+  - name: Community Addons
+    href: modding/community-addons.md
   - name: Server API
     href: modding/server.md
   - name: Client API

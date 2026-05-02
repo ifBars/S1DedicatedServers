@@ -130,6 +130,10 @@ Addon configuration now uses the same TOML platform as the core server.
 
 See [Addon Configuration](configuration.md) for the full reusable TOML workflow.
 
+## Community Addons
+
+Third-party community addons can build directly on the S1DS API, and some existing Schedule I mods may also work in a dedicated server environment when their client/server assumptions line up. For discovery links and compatibility guidance, see [Community Addons](community-addons.md).
+
 ## Companion Mods And Join Verification
 
 DedicatedServerMod can automatically verify paired server/client mods during join.
