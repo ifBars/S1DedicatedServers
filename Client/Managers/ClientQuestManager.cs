@@ -95,8 +95,6 @@ namespace DedicatedServerMod.Client.Managers
 
             if (questManagerInstance != null)
             {
-                DebugLog.Info("QuestManager found - ensuring proper quest initialization");
-                
                 // Wait for local player to be available
                 yield return MelonCoroutines.Start(WaitForLocalPlayer());
                 
@@ -137,10 +135,6 @@ namespace DedicatedServerMod.Client.Managers
             {
                 DebugLog.Warning($"Local player not found after {timeout}s timeout");
             }
-            else
-            {
-                DebugLog.Info("Local player found for quest initialization");
-            }
         }
 
         /// <summary>
@@ -148,8 +142,6 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         private IEnumerator SynchronizeQuestSystem(Player player)
         {
-            DebugLog.Info("Synchronizing quest system for dedicated server client");
-            
             // Wait a moment for networking to settle
             yield return new WaitForSeconds(1f);
             
@@ -157,39 +149,13 @@ namespace DedicatedServerMod.Client.Managers
             // but we can ensure proper synchronization by triggering a save
             if (questManagerInstance != null)
             {
-                DebugLog.Info("QuestManager available - triggering quest synchronization");
-                
                 // Request player save to ensure quest data is persisted
                 player.RequestSavePlayer();
-                
-                // Check if player has existing quest data
-                yield return MelonCoroutines.Start(ValidateQuestData(player));
             }
             else
             {
                 DebugLog.Warning("QuestManager not available for synchronization");
             }
-        }
-
-        /// <summary>
-        /// Validate that quest data is properly synchronized
-        /// </summary>
-        private IEnumerator ValidateQuestData(Player player)
-        {
-            // Wait for quest data to be synchronized
-            yield return new WaitForSeconds(0.5f);
-            
-            // Check if player has quest progression data
-            // This is handled automatically by the QuestManager's networking
-            // but we log for debugging purposes
-            
-            DebugLog.Info("Quest data validation completed");
-            
-            // Force another save to ensure everything is persisted
-            yield return new WaitForSeconds(1f);
-            player.RequestSavePlayer();
-            
-            DebugLog.Info("Quest synchronization save requested");
         }
 
         /// <summary>

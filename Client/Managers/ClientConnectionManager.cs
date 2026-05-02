@@ -430,7 +430,7 @@ namespace DedicatedServerMod.Client.Managers
             }
             else
             {
-                DebugLog.Info("Authentication succeeded; waiting for mod verification and world load completion");
+                DebugLog.AuthenticationDebug("Authentication succeeded; waiting for mod verification and world load completion");
             }
         }
 
@@ -446,10 +446,6 @@ namespace DedicatedServerMod.Client.Managers
             if (_worldLoadCompleted && _authSucceeded)
             {
                 CompleteJoinAfterVerification();
-            }
-            else
-            {
-                DebugLog.Info("Client mod verification succeeded before world load finalized; waiting to complete join");
             }
         }
 
@@ -481,7 +477,7 @@ namespace DedicatedServerMod.Client.Managers
                 Singleton<LoadingScreen>.Instance.Close();
             }
 
-            DebugLog.Info("Dedicated server join fully completed after authentication and client mod verification");
+            DebugLog.Verbose("Dedicated server join fully completed after authentication and client mod verification");
 
             try
             {

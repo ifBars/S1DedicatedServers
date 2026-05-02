@@ -31,9 +31,9 @@ namespace DedicatedServerMod.Utils
         private const string LoggerName = "DedicatedServerMod";
 
         /// <summary>
-        /// Cached reference to ServerConfig for conditional logging.
+        /// Runtime source for conditional logging switches.
         /// </summary>
-        private static Shared.Configuration.ServerConfig _config;
+        private static IDebugLogSettings _settings;
 
         /// <summary>
         /// Indicates whether the logger has been initialized.
@@ -61,6 +61,7 @@ namespace DedicatedServerMod.Utils
                 throw new ArgumentNullException(nameof(logger));
 
             _logger = logger;
+            _settings = CreateDefaultSettings();
             _initialized = true;
         }
 
@@ -73,6 +74,7 @@ namespace DedicatedServerMod.Utils
             if (!_initialized)
             {
                 _logger = new MelonLogger.Instance(LoggerName);
+                _settings = CreateDefaultSettings();
                 _initialized = true;
             }
         }
@@ -90,25 +92,17 @@ namespace DedicatedServerMod.Utils
         }
 
         /// <summary>
-        /// Gets the current configuration for conditional logging.
+        /// Gets the active source for conditional logging switches.
         /// </summary>
-        private static Shared.Configuration.ServerConfig Config
+        private static IDebugLogSettings Settings => _settings ??= CreateDefaultSettings();
+
+        private static IDebugLogSettings CreateDefaultSettings()
         {
-            get
-            {
-                if (_config == null)
-                {
-                    try
-                    {
-                        _config = Shared.Configuration.ServerConfig.Instance;
-                    }
-                    catch
-                    {
-                        // Config not available yet, use defaults
-                    }
-                }
-                return _config;
-            }
+#if CLIENT
+            return new ClientMelonPreferencesDebugLogSettings();
+#else
+            return new ServerConfigDebugLogSettings();
+#endif
         }
 
         #endregion
@@ -122,8 +116,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.DebugMode ?? false;
+                return Settings.DebugMode;
             }
         }
 
@@ -134,8 +127,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.VerboseLogging ?? false;
+                return Settings.VerboseLogging;
             }
         }
 
@@ -146,8 +138,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.LogAdminCommands ?? true;
+                return Settings.LogAdminCommands;
             }
         }
 
@@ -158,8 +149,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.LogNetworkingDebug ?? false;
+                return Settings.LogNetworkingDebug;
             }
         }
 
@@ -170,8 +160,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return (config?.LogMessageRoutingDebug ?? false) || (config?.LogNetworkingDebug ?? false);
+                return Settings.LogMessageRoutingDebug || Settings.LogNetworkingDebug;
             }
         }
 
@@ -182,8 +171,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return (config?.LogMessagingBackendDebug ?? false) || (config?.LogNetworkingDebug ?? false);
+                return Settings.LogMessagingBackendDebug || Settings.LogNetworkingDebug;
             }
         }
 
@@ -194,8 +182,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.LogStartupDebug ?? false;
+                return Settings.LogStartupDebug;
             }
         }
 
@@ -206,8 +193,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.LogServerNetworkDebug ?? false;
+                return Settings.LogServerNetworkDebug;
             }
         }
 
@@ -218,8 +204,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.LogPlayerLifecycleDebug ?? false;
+                return Settings.LogPlayerLifecycleDebug;
             }
         }
 
@@ -230,8 +215,7 @@ namespace DedicatedServerMod.Utils
         {
             get
             {
-                var config = Config;
-                return config?.LogAuthenticationDebug ?? false;
+                return Settings.LogAuthenticationDebug;
             }
         }
 
@@ -701,7 +685,7 @@ namespace DedicatedServerMod.Utils
         public static void Reset()
         {
             _logger = null;
-            _config = null;
+            _settings = null;
             _initialized = false;
         }
 

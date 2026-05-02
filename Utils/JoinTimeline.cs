@@ -26,7 +26,7 @@ namespace DedicatedServerMod.Utils
             string msg = detail != null
                 ? $"[JoinTimeline] +{elapsed:F2}s {step} ({detail})"
                 : $"[JoinTimeline] +{elapsed:F2}s {step}";
-            DebugLog.Info(msg);
+            DebugLog.Verbose(msg);
         }
 
         public void MarkError(string step, string error)
@@ -39,7 +39,7 @@ namespace DedicatedServerMod.Utils
         public void PrintSummary()
         {
             float total = Time.realtimeSinceStartup - startTime;
-            DebugLog.Info($"[JoinTimeline] === Join complete in {total:F2}s ({entries.Count} steps) ===");
+            DebugLog.Verbose($"[JoinTimeline] === Join complete in {total:F2}s ({entries.Count} steps) ===");
         }
 
         /// <summary>

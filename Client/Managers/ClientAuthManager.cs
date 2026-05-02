@@ -103,7 +103,7 @@ namespace DedicatedServerMod.Client.Managers
 
             _isHandshakeStarted = true;
             _nextHandshakeAttemptUtc = DateTime.MinValue;
-            DebugLog.Info("Authentication hello sent to server");
+            DebugLog.AuthenticationDebug("Authentication hello sent to server");
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
-            DebugLog.Info("Authentication ticket submitted to server");
+            DebugLog.AuthenticationDebug("Authentication ticket submitted to server");
         }
 
         private void HandleAuthResult(string data)
@@ -249,7 +249,7 @@ namespace DedicatedServerMod.Client.Managers
 
             if (result.Success)
             {
-                DebugLog.Info($"Authentication succeeded: {result.Message}");
+                DebugLog.AuthenticationDebug($"Authentication succeeded: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnAuthenticationSucceeded(result.Message);
             }
             else

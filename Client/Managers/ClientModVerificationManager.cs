@@ -134,7 +134,7 @@ namespace DedicatedServerMod.Client.Managers
 
             if (result.Success)
             {
-                DebugLog.Info($"Client mod verification succeeded: {result.Message}");
+                DebugLog.Verbose($"Client mod verification succeeded: {result.Message}");
                 ClientBootstrap.Instance?.ConnectionManager?.OnModVerificationSucceeded(result.Message);
             }
             else
