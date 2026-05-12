@@ -27,6 +27,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Pin .NET SDK for CI
+        shell: bash
+        run: |
+          cat > global.json << 'EOF'
+          {
+            "sdk": {
+              "version": "8.0.100",
+              "rollForward": "latestFeature"
+            }
+          }
+          EOF
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:

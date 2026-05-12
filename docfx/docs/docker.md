@@ -13,18 +13,18 @@ Set `S1DS_RUNTIME` to choose the runtime. If you do not set it, the container de
 
 ## Published Image
 
-Stable releases publish `latest` and the exact version tag to `ghcr.io/ifbars/s1dedicatedservers`. Prereleases publish the exact version tag only.
+Stable releases publish `latest` and the exact version tag to `ghcr.io/ifbars/s1dedicatedservers`. Prereleases publish the exact version tag only, without the leading `v` from the GitHub release tag.
 
-Pull the stable image with:
+Pull the current beta image with:
+
+```bash
+docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
+```
+
+Use `latest` only after a stable release has been published:
 
 ```bash
 docker pull ghcr.io/ifbars/s1dedicatedservers:latest
-```
-
-Or pin a specific release:
-
-```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:<release-tag>
 ```
 
 Run the published image directly with Mono:
@@ -38,7 +38,7 @@ docker run --name s1ds \
   -e STEAM_PASS=your_steam_password \
   -e S1DS_RUNTIME=mono \
   -v s1ds-game:/home/steam/game \
-  ghcr.io/ifbars/s1dedicatedservers:latest
+  ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
 ```
 
 Run the published image directly with IL2CPP:
@@ -52,7 +52,7 @@ docker run --name s1ds \
   -e STEAM_PASS=your_steam_password \
   -e S1DS_RUNTIME=il2cpp \
   -v s1ds-game:/home/steam/game \
-  ghcr.io/ifbars/s1dedicatedservers:latest
+  ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
 ```
 
 The included Compose example also pulls from GHCR by default now.
@@ -128,7 +128,7 @@ Optional environment variables:
 The release package includes `docker-compose.example.yml` for Compose-based deployments. Copy it to `docker-compose.yml`, then add a `.env` file in the same folder:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:latest
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono
@@ -140,7 +140,7 @@ STEAM_GUARD=
 FORCE_STEAMCMD_UPDATE=false
 ```
 
-Set `S1DS_IMAGE` to an exact version tag when you want to pin a release or use a prerelease image.
+Set `S1DS_IMAGE` to `ghcr.io/ifbars/s1dedicatedservers:latest` only after a stable release is available. For beta releases, use the exact version tag shown on the GitHub release without the leading `v`.
 
 Then pull and start the service:
 

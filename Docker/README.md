@@ -22,16 +22,16 @@ Both paths still require your own Steam credentials for the first game install.
 
 ## Pull The Published Image
 
-Stable releases publish `latest` and the exact version tag. Prereleases publish the exact version tag only.
+Stable releases publish `latest` and the exact version tag. Prereleases publish the exact version tag only, without the leading `v` from the GitHub release tag.
+
+```bash
+docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
+```
+
+Use `latest` only after a stable release has been published:
 
 ```bash
 docker pull ghcr.io/ifbars/s1dedicatedservers:latest
-```
-
-You can also pin a specific release:
-
-```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:<release-tag>
 ```
 
 Run the published image with Mono:
@@ -45,7 +45,7 @@ docker run --name s1ds ^
   -e STEAM_PASS=your_steam_password ^
   -e S1DS_RUNTIME=mono ^
   -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:latest
+  ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
 ```
 
 Run the published image with IL2CPP:
@@ -59,7 +59,7 @@ docker run --name s1ds ^
   -e STEAM_PASS=your_steam_password ^
   -e S1DS_RUNTIME=il2cpp ^
   -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:latest
+  ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
 ```
 
 On Linux/macOS shells, replace `^` line continuations with `\`.
@@ -134,7 +134,7 @@ docker run --name s1ds ^
 An example Compose file is included as `docker-compose.example.yml`. Copy it to `docker-compose.yml`, then create a `.env` file beside it with your Steam credentials and runtime selection:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:latest
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono
@@ -146,7 +146,7 @@ STEAM_GUARD=
 FORCE_STEAMCMD_UPDATE=false
 ```
 
-Set `S1DS_IMAGE` to an exact version tag when you want to pin a release or use a prerelease image.
+Set `S1DS_IMAGE` to `ghcr.io/ifbars/s1dedicatedservers:latest` only after a stable release is available. For beta releases, use the exact version tag shown on the GitHub release without the leading `v`.
 
 Start it with:
 
