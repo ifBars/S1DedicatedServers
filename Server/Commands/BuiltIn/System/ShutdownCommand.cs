@@ -8,8 +8,13 @@ using MelonLoader;
 namespace DedicatedServerMod.Server.Commands.BuiltIn.System
 {
     /// <summary>
-    /// Command to shutdown the server gracefully
+    /// Gracefully stops the dedicated server after notifying the command executor.
     /// </summary>
+    /// <remarks>
+    /// This command is guarded by the dedicated <c>server.stop</c> permission node rather than a
+    /// generated command-node permission. It queues shutdown through <see cref="ServerBootstrap"/>
+    /// so teardown stays on the server runtime path.
+    /// </remarks>
     public class ShutdownCommand(PlayerManager playerMgr) : BaseServerCommand(playerMgr)
     {
         public override string CommandWord => "shutdown";
@@ -42,8 +47,10 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.System
         }
 
         /// <summary>
-        /// Delayed shutdown to allow messages to be sent
+        /// Delays shutdown briefly so command replies and disconnect notices have time to flush.
         /// </summary>
+        /// <param name="reason">The reason shown in logs and shutdown handling.</param>
+        /// <returns>An enumerator executed by MelonLoader's coroutine scheduler.</returns>
         private global::System.Collections.IEnumerator DelayedShutdown(string reason)
         {
             // Wait a moment for messages to be delivered

@@ -24,6 +24,9 @@ You can change that layout by editing `permissions.toml`.
 - `save`: trigger a manual save
 - `reloadconfig`: reload `server_config.toml`
 - `reloadpermissions`: reload `permissions.toml`
+- `shutdown [reason]`: gracefully stop the server
+- `settime <HHMM>`: set the authoritative server time of day
+- `settimescale <scale>`: set the authoritative Unity time scale
 - `listplayers`: list connected players
 - `kick <player_name_or_id> [reason]`: disconnect a player
 - `ban <player_name_or_id> [reason]`: ban a player
@@ -31,5 +34,7 @@ You can change that layout by editing `permissions.toml`.
 - `group <list|assign|unassign> ...`: manage permission groups
 - `perm <info|grant|deny|revoke|tempgrant> ...`: inspect and mutate direct permission nodes
 - `op`, `deop`, `admin`, `deadmin`: compatibility wrappers for built-in staff groups
+
+`settime` expects a four-digit game clock value such as `0800`, `1330`, or `1800`. `settimescale` changes Unity's global time scale and should be treated as an operator-only diagnostic or recovery tool, not normal gameplay tuning.
 
 See [Permissions](configuration/permissions.md) for file structure, group defaults, and rule precedence.

@@ -7,8 +7,12 @@ using DedicatedServerMod.Utils;
 namespace DedicatedServerMod.Server.Commands.BuiltIn.System
 {
     /// <summary>
-    /// Command to manually trigger a save
+    /// Triggers an immediate save through the server persistence manager.
     /// </summary>
+    /// <remarks>
+    /// This command is guarded by the dedicated <c>server.save</c> permission node. The command
+    /// fails cleanly when server bootstrap or persistence initialization has not completed.
+    /// </remarks>
     public class SaveCommand(PlayerManager playerMgr) : BaseServerCommand(playerMgr)
     {
         public override string CommandWord => "save";

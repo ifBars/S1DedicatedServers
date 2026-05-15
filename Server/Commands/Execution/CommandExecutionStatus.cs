@@ -5,11 +5,34 @@ namespace DedicatedServerMod.Server.Commands.Execution
     /// </summary>
     public enum CommandExecutionStatus
     {
+        /// <summary>
+        /// No command was supplied.
+        /// </summary>
         Empty,
+
+        /// <summary>
+        /// The command completed successfully.
+        /// </summary>
         Success,
+
+        /// <summary>
+        /// The raw command line could not be parsed.
+        /// </summary>
         ParseError,
+
+        /// <summary>
+        /// The command word did not match a registered command.
+        /// </summary>
         UnknownCommand,
+
+        /// <summary>
+        /// The executor did not have the required permission node.
+        /// </summary>
         Unauthorized,
+
+        /// <summary>
+        /// The command handler threw or reported an execution failure.
+        /// </summary>
         ExecutionFailed
     }
 }

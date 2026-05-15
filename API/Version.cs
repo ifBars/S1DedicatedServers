@@ -1,19 +1,19 @@
 namespace DedicatedServerMod.API
 {
     /// <summary>
-    /// Provides version information for DedicatedServerMod.
-    /// This class serves as the authoritative source for all version-related data.
+    /// Provides the authoritative version information for DedicatedServerMod.
     /// </summary>
     /// <remarks>
-    /// Version Format: {MOD_VERSION}
-    /// Example: "0.0.0-beta"
+    /// Release tooling, assembly metadata, Docker tags, and user-facing documentation should treat
+    /// <see cref="ModVersion"/> as the source of truth. The presence of a prerelease suffix such as
+    /// <c>-beta</c> controls prerelease behavior in release automation.
     /// </remarks>
     public static class Version
     {
         #region Version Numbers
 
         /// <summary>
-        /// The mod version following semantic versioning (MAJOR.MINOR.PATCH with prerelease).
+        /// The mod version following semantic versioning, including a prerelease suffix when applicable.
         /// </summary>
         public const string ModVersion = "0.9.3-beta";
 
@@ -33,9 +33,12 @@ namespace DedicatedServerMod.API
         public const int PatchVersion = 3;
 
         /// <summary>
-        /// The public API version.
-        /// This aliases the mod version so callers do not need to track a separate API version.
+        /// The public API version advertised to addon authors.
         /// </summary>
+        /// <remarks>
+        /// This aliases <see cref="ModVersion"/> so callers do not need to track a separate API
+        /// version while the project is still pre-1.0.
+        /// </remarks>
         public const string APIVersion = ModVersion;
 
         /// <summary>
@@ -57,7 +60,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Gets the full version string.
         /// </summary>
-        /// <returns>A string in format: "MOD_VERSION"</returns>
+        /// <returns>The value of <see cref="ModVersion"/>.</returns>
         public static string FullVersion => ModVersion;
 
         /// <summary>
@@ -115,8 +118,8 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// Parses a version string into its component parts.
         /// </summary>
-        /// <param name="versionString">The version string to parse</param>
-        /// <returns>A tuple containing (major, minor, patch, prerelease)</returns>
+        /// <param name="versionString">The version string to parse. Prefixes such as <c>v</c>, <c>version </c>, and <c>api </c> are tolerated.</param>
+        /// <returns>A tuple containing the major, minor, patch, and prerelease components.</returns>
         public static (int major, int minor, int patch, string prerelease) ParseVersion(string versionString)
         {
             if (string.IsNullOrEmpty(versionString))
@@ -243,9 +246,12 @@ namespace DedicatedServerMod.API
         #region Metadata
 
         /// <summary>
-        /// The release date of this version (format: YYYY-MM-DD).
-        /// Update this when releasing new versions.
+        /// The release date of this version in <c>YYYY-MM-DD</c> format.
         /// </summary>
+        /// <remarks>
+        /// This is human-facing release metadata. The release workflow derives release behavior from
+        /// <see cref="ModVersion"/>, not from this date.
+        /// </remarks>
         public const string ReleaseDate = "2026-05-15";
 
         /// <summary>

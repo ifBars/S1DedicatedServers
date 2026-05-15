@@ -14,8 +14,13 @@ using TimeManagerType = ScheduleOne.GameTime.TimeManager;
 namespace DedicatedServerMod.Server.Commands.BuiltIn.Gameplay
 {
     /// <summary>
-    /// Command to set the authoritative server time of day.
+    /// Sets the authoritative game time through the native synchronized time manager.
     /// </summary>
+    /// <remarks>
+    /// The argument must be a valid four-digit 24-hour game time such as <c>0800</c>,
+    /// <c>1330</c>, or <c>1800</c>. The command is rejected while sleep is in progress because
+    /// sleep also mutates the authoritative time flow.
+    /// </remarks>
     public class SetTimeCommand(PlayerManager playerMgr) : BaseServerCommand(playerMgr)
     {
         public override string CommandWord => "settime";

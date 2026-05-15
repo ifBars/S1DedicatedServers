@@ -8,8 +8,12 @@ using UnityEngine;
 namespace DedicatedServerMod.Server.Commands.BuiltIn.Gameplay
 {
     /// <summary>
-    /// Command to set the authoritative server Unity time scale.
+    /// Sets Unity's global time scale for the dedicated server process.
     /// </summary>
+    /// <remarks>
+    /// This is an operator diagnostic and recovery command, not the normal way to tune game time.
+    /// Persistent game-time tuning should use the gameplay configuration instead.
+    /// </remarks>
     public class SetTimeScaleCommand(PlayerManager playerMgr) : BaseServerCommand(playerMgr)
     {
         public override string CommandWord => "settimescale";

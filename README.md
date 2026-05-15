@@ -43,6 +43,7 @@ Current beta builds continue the initial IL2CPP support for dedicated server and
 - [Client modding](https://docs.s1servers.com/docs/modding/client.html)
 - [Companion mod metadata](https://docs.s1servers.com/docs/modding/companion-mods.html)
 - [API reference](https://docs.s1servers.com/reference/index.html)
+- [Documentation maintenance](https://docs.s1servers.com/docs/documentation-maintenance.html)
 
 ## Development
 

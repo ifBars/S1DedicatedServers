@@ -82,7 +82,7 @@ Use this file for:
 ### `blockKnownRiskyClientMods`
 
 - Default: `true`
-- Blocks entries from DedicatedServerMod’s built-in risky client mod catalog
+- Blocks entries from DedicatedServerMod's built-in risky client mod catalog
 
 ### `allowUnpairedClientMods`
 
@@ -106,7 +106,7 @@ When enabled:
 
 Pinned hashes can come from:
 
-- a mod author’s `DedicatedServerMod.API.Metadata.S1DSClientCompanionAttribute.PinnedSha256`
+- a mod author's `DedicatedServerMod.API.Metadata.S1DSClientCompanionAttribute.PinnedSha256`
 - `strictPinnedCompanionHashes` in `client_mod_policy.toml`
 
 If a required companion mod has no strict-mode hash source, server startup fails fast instead of silently weakening policy.
@@ -164,3 +164,19 @@ Only use strict mode when you are willing to maintain pinned hashes.
 - Failed verification disconnects the player with a human-readable reason.
 - Clients never download mods from the server through this system.
 - This is a join-policy gate, not a complete anti-cheat. Server-authoritative validation of gameplay actions is still required separately.
+
+## Policy Matching Notes
+
+- `deniedClientModIds` is the most stable deny path when the client mod declares `S1DSClientModIdentityAttribute`.
+- `deniedClientModNames` is a fallback for mods that do not declare an identity. It can drift when authors rename assemblies or display names.
+- `deniedClientModHashes` blocks one exact binary. It is precise but must be updated when the mod updates.
+- `approvedUnpairedClientMods.<id>` entries are only needed when strict mode would otherwise block client-only mods.
+- `strictPinnedCompanionHashes.<id>` entries supplement or override companion attribute hash pins for strict-mode servers.
+
+Policy values are normalized for matching, and SHA-256 hashes are lowercased before comparison.
+
+## Related Documentation
+
+- [Companion Mods and Verification Metadata](../modding/companion-mods.md)
+- [Authentication](authentication.md)
+- [Permissions](permissions.md)

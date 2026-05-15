@@ -9,9 +9,13 @@ using DedicatedServerMod.Shared.Configuration;
 namespace DedicatedServerMod.Server.Game
 {
     /// <summary>
-    /// Manages game-specific systems, patches, and behaviors for the dedicated server.
-    /// Handles time management, sleep systems, and other game mechanics modifications.
+    /// Coordinates dedicated-server game-system adapters such as time diagnostics, sleep behavior, and Harmony patches.
     /// </summary>
+    /// <remarks>
+    /// This manager is intentionally an orchestration layer. Feature-specific logic belongs in the
+    /// subsystem managers or patch classes so <c>ServerBootstrap</c> can start and stop game systems
+    /// without owning gameplay behavior directly.
+    /// </remarks>
     public sealed class GameSystemManager
     {
         private readonly MelonLogger.Instance logger;
@@ -29,17 +33,17 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Gets the time system manager
+        /// Gets the time-system diagnostics and utility manager.
         /// </summary>
         public TimeSystemManager TimeSystem => timeManager;
 
         /// <summary>
-        /// Gets the sleep system manager
+        /// Gets the sleep-system behavior manager.
         /// </summary>
         public SleepSystemManager SleepSystem => sleepManager;
 
         /// <summary>
-        /// Gets the game patch manager
+        /// Gets the Harmony patch manager for dedicated-server game behavior.
         /// </summary>
         public GamePatchManager PatchManager => patchManager;
 
@@ -65,8 +69,9 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Get game system statistics
+        /// Gets a snapshot of the current game-system state.
         /// </summary>
+        /// <returns>Current subsystem and patch statistics for diagnostics and status output.</returns>
         public GameSystemStats GetStats()
         {
             return new GameSystemStats
@@ -98,15 +103,35 @@ namespace DedicatedServerMod.Server.Game
     }
 
     /// <summary>
-    /// Game system statistics
+    /// Reports the active state of dedicated-server game systems.
     /// </summary>
+    /// <remarks>
+    /// This type is used for diagnostics and status output. It is a snapshot, not a live view into
+    /// the underlying managers.
+    /// </remarks>
     public class GameSystemStats
     {
+        /// <summary>
+        /// Gets or sets whether the ghost host is ignored during sleep readiness checks.
+        /// </summary>
         public bool IgnoreGhostHostForSleep { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of applied patch labels tracked by the patch manager.
+        /// </summary>
         public int PatchesApplied { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the time-system manager is active.
+        /// </summary>
         public bool TimeSystemActive { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the sleep-system manager is active.
+        /// </summary>
         public bool SleepSystemActive { get; set; }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             return $"Sleep: {(IgnoreGhostHostForSleep ? "Ignore Ghost Host" : "Normal")} | " +

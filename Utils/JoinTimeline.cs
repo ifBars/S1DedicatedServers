@@ -6,6 +6,11 @@ namespace DedicatedServerMod.Utils
     /// Records timestamped milestones during the client join sequence.
     /// Produces a compact one-line-per-step log and a final summary.
     /// </summary>
+    /// <remarks>
+    /// This helper is intended for diagnostics around authentication, mod verification, loading-screen
+    /// gating, and player-ready transitions. It uses Unity realtime so elapsed values continue to make
+    /// sense even when gameplay time scale changes during startup.
+    /// </remarks>
     public class JoinTimeline
     {
         private readonly float startTime = Time.realtimeSinceStartup;
@@ -18,6 +23,11 @@ namespace DedicatedServerMod.Utils
             public float Elapsed;
         }
 
+        /// <summary>
+        /// Records a successful join milestone.
+        /// </summary>
+        /// <param name="step">Short milestone name.</param>
+        /// <param name="detail">Optional detail appended to the verbose log entry.</param>
         public void Mark(string step, string detail = null)
         {
             float elapsed = Time.realtimeSinceStartup - startTime;
@@ -29,6 +39,11 @@ namespace DedicatedServerMod.Utils
             DebugLog.Verbose(msg);
         }
 
+        /// <summary>
+        /// Records a failed join milestone and writes an error log entry.
+        /// </summary>
+        /// <param name="step">Short milestone name.</param>
+        /// <param name="error">Failure details to include in diagnostics.</param>
         public void MarkError(string step, string error)
         {
             float elapsed = Time.realtimeSinceStartup - startTime;
@@ -36,6 +51,9 @@ namespace DedicatedServerMod.Utils
             DebugLog.Error($"[JoinTimeline] +{elapsed:F2}s {step} FAILED: {error}");
         }
 
+        /// <summary>
+        /// Writes a compact summary of the recorded join timeline to verbose logs.
+        /// </summary>
         public void PrintSummary()
         {
             float total = Time.realtimeSinceStartup - startTime;
@@ -45,6 +63,7 @@ namespace DedicatedServerMod.Utils
         /// <summary>
         /// Returns the terminal state description for diagnostics on failure.
         /// </summary>
+        /// <returns>A human-readable description of the last recorded milestone and elapsed time.</returns>
         public string GetTerminalState()
         {
             if (entries.Count == 0)

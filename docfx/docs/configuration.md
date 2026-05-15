@@ -16,7 +16,7 @@ The server creates the config files automatically on first run. If you still hav
 
 The shortest path to a working server is:
 
-1. Set `[storage].saveGamePath` to a valid Schedule I save folder.
+1. Decide whether to leave `[storage].saveGamePath` empty for the server-managed default save or point it at a specific Schedule I save folder.
 2. Choose an authentication provider under `[authentication]`.
 3. Pick a messaging backend under `[messaging]`.
 4. Decide how you want to operate the server: local desktop, hosted panel, TCP console, or localhost web panel.
@@ -40,7 +40,7 @@ steamGameServerMode = 'Authentication'
 messagingBackend = 'FishNetRpc'
 ```
 
-The save folder must already contain files such as `Game.json` and `Metadata.json`.
+If the resolved save folder is missing core files such as `Game.json`, `Metadata.json`, or `Players`, the server attempts to prepare it from the game's `DefaultSave` template and embedded loopback host data before loading.
 
 ## Recommended Starting Points
 

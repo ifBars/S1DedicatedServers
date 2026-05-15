@@ -8,6 +8,10 @@ namespace DedicatedServerMod.Server.Commands.Execution
         /// <summary>
         /// Initializes a new command execution result instance.
         /// </summary>
+        /// <param name="status">The high-level command execution outcome.</param>
+        /// <param name="commandWord">The normalized command word, when parsing reached a command.</param>
+        /// <param name="message">The user-facing outcome message.</param>
+        /// <param name="exception">The exception that caused execution failure, when one was captured.</param>
         public CommandExecutionResult(CommandExecutionStatus status, string commandWord, string message, Exception exception = null)
         {
             Status = status;

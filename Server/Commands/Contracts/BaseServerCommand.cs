@@ -7,18 +7,24 @@ using DedicatedServerMod.Server.Player;
 namespace DedicatedServerMod.Server.Commands.Contracts
 {
     /// <summary>
-    /// Base class for server commands with common functionality.
+    /// Provides shared helpers for built-in and addon-facing server command implementations.
     /// </summary>
+    /// <remarks>
+    /// The base class centralizes player lookup, argument validation, and executor identity helpers.
+    /// Derived commands are still responsible for validating console-versus-player semantics and any
+    /// target-specific dominance or permission rules.
+    /// </remarks>
     public abstract class BaseServerCommand : IServerCommand
     {
         /// <summary>
-        /// The player manager shared by commands.
+        /// Gets the player manager shared by commands.
         /// </summary>
         protected readonly PlayerManager PlayerManager;
 
         /// <summary>
         /// Initializes a new server command base instance.
         /// </summary>
+        /// <param name="playerMgr">The player manager used for lookup and moderation helpers.</param>
         protected BaseServerCommand(PlayerManager playerMgr)
         {
             PlayerManager = playerMgr;
@@ -54,8 +60,10 @@ namespace DedicatedServerMod.Server.Commands.Contracts
         public abstract void Execute(CommandContext context);
 
         /// <summary>
-        /// Find a player by name or identifier.
+        /// Finds a connected player by Steam ID, display name, or FishNet client ID.
         /// </summary>
+        /// <param name="identifier">The player identifier supplied by the command caller.</param>
+        /// <returns>The matching connected player, or <see langword="null"/> when no match exists.</returns>
         protected ConnectedPlayerInfo FindPlayerByNameOrId(string identifier)
         {
             ConnectedPlayerInfo player = PlayerManager.GetPlayerBySteamId(identifier);
@@ -79,8 +87,12 @@ namespace DedicatedServerMod.Server.Commands.Contracts
         }
 
         /// <summary>
-        /// Validate that the required number of arguments are provided.
+        /// Validates that the required number of arguments are provided.
         /// </summary>
+        /// <param name="context">The active command context.</param>
+        /// <param name="requiredCount">The minimum number of required arguments.</param>
+        /// <param name="usageMessage">Optional usage message to show when validation fails.</param>
+        /// <returns><see langword="true"/> when enough arguments were supplied; otherwise <see langword="false"/>.</returns>
         protected bool ValidateArguments(CommandContext context, int requiredCount, string usageMessage = null)
         {
             if (context.Arguments.Count < requiredCount)
@@ -93,8 +105,10 @@ namespace DedicatedServerMod.Server.Commands.Contracts
         }
 
         /// <summary>
-        /// Get the executing player when the command was run by an in-game player.
+        /// Gets the executing player when the command was run by an in-game player.
         /// </summary>
+        /// <param name="context">The active command context.</param>
+        /// <returns>The player executor, or <see langword="null"/> for console execution.</returns>
         protected ConnectedPlayerInfo GetPlayerExecutor(CommandContext context)
         {
             return context != null && !context.IsConsoleExecution
@@ -103,8 +117,10 @@ namespace DedicatedServerMod.Server.Commands.Contracts
         }
 
         /// <summary>
-        /// Get the trusted unique identifier for the executor, or <see langword="null"/> for console execution.
+        /// Gets the trusted unique identifier for the executor, or <see langword="null"/> for console execution.
         /// </summary>
+        /// <param name="context">The active command context.</param>
+        /// <returns>The executor's trusted unique identifier, or <see langword="null"/> for console execution.</returns>
         protected string GetExecutorTrustedUniqueId(CommandContext context)
         {
             return GetPlayerExecutor(context)?.TrustedUniqueId;

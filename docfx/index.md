@@ -33,8 +33,12 @@ If you expect multiple players, CPU spikes during save/load, extra mods, or virt
 
 For containerized hosting, use the Docker release package and follow [Docker Deployment](docs/docker.md).
 
-`Docker.zip` intentionally contains only the Docker template files. Copy `Mods/DedicatedServerMod_Mono_Server.dll` from `Mono-Server.zip` into that Docker folder before running `docker build`.
-Docker deployment currently targets the Mono server artifact; use `Il2cpp_Server.zip` for native IL2CPP installs outside Docker.
+`Docker.zip` includes the Docker template files plus both server DLLs:
+
+- `DedicatedServerMod_Mono_Server.dll`
+- `DedicatedServerMod_Il2cpp_Server.dll`
+
+Set `S1DS_RUNTIME=mono` or `S1DS_RUNTIME=il2cpp` when the container starts. If you do not set it, the container defaults to Mono.
 
 ## Create a Server Install
 
@@ -61,4 +65,5 @@ For save path details, see [Save Path](docs/configuration/save-path.md).
 - [Host Console](docs/host-console.md) for panel-hosted stdin/stdout administration
 - [Web Panel](docs/configuration/web-panel.md) for local browser-based administration
 - [Troubleshooting](docs/troubleshooting.md) if startup or connection fails
+- [Documentation Maintenance](docs/documentation-maintenance.md) when updating docs or public XML comments
 - [API Reference](reference/index.md)

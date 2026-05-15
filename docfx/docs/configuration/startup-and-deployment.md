@@ -5,7 +5,7 @@ Use this page when you need the operational details that do not belong in the hi
 ## Starting The Server
 
 - Use `start_server.bat` from the release package to launch a native server install.
-- The server refuses to start if `[storage].saveGamePath` is not set.
+- If `[storage].saveGamePath` is empty, the server uses `UserData/DedicatedServerSave` and prepares the folder before loading. Set a custom path only when you want to host a specific Schedule I save folder.
 - For hosted panels that control the process through stdin/stdout, follow [Host Console](../host-console.md) and prefer `-logFile -` so Unity and MelonLoader logs stay visible to the host.
 
 ## Host Sizing
@@ -42,11 +42,19 @@ Permission graph data lives in `permissions.toml` and is managed separately.
 | `--max-players <count>` | Set maximum players | `--max-players 16` |
 | `--server-password <password>` | Set server password | `--server-password "secret"` |
 
+Client connection overrides are parsed by the client runtime, not the server config parser:
+
+| Argument | Description | Example |
+|----------|-------------|---------|
+| `--server-ip <address>` | Dedicated server address for client auto-connect flows | `--server-ip 127.0.0.1` |
+| `--server-port <port>` | Dedicated server port for client auto-connect flows | `--server-port 38465` |
+
 ### Authentication
 
 | Argument | Description | Example |
 |----------|-------------|---------|
 | `--require-authentication` or `--require-auth` | Require authentication for players | `--require-authentication` |
+| `--disable-authentication`, `--disable-auth`, or `--no-auth` | Disable authentication for development or controlled local testing | `--no-auth` |
 | `--auth-provider <provider>` | Set auth provider | `--auth-provider SteamGameServer` |
 | `--auth-timeout <seconds>` | Authentication timeout in seconds | `--auth-timeout 30` |
 | `--steam-gs-anonymous` | Use anonymous Steam server login | `--steam-gs-anonymous` |
@@ -68,9 +76,9 @@ Permission graph data lives in `permissions.toml` and is managed separately.
 | Argument | Description | Example |
 |----------|-------------|---------|
 | `--messaging-backend <backend>` | Set messaging backend | `--messaging-backend SteamNetworkingSockets` |
-| `--steam-networking-sockets-virtual-port <port>` | Set Steam Networking Sockets virtual port | `--steam-networking-sockets-virtual-port 0` |
-| `--steam-networking-sockets-max-payload-bytes <bytes>` | Set Steam Networking Sockets max payload size | `--steam-networking-sockets-max-payload-bytes 1200` |
-| `--steam-networking-sockets-server-steam-id <steam_id>` | Set Steam Networking Sockets server SteamID hint | `--steam-networking-sockets-server-steam-id 90000000000000000` |
+| `--steam-networking-sockets-virtual-port <port>` or `--steam-sockets-virtual-port <port>` | Set Steam Networking Sockets virtual port | `--steam-networking-sockets-virtual-port 0` |
+| `--steam-networking-sockets-max-payload-bytes <bytes>` or `--steam-sockets-max-payload-bytes <bytes>` | Set Steam Networking Sockets max payload size | `--steam-networking-sockets-max-payload-bytes 1200` |
+| `--steam-networking-sockets-server-steam-id <steam_id>`, `--steam-sockets-server-steam-id <steam_id>`, `--server-steamid <steam_id>`, or `--server-steam-id <steam_id>` | Set Steam Networking Sockets server SteamID hint | `--steam-networking-sockets-server-steam-id 90000000000000000` |
 
 ### Host Console
 

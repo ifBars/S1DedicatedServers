@@ -4,27 +4,32 @@ using DedicatedServerMod.Server.Commands.Execution;
 namespace DedicatedServerMod.Server.Commands.Contracts
 {
     /// <summary>
-    /// Interface for all server commands.
+    /// Defines a command that can be invoked through DedicatedServerMod's server command pipeline.
     /// </summary>
+    /// <remarks>
+    /// Implementations are shared by console transports and in-game command surfaces. Command code
+    /// should validate whether <see cref="CommandContext.Executor"/> is available before using
+    /// player-only behavior.
+    /// </remarks>
     public interface IServerCommand
     {
         /// <summary>
-        /// The command word used to invoke this command.
+        /// Gets the command word used to invoke this command.
         /// </summary>
         string CommandWord { get; }
 
         /// <summary>
-        /// Description of what the command does.
+        /// Gets a short user-facing description of what the command does.
         /// </summary>
         string Description { get; }
 
         /// <summary>
-        /// Usage example for the command.
+        /// Gets the usage string shown in help and validation errors.
         /// </summary>
         string Usage { get; }
 
         /// <summary>
-        /// Required permission node to execute this command.
+        /// Gets the default permission node required to execute this command.
         /// </summary>
         string RequiredPermissionNode { get; }
 
@@ -41,8 +46,9 @@ namespace DedicatedServerMod.Server.Commands.Contracts
         string GetRequiredPermissionNode(IReadOnlyList<string> arguments);
 
         /// <summary>
-        /// Execute the command with the given context.
+        /// Executes the command with the given context.
         /// </summary>
+        /// <param name="context">The invocation context, including arguments, executor, permissions, and reply sinks.</param>
         void Execute(CommandContext context);
     }
 }

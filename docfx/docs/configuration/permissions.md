@@ -80,7 +80,7 @@ deny = []
 
 [tempallow.maintenance-window]
 userId = '76561198012345678'
-node = 'console.command.shutdown'
+node = 'server.stop'
 expiresAtUtc = '2026-03-29T18:30:00.0000000Z'
 grantedBy = 'console'
 reason = 'maintenance window'
@@ -103,6 +103,8 @@ Section families:
 - `[ban.<subjectId>]`: ban entries
 
 Temporary assignment IDs can be any stable identifier. The framework preserves unknown sections and comments, so hand-edited files round-trip cleanly.
+
+Use dedicated framework nodes when they exist. For example, grant `server.stop` for `shutdown`, `server.save` for `save`, and `permissions.reload` for `reloadpermissions`. Generic `console.command.<command>` nodes are mainly for commands whose required permission is generated from the command word, such as `settime` and `settimescale`.
 
 ## Useful Commands
 

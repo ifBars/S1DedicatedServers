@@ -13,6 +13,11 @@ namespace DedicatedServerMod.Server.Game
     /// <summary>
     /// Exposes server time diagnostics and admin utilities without overriding native time flow.
     /// </summary>
+    /// <remarks>
+    /// The dedicated server now keeps the base game's authoritative time path intact. This manager
+    /// reports state and invokes native synchronization methods for explicit operator actions instead
+    /// of running a parallel clock.
+    /// </remarks>
     public class TimeSystemManager
     {
         private bool isActive;
@@ -45,8 +50,9 @@ namespace DedicatedServerMod.Server.Game
         }
 
         /// <summary>
-        /// Force advances time using the game's built-in SetTimeAndSync path.
+        /// Advances time through the game's built-in synchronized time path.
         /// </summary>
+        /// <param name="amount">The amount of game time to add to the current server time.</param>
         public void ForceAdvanceTime(TimeSpan amount)
         {
             try
@@ -69,6 +75,7 @@ namespace DedicatedServerMod.Server.Game
         /// <summary>
         /// Gets current game time information.
         /// </summary>
+        /// <returns>A diagnostic snapshot of the current game clock, or an unavailable result with an explanatory message.</returns>
         public GameTimeInfo GetTimeInfo()
         {
             try
@@ -112,16 +119,36 @@ namespace DedicatedServerMod.Server.Game
     }
 
     /// <summary>
-    /// Game time information.
+    /// Describes a point-in-time diagnostic snapshot of the server's authoritative game clock.
     /// </summary>
     public class GameTimeInfo
     {
+        /// <summary>
+        /// Gets or sets whether the time manager was available when the snapshot was created.
+        /// </summary>
         public bool IsAvailable { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current hour in 24-hour game time.
+        /// </summary>
         public int Hour { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current minute in game time.
+        /// </summary>
         public int Minute { get; set; }
+
+        /// <summary>
+        /// Gets or sets the elapsed in-game day count.
+        /// </summary>
         public int Day { get; set; }
+
+        /// <summary>
+        /// Gets or sets the human-readable diagnostic message for this snapshot.
+        /// </summary>
         public string Message { get; set; }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             return Message;

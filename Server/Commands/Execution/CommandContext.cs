@@ -7,32 +7,37 @@ using DedicatedServerMod.Utils;
 namespace DedicatedServerMod.Server.Commands.Execution
 {
     /// <summary>
-    /// Context information for command execution.
+    /// Carries invocation state and reply sinks for a server command execution.
     /// </summary>
+    /// <remarks>
+    /// Commands can be invoked by the TCP console, stdio host console, web panel, or an in-game
+    /// player. Use <see cref="IsConsoleExecution"/> and <see cref="Executor"/> before assuming
+    /// a real player exists, especially for commands that support a <c>self</c> target.
+    /// </remarks>
     public class CommandContext
     {
         /// <summary>
-        /// The player executing the command (null for console).
+        /// Gets or sets the player executing the command, or <see langword="null"/> for non-player console execution.
         /// </summary>
         public ConnectedPlayerInfo Executor { get; set; }
 
         /// <summary>
-        /// Command arguments.
+        /// Gets or sets the parsed command arguments after the command word.
         /// </summary>
         public List<string> Arguments { get; set; }
 
         /// <summary>
-        /// Player manager.
+        /// Gets or sets the player manager available to command handlers.
         /// </summary>
         public PlayerManager PlayerManager { get; set; }
 
         /// <summary>
-        /// Permission service.
+        /// Gets or sets the live permission service used for authorization-sensitive commands.
         /// </summary>
         public ServerPermissionService Permissions { get; set; }
 
         /// <summary>
-        /// Optional transport-specific output sink.
+        /// Gets or sets the optional transport-specific output sink.
         /// </summary>
         public ICommandOutput Output { get; set; }
 
@@ -42,29 +47,32 @@ namespace DedicatedServerMod.Server.Commands.Execution
         internal ICommandReplyChannel ReplyChannel { get; set; }
 
         /// <summary>
-        /// Whether the command is being executed from console.
+        /// Gets a value indicating whether the command is being executed outside a real player context.
         /// </summary>
         public bool IsConsoleExecution => Executor == null;
 
         /// <summary>
-        /// Send a message back to the executor.
+        /// Sends an informational message back to the command executor.
         /// </summary>
+        /// <param name="message">The user-facing message to send.</param>
         public void Reply(string message)
         {
             WriteReply(CommandReplyLevel.Info, message);
         }
 
         /// <summary>
-        /// Send a warning message back to the executor.
+        /// Sends a warning message back to the command executor.
         /// </summary>
+        /// <param name="message">The user-facing warning to send.</param>
         public void ReplyWarning(string message)
         {
             WriteReply(CommandReplyLevel.Warning, message);
         }
 
         /// <summary>
-        /// Send an error message back to the executor.
+        /// Sends an error message back to the command executor.
         /// </summary>
+        /// <param name="message">The user-facing error to send.</param>
         public void ReplyError(string message)
         {
             WriteReply(CommandReplyLevel.Error, message);

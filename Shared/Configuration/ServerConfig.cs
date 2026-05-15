@@ -10,13 +10,14 @@ using JsonConv = Newtonsoft.Json.JsonConverterAttribute;
 namespace DedicatedServerMod.Shared.Configuration
 {
     /// <summary>
-    /// Server configuration management system.
-    /// Handles all server settings, persistence, and command-line overrides.
+    /// Represents the persisted dedicated-server runtime configuration.
     /// </summary>
     /// <remarks>
-    /// This class only handles configuration settings. For permission management,
-    /// see <see cref="Shared.Permissions.PermissionManager"/> and
-    /// <see cref="Shared.Permissions.PlayerResolver"/> for Steam ID utilities.
+    /// The server stores this configuration in <c>server_config.toml</c> and applies
+    /// command-line overrides at startup without treating those overrides as permission data.
+    /// Runtime authorization, bans, staff groups, and command access live in the dedicated
+    /// <c>permissions.toml</c> graph managed by the permission subsystem. Legacy permission
+    /// collections remain on this type only so older files can be migrated.
     /// </remarks>
     [Serializable]
     public sealed partial class ServerConfig
@@ -42,8 +43,13 @@ namespace DedicatedServerMod.Shared.Configuration
         public int MaxPlayers { get; set; } = Constants.DefaultMaxPlayers;
 
         /// <summary>
-        /// The network port the server listens on.
+        /// Gets or sets the primary game port.
         /// </summary>
+        /// <remarks>
+        /// DedicatedServerMod uses this numeric port for UDP gameplay traffic and for its
+        /// lightweight TCP status-query endpoint. Public servers normally need the same port
+        /// allowed through firewalls for both UDP and TCP.
+        /// </remarks>
         [JsonProp(Constants.ConfigKeys.ServerPort)]
         public int ServerPort { get; set; } = Constants.DefaultServerPort;
 
@@ -194,10 +200,14 @@ namespace DedicatedServerMod.Shared.Configuration
         public SteamGameServerAuthenticationMode SteamGameServerMode { get; set; } = SteamGameServerAuthenticationMode.Authentication;
 
         /// <summary>
-        /// Messaging backend used for custom server-client communication.
-        /// FishNetRpc uses FishNet custom RPCs.
-        /// SteamNetworkingSockets uses modern Steam sockets and Steam relay/routing support.
+        /// Gets or sets the backend used for custom server-client communication.
         /// </summary>
+        /// <remarks>
+        /// <see cref="MessagingBackendType.FishNetRpc"/> is the default and uses the active
+        /// FishNet connection. <see cref="MessagingBackendType.SteamNetworkingSockets"/> adds
+        /// Steam relay/routing behavior while keeping the mod-facing <c>CustomMessaging</c> API
+        /// unchanged.
+        /// </remarks>
         [JsonProp(Constants.ConfigKeys.MessagingBackend)]
         [JsonConv(typeof(StringEnumConverter))]
         public MessagingBackendType MessagingBackend { get; set; } = MessagingBackendType.FishNetRpc;
@@ -398,20 +408,34 @@ namespace DedicatedServerMod.Shared.Configuration
         #region Admin/Operator System (delegated to PermissionManager, but kept for compatibility)
 
         /// <summary>
-        /// List of Steam IDs with operator privileges.
+        /// Gets or sets legacy operator Steam IDs used during permission migration.
         /// </summary>
+        /// <remarks>
+        /// New runtime authorization is stored in <c>permissions.toml</c>. This collection is
+        /// retained so older config files and <c>--add-operator</c> bootstrap arguments can seed
+        /// the built-in <c>operator</c> group during migration.
+        /// </remarks>
         [JsonProp(Constants.ConfigKeys.Operators)]
         public HashSet<string> Operators { get; set; } = new HashSet<string>();
 
         /// <summary>
-        /// List of Steam IDs with admin privileges.
+        /// Gets or sets legacy administrator Steam IDs used during permission migration.
         /// </summary>
+        /// <remarks>
+        /// New runtime authorization is stored in <c>permissions.toml</c>. This collection is
+        /// retained so older config files and <c>--add-admin</c> bootstrap arguments can seed the
+        /// built-in <c>administrator</c> group during migration.
+        /// </remarks>
         [JsonProp(Constants.ConfigKeys.Admins)]
         public HashSet<string> Admins { get; set; } = new HashSet<string>();
 
         /// <summary>
-        /// List of banned Steam IDs.
+        /// Gets or sets legacy banned Steam IDs used during permission migration.
         /// </summary>
+        /// <remarks>
+        /// New ban entries are stored in <c>permissions.toml</c>. This collection is read for
+        /// backward compatibility with older config files.
+        /// </remarks>
         [JsonProp(Constants.ConfigKeys.BannedPlayers)]
         public HashSet<string> BannedPlayers { get; set; } = new HashSet<string>();
 
@@ -660,14 +684,13 @@ namespace DedicatedServerMod.Shared.Configuration
         #region Save Path (Server)
 
         /// <summary>
-        /// Custom path for save files. Empty = uses default "DedicatedServerSave" folder in UserData.
+        /// Gets or sets the save folder hosted by the dedicated server.
         /// </summary>
         /// <remarks>
-        /// When empty, the server will create a save folder at:
-        /// UserData/DedicatedServerSave
-        /// 
-        /// The folder will be initialized with the DefaultSave template from StreamingAssets
-        /// if it doesn't exist or is missing required files.
+        /// Leave this empty to use <c>UserData/DedicatedServerSave</c>. When a custom path is
+        /// provided, it should point at a valid Schedule I save folder containing files such as
+        /// <c>Game.json</c> and <c>Metadata.json</c>. Missing default folders are initialized from
+        /// the game's <c>DefaultSave</c> template when possible.
         /// </remarks>
         [JsonProp("saveGamePath")]
         public string SaveGamePath { get; set; } = string.Empty;
