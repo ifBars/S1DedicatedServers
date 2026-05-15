@@ -1,0 +1,9 @@
+name = "s1ds-docs-legacy-redirect"
+main = "src/worker.ts"
+compatibility_date = "2026-05-15"
+workers_dev = false
+preview_urls = false
+
+routes = [
+    { pattern = "docs.s1ds.com/*", zone_name = "s1ds.com" }
+]
