@@ -34,6 +34,20 @@ Current beta builds continue initial IL2CPP support. If a problem only reproduce
 - If using the TCP console remotely, confirm `tcpConsolePort` is forwarded separately over TCP.
 - Check logs for Tugboat startup and that the loopback client connects.
 
+### Steam game server API fails to initialize
+- This usually appears as `Authentication backend initialization failed: Failed to initialize Steam game server API (gamePort=38465, queryPort=27016, mode=eServerModeAuthentication) and no logged-in Steam user API fallback was available`.
+- This failure happens while initializing the Steam game server API, before the server attempts anonymous login or `steamGameServerToken` login. Do not assume the token itself was rejected until initialization succeeds.
+- Confirm the server is launched from the Schedule I game folder, where `Schedule I.exe` is located. The Steamworks app ID lookup depends on the process working directory when launching directly.
+- Confirm `steam_appid.txt` exists beside `Schedule I.exe` and contains only the Schedule I app ID:
+
+  ```text
+  3164500
+  ```
+
+- Confirm the normal Steam API plugin exists at `Schedule I_Data\Plugins\x86_64\steam_api64.dll`. The Goldberg emulator file `steam_api64.dll.emu`, `steam_settings`, and `userdata` folders are local testing artifacts and are not expected in a normal Steam install.
+- If you are relying on an active Steam client context, confirm Steam is running under the same Windows user as the server process.
+- Confirm the local machine is not already using the configured `serverPort` or `steamGameServerQueryPort`. Port conflicts can prevent Steam game server initialization even before router forwarding matters.
+
 ### Clients disconnect right after connecting
 - If authentication is enabled (`authProvider` is not `None`), check server logs for auth failure reasons (provider mismatch, nonce mismatch, timeout, or banned player).
 - Verify `authProvider` matches your intended mode (`SteamGameServer` recommended).

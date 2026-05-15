@@ -180,6 +180,7 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 ## Troubleshooting
 
 - Clients disconnecting shortly after connect are often hitting an auth timeout that is set too low.
+- If startup logs say `Failed to initialize Steam game server API`, troubleshoot Steamworks initialization first. That error happens before anonymous login or `steamGameServerToken` login. See [Steam game server API fails to initialize](../troubleshooting.md#steam-game-server-api-fails-to-initialize).
 - Do not set `authTimeoutSeconds` below `30` seconds unless you are deliberately optimizing a controlled local test environment.
 - For public servers, mixed hardware, or heavier mod stacks, use `60` seconds.
 - If the failure appears only on IL2CPP, include that runtime detail when filing the GitHub issue so it can be triaged separately from Mono behavior.
