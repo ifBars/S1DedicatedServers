@@ -18,7 +18,7 @@ Stable releases publish `latest` and the exact version tag to `ghcr.io/ifbars/s1
 Pull the current beta image with:
 
 ```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
+docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.3-beta
 ```
 
 Use `latest` only after a stable release has been published:
@@ -38,7 +38,7 @@ docker run --name s1ds \
   -e STEAM_PASS=your_steam_password \
   -e S1DS_RUNTIME=mono \
   -v s1ds-game:/home/steam/game \
-  ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.3-beta
 ```
 
 Run the published image directly with IL2CPP:
@@ -52,7 +52,7 @@ docker run --name s1ds \
   -e STEAM_PASS=your_steam_password \
   -e S1DS_RUNTIME=il2cpp \
   -v s1ds-game:/home/steam/game \
-  ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.3-beta
 ```
 
 The included Compose example also pulls from GHCR by default now.
@@ -71,7 +71,7 @@ The release package includes:
 - `DedicatedServerMod_Il2cpp_Server.dll`
 - package-local Docker instructions
 
-The Docker image downloads MelonLoader during `docker build`, so users should not add MelonLoader files manually.
+The Docker image downloads MelonLoader during `docker build`, so users should not add MelonLoader files manually. It also installs the .NET 6 desktop runtime into the Wine prefix during build so IL2CPP MelonLoader startup does not need to run its first-launch runtime installer.
 
 ## Build The Image
 
@@ -122,13 +122,14 @@ Optional environment variables:
 - `STEAM_GUARD` for Steam Guard prompts
 - `FORCE_STEAMCMD_UPDATE=true` to force the next startup to refresh the game install
 - `STEAM_BRANCH` when you intentionally want to override the runtime default branch
+- Startup fails if required Steam runtime DLLs such as `steam_api64.dll` are missing. The Docker entrypoint launches with Steam authentication and Steam Networking Sockets enabled.
 
 ### Docker Compose
 
 The release package includes `docker-compose.example.yml` for Compose-based deployments. Copy it to `docker-compose.yml`, then add a `.env` file in the same folder:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.2-beta
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.3-beta
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono

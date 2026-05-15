@@ -12,16 +12,16 @@ The `authProvider` setting determines how Steam tickets are validated. Three opt
 
 ### None
 
-**When to use:** Private LAN servers, local testing, or fast iteration where Steam identity validation is unnecessary.
+**When to use:** Development builds, local testing, or fast iteration where Steam identity validation would block debugging.
 
 **Pros:**
 - No external Steam validation dependency.
 - Fastest join flow.
-- Works for offline or local-only setups.
+- Works for controlled local-only development setups.
 
 **Cons:**
 - No player identity verification.
-- Not suitable for public servers.
+- Not suitable for public servers or normal multiplayer hosting.
 
 **Configuration:**
 
@@ -76,7 +76,7 @@ steamGameServerMode = 'Authentication'
 
 | Mode | Description | Use Case |
 |------|-------------|----------|
-| `NoAuthentication` | Do not authenticate users and do not list in the server browser | Private testing only |
+| `NoAuthentication` | Do not authenticate users and do not list in the server browser | Development/local testing only |
 | `Authentication` | Authenticate users and list in the server browser | Recommended for most servers |
 | `AuthenticationAndSecure` | Authenticate users, list in the server browser, and enable secure mode | Higher-security public servers |
 
@@ -202,7 +202,7 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 2. Verify clients have valid Steam sessions.
 3. Check that `authProvider` is not set to `None`.
 4. Confirm firewall rules are not blocking Steam auth traffic.
-5. Temporarily disable auth to isolate whether the problem is auth-specific or network-specific.
+5. On a local development repro only, temporarily disable auth to isolate whether the problem is auth-specific or network-specific.
 
 ### SteamWebApi provider errors
 
@@ -222,10 +222,10 @@ If you see messages about `SteamWebApi` not being implemented, switch `authProvi
 8. Remember that Steam query is separate from DedicatedServerMod status query. Public servers usually need both `steamGameServerQueryPort` over UDP and `serverPort` over TCP.
 9. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
 
-### Private servers
+### Development and local testing
 
-1. Use `authProvider: "None"` only when the trust model is acceptable.
-2. Consider keeping Steam auth enabled anyway for accountability.
+1. Use `authProvider: "None"` only for development or controlled local testing.
+2. Keep Steam auth enabled for normal multiplayer hosting, including private friend servers.
 3. Use `permissions.toml` groups, direct user rules, and bans if you need a coarse whitelist or staff-only environment.
 
 ## Security Considerations

@@ -232,9 +232,11 @@ copy_steam_dll_if_found() {
 
 echo "Copying Steamworks native DLLs into game directory..."
 copy_steam_dll_if_found "steamclient64.dll"
+copy_steam_dll_if_found "steam_api64.dll"
 copy_steam_dll_if_found "tier0_s64.dll"
 copy_steam_dll_if_found "vstdlib_s64.dll"
 copy_steam_dll_if_found "steamclient.dll"
+copy_steam_dll_if_found "steam_api.dll"
 copy_steam_dll_if_found "tier0_s.dll"
 copy_steam_dll_if_found "vstdlib_s.dll"
 
@@ -247,13 +249,23 @@ else
 fi
 
 echo "Steam DLL presence check:"
+MISSING_STEAM_DLLS=()
 for required_file in steam_api64.dll steamclient64.dll tier0_s64.dll vstdlib_s64.dll steamclient.dll tier0_s.dll vstdlib_s.dll steam_appid.txt; do
     if [ -f "${STEAMAPPDIR}/${required_file}" ]; then
         echo "  OK: ${required_file}"
     else
         echo "  MISSING: ${required_file}"
+        MISSING_STEAM_DLLS+=("${required_file}")
     fi
 done
+
+if [ ${#MISSING_STEAM_DLLS[@]} -gt 0 ]; then
+    echo "ERROR: Missing Steam runtime file(s): ${MISSING_STEAM_DLLS[*]}"
+    echo "This Docker image starts with Steam authentication and Steam Networking Sockets enabled."
+    echo "Refresh the game install with valid Steam credentials or repair the Steamworks redistributable install."
+    kill $XVFB_PID 2>/dev/null || true
+    exit 1
+fi
 
 # Start the game server with Wine
 SERVER_LAUNCH_ARGS=(

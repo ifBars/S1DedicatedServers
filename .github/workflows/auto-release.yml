@@ -302,6 +302,14 @@ jobs:
           Copy-Item 'bin/Mono_Server/netstandard2.1/DedicatedServerMod_Mono_Server.dll' (Join-Path $dockerRoot 'DedicatedServerMod_Mono_Server.dll')
           Copy-Item 'bin/Il2cpp_Server/net6.0/DedicatedServerMod_Il2cpp_Server.dll' (Join-Path $dockerRoot 'DedicatedServerMod_Il2cpp_Server.dll')
 
+          $dockerShellScripts = Get-ChildItem -Path $dockerRoot -Filter '*.sh' -File
+          foreach ($script in $dockerShellScripts) {
+            $bytes = [System.IO.File]::ReadAllBytes($script.FullName)
+            if ($bytes -contains 13) {
+              throw "Docker shell script '$($script.Name)' contains CRLF line endings. Store Docker shell scripts with LF endings before packaging."
+            }
+          }
+
           Compress-Archive -Path (Join-Path $serverRoot '*') -DestinationPath (Join-Path $releaseRoot 'Mono-Server.zip') -Force
           Compress-Archive -Path (Join-Path $clientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Mono-Client.zip') -Force
           Compress-Archive -Path (Join-Path $il2cppServerRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Server.zip') -Force

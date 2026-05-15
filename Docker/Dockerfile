@@ -48,13 +48,15 @@ ENV WINEARCH=win64
 RUN rm -rf ${WINEPREFIX} /home/steam/.wine && \
     mkdir -p ${STEAMAPPDIR}
 
-# Initialize Wine prefix and install dependencies with virtual display
+# Initialize Wine prefix and install dependencies with virtual display.
+# IL2CPP MelonLoader uses the .NET 6 desktop runtime; install it during image
+# build so first server launch does not rely on MelonLoader's runtime installer.
 RUN export DISPLAY=:99 && \
     Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset & \
     sleep 5 && \
     wineboot --init && \
     sleep 10 && \
-    winetricks -q corefonts vcrun2019 && \
+    winetricks -q corefonts vcrun2019 dotnetdesktop6 && \
     pkill Xvfb || true
 
 # Stage MelonLoader and mod artifacts outside the game directory.

@@ -56,7 +56,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// <summary>
         /// Authentication provider used for dedicated-server client validation.
         /// Defaults to <see cref="AuthenticationProvider.SteamGameServer"/>.
-        /// Set to <see cref="AuthenticationProvider.None"/> to disable authentication entirely.
+        /// Set to <see cref="AuthenticationProvider.None"/> only for development or local testing.
         /// </summary>
         [JsonProp(Constants.ConfigKeys.AuthProvider)]
         [JsonConv(typeof(StringEnumConverter))]
@@ -743,7 +743,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     case "--disable-auth":
                     case "--no-auth":
                         Instance.AuthProvider = AuthenticationProvider.None;
-                        DebugLog.Info("Authentication disabled via command line");
+                        DebugLog.Warning("Authentication disabled via command line. No-auth mode is intended for development and local testing only.");
                         break;
 
                     case "--auth-provider":

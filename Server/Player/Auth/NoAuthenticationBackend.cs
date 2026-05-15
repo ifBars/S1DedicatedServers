@@ -30,6 +30,7 @@ namespace DedicatedServerMod.Server.Player.Auth
         public AuthenticationResult Initialize()
         {
             IsInitialized = true;
+            DebugLog.Warning("Authentication is disabled. No-auth mode is intended for development and local testing only, not public multiplayer hosting.");
             return new AuthenticationResult
             {
                 IsSuccessful = true,
