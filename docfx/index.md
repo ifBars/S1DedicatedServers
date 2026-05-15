@@ -45,9 +45,15 @@ Set `S1DS_RUNTIME=mono` or `S1DS_RUNTIME=il2cpp` when the container starts. If y
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.
 2. Extract `Mono-Server.zip` into that server install for Mono, or `Il2cpp_Server.zip` for IL2CPP.
 3. Confirm that `Mods/` merged into the install and `start_server.bat` was placed at the install root.
-4. Run `start_server.bat` once so the mod generates `server_config.toml`, then close it.
-5. Edit `server_config.toml` and set `saveGamePath`.
-6. Start the server again with `start_server.bat`.
+4. Confirm `steam_appid.txt` exists beside `Schedule I.exe` and contains only the Schedule I app ID. The packaged `start_server.bat` creates it automatically if it is missing, but you must create it yourself if you launch the executable another way:
+
+   ```text
+   3164500
+   ```
+
+5. Run `start_server.bat` once so the mod generates `server_config.toml`, then close it.
+6. Edit `server_config.toml` and set `saveGamePath`.
+7. Start the server again with `start_server.bat`.
 
 For save path details, see [Save Path](docs/configuration/save-path.md).
 

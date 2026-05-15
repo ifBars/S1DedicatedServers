@@ -478,7 +478,9 @@ namespace DedicatedServerMod.Server.Player.Auth
             }
 
             failureMessage =
-                $"Failed to initialize Steam game server API (gamePort={config.ServerPort}, queryPort={config.SteamGameServerQueryPort}, mode={serverMode}) and no logged-in Steam user API fallback was available";
+                $"Failed to initialize Steam game server API (gamePort={config.ServerPort}, queryPort={config.SteamGameServerQueryPort}, mode={serverMode}) and no logged-in Steam user API fallback was available. " +
+                "Confirm steam_appid.txt exists beside Schedule I.exe and contains only 3164500, then confirm the server is launched from the Schedule I game folder. " +
+                "See https://docs.s1servers.com/docs/troubleshooting.html#steam-game-server-api-fails-to-initialize";
             return false;
         }
 

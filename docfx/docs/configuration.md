@@ -17,10 +17,11 @@ The server creates the config files automatically on first run. If you still hav
 The shortest path to a working server is:
 
 1. Decide whether to leave `[storage].saveGamePath` empty for the server-managed default save or point it at a specific Schedule I save folder.
-2. Choose an authentication provider under `[authentication]`.
-3. Pick a messaging backend under `[messaging]`.
-4. Decide how you want to operate the server: local desktop, hosted panel, TCP console, or localhost web panel.
-5. Review autosave and gameplay defaults before opening the server to other players.
+2. For native Windows installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` with only `3164500` inside it. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it. Steam game server authentication can fail before token login if this file is missing.
+3. Choose an authentication provider under `[authentication]`.
+4. Pick a messaging backend under `[messaging]`.
+5. Decide how you want to operate the server: local desktop, hosted panel, TCP console, or localhost web panel.
+6. Review autosave and gameplay defaults before opening the server to other players.
 
 Minimal example:
 

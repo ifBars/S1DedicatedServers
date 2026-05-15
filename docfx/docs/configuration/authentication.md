@@ -37,6 +37,8 @@ authProvider = 'None'
 **How it works:** The server logs into Steam as a game server and validates client tickets through the game server API.
 DedicatedServerMod now always reports its own build version to Steam automatically; server owners no longer configure that string manually.
 
+For native Windows installs, `steam_appid.txt` must exist beside `Schedule I.exe` and contain only `3164500`. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it. Steam game server API initialization happens before anonymous login or `steamGameServerToken` login, so a missing app ID file can look like an authentication backend failure even when the token is correct.
+
 **Pros:**
 - Recommended by Steam for dedicated servers.
 - Low-latency validation path.
