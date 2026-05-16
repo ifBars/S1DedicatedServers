@@ -11,8 +11,10 @@ namespace DedicatedServerMod.Shared.Configuration
         None,
 
         /// <summary>
-        /// Steam Web API validation using AuthenticateUserTicket.
+        /// Deprecated compatibility value for the incomplete Steam Web API ticket path.
+        /// Use <see cref="SteamGameServer"/> instead.
         /// </summary>
+        [System.Obsolete("SteamWebApi authentication is deprecated and is normalized to SteamGameServer. Use SteamGameServer instead.", false)]
         SteamWebApi,
 
         /// <summary>

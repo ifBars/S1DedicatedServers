@@ -34,7 +34,7 @@ namespace DedicatedServerMod.Shared.Networking
         public int TimeoutSeconds { get; set; }
 
         /// <summary>
-        /// Optional Steam Web API identity value used for web API ticket flow.
+        /// Deprecated compatibility field. Steam Web API authentication is no longer selected.
         /// </summary>
         public string WebApiIdentity { get; set; } = string.Empty;
 

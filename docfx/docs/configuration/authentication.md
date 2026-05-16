@@ -2,13 +2,13 @@
 
 DedicatedServerMod can require each remote client to complete a Steam ticket handshake before join flow is finalized. This ensures only authorized Steam users can connect to your server.
 
-`authProvider` is the canonical switch for authentication in current builds. The older `requireAuthentication` flag is still parsed for backward compatibility, but new configs should use `authProvider` directly.
+Use `authProvider` to choose whether the server validates Steam identity. The older `requireAuthentication` flag is still accepted for existing configs, but new configs should use `authProvider`.
 
 Keep `authTimeoutSeconds` at a minimum of `30` seconds, and prefer `60` seconds for public or modded servers. Slower internet connections, heavier client startup, or lower-end hardware can otherwise cause players to time out before authentication finishes.
 
 ## Authentication Providers
 
-The `authProvider` setting determines how Steam tickets are validated. Three options are available.
+The `authProvider` setting determines how Steam tickets are validated. Use `SteamGameServer` for normal hosting. Use `None` only for controlled local development.
 
 ### None
 
@@ -34,10 +34,9 @@ authProvider = 'None'
 
 **When to use:** Public dedicated servers, Docker deployments, and normal production hosting.
 
-**How it works:** The server logs into Steam as a game server and validates client tickets through the game server API.
-DedicatedServerMod now always reports its own build version to Steam automatically; server owners no longer configure that string manually.
+**How it works:** The server logs into Steam as a game server and validates client tickets through Steam.
 
-For native Windows installs, `steam_appid.txt` must exist beside `Schedule I.exe` and contain only `3164500`. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it. Steam game server API initialization happens before anonymous login or `steamGameServerToken` login, so a missing app ID file can look like an authentication backend failure even when the token is correct.
+For native Windows installs, `steam_appid.txt` must exist beside `Schedule I.exe` and contain only `3164500`. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it.
 
 **Pros:**
 - Recommended by Steam for dedicated servers.
@@ -82,13 +81,13 @@ steamGameServerMode = 'Authentication'
 | `Authentication` | Authenticate users and list in the server browser | Recommended for most servers |
 | `AuthenticationAndSecure` | Authenticate users, list in the server browser, and enable secure mode | Higher-security public servers |
 
-### SteamWebApi
+### SteamWebApi (Deprecated)
 
-**Status:** Available in configuration, but not fully implemented in the current version.
+**Status:** Deprecated. Use `SteamGameServer` instead.
 
-**When to use:** Not recommended for production today.
+Existing configs or command lines that specify `SteamWebApi` are treated as `SteamGameServer`. New configs should not use this value.
 
-**Configuration (future-facing only):**
+**Legacy configuration:**
 
 ```toml
 [authentication]
@@ -99,7 +98,7 @@ steamWebApiKey = 'YOUR_STEAM_WEB_API_KEY'
 steamWebApiIdentity = 'DedicatedServerMod'
 ```
 
-Use `SteamGameServer` instead unless you are explicitly testing this incomplete path.
+Replace this with `authProvider = 'SteamGameServer'`.
 
 ## Configuration Keys
 
@@ -107,7 +106,7 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `authProvider` | `string` | `"SteamGameServer"` | Authentication backend: `None`, `SteamWebApi`, `SteamGameServer` |
+| `authProvider` | `string` | `"SteamGameServer"` | Authentication mode: `SteamGameServer` for normal hosting, or `None` for local development |
 | `authTimeoutSeconds` | `int` | `30` | Timeout for handshake completion (1-120 seconds). Keep this at `30` seconds minimum; `60` seconds is recommended so slower clients can finish auth reliably. |
 | `authAllowLoopbackBypass` | `bool` | `true` | Allow local loopback/ghost host to bypass auth |
 
@@ -124,8 +123,8 @@ Use `SteamGameServer` instead unless you are explicitly testing this incomplete 
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `steamWebApiKey` | `string` | `""` | Web API key for ticket validation |
-| `steamWebApiIdentity` | `string` | `"DedicatedServerMod"` | Identity string for Web API flows |
+| `steamWebApiKey` | `string` | `""` | Deprecated; use `SteamGameServer` authentication instead |
+| `steamWebApiIdentity` | `string` | `"DedicatedServerMod"` | Deprecated; use `SteamGameServer` authentication instead |
 
 ## Runtime Behavior
 
@@ -165,7 +164,7 @@ You can override authentication settings via command-line arguments:
 --disable-authentication
 --disable-auth
 --no-auth
---auth-provider <none|steam_web_api|steam_game_server>
+--auth-provider <none|steam_game_server>
 --auth-timeout <seconds>
 --steam-gs-anonymous
 --steam-gs-token <token>
@@ -182,7 +181,7 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 ## Troubleshooting
 
 - Clients disconnecting shortly after connect are often hitting an auth timeout that is set too low.
-- If startup logs say `Failed to initialize Steam game server API`, troubleshoot Steamworks initialization first. That error happens before anonymous login or `steamGameServerToken` login. See [Steam game server API fails to initialize](../troubleshooting.md#steam-game-server-api-fails-to-initialize).
+- If startup logs say `Failed to initialize Steam game server API`, check `steam_appid.txt`, Steam connectivity, and the query port. See [Steam game server API fails to initialize](../troubleshooting.md#steam-game-server-api-fails-to-initialize).
 - Do not set `authTimeoutSeconds` below `30` seconds unless you are deliberately optimizing a controlled local test environment.
 - For public servers, mixed hardware, or heavier mod stacks, use `60` seconds.
 - If the failure appears only on IL2CPP, include that runtime detail when filing the GitHub issue so it can be triaged separately from Mono behavior.
@@ -207,9 +206,9 @@ The `--require-authentication` flag is a convenience alias. New persisted config
 4. Confirm firewall rules are not blocking Steam auth traffic.
 5. On a local development repro only, temporarily disable auth to isolate whether the problem is auth-specific or network-specific.
 
-### SteamWebApi provider errors
+### SteamWebApi deprecation warnings
 
-If you see messages about `SteamWebApi` not being implemented, switch `authProvider` back to `"SteamGameServer"` or `"None"`.
+If you see messages about `SteamWebApi` being deprecated, update your config to `authProvider = "SteamGameServer"` or `authProvider = "None"` for local development.
 
 ## Best Practices
 

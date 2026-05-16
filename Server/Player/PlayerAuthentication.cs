@@ -117,9 +117,7 @@ namespace DedicatedServerMod.Server.Player
                 Nonce = nonce,
                 TimeoutSeconds = ServerConfig.Instance.AuthTimeoutSeconds,
                 ServerSteamId = GetServerSteamIdHint(),
-                WebApiIdentity = ActiveProvider == AuthenticationProvider.SteamWebApi
-                    ? (ServerConfig.Instance.SteamWebApiIdentity ?? string.Empty)
-                    : string.Empty
+                WebApiIdentity = string.Empty
             };
         }
 
@@ -438,12 +436,18 @@ namespace DedicatedServerMod.Server.Player
 
         private IPlayerAuthBackend CreateBackend(AuthenticationProvider provider)
         {
+#pragma warning disable CS0618 // Deprecated value is still accepted as a compatibility alias.
+            if (provider == AuthenticationProvider.SteamWebApi)
+            {
+                DebugLog.Warning("SteamWebApi auth provider is deprecated and incomplete. Falling back to SteamGameServer.");
+                provider = AuthenticationProvider.SteamGameServer;
+            }
+#pragma warning restore CS0618
+
             switch (provider)
             {
                 case AuthenticationProvider.None:
                     return new NoAuthenticationBackend();
-                case AuthenticationProvider.SteamWebApi:
-                    return new SteamWebApiAuthBackend();
                 case AuthenticationProvider.SteamGameServer:
                 default:
                     return new SteamGameServerAuthBackend();
@@ -499,12 +503,17 @@ namespace DedicatedServerMod.Server.Player
 
         private static string ToWireProviderName(AuthenticationProvider provider)
         {
+#pragma warning disable CS0618 // Deprecated value is still accepted as a compatibility alias.
+            if (provider == AuthenticationProvider.SteamWebApi)
+            {
+                provider = AuthenticationProvider.SteamGameServer;
+            }
+#pragma warning restore CS0618
+
             switch (provider)
             {
                 case AuthenticationProvider.None:
                     return "none";
-                case AuthenticationProvider.SteamWebApi:
-                    return "steam_web_api";
                 case AuthenticationProvider.SteamGameServer:
                 default:
                     return "steam_game_server";
@@ -549,12 +558,17 @@ namespace DedicatedServerMod.Server.Player
             }
 
             string normalized = providerWireValue.Trim().ToLowerInvariant();
+#pragma warning disable CS0618 // Deprecated value is still accepted as a compatibility alias.
+            if (activeProvider == AuthenticationProvider.SteamWebApi)
+            {
+                activeProvider = AuthenticationProvider.SteamGameServer;
+            }
+#pragma warning restore CS0618
+
             switch (activeProvider)
             {
                 case AuthenticationProvider.None:
                     return normalized == "none";
-                case AuthenticationProvider.SteamWebApi:
-                    return normalized == "steam_web_api" || normalized == "steamwebapi";
                 case AuthenticationProvider.SteamGameServer:
                 default:
                     return normalized == "steam_game_server" || normalized == "steamgameserver";

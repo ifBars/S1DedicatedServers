@@ -72,7 +72,7 @@ export const CONFIG_SECTIONS: ConfigSectionDefinition[] = [
       {
         key: "authProvider",
         label: "Authentication provider",
-        description: "Selected provider name used for player identity checks.",
+        description: "Use SteamGameServer for normal hosting, or None for local development.",
         kind: "text",
       },
       {
@@ -159,13 +159,13 @@ export const CONFIG_SECTIONS: ConfigSectionDefinition[] = [
       {
         key: "steamWebApiIdentity",
         label: "Steam Web API identity",
-        description: "Application identity used with the Steam Web API path.",
+        description: "Deprecated compatibility setting. SteamWebApi now falls back to SteamGameServer.",
         kind: "text",
       },
       {
         key: "steamWebApiKey",
         label: "Steam Web API key",
-        description: "Required when the Steam Web API provider is active.",
+        description: "Deprecated compatibility setting. SteamWebApi now falls back to SteamGameServer.",
         kind: "password",
       },
     ],

@@ -25,7 +25,7 @@ Both paths still require your own Steam credentials for the first game install.
 Stable releases publish `latest` and the exact version tag. Prereleases publish the exact version tag only, without the leading `v` from the GitHub release tag.
 
 ```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.6
 ```
 
 Use `latest` only after a stable release has been published:
@@ -45,7 +45,7 @@ docker run --name s1ds ^
   -e STEAM_PASS=your_steam_password ^
   -e S1DS_RUNTIME=mono ^
   -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.6
 ```
 
 Run the published image with IL2CPP:
@@ -59,7 +59,7 @@ docker run --name s1ds ^
   -e STEAM_PASS=your_steam_password ^
   -e S1DS_RUNTIME=il2cpp ^
   -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.6
 ```
 
 On Linux/macOS shells, replace `^` line continuations with `\`.
@@ -135,7 +135,7 @@ docker run --name s1ds ^
 An example Compose file is included as `docker-compose.example.yml`. Copy it to `docker-compose.yml`, then create a `.env` file beside it with your Steam credentials and runtime selection:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.6
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono

@@ -27,7 +27,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.ServerPassword, option => option.Comment("Connection password. Leave empty to disable.")))
                 .Section("authentication", section => section
                     .Comment("Dedicated server authentication and client mod verification.")
-                    .Option(config => config.AuthProvider, option => option.Comment("Authentication provider: 'None', 'SteamGameServer', or 'SteamWebApi'."))
+                    .Option(config => config.AuthProvider, option => option.Comment("Authentication provider: 'SteamGameServer' for normal hosting, or 'None' for local development. Legacy 'SteamWebApi' values are migrated to 'SteamGameServer'."))
                     .Option(config => config.AuthTimeoutSeconds, option => option.Comment("Authentication handshake timeout in seconds."))
                     .Option(config => config.AuthAllowLoopbackBypass, option => option.Comment("Allow the local loopback host connection to bypass authentication."))
                     .Option(config => config.ModVerificationEnabled, option => option.Comment("Require the dedicated client mod verification handshake."))
@@ -39,8 +39,8 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.SteamGameServerToken, option => option.Comment("Steam game server login token used when anonymous login is disabled."))
                     .Option(config => config.SteamGameServerQueryPort, option => option.Comment("Steam query/status port."))
                     .Option(config => config.SteamGameServerMode, option => option.Comment("Steam game server mode: 'NoAuthentication', 'Authentication', or 'AuthenticationAndSecure'."))
-                    .Option(config => config.SteamWebApiKey, option => option.Comment("Steam Web API key for SteamWebApi auth mode."))
-                    .Option(config => config.SteamWebApiIdentity, option => option.Comment("Optional Steam Web API identity string.")))
+                    .Option(config => config.SteamWebApiKey, option => option.Comment("Deprecated compatibility setting. SteamWebApi auth is no longer selectable."))
+                    .Option(config => config.SteamWebApiIdentity, option => option.Comment("Deprecated compatibility setting. SteamWebApi auth is no longer selectable.")))
                 .Section("messaging", section => section
                     .Comment("Custom server-client messaging backend selection.")
                     .Option(config => config.MessagingBackend, option => option.Comment("Messaging backend: 'FishNetRpc' or 'SteamNetworkingSockets'. FishNetRpc is the default on both Mono and IL2CPP."))

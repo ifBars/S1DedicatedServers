@@ -232,13 +232,13 @@ namespace DedicatedServerMod.Shared.Configuration
         public string SteamNetworkingSocketsServerSteamId { get; set; } = string.Empty;
 
         /// <summary>
-        /// Steam Web API key for web API ticket validation mode.
+        /// Deprecated Steam Web API key retained only so legacy configs can round-trip safely.
         /// </summary>
         [JsonProp(Constants.ConfigKeys.SteamWebApiKey)]
         public string SteamWebApiKey { get; set; } = string.Empty;
 
         /// <summary>
-        /// Steam Web API identity string used with web API auth tickets.
+        /// Deprecated Steam Web API identity retained only so legacy configs can round-trip safely.
         /// </summary>
         [JsonProp(Constants.ConfigKeys.SteamWebApiIdentity)]
         public string SteamWebApiIdentity { get; set; } = "DedicatedServerMod";
@@ -1144,11 +1144,6 @@ namespace DedicatedServerMod.Shared.Configuration
 
             if (AuthenticationEnabled)
             {
-                if (AuthProvider == AuthenticationProvider.SteamWebApi && string.IsNullOrWhiteSpace(SteamWebApiKey))
-                {
-                    DebugLog.Warning("Auth provider is SteamWebApi but steamWebApiKey is empty. Authentication will fail until configured.");
-                }
-
                 if (AuthProvider == AuthenticationProvider.SteamGameServer &&
                     !SteamGameServerLogOnAnonymous &&
                     string.IsNullOrWhiteSpace(SteamGameServerToken))
@@ -1179,7 +1174,8 @@ namespace DedicatedServerMod.Shared.Configuration
                     return true;
                 case "steamwebapi":
                 case "steam_web_api":
-                    value = AuthenticationProvider.SteamWebApi;
+                    DebugLog.Warning("Auth provider SteamWebApi is deprecated and no longer selectable. Using SteamGameServer instead.");
+                    value = AuthenticationProvider.SteamGameServer;
                     return true;
                 case "steamgameserver":
                 case "steam_game_server":
@@ -1187,7 +1183,7 @@ namespace DedicatedServerMod.Shared.Configuration
                     return true;
                 default:
                     value = AuthenticationProvider.None;
-                    DebugLog.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_web_api, steam_game_server.");
+                    DebugLog.Warning($"Unknown auth provider '{provider}'. Valid options: none, steam_game_server.");
                     return false;
             }
         }
@@ -1200,6 +1196,14 @@ namespace DedicatedServerMod.Shared.Configuration
 
         private void NormalizeAuthenticationConfiguration()
         {
+#pragma warning disable CS0618 // Keep legacy SteamWebApi configs loadable while normalizing them.
+            if (AuthProvider == AuthenticationProvider.SteamWebApi)
+            {
+                DebugLog.Warning("Auth provider SteamWebApi is deprecated and incomplete. Migrating this runtime configuration to SteamGameServer.");
+                AuthProvider = AuthenticationProvider.SteamGameServer;
+            }
+#pragma warning restore CS0618
+
             if (_legacyRequireAuthentication.HasValue)
             {
                 if (!_legacyRequireAuthentication.Value)

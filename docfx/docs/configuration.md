@@ -17,7 +17,7 @@ The server creates the config files automatically on first run. If you still hav
 The shortest path to a working server is:
 
 1. Decide whether to leave `[storage].saveGamePath` empty for the server-managed default save or point it at a specific Schedule I save folder.
-2. For native Windows installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` with only `3164500` inside it. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it. Steam game server authentication can fail before token login if this file is missing.
+2. For native Windows installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` with only `3164500` inside it. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it.
 3. Choose an authentication provider under `[authentication]`.
 4. Pick a messaging backend under `[messaging]`.
 5. Decide how you want to operate the server: local desktop, hosted panel, TCP console, or localhost web panel.
@@ -100,7 +100,7 @@ This page intentionally stays high level. For startup flags, host sizing, port-f
 
 - New configs should use `authProvider` instead of the older `requireAuthentication` flag.
 - Access control lives in `permissions.toml`, not `server_config.toml`.
-- Current builds already force headless time progression to remain positive at runtime, so there is no separate `timeNeverStops` toggle.
+- There is no separate `timeNeverStops` toggle; use the gameplay settings for time and sleep behavior.
 
 ## Related Documentation
 

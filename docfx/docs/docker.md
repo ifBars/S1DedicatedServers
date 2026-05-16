@@ -15,10 +15,10 @@ Set `S1DS_RUNTIME` to choose the runtime. If you do not set it, the container de
 
 Stable releases publish `latest` and the exact version tag to `ghcr.io/ifbars/s1dedicatedservers`. Prereleases publish the exact version tag only, without the leading `v` from the GitHub release tag.
 
-Pull the current beta image with:
+Pull the current image with:
 
 ```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.6
 ```
 
 Use `latest` only after a stable release has been published:
@@ -38,7 +38,7 @@ docker run --name s1ds \
   -e STEAM_PASS=your_steam_password \
   -e S1DS_RUNTIME=mono \
   -v s1ds-game:/home/steam/game \
-  ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.6
 ```
 
 Run the published image directly with IL2CPP:
@@ -52,7 +52,7 @@ docker run --name s1ds \
   -e STEAM_PASS=your_steam_password \
   -e S1DS_RUNTIME=il2cpp \
   -v s1ds-game:/home/steam/game \
-  ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.6
 ```
 
 The included Compose example also pulls from GHCR by default now.
@@ -129,7 +129,7 @@ Optional environment variables:
 The release package includes `docker-compose.example.yml` for Compose-based deployments. Copy it to `docker-compose.yml`, then add a `.env` file in the same folder:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.6
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono
