@@ -40,8 +40,11 @@ ENV STEAMAPPID=3164500
 ENV STEAMAPPDIR=/home/steam/game
 ENV WINEDLLOVERRIDES="version=n,b"
 
-# Set up Wine environment for steam user (remove DISPLAY=:0 for headless)
-ENV WINEPREFIX=/home/steam/game/wineprefix
+# Set up Wine environment for steam user (remove DISPLAY=:0 for headless).
+# Keep the Wine prefix outside STEAMAPPDIR because /home/steam/game is normally
+# mounted as a persistent game-data volume and would otherwise mask build-time
+# runtime installs such as dotnetdesktop6.
+ENV WINEPREFIX=/home/steam/wineprefix
 ENV WINEARCH=win64
 
 # Clean up any existing Wine prefix and create game directory
@@ -51,13 +54,17 @@ RUN rm -rf ${WINEPREFIX} /home/steam/.wine && \
 # Initialize Wine prefix and install dependencies with virtual display.
 # IL2CPP MelonLoader uses the .NET 6 desktop runtime; install it during image
 # build so first server launch does not rely on MelonLoader's runtime installer.
-RUN export DISPLAY=:99 && \
+RUN set -e; \
+    export DISPLAY=:99; \
     Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset & \
-    sleep 5 && \
-    wineboot --init && \
-    sleep 10 && \
-    winetricks -q corefonts vcrun2019 dotnetdesktop6 && \
-    pkill Xvfb || true
+    xvfb_pid=$!; \
+    trap 'kill "$xvfb_pid" 2>/dev/null || true' EXIT; \
+    sleep 5; \
+    wineboot --init; \
+    sleep 10; \
+    winetricks -q corefonts vcrun2019 dotnetdesktop6 || true; \
+    test -f "$WINEPREFIX/drive_c/Program Files/dotnet/dotnet.exe"; \
+    test -d "$WINEPREFIX/drive_c/Program Files/dotnet/shared/Microsoft.WindowsDesktop.App"
 
 # Stage MelonLoader and mod artifacts outside the game directory.
 # SteamCMD app_update/validate runs at container start and may overwrite game files,
