@@ -1,4 +1,4 @@
-FROM scottyhardy/docker-wine:stable-8.0.2
+FROM scottyhardy/docker-wine:stable-11.0
 
 ARG MELONLOADER_VERSION=v0.7.2
 ARG MELONLOADER_DOWNLOAD_URL=https://github.com/LavaGang/MelonLoader/releases/download/${MELONLOADER_VERSION}/MelonLoader.x64.zip
@@ -62,7 +62,9 @@ RUN set -e; \
     sleep 5; \
     wineboot --init; \
     sleep 10; \
-    winetricks -q corefonts vcrun2019 dotnetdesktop6 || true; \
+    winetricks -q corefonts || true; \
+    winetricks -q vcrun2019 || true; \
+    winetricks -q dotnetdesktop6 || true; \
     test -f "$WINEPREFIX/drive_c/Program Files/dotnet/dotnet.exe"; \
     test -d "$WINEPREFIX/drive_c/Program Files/dotnet/shared/Microsoft.WindowsDesktop.App"
 

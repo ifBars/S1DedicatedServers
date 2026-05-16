@@ -25,7 +25,7 @@ Both paths still require your own Steam credentials for the first game install.
 Stable releases publish `latest` and the exact version tag. Prereleases publish the exact version tag only, without the leading `v` from the GitHub release tag.
 
 ```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.4-beta
+docker pull ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
 ```
 
 Use `latest` only after a stable release has been published:
@@ -45,7 +45,7 @@ docker run --name s1ds ^
   -e STEAM_PASS=your_steam_password ^
   -e S1DS_RUNTIME=mono ^
   -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:0.9.4-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
 ```
 
 Run the published image with IL2CPP:
@@ -59,7 +59,7 @@ docker run --name s1ds ^
   -e STEAM_PASS=your_steam_password ^
   -e S1DS_RUNTIME=il2cpp ^
   -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:0.9.4-beta
+  ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
 ```
 
 On Linux/macOS shells, replace `^` line continuations with `\`.
@@ -84,7 +84,7 @@ Docker/
 ```
 
 The Docker image downloads MelonLoader during `docker build`, so you do not need to add MelonLoader files manually.
-The image also installs the .NET 6 desktop runtime into an image-managed Wine prefix during build so IL2CPP MelonLoader startup does not need to run its first-launch runtime installer. The Wine prefix is kept outside `/home/steam/game`, so bind-mounting or persisting the game directory does not hide the preinstalled runtime.
+The image runs on the stable Wine 11 base and installs the .NET 6 desktop runtime into an image-managed Wine prefix during build so IL2CPP MelonLoader startup does not need to run its first-launch runtime installer. The Wine prefix is kept outside `/home/steam/game`, so bind-mounting or persisting the game directory does not hide the preinstalled runtime.
 
 ## Build
 
@@ -135,7 +135,7 @@ docker run --name s1ds ^
 An example Compose file is included as `docker-compose.example.yml`. Copy it to `docker-compose.yml`, then create a `.env` file beside it with your Steam credentials and runtime selection:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.4-beta
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:0.9.5-beta
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono

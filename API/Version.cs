@@ -15,7 +15,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The mod version following semantic versioning, including a prerelease suffix when applicable.
         /// </summary>
-        public const string ModVersion = "0.9.4-beta";
+        public const string ModVersion = "0.9.5-beta";
 
         /// <summary>
         /// The major version number for breaking change tracking.
@@ -30,7 +30,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The patch version number for bug fixes.
         /// </summary>
-        public const int PatchVersion = 4;
+        public const int PatchVersion = 5;
 
         /// <summary>
         /// The public API version advertised to addon authors.
