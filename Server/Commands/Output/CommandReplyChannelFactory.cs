@@ -1,5 +1,4 @@
 using System;
-using DedicatedServerMod.Server.WebPanel;
 
 namespace DedicatedServerMod.Server.Commands.Output
 {
@@ -48,14 +47,6 @@ namespace DedicatedServerMod.Server.Commands.Output
         public static ICommandReplyChannel CreateGameConsole()
         {
             return new GameConsoleCommandOutput();
-        }
-
-        /// <summary>
-        /// Creates the web panel reply channel.
-        /// </summary>
-        public static WebPanelCommandReplyChannel CreateWebPanel(WebPanelEventStream eventStream, WebPanelLogBuffer logBuffer)
-        {
-            return new WebPanelCommandReplyChannel(eventStream, logBuffer);
         }
 
         private sealed class LegacyCommandReplyChannel : ICommandReplyChannel

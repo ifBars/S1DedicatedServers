@@ -491,7 +491,7 @@ namespace DedicatedServerMod.Server.WebPanel
 
         public WebPanelCommandResult Execute(string commandLine)
         {
-            WebPanelCommandReplyChannel output = CommandReplyChannelFactory.CreateWebPanel(_eventStream, _logBuffer);
+            WebPanelCommandReplyChannel output = new WebPanelCommandReplyChannel(_eventStream, _logBuffer);
             CommandExecutionResult executionResult = _commandManager.ExecuteConsoleLine(commandLine ?? string.Empty, output);
 
             return new WebPanelCommandResult
