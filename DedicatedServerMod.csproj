@@ -765,7 +765,8 @@
 
 		<!-- Client bootstrap and entry point -->
 		<Compile Include="Client\Core\ClientBootstrap.cs" />
-		
+		<Compile Include="Client\Core\ClientSteamRuntime.cs" />
+
 		<!-- Client managers -->
 		<Compile Include="Client\Managers\*.cs" />
 		<Compile Include="Client\Permissions\*.cs" />

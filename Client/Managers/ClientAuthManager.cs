@@ -269,9 +269,17 @@ namespace DedicatedServerMod.Client.Managers
             steamId = string.Empty;
             ticketHex = string.Empty;
 
+            if (!ClientSteamRuntime.EnsureUserReady(attemptInitialization: true, out ulong steamIdValue, out string steamStatus))
+            {
+                _isHandshakeStarted = false;
+                _nextHandshakeAttemptUtc = DateTime.UtcNow + HandshakeRetryDelay;
+                DebugLog.Warning($"Steam auth ticket creation delayed: {steamStatus}");
+                return false;
+            }
+
             try
             {
-                steamId = SteamUser.GetSteamID().m_SteamID.ToString(CultureInfo.InvariantCulture);
+                steamId = steamIdValue.ToString(CultureInfo.InvariantCulture);
 
                 byte[] ticketBuffer = new byte[1024];
                 uint ticketSize = 0;

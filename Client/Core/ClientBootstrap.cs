@@ -11,11 +11,6 @@ using DedicatedServerMod.Client.Managers;
 using DedicatedServerMod.Client.Permissions;
 using DedicatedServerMod.Client.Patchers;
 using DedicatedServerMod.API.Client;
-#if IL2CPP
-using Il2CppSteamworks;
-#else
-using Steamworks;
-#endif
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Client.Core.ClientBootstrap), "DedicatedServerClient", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -200,7 +195,7 @@ namespace DedicatedServerMod.Client.Core
             {
                 // Initialize the debug log system
                 Utils.DebugLog.Initialize(_logger);
-                LogSteamRuntimeSupportState();
+                ClientSteamRuntime.LogSupportState();
 
                 // Client builds keep server config state in memory only.
                 Shared.Configuration.ServerConfig.Initialize();
@@ -235,51 +230,6 @@ namespace DedicatedServerMod.Client.Core
             {
                 _logger.Error($"Failed to initialize DedicatedServerClient: {ex}");
             }
-        }
-
-        #endregion
-
-        #region Steam Runtime Diagnostics
-
-        /// <summary>
-        /// Logs whether the client is running with a usable Steamworks user context.
-        /// </summary>
-        private void LogSteamRuntimeSupportState()
-        {
-            bool isSteamRunning = false;
-            bool isLoggedOn = false;
-            ulong steamId = 0;
-
-            try
-            {
-                isSteamRunning = SteamAPI.IsSteamRunning();
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning($"DedicatedServerClient could not query Steam runtime state: {ex.Message}");
-            }
-
-            try
-            {
-                steamId = SteamUser.GetSteamID().m_SteamID;
-                isLoggedOn = steamId != 0 && SteamUser.BLoggedOn();
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning($"DedicatedServerClient could not query Steam user state: {ex.Message}");
-            }
-
-            if (isSteamRunning && isLoggedOn)
-            {
-                _logger.Msg("DedicatedServerClient Steam runtime check passed: Steam is running and the local user is logged on.");
-                return;
-            }
-
-            _logger.Error(
-                "Unsupported DedicatedServerClient Steam runtime state. " +
-                $"SteamRunning={isSteamRunning}, SteamUserLoggedOn={isLoggedOn}, SteamIdPresent={steamId != 0}. " +
-                "Dedicated server authentication requires launching a legitimate Steam copy through Steam with Steamworks available. " +
-                "Offline, cracked, copied, or non-Steam launch flows are not supported and will fail Steam ticket authentication.");
         }
 
         #endregion
@@ -431,6 +381,7 @@ namespace DedicatedServerMod.Client.Core
 
                 // Handle auth updates
                 _authManager?.Update();
+                ClientSteamRuntime.Tick();
                 ClientSteamAvatarService.Instance.Tick();
 
                 // Handle debug input
