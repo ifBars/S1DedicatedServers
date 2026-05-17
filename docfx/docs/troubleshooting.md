@@ -1,4 +1,9 @@
-## Troubleshooting
+---
+title: Troubleshooting
+description: Diagnose common DedicatedServerMod startup, connection, authentication, IL2CPP, and save-load issues.
+---
+
+# Troubleshooting
 
 Current beta builds continue initial IL2CPP support. If a problem only reproduces on IL2CPP, open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues) and include whether the failing runtime is `Il2cpp_Server` or `Il2cpp_Client`, plus the relevant logs.
 
@@ -52,6 +57,6 @@ Current beta builds continue initial IL2CPP support. If a problem only reproduce
 - If authentication is enabled (`authProvider` is not `None`), check server logs for auth failure reasons (provider mismatch, nonce mismatch, timeout, or banned player).
 - Verify `authProvider` matches your intended mode (`SteamGameServer` recommended).
 - If using Steam game server token login, set `steamGameServerLogOnAnonymous: false` and provide a valid `steamGameServerToken`.
-- Keep `authAllowLoopbackBypass` enabled so the internal loopback host path does not get blocked.
+- The internal loopback host path bypasses player authentication automatically.
 
 

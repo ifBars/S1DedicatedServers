@@ -1,19 +1,15 @@
 ---
 title: Messaging Backends
+description: Choose and configure the CustomMessaging backend used by DedicatedServerMod and addon messages.
 ---
+
+# Messaging Backends
 
 DedicatedServerMod uses a pluggable backend for `CustomMessaging`, the server-client channel used by addon messaging, verification handshakes, and other dedicated-server features.
 
 The backend changes how those messages travel between server and client. It does not change the mod-facing API. Mods still use the same `CustomMessaging` and `ModManager` hooks regardless of backend.
 
-## Quick Recommendations
-
-| Your setup | Recommended backend | Why |
-| --- | --- | --- |
-| Mono dedicated server | `FishNetRpc` | Simplest path and the default |
-| IL2CPP dedicated server | `FishNetRpc` | Works well and stays on the same FishNet callback/tick path the game already uses |
-| Docker or cloud hosting | `FishNetRpc` or `SteamNetworkingSockets` | Use `FishNetRpc` for simplicity; use sockets when you specifically want Steam relay/routing behavior |
-| Steam-launched player-hosted workflow | `FishNetRpc` | Closest to the base game path and lowest operational overhead |
+The default is `FishNetRpc`. Leave it there unless you specifically need Steam Networking Sockets routing behavior for custom messaging.
 
 ## Configuration
 
@@ -44,9 +40,8 @@ The config file is TOML. Message payloads sent over `CustomMessaging` are still 
 
 ### FishNetRpc
 
-Use this when you want the least operational complexity.
+Default backend. This is the normal choice for dedicated servers.
 
-- Default backend
 - Works in Mono and IL2CPP builds
 - Uses the existing FishNet connection
 - No extra Steam messaging setup required
@@ -57,7 +52,7 @@ Tradeoffs:
 - Depends on the FishNet-side message path being available
 - Tied to the active FishNet session lifecycle
 
-Recommended config:
+Config:
 
 ```toml
 [messaging]
@@ -66,7 +61,7 @@ messagingBackend = 'FishNetRpc'
 
 ### SteamNetworkingSockets
 
-Use this when you specifically want Steam relay or Steam-side routing behavior on top of the normal dedicated-server flow.
+Optional backend for routing `CustomMessaging` traffic through Steam Networking Sockets after the server and client have enough Steam identity information.
 
 - Modern Steam networking path
 - Dedicated-server compatible
@@ -79,7 +74,7 @@ Tradeoffs:
 - Adds its own callback and polling work on top of the FishNet work already happening every frame
 - Requires Steam initialization and valid Steam-side routing
 
-Recommended config:
+Config:
 
 ```toml
 [messaging]
@@ -106,17 +101,9 @@ This fallback is automatic. It does not require mod authors to change their send
 
 ## How To Choose
 
-Choose `FishNetRpc` when:
+Most servers should use the default `FishNetRpc` backend.
 
-- you want the simplest setup
-- you want the lowest overhead path
-- you do not need Steam relay or Steam-side routing behavior
-
-Choose `SteamNetworkingSockets` when:
-
-- you specifically want Steam relay
-- you want Steam-side peer routing semantics
-- you are already committed to the additional Steam transport moving parts
+Switch to `SteamNetworkingSockets` only when you have a concrete reason to route custom messaging over Steam Networking Sockets. It adds Steam initialization, peer mapping, callback polling, and bootstrap fallback behavior that `FishNetRpc` does not need.
 
 ## Command-Line Override
 
