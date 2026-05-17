@@ -1,4 +1,9 @@
-## Permissions
+---
+title: Permissions
+description: Manage DedicatedServerMod groups, bans, grants, denies, temporary permissions, and command access.
+---
+
+# Permissions
 
 DedicatedServerMod now stores runtime authorization in `UserData/permissions.toml`.
 
@@ -86,7 +91,6 @@ grantedBy = 'console'
 reason = 'maintenance window'
 
 [ban.76561198087654321]
-subjectId = '76561198087654321'
 createdAtUtc = '2026-03-29T14:00:00.0000000Z'
 createdBy = 'console'
 reason = 'griefing'
@@ -101,6 +105,8 @@ Section families:
 - `[tempallow.<id>]`: temporary allow grants
 - `[tempdeny.<id>]`: temporary deny grants
 - `[ban.<subjectId>]`: ban entries
+
+For ban entries, `<subjectId>` in the table name is the banned SteamID64. The legacy `subjectId` field is still accepted when reading old files, but it is no longer written. If the legacy field conflicts with the table name, the table name wins.
 
 Temporary assignment IDs can be any stable identifier. The framework preserves unknown sections and comments, so hand-edited files round-trip cleanly.
 

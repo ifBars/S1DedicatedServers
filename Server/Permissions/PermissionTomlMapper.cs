@@ -14,6 +14,12 @@ namespace DedicatedServerMod.Server.Permissions
             "DedicatedServerMod permissions file"
         };
 
+        /// <summary>
+        /// Reads permission groups, users, temporary assignments, and bans from a TOML document.
+        /// </summary>
+        /// <param name="document">The TOML document to read.</param>
+        /// <param name="diagnostics">Optional collection that receives non-fatal migration or shape warnings.</param>
+        /// <returns>The parsed permission store data.</returns>
         public static PermissionStoreData Read(TomlDocument document, ICollection<TomlDiagnostic> diagnostics)
         {
             PermissionStoreData data = new PermissionStoreData();
@@ -106,6 +112,11 @@ namespace DedicatedServerMod.Server.Permissions
             return data;
         }
 
+        /// <summary>
+        /// Writes managed permission tables into a TOML document while preserving unrelated content.
+        /// </summary>
+        /// <param name="document">The TOML document to update.</param>
+        /// <param name="data">The permission store data to write.</param>
         public static void Write(TomlDocument document, PermissionStoreData data)
         {
             if (document == null)
@@ -226,9 +237,21 @@ namespace DedicatedServerMod.Server.Permissions
 
         private static BanEntry ReadBan(TomlTable table, ICollection<TomlDiagnostic> diagnostics)
         {
-            string subjectId = table.TryGetString(PermissionTomlLayout.Keys.SubjectId, out string explicitSubjectId)
-                ? explicitSubjectId
-                : PermissionTomlLayout.GetBanSubjectId(table.Name);
+            string tableSubjectId = PermissionTomlLayout.GetBanSubjectId(table.Name);
+            string subjectId = tableSubjectId;
+            if (table.TryGetString(PermissionTomlLayout.Keys.SubjectId, out string explicitSubjectId))
+            {
+                string normalizedExplicitSubjectId = NormalizeSubjectId(explicitSubjectId);
+                if (string.IsNullOrWhiteSpace(subjectId))
+                {
+                    subjectId = normalizedExplicitSubjectId;
+                }
+                else if (!string.IsNullOrWhiteSpace(normalizedExplicitSubjectId) &&
+                    !string.Equals(NormalizeSubjectId(subjectId), normalizedExplicitSubjectId, StringComparison.OrdinalIgnoreCase))
+                {
+                    diagnostics?.Add(new TomlDiagnostic(0, table.Name, PermissionTomlLayout.Keys.SubjectId, "Ban subjectId is ignored because the ban table name is authoritative."));
+                }
+            }
 
             BanEntry entry = new BanEntry
             {
@@ -327,7 +350,6 @@ namespace DedicatedServerMod.Server.Permissions
                     PermissionTomlLayout.BanKeys,
                     table =>
                     {
-                        table.Set(PermissionTomlLayout.Keys.SubjectId, TomlValue.FromString(subjectId));
                         table.Set(PermissionTomlLayout.Keys.CreatedAtUtc, TomlValue.FromString(ban.CreatedAtUtc.ToString("O", CultureInfo.InvariantCulture)));
                         table.Set(PermissionTomlLayout.Keys.CreatedBy, TomlValue.FromString(ban.CreatedBy ?? string.Empty));
                         table.Set(PermissionTomlLayout.Keys.Reason, TomlValue.FromString(ban.Reason ?? string.Empty));
