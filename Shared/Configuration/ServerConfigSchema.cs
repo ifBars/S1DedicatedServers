@@ -7,6 +7,9 @@ namespace DedicatedServerMod.Shared.Configuration
     /// </summary>
     internal static class ServerConfigSchema
     {
+        /// <summary>
+        /// Gets the TOML schema used to read, write, and comment <see cref="ServerConfig"/> files.
+        /// </summary>
         public static TomlConfigSchema<ServerConfig> Instance { get; } = Build();
 
         private static TomlConfigSchema<ServerConfig> Build()
@@ -29,7 +32,6 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Comment("Dedicated server authentication and client mod verification.")
                     .Option(config => config.AuthProvider, option => option.Comment("Authentication provider: 'SteamGameServer' for normal hosting, or 'None' for local development. Legacy 'SteamWebApi' values are migrated to 'SteamGameServer'."))
                     .Option(config => config.AuthTimeoutSeconds, option => option.Comment("Authentication handshake timeout in seconds."))
-                    .Option(config => config.AuthAllowLoopbackBypass, option => option.Comment("Allow the local loopback host connection to bypass authentication."))
                     .Option(config => config.ModVerificationEnabled, option => option.Comment("Require the dedicated client mod verification handshake."))
                     .Option(config => config.ModVerificationTimeoutSeconds, option => option.Comment("Client mod verification timeout in seconds."))
                     .Option(config => config.BlockKnownRiskyClientMods, option => option.Comment("Reject known risky client-only mods even when unpaired mods are allowed."))

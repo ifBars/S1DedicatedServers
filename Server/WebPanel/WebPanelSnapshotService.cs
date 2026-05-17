@@ -22,6 +22,10 @@ namespace DedicatedServerMod.Server.WebPanel
         private readonly PersistenceManager _persistenceManager = persistenceManager ?? throw new ArgumentNullException(nameof(persistenceManager));
         private readonly WebPanelPerformanceMetrics _performanceMetrics = performanceMetrics ?? throw new ArgumentNullException(nameof(performanceMetrics));
 
+        /// <summary>
+        /// Creates the dashboard overview shown when the browser panel opens.
+        /// </summary>
+        /// <returns>The current server overview snapshot.</returns>
         public ServerDashboardSnapshot CreateOverview()
         {
             ServerConfig config = ServerConfig.Instance;
@@ -56,6 +60,10 @@ namespace DedicatedServerMod.Server.WebPanel
             };
         }
 
+        /// <summary>
+        /// Creates player rows for the browser panel session table.
+        /// </summary>
+        /// <returns>A snapshot of connected players and their authentication or verification state.</returns>
         public List<WebPanelPlayerRow> CreatePlayers()
         {
             IReadOnlyList<ConnectedPlayerInfo> players = _playerManager.GetConnectedPlayers();
@@ -68,6 +76,10 @@ namespace DedicatedServerMod.Server.WebPanel
                 .ToList();
         }
 
+        /// <summary>
+        /// Creates an editable browser-panel snapshot from the current server configuration.
+        /// </summary>
+        /// <returns>The current configuration grouped by panel section.</returns>
         public WebPanelConfigSnapshot CreateConfigSnapshot()
         {
             ServerConfig config = ServerConfig.Instance;
@@ -85,7 +97,6 @@ namespace DedicatedServerMod.Server.WebPanel
                 {
                     AuthProvider = config.AuthProvider.ToString(),
                     AuthTimeoutSeconds = config.AuthTimeoutSeconds,
-                    AuthAllowLoopbackBypass = config.AuthAllowLoopbackBypass,
                     ModVerificationEnabled = config.ModVerificationEnabled,
                     ModVerificationTimeoutSeconds = config.ModVerificationTimeoutSeconds,
                     BlockKnownRiskyClientMods = config.BlockKnownRiskyClientMods,
@@ -159,6 +170,12 @@ namespace DedicatedServerMod.Server.WebPanel
             };
         }
 
+        /// <summary>
+        /// Applies an editable browser-panel configuration snapshot and returns the normalized result.
+        /// </summary>
+        /// <param name="snapshot">The configuration snapshot submitted by the browser panel.</param>
+        /// <returns>The normalized configuration snapshot after validation and persistence.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="snapshot"/> is <see langword="null"/>.</exception>
         public WebPanelConfigSnapshot ApplyConfigSnapshot(WebPanelConfigSnapshot snapshot)
         {
             if (snapshot == null)
@@ -175,7 +192,6 @@ namespace DedicatedServerMod.Server.WebPanel
 
             config.AuthProvider = ParseEnum(snapshot.Authentication.AuthProvider, config.AuthProvider);
             config.AuthTimeoutSeconds = snapshot.Authentication.AuthTimeoutSeconds;
-            config.AuthAllowLoopbackBypass = snapshot.Authentication.AuthAllowLoopbackBypass;
             config.ModVerificationEnabled = snapshot.Authentication.ModVerificationEnabled;
             config.ModVerificationTimeoutSeconds = snapshot.Authentication.ModVerificationTimeoutSeconds;
             config.BlockKnownRiskyClientMods = snapshot.Authentication.BlockKnownRiskyClientMods;

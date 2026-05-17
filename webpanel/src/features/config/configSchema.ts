@@ -83,14 +83,6 @@ export const CONFIG_SECTIONS: ConfigSectionDefinition[] = [
         min: 1,
       },
       {
-        key: "authAllowLoopbackBypass",
-        label: "Loopback bypass",
-        description: "Allow the local loopback connection to bypass auth.",
-        kind: "boolean",
-        trueLabel: "Allowed",
-        falseLabel: "Disabled",
-      },
-      {
         key: "modVerificationEnabled",
         label: "Mod verification",
         description: "Require mod verification before sessions are trusted.",

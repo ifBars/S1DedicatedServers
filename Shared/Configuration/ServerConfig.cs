@@ -79,8 +79,12 @@ namespace DedicatedServerMod.Shared.Configuration
         }
 
         /// <summary>
-        /// Whether authentication is currently enabled.
+        /// Gets a value indicating whether remote players must complete authentication.
         /// </summary>
+        /// <remarks>
+        /// The internal loopback host connection is handled separately and is not treated as a
+        /// remote player authentication decision.
+        /// </remarks>
         [JsonIgnore]
         public bool AuthenticationEnabled => AuthProvider != AuthenticationProvider.None;
 
@@ -115,12 +119,6 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </remarks>
         [JsonProp(Constants.ConfigKeys.AuthTimeoutSeconds)]
         public int AuthTimeoutSeconds { get; set; } = Constants.DefaultAuthTimeoutSeconds;
-
-        /// <summary>
-        /// Whether loopback/local ghost connections bypass authentication requirements.
-        /// </summary>
-        [JsonProp(Constants.ConfigKeys.AuthAllowLoopbackBypass)]
-        public bool AuthAllowLoopbackBypass { get; set; } = true;
 
         /// <summary>
         /// Whether the client mod verification handshake is enabled.
@@ -1217,6 +1215,10 @@ namespace DedicatedServerMod.Shared.Configuration
             }
         }
 
+        /// <summary>
+        /// Prevents the legacy <c>requireAuthentication</c> field from being written to new config files.
+        /// </summary>
+        /// <returns>Always <see langword="false"/>.</returns>
         public bool ShouldSerializeLegacyRequireAuthentication()
         {
             return false;

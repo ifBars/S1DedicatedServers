@@ -133,7 +133,6 @@ namespace DedicatedServerMod.Server.WebPanel
     {
         public string AuthProvider { get; set; } = string.Empty;
         public int AuthTimeoutSeconds { get; set; }
-        public bool AuthAllowLoopbackBypass { get; set; }
         public bool ModVerificationEnabled { get; set; }
         public int ModVerificationTimeoutSeconds { get; set; }
         public bool BlockKnownRiskyClientMods { get; set; }

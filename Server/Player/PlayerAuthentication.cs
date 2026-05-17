@@ -358,13 +358,16 @@ namespace DedicatedServerMod.Server.Player
         }
 
         /// <summary>
-        /// Determines whether this player should bypass authentication checks.
+        /// Determines whether a connection is the internal loopback host and should skip player authentication.
         /// </summary>
-        /// <param name="playerInfo">Player being evaluated.</param>
-        /// <returns>True when bypass rules apply.</returns>
+        /// <param name="playerInfo">The player connection to evaluate.</param>
+        /// <returns>
+        /// <see langword="true"/> when the connection is the dedicated-server loopback host;
+        /// otherwise, <see langword="false"/>.
+        /// </returns>
         public bool ShouldBypassAuthentication(ConnectedPlayerInfo playerInfo)
         {
-            if (playerInfo == null || !ServerConfig.Instance.AuthAllowLoopbackBypass)
+            if (playerInfo == null)
             {
                 return false;
             }

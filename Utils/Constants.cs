@@ -437,7 +437,6 @@ namespace DedicatedServerMod.Utils
             public const string RequireAuthentication = "requireAuthentication";
             public const string AuthProvider = "authProvider";
             public const string AuthTimeoutSeconds = "authTimeoutSeconds";
-            public const string AuthAllowLoopbackBypass = "authAllowLoopbackBypass";
             public const string ModVerificationEnabled = "modVerificationEnabled";
             public const string ModVerificationTimeoutSeconds = "modVerificationTimeoutSeconds";
             public const string BlockKnownRiskyClientMods = "blockKnownRiskyClientMods";

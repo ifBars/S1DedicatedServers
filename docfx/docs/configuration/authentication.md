@@ -1,4 +1,9 @@
-## Authentication
+---
+title: Authentication
+description: Configure Steam authentication, Steam game server login, auth timeouts, and ban behavior for DedicatedServerMod.
+---
+
+# Authentication
 
 DedicatedServerMod can require each remote client to complete a Steam ticket handshake before join flow is finalized. This ensures only authorized Steam users can connect to your server.
 
@@ -30,7 +35,7 @@ The `authProvider` setting determines how Steam tickets are validated. Use `Stea
 authProvider = 'None'
 ```
 
-### SteamGameServer (Recommended)
+### SteamGameServer
 
 **When to use:** Public dedicated servers, Docker deployments, and normal production hosting.
 
@@ -39,7 +44,7 @@ authProvider = 'None'
 For native Windows installs, `steam_appid.txt` must exist beside `Schedule I.exe` and contain only `3164500`. The packaged `start_server.bat` creates it if missing, but manual launch flows must provide it.
 
 **Pros:**
-- Recommended by Steam for dedicated servers.
+- Recommended for DedicatedServerMod servers.
 - Low-latency validation path.
 - Works with anonymous or persistent game server login.
 - Best fit for public hosting.
@@ -54,7 +59,6 @@ For native Windows installs, `steam_appid.txt` must exist beside `Schedule I.exe
 [authentication]
 authProvider = 'SteamGameServer'
 authTimeoutSeconds = 60
-authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = true
 steamGameServerQueryPort = 27016
 steamGameServerMode = 'Authentication'
@@ -66,7 +70,6 @@ steamGameServerMode = 'Authentication'
 [authentication]
 authProvider = 'SteamGameServer'
 authTimeoutSeconds = 60
-authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = false
 steamGameServerToken = 'YOUR_GAME_SERVER_TOKEN_HERE'
 steamGameServerQueryPort = 27016
@@ -93,7 +96,6 @@ Existing configs or command lines that specify `SteamWebApi` are treated as `Ste
 [authentication]
 authProvider = 'SteamWebApi'
 authTimeoutSeconds = 60
-authAllowLoopbackBypass = true
 steamWebApiKey = 'YOUR_STEAM_WEB_API_KEY'
 steamWebApiIdentity = 'DedicatedServerMod'
 ```
@@ -108,7 +110,6 @@ Replace this with `authProvider = 'SteamGameServer'`.
 |-----|------|---------|-------------|
 | `authProvider` | `string` | `"SteamGameServer"` | Authentication mode: `SteamGameServer` for normal hosting, or `None` for local development |
 | `authTimeoutSeconds` | `int` | `30` | Timeout for handshake completion (1-120 seconds). Keep this at `30` seconds minimum; `60` seconds is recommended so slower clients can finish auth reliably. |
-| `authAllowLoopbackBypass` | `bool` | `true` | Allow local loopback/ghost host to bypass auth |
 
 ### Steam Game Server Settings
 
@@ -138,9 +139,9 @@ Replace this with `authProvider = 'SteamGameServer'`.
 6. If validation fails (invalid ticket, timeout, ban, provider error), the connection is rejected.
 7. While not authenticated, server-side command execution is rejected.
 
-### Loopback Bypass
+### Loopback Host
 
-When `authAllowLoopbackBypass` is enabled, the local ghost host connection bypasses authentication. This is required for normal dedicated-server operation. Disabling it can break server startup and headless gameplay flow.
+The internal loopback host connection always bypasses player authentication. This is required for normal dedicated-server startup and headless gameplay flow. Server owners do not need to configure it.
 
 ### Ban System
 
@@ -148,11 +149,12 @@ Players with ban entries in `permissions.toml` are rejected during authenticatio
 
 ```toml
 [ban.76561198012345678]
-subjectId = '76561198012345678'
 createdAtUtc = '2026-03-29T12:00:00.0000000Z'
 createdBy = 'console'
 reason = 'Repeated griefing'
 ```
+
+The SteamID64 is taken from the `[ban.<steamid>]` table name. Older files that still include `subjectId` continue to load, but the table name is authoritative when both values are present.
 
 ## Command-Line Overrides
 
@@ -216,13 +218,12 @@ If you see messages about `SteamWebApi` being deprecated, update your config to 
 
 1. Use `authProvider: "SteamGameServer"`.
 2. Do not set `authProvider` to `None`.
-3. Keep `authAllowLoopbackBypass: true`.
-4. Use `steamGameServerMode: "Authentication"` or stricter.
-5. Use a persistent token for long-lived production hosting.
-6. Keep `authTimeoutSeconds` at `60` seconds unless you have a measured reason to lower it.
-7. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` over UDP correctly, and keep tokens out of version control.
-8. Remember that Steam query is separate from DedicatedServerMod status query. Public servers usually need both `steamGameServerQueryPort` over UDP and `serverPort` over TCP.
-9. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
+3. Use `steamGameServerMode: "Authentication"` or stricter.
+4. Use a persistent token for long-lived production hosting.
+5. Keep `authTimeoutSeconds` at `60` seconds unless you have a measured reason to lower it.
+6. For Docker or cloud hosting, make sure the container or host can reach Steam backend services, expose `steamGameServerQueryPort` over UDP correctly, and keep tokens out of version control.
+7. Remember that Steam query is separate from DedicatedServerMod status query. Public servers usually need both `steamGameServerQueryPort` over UDP and `serverPort` over TCP.
+8. Follow [Docker Deployment](../docker.md) for the release package and container build flow when deploying this way.
 
 ### Development and local testing
 
@@ -234,7 +235,6 @@ If you see messages about `SteamWebApi` being deprecated, update your config to 
 
 - Never commit Steam API keys or game server tokens.
 - Store sensitive values in environment variables or secure local configuration.
-- Keep `authAllowLoopbackBypass` enabled unless you fully understand the consequences.
 - Maintain ban entries in `permissions.toml` using SteamID64 subject IDs.
 
 ## Related Documentation

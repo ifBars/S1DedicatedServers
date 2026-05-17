@@ -57,7 +57,6 @@ export type ConfigSnapshot = {
   authentication: {
     authProvider: string
     authTimeoutSeconds: number
-    authAllowLoopbackBypass: boolean
     modVerificationEnabled: boolean
     modVerificationTimeoutSeconds: number
     blockKnownRiskyClientMods: boolean

@@ -1,6 +1,11 @@
-## Configuration Overview
+---
+title: Configuration Overview
+description: Understand the DedicatedServerMod configuration files and the recommended starting points for common hosting setups.
+---
 
-DedicatedServerMod splits configuration by responsibility so operators do not need to manage one giant file.
+# Configuration Overview
+
+DedicatedServerMod splits configuration by responsibility so operators can tune runtime behavior, permissions, and client-mod policy without editing one oversized file.
 
 The server creates the config files automatically on first run. If you still have a legacy `server_config.json`, the server imports it on startup and writes the current TOML-based files beside it. Legacy permission data is also migrated out of `server_config.toml` into `permissions.toml`.
 
@@ -32,7 +37,6 @@ saveGamePath = 'C:\Users\you\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\Sa
 [authentication]
 authProvider = 'SteamGameServer'
 authTimeoutSeconds = 60
-authAllowLoopbackBypass = true
 steamGameServerLogOnAnonymous = true
 steamGameServerQueryPort = 27016
 steamGameServerMode = 'Authentication'
@@ -59,7 +63,7 @@ Use the focused pages below when you need the full setting list, examples, or tr
 | Area | What it controls | Start here |
 | --- | --- | --- |
 | Save path | Which world/save folder the server hosts | [Save Path](configuration/save-path.md) |
-| Authentication | Steam ticket validation, query port, loopback bypass, and provider choice | [Authentication](configuration/authentication.md) |
+| Authentication | Steam ticket validation, query port, and provider choice | [Authentication](configuration/authentication.md) |
 | Client mod verification | Companion-mod pairing, timeout, deny-list behavior, and strict mode | [Client Mod Verification](configuration/client-mod-verification.md) |
 | Messaging backend | FishNet vs Steam-backed dedicated-server messaging | [Messaging Backends](configuration/messaging-backends.md) |
 | Permissions | Staff groups, bans, grants, denies, and command access | [Permissions](configuration/permissions.md) |
@@ -92,7 +96,7 @@ vSyncCount = 0
 
 `targetFrameRate` in the `30-60` range is the normal dedicated-server target. `vSyncCount` should usually stay at `0`.
 
-## Startup And Deployment Details
+## Startup and Deployment Details
 
 This page intentionally stays high level. For startup flags, host sizing, port-forwarding, and command-line override reference, use [Startup and Deployment](configuration/startup-and-deployment.md).
 
