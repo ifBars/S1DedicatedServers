@@ -76,8 +76,8 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 #endif
             SetMemberValue(StrokesMember, drawing, new StrokeListType());
             SetMemberValue(HistoryTextureArrayMember, drawing, null);
-            SetMemberValue(PaintedPixelHistoryMember, drawing, new IntArrayType(CacheHistorySlot + 1));
-            SetMemberValue(StrokeHistoryMember, drawing, new IntArrayType(MaxUndoStates));
+            SetMemberValue(PaintedPixelHistoryMember, drawing, CreateIntArray(CacheHistorySlot + 1));
+            SetMemberValue(StrokeHistoryMember, drawing, CreateIntArray(MaxUndoStates));
             WidthSetter.Invoke(drawing, new object[] { width });
             HeightSetter.Invoke(drawing, new object[] { height });
             OutputTextureSetter.Invoke(drawing, new object[] { null });
@@ -259,6 +259,15 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             {
                 destination.Add(source[i]);
             }
+        }
+
+        private static IntArrayType CreateIntArray(int length)
+        {
+#if IL2CPP
+            return new IntArrayType(length);
+#else
+            return new int[length];
+#endif
         }
 
         private static void CopyIntArray(IntArrayType source, IntArrayType destination, int count)
