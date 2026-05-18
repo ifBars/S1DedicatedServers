@@ -12,6 +12,7 @@ using FishNet;
 using FishNet.Transporting;
 #endif
 #if IL2CPP
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Newtonsoft.Json;
 using Il2CppSteamworks;
 #else
@@ -194,12 +195,16 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
+            DebugLog.AuthenticationDebug(
+                $"Received auth challenge: provider={challenge.Provider}, noncePresent={!string.IsNullOrEmpty(challenge.Nonce)}, " +
+                $"serverSteamId={(string.IsNullOrWhiteSpace(challenge.ServerSteamId) ? "<none>" : challenge.ServerSteamId)}, timeoutSeconds={challenge.TimeoutSeconds}");
+
             if (!string.IsNullOrWhiteSpace(challenge.ServerSteamId))
             {
                 CustomMessaging.SetServerPeerHint(challenge.ServerSteamId);
             }
 
-            if (!TryCreateAuthSessionTicket(out string steamId, out string ticketHex))
+            if (!TryCreateAuthSessionTicket(challenge.ServerSteamId, out string steamId, out string ticketHex))
             {
                 DebugLog.Warning("Failed to create Steam auth ticket for challenge");
                 return;
@@ -246,6 +251,10 @@ namespace DedicatedServerMod.Client.Managers
 
             _isAuthenticated = result.Success;
             _isHandshakeStarted = false;
+            if (!result.Success)
+            {
+                CancelActiveTicket();
+            }
 
             if (result.Success)
             {
@@ -264,7 +273,7 @@ namespace DedicatedServerMod.Client.Managers
             BeginHandshake();
         }
 
-        private bool TryCreateAuthSessionTicket(out string steamId, out string ticketHex)
+        private bool TryCreateAuthSessionTicket(string serverSteamId, out string steamId, out string ticketHex)
         {
             steamId = string.Empty;
             ticketHex = string.Empty;
@@ -281,13 +290,26 @@ namespace DedicatedServerMod.Client.Managers
             {
                 steamId = steamIdValue.ToString(CultureInfo.InvariantCulture);
 
-                byte[] ticketBuffer = new byte[1024];
                 uint ticketSize = 0;
-                SteamNetworkingIdentity identity = default;
+                bool hasServerIdentity = TryCreateAuthTicketIdentity(serverSteamId, out SteamNetworkingIdentity identity);
 
                 CancelActiveTicket();
 
+                DebugLog.AuthenticationDebug(
+                    $"Requesting Steam auth ticket: localSteamId={steamId}, " +
+                    $"serverSteamId={(string.IsNullOrWhiteSpace(serverSteamId) ? "<none>" : serverSteamId)}, identityBound={hasServerIdentity}");
+
+#if IL2CPP
+                var ticketBuffer = new Il2CppStructArray<byte>(1024);
                 _activeAuthTicket = SteamUser.GetAuthSessionTicket(ticketBuffer, ticketBuffer.Length, out ticketSize, ref identity);
+#else
+                byte[] ticketBuffer = new byte[1024];
+                _activeAuthTicket = SteamUser.GetAuthSessionTicket(ticketBuffer, ticketBuffer.Length, out ticketSize, ref identity);
+#endif
+                DebugLog.AuthenticationDebug(
+                    $"Steam auth ticket result: handle={_activeAuthTicket.m_HAuthTicket.ToString(CultureInfo.InvariantCulture)}, " +
+                    $"ticketSize={ticketSize.ToString(CultureInfo.InvariantCulture)}, identityBound={hasServerIdentity}");
+
                 if (_activeAuthTicket == HAuthTicket.Invalid || ticketSize == 0)
                 {
                     _activeAuthTicket = HAuthTicket.Invalid;
@@ -295,6 +317,8 @@ namespace DedicatedServerMod.Client.Managers
                 }
 
                 ticketHex = BytesToHex(ticketBuffer, (int)ticketSize);
+                DebugLog.AuthenticationDebug(
+                    $"Created Steam auth ticket for SteamID {steamId} with {ticketSize.ToString(CultureInfo.InvariantCulture)} bytes");
                 return true;
             }
             catch (Exception ex)
@@ -302,6 +326,19 @@ namespace DedicatedServerMod.Client.Managers
                 DebugLog.Warning($"Error creating auth session ticket: {ex.Message}");
                 return false;
             }
+        }
+
+        private static bool TryCreateAuthTicketIdentity(string serverSteamId, out SteamNetworkingIdentity identity)
+        {
+            identity = default;
+            if (ulong.TryParse(serverSteamId, NumberStyles.None, CultureInfo.InvariantCulture, out ulong serverSteamIdValue) &&
+                serverSteamIdValue != 0)
+            {
+                identity.SetSteamID64(serverSteamIdValue);
+                return true;
+            }
+
+            return false;
         }
 
         private void CancelActiveTicket()
@@ -372,5 +409,18 @@ namespace DedicatedServerMod.Client.Managers
 
             return builder.ToString();
         }
+
+#if IL2CPP
+        private static string BytesToHex(Il2CppStructArray<byte> bytes, int length)
+        {
+            var builder = new StringBuilder(length * 2);
+            for (int i = 0; i < length; i++)
+            {
+                builder.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return builder.ToString();
+        }
+#endif
     }
 }

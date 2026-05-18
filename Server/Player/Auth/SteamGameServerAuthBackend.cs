@@ -233,6 +233,11 @@ namespace DedicatedServerMod.Server.Player.Auth
                 };
             }
 
+            DebugLog.AuthenticationDebug(
+                $"Steam auth begin input: apiMode={_apiMode}, connectionClientId={connection.ClientId}, " +
+                $"claimedSteamId={steamIdValue.ToString(CultureInfo.InvariantCulture)}, ticketBytes={ticketBytes.Length.ToString(CultureInfo.InvariantCulture)}, " +
+                $"authApiLoggedOn={IsAuthApiLoggedOn()}, localAuthSteamId={GetActiveAuthSteamId()}");
+
             if (_pendingBySteamId.ContainsKey(steamIdValue))
             {
                 return new AuthBeginResult
@@ -249,6 +254,9 @@ namespace DedicatedServerMod.Server.Player.Auth
 
             CSteamID steamId = new CSteamID(steamIdValue);
             EBeginAuthSessionResult beginResult = BeginAuthSession(ticketBytes, steamId);
+            DebugLog.AuthenticationDebug(
+                $"Steam BeginAuthSession returned {beginResult} for claimedSteamId={steamIdValue.ToString(CultureInfo.InvariantCulture)} " +
+                $"using apiMode={_apiMode} and ticketBytes={ticketBytes.Length.ToString(CultureInfo.InvariantCulture)}");
 
             if (beginResult != EBeginAuthSessionResult.k_EBeginAuthSessionResultOK)
             {
@@ -541,6 +549,26 @@ namespace DedicatedServerMod.Server.Player.Auth
                 case SteamAuthApiMode.GameServer:
                 default:
                     return "Steam game server is not logged on yet; retrying is allowed";
+            }
+        }
+
+        private string GetActiveAuthSteamId()
+        {
+            try
+            {
+                switch (_apiMode)
+                {
+                    case SteamAuthApiMode.GameServer:
+                        return SteamGameServer.GetSteamID().m_SteamID.ToString(CultureInfo.InvariantCulture);
+                    case SteamAuthApiMode.SteamUser:
+                        return SteamUser.GetSteamID().m_SteamID.ToString(CultureInfo.InvariantCulture);
+                    default:
+                        return "<none>";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"<unavailable:{ex.Message}>";
             }
         }
 

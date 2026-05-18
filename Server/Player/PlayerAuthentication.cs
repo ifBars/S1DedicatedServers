@@ -111,12 +111,18 @@ namespace DedicatedServerMod.Server.Player
             playerInfo.AuthenticationNonce = nonce;
             playerInfo.LastAuthenticationMessage = "Authentication challenge issued";
 
+            string serverSteamId = GetServerSteamIdHint();
+            DebugLog.AuthenticationDebug(
+                $"Issuing auth challenge for ClientId {playerInfo.ClientId}: provider={ActiveProvider}, " +
+                $"noncePresent={!string.IsNullOrEmpty(nonce)}, serverSteamId={(string.IsNullOrWhiteSpace(serverSteamId) ? "<none>" : serverSteamId)}, " +
+                $"timeoutSeconds={ServerConfig.Instance.AuthTimeoutSeconds}");
+
             return new AuthChallengeMessage
             {
                 Provider = ToWireProviderName(ActiveProvider),
                 Nonce = nonce,
                 TimeoutSeconds = ServerConfig.Instance.AuthTimeoutSeconds,
-                ServerSteamId = GetServerSteamIdHint(),
+                ServerSteamId = serverSteamId,
                 WebApiIdentity = string.Empty
             };
         }
@@ -210,6 +216,11 @@ namespace DedicatedServerMod.Server.Player
                 ApplyResult(playerInfo, bannedResult);
                 return bannedResult;
             }
+
+            DebugLog.AuthenticationDebug(
+                $"Received auth ticket for ClientId {playerInfo.ClientId}: provider={ticketMessage.Provider}, " +
+                $"steamId={(string.IsNullOrWhiteSpace(ticketMessage.SteamId) ? "<empty>" : ticketMessage.SteamId)}, " +
+                $"ticketHexLength={(ticketMessage.TicketHex == null ? 0 : ticketMessage.TicketHex.Length)}, nonceMatches=true");
 
             AuthBeginResult beginResult = _backend.BeginAuthentication(playerInfo.Connection, ticketMessage);
             if (beginResult.IsPending)
