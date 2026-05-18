@@ -51,6 +51,7 @@ Current beta builds continue initial IL2CPP support. If a problem only reproduce
 
 - Confirm the normal Steam API plugin exists at `Schedule I_Data\Plugins\x86_64\steam_api64.dll`. The Goldberg emulator file `steam_api64.dll.emu`, `steam_settings`, and `userdata` folders are local testing artifacts and are not expected in a normal Steam install.
 - If you are relying on an active Steam client context, confirm Steam is running under the same Windows user as the server process.
+- If the server and game client run on the same PC, launch the normal Schedule I client before starting the Steam game server. Steam may block opening the client after the Steam game server is already running, while starting the client first and then `start_server.bat` can keep both running.
 - Confirm the local machine is not already using the configured `serverPort` or `steamGameServerQueryPort`. Port conflicts can prevent Steam game server initialization even before router forwarding matters.
 
 ### Clients disconnect right after connecting

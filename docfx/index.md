@@ -55,6 +55,8 @@ Set `S1DS_RUNTIME=mono` or `S1DS_RUNTIME=il2cpp` when the container starts. If y
 6. Edit `server_config.toml` and set `saveGamePath`.
 7. Start the server again with `start_server.bat`.
 
+If you host the Steam game server on the same PC where you play, launch the normal Schedule I client first. Steam may block starting the game client after the Steam game server process is already running, but the reverse order works: start the client, then start `start_server.bat`.
+
 For save path details, see [Save Path](docs/configuration/save-path.md).
 
 ## Prepare a Client Install

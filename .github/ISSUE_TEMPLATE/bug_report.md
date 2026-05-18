@@ -27,8 +27,7 @@ What actually happened.
 - MelonLoader Version: 
 - Game Version: 
 - OS: Windows 10/11 / Windows Server 2019 / Linux
-- Build Type: Mono_Server / Il2cpp_Server
-- Runtime Scope: Mono only / IL2CPP only / both
+- Affected Build(s): Mono_Server / Il2cpp_Server / Mono_Client / Il2cpp_Client / multiple
 
 ## Logs
 ```log
