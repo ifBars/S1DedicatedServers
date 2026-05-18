@@ -6,16 +6,21 @@ using DedicatedServerMod.Server.Game.Patches.Common;
 using HarmonyLib;
 #if IL2CPP
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using DrawingType = Il2CppScheduleOne.Graffiti.Drawing;
+using IntArrayType = Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<int>;
 using PixelDataType = Il2CppScheduleOne.Graffiti.PixelData;
 using SprayStrokeType = Il2CppScheduleOne.Graffiti.SprayStroke;
 using SpraySurfaceType = Il2CppScheduleOne.Graffiti.SpraySurface;
+using StrokeListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Graffiti.SprayStroke>;
 using TextureChangedCallbackType = Il2CppSystem.Action;
 #else
 using DrawingType = ScheduleOne.Graffiti.Drawing;
+using IntArrayType = System.Int32[];
 using PixelDataType = ScheduleOne.Graffiti.PixelData;
 using SprayStrokeType = ScheduleOne.Graffiti.SprayStroke;
 using SpraySurfaceType = ScheduleOne.Graffiti.SpraySurface;
+using StrokeListType = System.Collections.Generic.List<ScheduleOne.Graffiti.SprayStroke>;
 using TextureChangedCallbackType = System.Action;
 #endif
 
@@ -26,13 +31,13 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private const int MaxUndoStates = 10;
         private const int CacheHistorySlot = 10;
 
-        private static readonly FieldInfo DrawingField = AccessTools.Field(typeof(SpraySurfaceType), "drawing");
+        private static readonly MemberInfo DrawingMember = FindFieldOrProperty(typeof(SpraySurfaceType), "drawing");
         private static readonly MethodInfo DrawingChangedMethod = AccessTools.Method(typeof(SpraySurfaceType), "DrawingChanged");
 
-        private static readonly FieldInfo StrokesField = AccessTools.Field(typeof(DrawingType), "strokes");
-        private static readonly FieldInfo HistoryTextureArrayField = AccessTools.Field(typeof(DrawingType), "_historyTextureArray");
-        private static readonly FieldInfo PaintedPixelHistoryField = AccessTools.Field(typeof(DrawingType), "PaintedPixelHistory");
-        private static readonly FieldInfo StrokeHistoryField = AccessTools.Field(typeof(DrawingType), "_strokeHistory");
+        private static readonly MemberInfo StrokesMember = FindFieldOrProperty(typeof(DrawingType), "strokes");
+        private static readonly MemberInfo HistoryTextureArrayMember = FindFieldOrProperty(typeof(DrawingType), "_historyTextureArray");
+        private static readonly MemberInfo PaintedPixelHistoryMember = FindFieldOrProperty(typeof(DrawingType), "PaintedPixelHistory");
+        private static readonly MemberInfo StrokeHistoryMember = FindFieldOrProperty(typeof(DrawingType), "_strokeHistory");
 
         private static readonly MethodInfo WidthSetter = AccessTools.PropertySetter(typeof(DrawingType), "_width");
         private static readonly MethodInfo HeightSetter = AccessTools.PropertySetter(typeof(DrawingType), "_height");
@@ -49,12 +54,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
         internal static DrawingType GetDrawing(SpraySurfaceType surface)
         {
-            return surface == null ? null : (DrawingType)DrawingField.GetValue(surface);
+            return surface == null ? null : (DrawingType)GetMemberValue(DrawingMember, surface);
         }
 
         internal static void SetDrawing(SpraySurfaceType surface, DrawingType drawing)
         {
-            DrawingField.SetValue(surface, drawing);
+            SetMemberValue(DrawingMember, surface, drawing);
         }
 
         internal static bool IsHeadless(DrawingType drawing)
@@ -64,11 +69,15 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
         internal static DrawingType CreateHeadlessDrawing(int width, int height)
         {
+#if IL2CPP
+            var drawing = new DrawingType(IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<DrawingType>.NativeClassPtr));
+#else
             var drawing = (DrawingType)FormatterServices.GetUninitializedObject(typeof(DrawingType));
-            StrokesField.SetValue(drawing, new List<SprayStrokeType>());
-            HistoryTextureArrayField.SetValue(drawing, null);
-            PaintedPixelHistoryField.SetValue(drawing, new int[CacheHistorySlot + 1]);
-            StrokeHistoryField.SetValue(drawing, new int[MaxUndoStates]);
+#endif
+            SetMemberValue(StrokesMember, drawing, new StrokeListType());
+            SetMemberValue(HistoryTextureArrayMember, drawing, null);
+            SetMemberValue(PaintedPixelHistoryMember, drawing, new IntArrayType(CacheHistorySlot + 1));
+            SetMemberValue(StrokeHistoryMember, drawing, new IntArrayType(MaxUndoStates));
             WidthSetter.Invoke(drawing, new object[] { width });
             HeightSetter.Invoke(drawing, new object[] { height });
             OutputTextureSetter.Invoke(drawing, new object[] { null });
@@ -82,28 +91,28 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         internal static DrawingType CloneHeadlessDrawing(DrawingType source)
         {
             var copy = CreateHeadlessDrawing(GetWidth(source), GetHeight(source));
-            GetStrokes(copy).AddRange(GetStrokes(source));
-            Array.Copy(GetPaintedPixelHistory(source), GetPaintedPixelHistory(copy), CacheHistorySlot + 1);
-            Array.Copy(GetStrokeHistory(source), GetStrokeHistory(copy), MaxUndoStates);
+            CopyStrokes(GetStrokes(source), GetStrokes(copy));
+            CopyIntArray(GetPaintedPixelHistory(source), GetPaintedPixelHistory(copy), CacheHistorySlot + 1);
+            CopyIntArray(GetStrokeHistory(source), GetStrokeHistory(copy), MaxUndoStates);
             copy.PaintedPixelCount = source.PaintedPixelCount;
             SetHistoryIndex(copy, source.HistoryIndex);
             SetHistoryCount(copy, source.HistoryCount);
             return copy;
         }
 
-        internal static List<SprayStrokeType> GetStrokes(DrawingType drawing)
+        internal static StrokeListType GetStrokes(DrawingType drawing)
         {
-            return (List<SprayStrokeType>)StrokesField.GetValue(drawing);
+            return (StrokeListType)GetMemberValue(StrokesMember, drawing);
         }
 
-        internal static int[] GetPaintedPixelHistory(DrawingType drawing)
+        internal static IntArrayType GetPaintedPixelHistory(DrawingType drawing)
         {
-            return (int[])PaintedPixelHistoryField.GetValue(drawing);
+            return (IntArrayType)GetMemberValue(PaintedPixelHistoryMember, drawing);
         }
 
-        internal static int[] GetStrokeHistory(DrawingType drawing)
+        internal static IntArrayType GetStrokeHistory(DrawingType drawing)
         {
-            return (int[])StrokeHistoryField.GetValue(drawing);
+            return (IntArrayType)GetMemberValue(StrokeHistoryMember, drawing);
         }
 
         internal static int GetWidth(DrawingType drawing)
@@ -126,7 +135,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             HistoryCountSetter.Invoke(drawing, new object[] { value });
         }
 
-        internal static int CountPaintOperations(IEnumerable<SprayStrokeType> strokes)
+        internal static int CountPaintOperations(StrokeListType strokes)
         {
             int total = 0;
             if (strokes == null)
@@ -134,8 +143,9 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return total;
             }
 
-            foreach (var stroke in strokes)
+            for (int i = 0; i < strokes.Count; i++)
             {
+                SprayStrokeType stroke = strokes[i];
                 if (stroke == null)
                 {
                     continue;
@@ -149,6 +159,17 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             }
 
             return total;
+        }
+
+        internal static int CountPaintOperations(SprayStrokeType stroke)
+        {
+            if (stroke == null)
+            {
+                return 0;
+            }
+
+            var pixels = stroke.GetPixelsFromStroke();
+            return pixels?.Count ?? 0;
         }
 
         internal static TextureChangedCallbackType CreateDrawingChangedCallback(SpraySurfaceType surface)
@@ -174,6 +195,84 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         internal static void NotifySurfaceChanged(SpraySurfaceType surface)
         {
             DrawingChangedMethod?.Invoke(surface, null);
+        }
+
+        private static MemberInfo FindFieldOrProperty(Type type, string name)
+        {
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
+            for (Type current = type; current != null; current = current.BaseType)
+            {
+                FieldInfo field = current.GetField(name, flags);
+                if (field != null)
+                {
+                    return field;
+                }
+
+                PropertyInfo property = current.GetProperty(name, flags);
+                if (property != null)
+                {
+                    return property;
+                }
+            }
+
+            return null;
+        }
+
+        private static object GetMemberValue(MemberInfo member, object instance)
+        {
+            if (member is FieldInfo field)
+            {
+                return field.GetValue(instance);
+            }
+
+            if (member is PropertyInfo property)
+            {
+                return property.GetValue(instance, null);
+            }
+
+            return null;
+        }
+
+        private static void SetMemberValue(MemberInfo member, object instance, object value)
+        {
+            if (member is FieldInfo field)
+            {
+                field.SetValue(instance, value);
+                return;
+            }
+
+            if (member is PropertyInfo property)
+            {
+                property.SetValue(instance, value, null);
+            }
+        }
+
+        private static void CopyStrokes(StrokeListType source, StrokeListType destination)
+        {
+            if (source == null || destination == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < source.Count; i++)
+            {
+                destination.Add(source[i]);
+            }
+        }
+
+        private static void CopyIntArray(IntArrayType source, IntArrayType destination, int count)
+        {
+            if (source == null || destination == null)
+            {
+                return;
+            }
+
+            int limit = Math.Min(count, Math.Min(source.Length, destination.Length));
+            for (int i = 0; i < limit; i++)
+            {
+                destination[i] = source[i];
+            }
         }
     }
 
@@ -257,7 +356,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             }
 
             HeadlessGraffitiPatchState.GetStrokes(__instance).Add(stroke);
-            __instance.PaintedPixelCount += HeadlessGraffitiPatchState.CountPaintOperations(new[] { stroke });
+            __instance.PaintedPixelCount += HeadlessGraffitiPatchState.CountPaintOperations(stroke);
             HeadlessGraffitiPatchState.NotifyTextureChanged(__instance);
             return false;
         }
@@ -269,7 +368,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(DrawingType), nameof(DrawingType.AddStrokes))]
     internal static class DrawingAddStrokesHeadlessPatches
     {
-        private static bool Prefix(DrawingType __instance, List<SprayStrokeType> newStrokes)
+        private static bool Prefix(DrawingType __instance, StrokeListType newStrokes)
         {
             if (!HeadlessGraffitiPatchState.IsHeadless(__instance))
             {
@@ -281,7 +380,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return false;
             }
 
-            HeadlessGraffitiPatchState.GetStrokes(__instance).AddRange(newStrokes);
+            StrokeListType strokes = HeadlessGraffitiPatchState.GetStrokes(__instance);
+            for (int i = 0; i < newStrokes.Count; i++)
+            {
+                strokes.Add(newStrokes[i]);
+            }
+
             __instance.PaintedPixelCount += HeadlessGraffitiPatchState.CountPaintOperations(newStrokes);
             HeadlessGraffitiPatchState.NotifyTextureChanged(__instance);
             return false;
@@ -395,7 +499,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             int historyIndex = __instance.HistoryIndex;
             __instance.PaintedPixelCount = HeadlessGraffitiPatchState.GetPaintedPixelHistory(__instance)[historyIndex];
 
-            List<SprayStrokeType> strokes = HeadlessGraffitiPatchState.GetStrokes(__instance);
+            StrokeListType strokes = HeadlessGraffitiPatchState.GetStrokes(__instance);
             int targetStrokeCount = HeadlessGraffitiPatchState.GetStrokeHistory(__instance)[historyIndex];
             if (targetStrokeCount < strokes.Count)
             {

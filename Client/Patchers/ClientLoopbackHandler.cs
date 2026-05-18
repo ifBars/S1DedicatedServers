@@ -172,15 +172,6 @@ namespace DedicatedServerMod.Client.Patchers
                 }
             }
 
-            foreach (var candidate in UnityComponentAccess.FindObjectsOfType<Player>(includeInactive: true))
-            {
-                if (candidate?.PoI == poi && candidate.IsGhostHost())
-                {
-                    player = candidate;
-                    return true;
-                }
-            }
-
             player = null;
             return false;
         }
