@@ -3,9 +3,10 @@ import logoIcon from "@/assets/logo-icon.png";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { label: "For Hosts", href: "#for-hosts" },
-  { label: "For Developers", href: "#for-developers" },
-  { label: "Getting Started", href: "#getting-started" },
+  { label: "For Hosts", href: "/#for-hosts" },
+  { label: "For Developers", href: "/#for-developers" },
+  { label: "Config Generator", href: "/config-generator" },
+  { label: "Getting Started", href: "/#getting-started" },
   { label: "Docs", href: "https://docs.s1servers.com/" },
 ];
 
@@ -33,7 +34,7 @@ const Header = () => {
         }`}
     >
       <div className="container relative flex items-center justify-between h-16 px-4 md:px-8">
-        <a href="#" className="flex items-center gap-2.5 shrink-0">
+        <a href="/" className="flex items-center gap-2.5 shrink-0">
           <img src={logoIcon} alt="S1DedicatedServers logo" className="w-7 h-7" />
           <span className="font-semibold text-foreground text-sm tracking-tight">
             S1DS
