@@ -64,7 +64,7 @@ namespace DedicatedServerMod.Server.HostConsole
                         break;
                     }
 
-                    _commandManager.ExecuteConsoleLine(line, _output);
+                    _commandManager.ExecuteConsoleLineOnServerThread(line, _output);
                 }
             }
             catch (Exception ex)

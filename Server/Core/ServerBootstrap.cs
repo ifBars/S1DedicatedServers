@@ -223,6 +223,15 @@ namespace DedicatedServerMod.Server.Core
 
             try
             {
+                _commandManager?.ProcessQueuedCommands();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Queued command tick error: {ex.Message}");
+            }
+
+            try
+            {
                 _playerManager?.Update();
             }
             catch (Exception ex)

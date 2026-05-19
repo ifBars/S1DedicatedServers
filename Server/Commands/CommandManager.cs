@@ -11,6 +11,8 @@ using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace DedicatedServerMod.Server.Commands
 {
@@ -19,10 +21,14 @@ namespace DedicatedServerMod.Server.Commands
     /// </summary>
     public class CommandManager
     {
+        private const int QueuedCommandWaitTimeoutMilliseconds = 30000;
+
         private readonly PlayerManager playerManager;
         private readonly NetworkManager networkManager;
         private readonly ServerPermissionService permissionService;
         private readonly Dictionary<string, IServerCommand> serverCommands;
+        private readonly ConcurrentQueue<QueuedCommandExecution> queuedCommandExecutions;
+        private int serverThreadId;
 
         /// <summary>
         /// Initializes a new command manager.
@@ -33,6 +39,8 @@ namespace DedicatedServerMod.Server.Commands
             networkManager = networkMgr;
             permissionService = Core.ServerBootstrap.Permissions;
             serverCommands = new Dictionary<string, IServerCommand>();
+            queuedCommandExecutions = new ConcurrentQueue<QueuedCommandExecution>();
+            serverThreadId = Thread.CurrentThread.ManagedThreadId;
         }
 
         /// <summary>
@@ -42,6 +50,7 @@ namespace DedicatedServerMod.Server.Commands
         {
             try
             {
+                MarkServerThread();
                 RegisterServerCommands();
                 IntegrateWithGameConsole();
                 DebugLog.StartupDebug("Command manager initialized");
@@ -67,6 +76,34 @@ namespace DedicatedServerMod.Server.Commands
         internal CommandExecutionResult ExecuteConsoleLine(string rawLine, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor = null)
         {
             return ExecuteConsoleLine(rawLine, legacyOutput: null, replyChannel, executor);
+        }
+
+        /// <summary>
+        /// Executes a raw command line on the server update thread, blocking the caller until the queued command completes.
+        /// </summary>
+        internal CommandExecutionResult ExecuteConsoleLineOnServerThread(string rawLine, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor = null)
+        {
+            if (IsServerThread)
+            {
+                return ExecuteConsoleLine(rawLine, replyChannel, executor);
+            }
+
+            QueuedCommandExecution queuedExecution = new QueuedCommandExecution(rawLine, executor);
+            queuedCommandExecutions.Enqueue(queuedExecution);
+
+            if (!queuedExecution.Wait(QueuedCommandWaitTimeoutMilliseconds))
+            {
+                queuedExecution.Cancel();
+                CommandExecutionResult timeoutResult = new CommandExecutionResult(
+                    CommandExecutionStatus.ExecutionFailed,
+                    string.Empty,
+                    "Command execution timed out while waiting for the server thread.");
+                replyChannel?.Write(new CommandReplyLine(CommandReplyLevel.Error, timeoutResult.Message));
+                return timeoutResult;
+            }
+
+            queuedExecution.ReplayReplies(replyChannel);
+            return queuedExecution.Result;
         }
 
         private CommandExecutionResult ExecuteConsoleLine(string rawLine, ICommandOutput legacyOutput, ICommandReplyChannel replyChannel, ConnectedPlayerInfo executor)
@@ -182,6 +219,19 @@ namespace DedicatedServerMod.Server.Commands
 
             ICommandOutput output = new DelegateCommandOutput(outputInfo, outputWarning, outputError);
             return ExecuteConsoleLine(commandLine, output).Succeeded;
+        }
+
+        /// <summary>
+        /// Executes commands queued by background console transports on the current server update tick.
+        /// </summary>
+        internal void ProcessQueuedCommands()
+        {
+            MarkServerThread();
+
+            while (queuedCommandExecutions.TryDequeue(out QueuedCommandExecution queuedExecution))
+            {
+                queuedExecution.Execute(this);
+            }
         }
 
         /// <summary>
@@ -337,6 +387,96 @@ namespace DedicatedServerMod.Server.Commands
             }
 
             return permissionService?.HasPermission(player.TrustedUniqueId, requiredPermissionNode) == true;
+        }
+
+        private bool IsServerThread => Thread.CurrentThread.ManagedThreadId == serverThreadId;
+
+        private void MarkServerThread()
+        {
+            serverThreadId = Thread.CurrentThread.ManagedThreadId;
+        }
+
+        private sealed class QueuedCommandExecution
+        {
+            private readonly string rawLine;
+            private readonly ConnectedPlayerInfo executor;
+            private readonly BufferedCommandReplyChannel replyBuffer;
+            private readonly ManualResetEventSlim completionSignal = new ManualResetEventSlim(false);
+            private int isCancelled;
+
+            internal QueuedCommandExecution(string rawLine, ConnectedPlayerInfo executor)
+            {
+                this.rawLine = rawLine;
+                this.executor = executor;
+                replyBuffer = new BufferedCommandReplyChannel();
+                Result = new CommandExecutionResult(CommandExecutionStatus.ExecutionFailed, string.Empty, "Command has not executed.");
+            }
+
+            internal CommandExecutionResult Result { get; private set; }
+
+            internal void Cancel()
+            {
+                Interlocked.Exchange(ref isCancelled, 1);
+            }
+
+            internal void Execute(CommandManager commandManager)
+            {
+                if (Interlocked.CompareExchange(ref isCancelled, 0, 0) != 0)
+                {
+                    Result = new CommandExecutionResult(CommandExecutionStatus.ExecutionFailed, string.Empty, "Command execution was cancelled.");
+                    completionSignal.Set();
+                    return;
+                }
+
+                try
+                {
+                    Result = commandManager.ExecuteConsoleLine(rawLine ?? string.Empty, replyBuffer, executor);
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Error("Error executing queued command", ex);
+                    Result = new CommandExecutionResult(
+                        CommandExecutionStatus.ExecutionFailed,
+                        string.Empty,
+                        $"Error executing queued command: {ex.Message}",
+                        ex);
+                    replyBuffer.Write(new CommandReplyLine(CommandReplyLevel.Error, Result.Message));
+                }
+                finally
+                {
+                    completionSignal.Set();
+                }
+            }
+
+            internal void ReplayReplies(ICommandReplyChannel replyChannel)
+            {
+                if (replyChannel == null)
+                {
+                    return;
+                }
+
+                foreach (CommandReplyLine line in replyBuffer.Lines)
+                {
+                    replyChannel.Write(line);
+                }
+            }
+
+            internal bool Wait(int timeoutMilliseconds)
+            {
+                return completionSignal.Wait(timeoutMilliseconds);
+            }
+        }
+
+        private sealed class BufferedCommandReplyChannel : ICommandReplyChannel
+        {
+            private readonly List<CommandReplyLine> lines = new List<CommandReplyLine>();
+
+            internal IReadOnlyList<CommandReplyLine> Lines => lines;
+
+            public void Write(CommandReplyLine line)
+            {
+                lines.Add(line);
+            }
         }
     }
 }

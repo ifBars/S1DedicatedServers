@@ -184,7 +184,7 @@ namespace DedicatedServerMod.Server.HostConsole
                             break;
                         }
 
-                        _commandManager.ExecuteConsoleLine(trimmedLine, output);
+                        _commandManager.ExecuteConsoleLineOnServerThread(trimmedLine, output);
                     }
                 }
                 catch (IOException)
