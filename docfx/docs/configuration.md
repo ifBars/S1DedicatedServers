@@ -31,6 +31,9 @@ The shortest path to a working server is:
 Minimal example:
 
 ```toml
+[server]
+maxPlayers = 16
+
 [storage]
 saveGamePath = 'C:\Users\you\AppData\LocalLow\TVGS\Schedule I\Saves\<SteamID>\SaveGame_1'
 
@@ -44,6 +47,8 @@ steamGameServerMode = 'Authentication'
 [messaging]
 messagingBackend = 'FishNetRpc'
 ```
+
+DedicatedServerMod does not use the vanilla Steam lobby 4-player cap for direct-IP joins; use `[server].maxPlayers` to control server capacity.
 
 If the resolved save folder is missing core files such as `Game.json`, `Metadata.json`, or `Players`, the server attempts to prepare it from the game's `DefaultSave` template and embedded loopback host data before loading. Starting with a server-managed save is recommended. If you import an existing single-player save, start the server once first and avoid overwriting the server-created `Players\Player_0` data. See [Save Path](configuration/save-path.md#importing-an-existing-single-player-save).
 
