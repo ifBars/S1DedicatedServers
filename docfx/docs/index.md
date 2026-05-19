@@ -6,6 +6,7 @@ Key docs:
 
 - [Quick Start](../index.md)
 - [Docker Deployment](docker.md)
+- [Hosting Providers](hosting-providers.md)
 - [Configuration](configuration.md)
 - [Web Panel](configuration/web-panel.md)
 - [Permissions](configuration/permissions.md)
@@ -23,6 +24,7 @@ Key docs:
 - Please search existing issues before opening a new one; if you don't see your problem reported, opening an issue on GitHub is encouraged.
 - Current beta builds continue initial IL2CPP support. If you hit IL2CPP-specific issues, please open a GitHub issue and include logs, runtime type, and reproduction steps.
 - Docker deployment now supports both Mono and IL2CPP through the same image and release package by setting `S1DS_RUNTIME`.
+- Third-party hosting providers may offer S1DedicatedServers-compatible hosting independently; see [Hosting Providers](hosting-providers.md) for the current partner status and provider guidance.
 - Reproduction steps, logs, and any installed mods details are extremely helpful.
 - Feedback, suggestions, and pull requests are welcome and appreciated.
 

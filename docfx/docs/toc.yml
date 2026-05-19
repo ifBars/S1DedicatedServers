@@ -6,6 +6,8 @@
     href: ../index.md
   - name: Docker Deployment
     href: docker.md
+  - name: Hosting Providers
+    href: hosting-providers.md
   - name: Documentation Maintenance
     href: documentation-maintenance.md
 - name: Configuration

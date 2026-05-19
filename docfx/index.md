@@ -40,6 +40,12 @@ For containerized hosting, use the Docker release package and follow [Docker Dep
 
 Set `S1DS_RUNTIME=mono` or `S1DS_RUNTIME=il2cpp` when the container starts. If you do not set it, the container defaults to Mono.
 
+## Hosting Providers
+
+Some third-party hosting providers may offer Schedule I or S1DedicatedServers-compatible hosting independently. They are not official partners, affiliates, or endorsed providers unless the [Hosting Providers](docs/hosting-providers.md) page explicitly marks them that way.
+
+Commercial hosts can contact the project maintainer for setup guidance, version coordination, attribution guidelines, and partnership or affiliate options.
+
 ## Create a Server Install
 
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.
@@ -70,6 +76,7 @@ For save path details, see [Save Path](docs/configuration/save-path.md).
 - [Overview](docs/index.md)
 - [Configuration](docs/configuration.md) to harden and tune the server
 - [Authentication](docs/configuration/authentication.md)
+- [Hosting Providers](docs/hosting-providers.md) for third-party host and commercial provider guidance
 - [Host Console](docs/host-console.md) for panel-hosted stdin/stdout administration
 - [Web Panel](docs/configuration/web-panel.md) for local browser-based administration
 - [Troubleshooting](docs/troubleshooting.md) if startup or connection fails

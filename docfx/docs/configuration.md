@@ -61,6 +61,8 @@ If the resolved save folder is missing core files such as `Game.json`, `Metadata
 | Docker or hosted panel | `authProvider = 'SteamGameServer'`, choose `FishNetRpc` for the simplest path or `SteamNetworkingSockets` if you want Steam relay/routing behavior, and use stdio host console guidance from [Host Console](host-console.md) |
 | IL2CPP native hosting | Start with `messagingBackend = 'FishNetRpc'` unless you specifically want the Steam relay/routing behavior from `SteamNetworkingSockets` |
 
+For third-party hosts and commercial provider guidance, see [Hosting Providers](hosting-providers.md).
+
 ## Configuration Areas
 
 Use the focused pages below when you need the full setting list, examples, or troubleshooting for one area.

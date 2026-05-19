@@ -33,6 +33,7 @@ Current beta builds continue the initial IL2CPP support for dedicated server and
 - [Docs site](https://docs.s1servers.com/)
 - [Quick Start](https://docs.s1servers.com/)
 - [Docker Deployment](https://docs.s1servers.com/docs/docker.html)
+- [Hosting Providers](https://docs.s1servers.com/docs/hosting-providers.html)
 - [Configuration](https://docs.s1servers.com/docs/configuration.html)
 - [Web Panel](https://docs.s1servers.com/docs/configuration/web-panel.html)
 - [Authentication](https://docs.s1servers.com/docs/configuration/authentication.html)

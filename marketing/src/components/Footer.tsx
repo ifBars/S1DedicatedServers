@@ -78,6 +78,7 @@ const Footer = () => {
             <div className="flex items-center gap-6">
               <a href="https://github.com/ifBars/S1DedicatedServers" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">GitHub</a>
               <a href="https://docs.s1servers.com/docs/index.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Docs</a>
+              <a href="https://docs.s1servers.com/docs/hosting-providers.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Hosting Providers</a>
               <a href="https://github.com/ifBars/S1DedicatedServers/releases" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Releases</a>
             </div>
           </div>
@@ -91,6 +92,7 @@ const Footer = () => {
                 s1servers.com
               </a>
               . Similarly named closed-source projects are separate and unaffiliated.
+              Third-party hosting providers may support this project independently and are not endorsed unless explicitly marked in the documentation.
               All game assets and trademarks belong to their respective owners.
             </p>
           </div>
