@@ -2,11 +2,13 @@ using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Console;
 using DedicatedServerMod.Server.Game.Patches.Gameplay;
 using DedicatedServerMod.Server.Game.Patches.Player;
+using DedicatedServerMod.Server.Game.Patches.UI;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ConsoleSupport;
 using DedicatedServerMod.Utils;
 using HarmonyLib;
 using MelonLoader;
+using UnityEngine;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
@@ -67,6 +69,7 @@ namespace DedicatedServerMod.Server.Game
                 appliedPatches.Add("PlayerNameFriendGatePatch");
                 PatchCasinoRemoteClientFlow();
                 PatchHeadlessSleepCompletion();
+                PatchEasyFeedbackHeadlessLogCollector();
 
                 // 3) Console command permissions
                 PatchConsoleSubmitCommand();
@@ -79,6 +82,45 @@ namespace DedicatedServerMod.Server.Game
             catch (Exception ex)
             {
                 DebugLog.Error("Error applying server patches", ex);
+            }
+        }
+
+        /// <summary>
+        /// Disables the bundled feedback form's in-memory log collector on headless servers.
+        /// Disk logging remains handled by MelonLoader.
+        /// </summary>
+        private void PatchEasyFeedbackHeadlessLogCollector()
+        {
+            try
+            {
+                Type collectorType = AccessTools.TypeByName("AeLa.EasyFeedback.FormElements.DebugLogCollector")
+                    ?? AccessTools.TypeByName("Il2CppAeLa.EasyFeedback.FormElements.DebugLogCollector");
+                if (collectorType == null)
+                {
+                    DebugLog.StartupDebug("EasyFeedback DebugLogCollector type was not found; headless log collector patch was skipped.");
+                    return;
+                }
+
+                MethodInfo target = AccessTools.Method(
+                    collectorType,
+                    "HandleLog",
+                    new[] { typeof(string), typeof(string), typeof(LogType) });
+                if (target == null)
+                {
+                    DebugLog.Warning("Could not find EasyFeedback DebugLogCollector.HandleLog; headless log collector patch was skipped.");
+                    return;
+                }
+
+                MethodInfo prefix = typeof(EasyFeedbackHeadlessPatches).GetMethod(
+                    nameof(EasyFeedbackHeadlessPatches.HandleLogPrefix),
+                    BindingFlags.Public | BindingFlags.Static);
+                harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+                appliedPatches.Add("EasyFeedbackHeadlessLogCollectorPatch");
+                DebugLog.StartupDebug("Patched EasyFeedback DebugLogCollector.HandleLog for dedicated headless servers.");
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error("Error patching EasyFeedback DebugLogCollector.HandleLog", ex);
             }
         }
 
