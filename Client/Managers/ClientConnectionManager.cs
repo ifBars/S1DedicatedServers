@@ -67,6 +67,7 @@ namespace DedicatedServerMod.Client.Managers
         private bool _isConnectionStateHooked;
         private string _pendingDisconnectTitle;
         private string _pendingDisconnectReason;
+        private long _activeJoinAttemptId;
         private readonly List<JoinPreparationRegistrationEntry> _joinPreparationRegistrations = new List<JoinPreparationRegistrationEntry>();
         private long _nextJoinPreparationOrder;
 
@@ -74,6 +75,7 @@ namespace DedicatedServerMod.Client.Managers
         public bool IsConnectedToDedicatedServer { get; private set; }
         public string LastConnectionError { get; private set; }
         public bool ShouldBlockLoadingScreenClose => IsConnecting && !_isReturningToMenu && _worldLoadCompleted && (!_authSucceeded || !_modVerificationSucceeded);
+        internal bool IsReturningToMenu => _isReturningToMenu;
 
         public event Action<string, int> DedicatedServerConnected;
 
@@ -143,15 +145,16 @@ namespace DedicatedServerMod.Client.Managers
             IsConnectedToDedicatedServer = false;
             _isTugboatMode = true;
             LastConnectionError = null;
+            long joinAttemptId = ++_activeJoinAttemptId;
 
-            MelonCoroutines.Start(ClientLoadSequence());
+            MelonCoroutines.Start(ClientLoadSequence(joinAttemptId));
         }
 
         /// <summary>
         /// Full client join coroutine mirroring LoadManager.LoadAsClient (lines 642-727).
         /// Each step is annotated with the corresponding native source line.
         /// </summary>
-        private IEnumerator ClientLoadSequence()
+        private IEnumerator ClientLoadSequence(long joinAttemptId)
         {
             var timeline = new JoinTimeline();
             timeline.Mark("Begin");
@@ -164,6 +167,11 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             yield return RunConnectionPreparationRegistrations();
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
+
             if (TryGetConnectionPreparationError(out string preparationError))
             {
                 HandleConnectionError(preparationError);
@@ -181,8 +189,18 @@ namespace DedicatedServerMod.Client.Managers
                        (loadManager.IsLoading || SceneManager.GetActiveScene().name != "Menu"))
                 {
                     yield return new WaitForSeconds(0.1f);
+                    if (ShouldAbortJoinSequence(joinAttemptId))
+                    {
+                        yield break;
+                    }
+
                     exitElapsed += 0.1f;
                 }
+            }
+
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
             }
 
             // --- Step 2 (native 659-664): Initialize load state ---
@@ -233,8 +251,19 @@ namespace DedicatedServerMod.Client.Managers
             while (SceneManager.GetActiveScene().name != "Main" && sceneElapsed < sceneTimeout)
             {
                 yield return new WaitForSeconds(0.1f);
+                if (ShouldAbortJoinSequence(joinAttemptId))
+                {
+                    yield break;
+                }
+
                 sceneElapsed += 0.1f;
             }
+
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
+
             if (SceneManager.GetActiveScene().name != "Main")
             {
                 timeline.MarkError("MainSceneLoad", $"timeout after {sceneTimeout}s");
@@ -250,6 +279,11 @@ namespace DedicatedServerMod.Client.Managers
                 yield break;
             }
 
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
+
             // --- Step 11 (native 695-697): Pre-load event ---
             timeline.Mark("onPreLoad");
             loadManager.onPreLoad?.Invoke();
@@ -262,8 +296,19 @@ namespace DedicatedServerMod.Client.Managers
             while (Player.Local == null && playerElapsed < playerTimeout)
             {
                 yield return new WaitForSeconds(0.1f);
+                if (ShouldAbortJoinSequence(joinAttemptId))
+                {
+                    yield break;
+                }
+
                 playerElapsed += 0.1f;
             }
+
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
+
             if (Player.Local == null)
             {
                 timeline.MarkError("PlayerLocalSpawn", $"timeout after {playerTimeout}s");
@@ -278,7 +323,14 @@ namespace DedicatedServerMod.Client.Managers
             timeline.Mark("WaitForPlayerData");
             float dataWaitStart = Time.realtimeSinceStartup;
             yield return new WaitUntil((System.Func<bool>)(() =>
+                ShouldAbortJoinSequence(joinAttemptId) ||
                 Player.Local == null || Player.Local.playerDataRetrieveReturned));
+
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
+
             if (Player.Local == null)
             {
                 timeline.MarkError("PlayerDataReceive", "Player.Local was lost before data retrieval completed");
@@ -294,9 +346,15 @@ namespace DedicatedServerMod.Client.Managers
             timeline.Mark("WaitForReplication");
             float replicationWaitStart = Time.realtimeSinceStartup;
             yield return new WaitUntil((System.Func<bool>)(() =>
-                NetworkSingleton<ReplicationQueue>.InstanceExists &&
+                ShouldAbortJoinSequence(joinAttemptId) ||
+                (NetworkSingleton<ReplicationQueue>.InstanceExists &&
                 (NetworkSingleton<ReplicationQueue>.Instance.ReplicationDoneForLocalPlayer ||
-                 NetworkSingleton<ReplicationQueue>.Instance.LocalPlayerReplicationTimedOut)));
+                 NetworkSingleton<ReplicationQueue>.Instance.LocalPlayerReplicationTimedOut))));
+
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
 
             var replicationQueue = NetworkSingleton<ReplicationQueue>.Instance;
             if (replicationQueue.LocalPlayerReplicationTimedOut)
@@ -317,6 +375,11 @@ namespace DedicatedServerMod.Client.Managers
 
             // --- Step 16 (native 715-720): Finalize ---
             yield return new WaitForSeconds(NativeInvariants.POST_LOAD_DELAY_SECONDS);
+            if (ShouldAbortJoinSequence(joinAttemptId))
+            {
+                yield break;
+            }
+
             loadManager.LoadStatus = LoadManager.ELoadStatus.None;
             loadManager.IsLoading = false;
             loadManager.IsGameLoaded = true;
@@ -327,6 +390,11 @@ namespace DedicatedServerMod.Client.Managers
 
             if (_authSucceeded && _modVerificationSucceeded)
                 CompleteJoinAfterVerification();
+        }
+
+        private bool ShouldAbortJoinSequence(long joinAttemptId)
+        {
+            return joinAttemptId != _activeJoinAttemptId || _isReturningToMenu || !IsConnecting;
         }
 
         /// <summary>
@@ -514,6 +582,8 @@ namespace DedicatedServerMod.Client.Managers
                 return;
             }
 
+            _isReturningToMenu = true;
+            _activeJoinAttemptId++;
             MelonCoroutines.Start(ReturnToMenuCoroutine(reason, isFailure, requestPlayerSave));
         }
 

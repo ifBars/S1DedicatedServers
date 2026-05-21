@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if CLIENT
+using DedicatedServerMod.Client.Core;
+#endif
 using DedicatedServerMod.Utils;
 using HarmonyLib;
 using MelonLoader;
@@ -57,6 +60,11 @@ namespace DedicatedServerMod.Shared.Patches
 
             for (int i = 0; i < snapshot.Count; i++)
             {
+                if (ShouldAbortStaggeredInvocation())
+                {
+                    yield break;
+                }
+
                 try
                 {
                     snapshot[i]?.Invoke();
@@ -71,6 +79,15 @@ namespace DedicatedServerMod.Shared.Patches
                     yield return new WaitForSeconds(delay);
                 }
             }
+        }
+
+        private static bool ShouldAbortStaggeredInvocation()
+        {
+#if CLIENT
+            return ClientBootstrap.Instance?.ConnectionManager?.IsReturningToMenu == true;
+#else
+            return false;
+#endif
         }
     }
 }
