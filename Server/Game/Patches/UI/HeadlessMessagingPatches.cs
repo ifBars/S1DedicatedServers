@@ -274,4 +274,16 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
             return !HeadlessMessagingPatchState.ShouldBypassPhoneUi();
         }
     }
+
+    /// <summary>
+    /// Suppresses conversation preview updates when NPC message history loads without phone UI.
+    /// </summary>
+    [HarmonyPatch(typeof(MSGConversationType), "RefreshPreviewText")]
+    internal static class MSGConversationRefreshPreviewTextHeadlessPatches
+    {
+        private static bool Prefix()
+        {
+            return !HeadlessMessagingPatchState.ShouldBypassPhoneUi();
+        }
+    }
 }
