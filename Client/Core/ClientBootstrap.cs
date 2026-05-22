@@ -254,6 +254,7 @@ namespace DedicatedServerMod.Client.Core
                 Patches.GhostHostUiPatches.Initialize();
                 Patches.MessagingPatches.Initialize();
                 Patches.LoadingScreenPatches.Initialize();
+                Patches.VehicleHudPatches.Initialize();
 
                 _logger.Msg("All client patches initialized");
             }
