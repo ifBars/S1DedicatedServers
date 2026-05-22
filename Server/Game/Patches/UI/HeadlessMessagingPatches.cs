@@ -97,6 +97,7 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
 
             conversation.currentResponses = responses ?? new ResponseListType();
             conversation.HasChanged = true;
+            conversation.onResponsesShown?.Invoke();
         }
 
         internal static void ClearResponses(MSGConversationType conversation)
