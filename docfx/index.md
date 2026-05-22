@@ -80,5 +80,4 @@ For save path details, see [Save Path](docs/configuration/save-path.md).
 - [Host Console](docs/host-console.md) for panel-hosted stdin/stdout administration
 - [Web Panel](docs/configuration/web-panel.md) for local browser-based administration
 - [Troubleshooting](docs/troubleshooting.md) if startup or connection fails
-- [Documentation Maintenance](docs/documentation-maintenance.md) when updating docs or public XML comments
 - [API Reference](reference/index.md)

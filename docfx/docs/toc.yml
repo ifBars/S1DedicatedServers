@@ -8,8 +8,6 @@
     href: docker.md
   - name: Hosting Providers
     href: hosting-providers.md
-  - name: Documentation Maintenance
-    href: documentation-maintenance.md
 - name: Configuration
   items:
   - name: Overview

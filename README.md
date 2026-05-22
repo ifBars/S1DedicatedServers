@@ -46,11 +46,10 @@ Current beta builds continue the initial IL2CPP support for dedicated server and
 - [Client modding](https://docs.s1servers.com/docs/modding/client.html)
 - [Companion mod metadata](https://docs.s1servers.com/docs/modding/companion-mods.html)
 - [API reference](https://docs.s1servers.com/reference/index.html)
-- [Documentation maintenance](https://docs.s1servers.com/docs/documentation-maintenance.html)
 
 ## Development
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODING_STANDARDS.md](CODING_STANDARDS.md), and [BUILD_SETUP.md](BUILD_SETUP.md) before opening a pull request.
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODING_STANDARDS.md](CODING_STANDARDS.md), [BUILD_SETUP.md](BUILD_SETUP.md), and [Documentation Maintenance](docs/internal/documentation-maintenance.md) before opening a pull request that changes documentation or public XML comments.
 
 ## Disclaimer
 

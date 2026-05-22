@@ -17,7 +17,6 @@ Key docs:
 - [Addon Configuration](modding/configuration.md)
 - [Companion Mods and Verification Metadata](modding/companion-mods.md)
 - [Troubleshooting](troubleshooting.md)
-- [Documentation Maintenance](documentation-maintenance.md)
 
 ### Notes
 
