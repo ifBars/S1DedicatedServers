@@ -24,7 +24,7 @@ Current beta builds continue the initial IL2CPP support for dedicated server and
 1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
 2. Follow the [Quick Start guide](https://docs.s1servers.com/).
 3. Review the [configuration overview](https://docs.s1servers.com/docs/configuration.html) before opening a server to other players.
-4. For native Windows server installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` and contains only `3164500`. The packaged `start_server.bat` creates it if missing.
+4. For native Windows server installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` and contains only `3164500`. The packaged `start_server.bat` creates it if missing, starts with `--stdio-console`, and forwards any extra arguments you pass to it.
 5. If hosting and playing on the same PC, launch the normal game client before starting the Steam game server.
 6. Check the [troubleshooting guide](https://docs.s1servers.com/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.
 

@@ -146,7 +146,7 @@ namespace DedicatedServerMod.Server.Network
                     return;
                 }
 
-                _lobbyData.TryGetValue(request.Key, out string oldValue);
+                _lobbyData.TryGetValue(request.Key, out string? oldValue);
                 _lobbyData[request.Key] = request.Value ?? string.Empty;
 
                 var payload = new LobbyDataChangedPayload
@@ -188,7 +188,7 @@ namespace DedicatedServerMod.Server.Network
             lock (_stateLock)
             {
                 Dictionary<string, string> map = GetOrCreateMemberDataMap(memberSteamId);
-                map.TryGetValue(request.Key, out string oldValue);
+                map.TryGetValue(request.Key, out string? oldValue);
                 map[request.Key] = request.Value ?? string.Empty;
 
                 var payload = new MemberDataChangedPayload
@@ -262,7 +262,7 @@ namespace DedicatedServerMod.Server.Network
                 EnsureMemberEntry(playerInfo.Connection, steamId);
                 EnsureOwnerSelected();
 
-                if (!_members.TryGetValue(steamId, out MemberState state))
+                if (!_members.TryGetValue(steamId, out MemberState? state))
                 {
                     return;
                 }
@@ -329,13 +329,13 @@ namespace DedicatedServerMod.Server.Network
                 return;
             }
 
-            ConnectedPlayerInfo info = _playerManager.GetPlayer(connection) ?? _playerManager.GetPlayerBySteamId(steamId);
+            ConnectedPlayerInfo? info = _playerManager.GetPlayer(connection) ?? _playerManager.GetPlayerBySteamId(steamId);
             if (info == null)
             {
                 return;
             }
 
-            if (!_members.TryGetValue(steamId, out MemberState state))
+            if (!_members.TryGetValue(steamId, out MemberState? state))
             {
                 state = new MemberState
                 {
@@ -452,7 +452,7 @@ namespace DedicatedServerMod.Server.Network
 
         private Dictionary<string, string> GetOrCreateMemberDataMap(string steamId)
         {
-            if (!_memberData.TryGetValue(steamId, out Dictionary<string, string> map))
+            if (!_memberData.TryGetValue(steamId, out Dictionary<string, string>? map))
             {
                 map = new Dictionary<string, string>(StringComparer.Ordinal);
                 _memberData[steamId] = map;

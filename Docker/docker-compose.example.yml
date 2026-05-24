@@ -1,6 +1,6 @@
 services:
   s1ds:
-    image: ${S1DS_IMAGE:-ghcr.io/ifbars/s1dedicatedservers:0.9.6}
+    image: ${S1DS_IMAGE:-ghcr.io/ifbars/s1dedicatedservers:0.9.12}
     # Set S1DS_IMAGE in .env to an exact release tag. The latest tag is stable-only.
     # Set S1DS_RUNTIME in .env to mono or il2cpp. When STEAM_BRANCH is blank, the
     # container automatically selects the expected game branch for that runtime.

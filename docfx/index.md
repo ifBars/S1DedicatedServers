@@ -57,9 +57,9 @@ Commercial hosts can contact the project maintainer for setup guidance, version 
    3164500
    ```
 
-5. Run `start_server.bat` once so the mod generates `server_config.toml`, then close it.
+5. Run `start_server.bat` once so the mod generates `server_config.toml`, then close it. The packaged launcher starts with `--stdio-console`, so you can type commands directly into the MelonLoader console.
 6. Edit `server_config.toml` and set `saveGamePath`.
-7. Start the server again with `start_server.bat`.
+7. Start the server again with `start_server.bat`. Extra arguments are forwarded to `Schedule I.exe`, for example `start_server.bat --server-name "My Server" --max-players 8`.
 
 If you host the Steam game server on the same PC where you play, launch the normal Schedule I client first. Steam may block starting the game client after the Steam game server process is already running, but the reverse order works: start the client, then start `start_server.bat`.
 

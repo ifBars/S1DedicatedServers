@@ -93,8 +93,8 @@ namespace DedicatedServerMod.Server.Game
         {
             try
             {
-                Type collectorType = AccessTools.TypeByName("AeLa.EasyFeedback.FormElements.DebugLogCollector")
-                    ?? AccessTools.TypeByName("Il2CppAeLa.EasyFeedback.FormElements.DebugLogCollector");
+                Type collectorType = SafeReflection.FindType("AeLa.EasyFeedback.FormElements.DebugLogCollector")
+                    ?? SafeReflection.FindType("Il2CppAeLa.EasyFeedback.FormElements.DebugLogCollector");
                 if (collectorType == null)
                 {
                     DebugLog.StartupDebug("EasyFeedback DebugLogCollector type was not found; headless log collector patch was skipped.");

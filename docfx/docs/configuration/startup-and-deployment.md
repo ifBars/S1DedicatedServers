@@ -4,7 +4,7 @@ Use this page when you need the operational details that do not belong in the hi
 
 ## Starting The Server
 
-- Use `start_server.bat` from the release package to launch a native server install.
+- Use `start_server.bat` from the release package to launch a native server install. It starts the game with `--stdio-console` so the MelonLoader console accepts DedicatedServerMod commands directly, and it forwards any extra arguments to `Schedule I.exe`.
 - For native Windows installs, `steam_appid.txt` must exist beside `Schedule I.exe` before first launch. The packaged `start_server.bat` creates it automatically if it is missing. If you launch the executable another way, create it manually and put only `3164500` inside it. Without this file, Steam game server API initialization can fail before anonymous login or `steamGameServerToken` login starts.
 - If `[storage].saveGamePath` is empty, the server uses `UserData/DedicatedServerSave` and prepares the folder before loading. Set a custom path only when you want to host a specific Schedule I save folder.
 - For hosted panels that control the process through stdin/stdout, follow [Host Console](../host-console.md) and prefer `-logFile -` so Unity and MelonLoader logs stay visible to the host.
@@ -127,6 +127,8 @@ Example:
 ```batch
 start_server.bat --dedicated-server --server-name "My Server" --auth-provider SteamGameServer --mod-verification --block-known-risky-client-mods true
 ```
+
+You do not need to add `--stdio-console` when using the packaged batch file because it is already included. Add it only when launching `Schedule I.exe` manually.
 
 ## Networking (Port Forwarding)
 

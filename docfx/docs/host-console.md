@@ -7,6 +7,8 @@ DedicatedServerMod supports two host console transports:
 
 The optional localhost web panel is a separate surface intended for local operators. Hosted panels should usually keep it disabled and rely on stdio instead.
 
+For native Windows server installs, the packaged `start_server.bat` enables `--stdio-console` by default. That lets operators type DedicatedServerMod commands directly into the MelonLoader console without opening a separate TCP console session.
+
 ### Recommended mode
 
 Use:
@@ -33,6 +35,12 @@ For panel environments, prefer startup flags that keep Unity and MelonLoader out
 ```
 
 That lets the panel capture the game log stream directly. Hidden desktop console settings are not a substitute for stdout logging in hosted environments.
+
+If you launch the executable manually instead of using the packaged batch file, add `--stdio-console` to force the stdio host console on:
+
+```batch
+"Schedule I.exe" --batchmode --nographics --dedicated-server --stdio-console
+```
 
 ### Behavior
 

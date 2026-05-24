@@ -1,11 +1,17 @@
-using System.Reflection;
 using DedicatedServerMod.Utils;
-using HarmonyLib;
 using UnityEngine;
 #if IL2CPP
 using Il2CppFishNet;
+using BlackjackGameControllerType = Il2CppScheduleOne.Casino.BlackjackGameController;
+using CasinoGameControllerType = Il2CppScheduleOne.Casino.CasinoGameController;
+using CasinoGamePlayersType = Il2CppScheduleOne.Casino.CasinoGamePlayers;
+using RideTheBusGameControllerType = Il2CppScheduleOne.Casino.RTBGameController;
 #else
 using FishNet;
+using BlackjackGameControllerType = ScheduleOne.Casino.BlackjackGameController;
+using CasinoGameControllerType = ScheduleOne.Casino.CasinoGameController;
+using CasinoGamePlayersType = ScheduleOne.Casino.CasinoGamePlayers;
+using RideTheBusGameControllerType = ScheduleOne.Casino.RTBGameController;
 #endif
 
 namespace DedicatedServerMod.Server.Game.Patches.Gameplay
@@ -16,40 +22,15 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     /// </summary>
     internal static class CasinoGamePatches
     {
-#if IL2CPP
-        private const string CasinoGamePlayersTypeName = "Il2CppScheduleOne.Casino.CasinoGamePlayers";
-        private const string BlackjackGameControllerTypeName = "Il2CppScheduleOne.Casino.BlackjackGameController";
-        private const string RideTheBusGameControllerTypeName = "Il2CppScheduleOne.Casino.RTBGameController";
-#else
-        private const string CasinoGamePlayersTypeName = "ScheduleOne.Casino.CasinoGamePlayers";
-        private const string BlackjackGameControllerTypeName = "ScheduleOne.Casino.BlackjackGameController";
-        private const string RideTheBusGameControllerTypeName = "ScheduleOne.Casino.RTBGameController";
-#endif
-
         private const string WaitingForPlayersStageName = "WaitingForPlayers";
         private const string ReadyKey = "Ready";
-
-        private static readonly Type BlackjackGameControllerType = AccessTools.TypeByName(BlackjackGameControllerTypeName);
-        private static readonly Type RideTheBusGameControllerType = AccessTools.TypeByName(RideTheBusGameControllerTypeName);
-
-        private static readonly FieldInfo BlackjackPlayersField = AccessTools.Field(BlackjackGameControllerType, "Players");
-        private static readonly FieldInfo RideTheBusPlayersField = AccessTools.Field(RideTheBusGameControllerType, "Players");
-
-        private static readonly PropertyInfo BlackjackCurrentStageProperty = AccessTools.Property(BlackjackGameControllerType, "CurrentStage");
-        private static readonly PropertyInfo RideTheBusCurrentStageProperty = AccessTools.Property(RideTheBusGameControllerType, "CurrentStage");
-
-        private static readonly MethodInfo BlackjackAreAllPlayersReadyMethod = AccessTools.Method(BlackjackGameControllerType, "AreAllPlayersReady");
-        private static readonly MethodInfo RideTheBusAreAllPlayersReadyMethod = AccessTools.Method(RideTheBusGameControllerType, "AreAllPlayersReady");
-
-        private static readonly MethodInfo BlackjackTryStartGameMethod = AccessTools.Method(BlackjackGameControllerType, "TryStartGame");
-        private static readonly MethodInfo RideTheBusTryNextStageMethod = AccessTools.Method(RideTheBusGameControllerType, "TryNextStage");
 
         /// <summary>
         /// Resolves the runtime casino player-list type for dynamic patching.
         /// </summary>
         public static Type GetCasinoGamePlayersType()
         {
-            return AccessTools.TypeByName(CasinoGamePlayersTypeName);
+            return typeof(CasinoGamePlayersType);
         }
 
         /// <summary>
@@ -83,92 +64,85 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
         private static void TryAdvanceWaitingGames(object casinoGamePlayers, string reason)
         {
-            if (casinoGamePlayers == null)
+            if (casinoGamePlayers is not CasinoGamePlayersType typedPlayers)
             {
                 return;
             }
 
-            TryAdvanceWaitingController(
-                casinoGamePlayers,
-                BlackjackGameControllerType,
-                BlackjackPlayersField,
-                BlackjackCurrentStageProperty,
-                BlackjackAreAllPlayersReadyMethod,
-                BlackjackTryStartGameMethod,
-                "Blackjack",
-                reason);
-
-            TryAdvanceWaitingController(
-                casinoGamePlayers,
-                RideTheBusGameControllerType,
-                RideTheBusPlayersField,
-                RideTheBusCurrentStageProperty,
-                RideTheBusAreAllPlayersReadyMethod,
-                RideTheBusTryNextStageMethod,
-                "Ride the Bus",
-                reason);
+            TryAdvanceBlackjack(typedPlayers, reason);
+            TryAdvanceRideTheBus(typedPlayers, reason);
         }
 
-        private static void TryAdvanceWaitingController(
-            object casinoGamePlayers,
-            Type controllerType,
-            FieldInfo playersField,
-            PropertyInfo currentStageProperty,
-            MethodInfo areAllPlayersReadyMethod,
-            MethodInfo advanceMethod,
-            string gameName,
-            string reason)
+        private static void TryAdvanceBlackjack(CasinoGamePlayersType casinoGamePlayers, string reason)
         {
-            if (controllerType == null ||
-                playersField == null ||
-                currentStageProperty == null ||
-                areAllPlayersReadyMethod == null ||
-                advanceMethod == null)
-            {
-                return;
-            }
-
             try
             {
-                object controller = FindControllerForPlayers(controllerType, playersField, casinoGamePlayers);
+                BlackjackGameControllerType controller = FindControllerForPlayers<BlackjackGameControllerType>(casinoGamePlayers);
                 if (controller == null)
                 {
                     return;
                 }
 
-                object currentStage = currentStageProperty.GetValue(controller, null);
-                if (!string.Equals(currentStage?.ToString(), WaitingForPlayersStageName, StringComparison.Ordinal))
+                if (!string.Equals(controller.CurrentStage.ToString(), WaitingForPlayersStageName, StringComparison.Ordinal))
                 {
                     return;
                 }
 
-                if (areAllPlayersReadyMethod.Invoke(controller, null) is not bool allPlayersReady || !allPlayersReady)
+                if (!controller.AreAllPlayersReady())
                 {
                     return;
                 }
 
-                DebugLog.Debug($"CasinoGamePatches: Advancing {gameName} after {reason} on the dedicated server.");
-                advanceMethod.Invoke(controller, null);
+                DebugLog.Debug($"CasinoGamePatches: Advancing Blackjack after {reason} on the dedicated server.");
+                controller.TryStartGame();
             }
             catch (Exception ex)
             {
-                DebugLog.Warning($"CasinoGamePatches: Failed to advance {gameName} after {reason}: {ex.Message}");
+                DebugLog.Warning($"CasinoGamePatches: Failed to advance Blackjack after {reason}: {ex.Message}");
             }
         }
 
-        private static object FindControllerForPlayers(Type controllerType, FieldInfo playersField, object casinoGamePlayers)
+        private static void TryAdvanceRideTheBus(CasinoGamePlayersType casinoGamePlayers, string reason)
+        {
+            try
+            {
+                RideTheBusGameControllerType controller = FindControllerForPlayers<RideTheBusGameControllerType>(casinoGamePlayers);
+                if (controller == null)
+                {
+                    return;
+                }
+
+                if (!string.Equals(controller.CurrentStage.ToString(), WaitingForPlayersStageName, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                if (!controller.AreAllPlayersReady())
+                {
+                    return;
+                }
+
+                DebugLog.Debug($"CasinoGamePatches: Advancing Ride the Bus after {reason} on the dedicated server.");
+                controller.TryNextStage();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"CasinoGamePatches: Failed to advance Ride the Bus after {reason}: {ex.Message}");
+            }
+        }
+
+        private static TController FindControllerForPlayers<TController>(CasinoGamePlayersType casinoGamePlayers)
+            where TController : CasinoGameControllerType
         {
             MonoBehaviour[] controllers = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
             for (int i = 0; i < controllers.Length; i++)
             {
-                object candidate = controllers[i];
-                if (candidate == null || !controllerType.IsInstanceOfType(candidate))
+                if (controllers[i] is not TController candidate)
                 {
                     continue;
                 }
 
-                object boundPlayers = playersField.GetValue(candidate);
-                if (Equals(boundPlayers, casinoGamePlayers))
+                if (candidate.Players == casinoGamePlayers)
                 {
                     return candidate;
                 }
