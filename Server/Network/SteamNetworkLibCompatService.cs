@@ -110,7 +110,7 @@ namespace DedicatedServerMod.Server.Network
                 EnsureOwnerSelected();
 
                 var payload = BuildSnapshotPayload(localSteamId);
-                CustomMessaging.SendToClient(conn, DSConstants.Messages.SnlDedicatedSnapshot, JsonConvert.SerializeObject(payload));
+                CustomMessaging.SendToClientOrDeferUntilReady(conn, DSConstants.Messages.SnlDedicatedSnapshot, JsonConvert.SerializeObject(payload));
             }
         }
 
@@ -230,7 +230,8 @@ namespace DedicatedServerMod.Server.Network
             var payload = new P2PMessagePayload
             {
                 SenderSteamId = senderSteamId,
-                DataBase64 = request.DataBase64
+                DataBase64 = request.DataBase64,
+                Channel = request.Channel
             };
 
             lock (_stateLock)
@@ -240,7 +241,7 @@ namespace DedicatedServerMod.Server.Network
                     NetworkConnection? targetConn = ResolveConnectionBySteamId(request.TargetSteamId);
                     if (targetConn != null)
                     {
-                        CustomMessaging.SendToClient(targetConn, DSConstants.Messages.SnlDedicatedP2PMessage, JsonConvert.SerializeObject(payload));
+                        CustomMessaging.SendToClientOrDeferUntilReady(targetConn, DSConstants.Messages.SnlDedicatedP2PMessage, JsonConvert.SerializeObject(payload));
                     }
 
                     return;
@@ -401,7 +402,7 @@ namespace DedicatedServerMod.Server.Network
                     continue;
                 }
 
-                CustomMessaging.SendToClient(conn, command, json);
+                CustomMessaging.SendToClientOrDeferUntilReady(conn, command, json);
             }
         }
 
@@ -560,6 +561,7 @@ namespace DedicatedServerMod.Server.Network
         {
             public string? TargetSteamId { get; set; }
             public string? DataBase64 { get; set; }
+            public int Channel { get; set; }
         }
 
         [Serializable]
@@ -567,6 +569,7 @@ namespace DedicatedServerMod.Server.Network
         {
             public string SenderSteamId { get; set; } = string.Empty;
             public string DataBase64 { get; set; } = string.Empty;
+            public int Channel { get; set; }
         }
 
         /// <summary>
