@@ -335,3 +335,6 @@ s1ds-local.tar
 .agents/
 Assets/S1-Assets
 .claude/
+
+# Local real-game harnesses and install-specific repro scripts.
+tests/Run-*RealGameTest.ps1

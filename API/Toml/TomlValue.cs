@@ -61,6 +61,23 @@ namespace DedicatedServerMod.API.Toml
         }
 
         /// <summary>
+        /// Creates an inline table TOML value.
+        /// </summary>
+        public static TomlValue FromInlineTable(IEnumerable<KeyValuePair<string, TomlValue>> entries)
+        {
+            Dictionary<string, TomlValue> table = new Dictionary<string, TomlValue>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, TomlValue> entry in entries ?? Array.Empty<KeyValuePair<string, TomlValue>>())
+            {
+                if (!string.IsNullOrWhiteSpace(entry.Key) && entry.Value != null)
+                {
+                    table[entry.Key] = entry.Value;
+                }
+            }
+
+            return new TomlValue(TomlValueKind.InlineTable, table);
+        }
+
+        /// <summary>
         /// Gets the raw stored value.
         /// </summary>
         internal object RawValue => _value;
@@ -113,6 +130,16 @@ namespace DedicatedServerMod.API.Toml
             return Kind == TomlValueKind.Array
                 ? (IReadOnlyList<TomlValue>)_value
                 : throw new InvalidOperationException($"Toml value kind '{Kind}' is not an array.");
+        }
+
+        /// <summary>
+        /// Gets the inline table value.
+        /// </summary>
+        public IReadOnlyDictionary<string, TomlValue> GetInlineTable()
+        {
+            return Kind == TomlValueKind.InlineTable
+                ? (IReadOnlyDictionary<string, TomlValue>)_value
+                : throw new InvalidOperationException($"Toml value kind '{Kind}' is not an inline table.");
         }
 
         /// <summary>
@@ -184,6 +211,21 @@ namespace DedicatedServerMod.API.Toml
             return false;
         }
 
+        /// <summary>
+        /// Attempts to read the value as an inline table.
+        /// </summary>
+        public bool TryGetInlineTable(out IReadOnlyDictionary<string, TomlValue> values)
+        {
+            if (Kind == TomlValueKind.InlineTable)
+            {
+                values = (IReadOnlyDictionary<string, TomlValue>)_value;
+                return true;
+            }
+
+            values = new Dictionary<string, TomlValue>(StringComparer.Ordinal);
+            return false;
+        }
+
         /// <inheritdoc />
         public override string ToString()
         {
@@ -199,6 +241,8 @@ namespace DedicatedServerMod.API.Toml
                     return GetDouble().ToString();
                 case TomlValueKind.Array:
                     return $"[{string.Join(", ", GetArray().Select(item => item.ToString()))}]";
+                case TomlValueKind.InlineTable:
+                    return $"{{{string.Join(", ", GetInlineTable().Select(entry => $"{entry.Key} = {entry.Value}"))}}}";
                 default:
                     return string.Empty;
             }

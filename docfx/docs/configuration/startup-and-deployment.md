@@ -140,11 +140,12 @@ You do not need to add `--stdio-console` when using the packaged batch file beca
 | DedicatedServerMod status query | `serverPort` | `38465` | TCP | You want the in-game add/favorites flow and status query to work from outside your LAN |
 | Steam query/listing | `steamGameServerQueryPort` | `27016` | UDP | You use `SteamGameServer` and want Steam query/server-browser visibility |
 | TCP console | `tcpConsolePort` | `4050` | TCP | You explicitly enable `[tcpConsole].tcpConsoleEnabled` and want remote admin access |
+| Web panel | `webPanelPort` | `4051` | TCP | Do not forward; the built-in panel is loopback-only |
 
 - `serverPort` is not UDP-only. DedicatedServerMod also listens on the same numeric port over TCP for its lightweight status query endpoint.
 - If you only forward `serverPort` over UDP, players may still be unable to query status or save the server entry cleanly from outside your LAN.
 - Keep `[tcpConsole].tcpConsoleBindAddress = '127.0.0.1'` unless you intentionally want remote socket access. If you leave it loopback-bound, do not forward `tcpConsolePort`.
-- The localhost web panel is designed to stay local. Do not port-forward `webPanelPort` under normal deployments.
+- The built-in web panel is designed to stay local and only supports loopback bind addresses. Do not port-forward `webPanelPort`; use the TCP console with authentication or a hosted panel/stdin integration for remote administration.
 
 Helpful links:
 

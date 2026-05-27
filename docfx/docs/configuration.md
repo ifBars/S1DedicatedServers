@@ -25,7 +25,7 @@ The shortest path to a working server is:
 2. For native Windows installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` with only `3164500` inside it. The packaged `start_server.bat` creates it if missing, starts with `--stdio-console`, and forwards extra startup arguments; manual launch flows must provide the app ID file themselves.
 3. Choose an authentication provider under `[authentication]`.
 4. Pick a messaging backend under `[messaging]`.
-5. Decide how you want to operate the server: local desktop, hosted panel, TCP console, or localhost web panel.
+5. Decide how you want to operate the server: local desktop, hosted panel, TCP console, or loopback-only web panel.
 6. Review autosave and gameplay defaults before opening the server to other players.
 
 Minimal example:
@@ -85,9 +85,9 @@ DedicatedServerMod supports three common operator surfaces:
 
 - TCP console under `[tcpConsole]` for a separate remote admin socket
 - stdio host console under `[tcpConsole].stdioConsoleMode` for hosted panels and stdin/stdout process control
-- localhost web panel under `[webPanel]` for local or home-hosted administration
+- loopback-only web panel under `[webPanel]` for local administration from the server host
 
-Keep the web panel loopback-bound unless you intentionally understand the exposure model. For hosted providers, prefer the stdio host console path described in [Host Console](host-console.md).
+The built-in web panel is intentionally loopback-only for security and should not be used as a LAN or internet admin site. For remote administration, prefer the TCP console with authentication and firewall controls, or use the stdio host console path described in [Host Console](host-console.md) for hosted providers.
 
 For public hosting, remember that external players commonly need more than one forwarded port: `serverPort` over UDP for gameplay, `serverPort` over TCP for DedicatedServerMod status query, and `steamGameServerQueryPort` over UDP when using `SteamGameServer` query/listing.
 

@@ -170,4 +170,5 @@ To build locally from `Docker.zip` instead of pulling from GHCR, replace the `im
 - Publish `serverPort` on both UDP and TCP. UDP is gameplay traffic; TCP is DedicatedServerMod's status query endpoint.
 - If you use `SteamGameServer`, also publish `steamGameServerQueryPort` on UDP.
 - Only publish `tcpConsolePort` on TCP when `[tcpConsole].tcpConsoleEnabled = true` and you intentionally bind the console beyond localhost.
+- Do not publish `webPanelPort`. The built-in web panel is loopback-only for security and is not intended for access from another LAN machine or the public internet. Use the TCP console with authentication, stdio through a hosted panel such as Pterodactyl, or a custom authenticated web panel built on top of a supported control surface for remote administration.
 - For auth and networking guidance inside containers, see the docs site Docker page and the authentication/messaging backend guides.

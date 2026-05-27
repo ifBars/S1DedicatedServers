@@ -28,6 +28,11 @@ namespace DedicatedServerMod.API.Toml
         /// <summary>
         /// A TOML array value.
         /// </summary>
-        Array
+        Array,
+
+        /// <summary>
+        /// A TOML inline table value.
+        /// </summary>
+        InlineTable
     }
 }

@@ -65,6 +65,7 @@ namespace DedicatedServerMod.Client.Managers
         private bool _joinCompletionNotified;
         private bool _isReturningToMenu;
         private bool _isConnectionStateHooked;
+        private bool _autoJoinRequested;
         private string _pendingDisconnectTitle;
         private string _pendingDisconnectReason;
         private long _activeJoinAttemptId;
@@ -91,6 +92,11 @@ namespace DedicatedServerMod.Client.Managers
                 ParseCommandLineArguments();
                 CustomMessaging.ClientMessageReceived += OnClientMessageReceived;
                 TryHookConnectionState();
+                if (_autoJoinRequested)
+                {
+                    MelonCoroutines.Start(StartDedicatedConnectionFromCommandLine());
+                }
+
                 DebugLog.Info("ClientConnectionManager initialized");
             }
             catch (Exception ex)
@@ -107,6 +113,7 @@ namespace DedicatedServerMod.Client.Managers
                 if (args[i] == "--server-ip" && i + 1 < args.Length)
                 {
                     _targetServerIP = args[i + 1];
+                    _autoJoinRequested = true;
                     DebugLog.Info($"Target server IP set to: {_targetServerIP}");
                 }
                 if (args[i] == "--server-port" && i + 1 < args.Length)
@@ -114,9 +121,24 @@ namespace DedicatedServerMod.Client.Managers
                     if (int.TryParse(args[i + 1], out int port))
                     {
                         _targetServerPort = port;
+                        _autoJoinRequested = true;
                         DebugLog.Info($"Target server port set to: {_targetServerPort}");
                     }
                 }
+                if (args[i] == "--auto-join-server")
+                {
+                    _autoJoinRequested = true;
+                }
+            }
+        }
+
+        private IEnumerator StartDedicatedConnectionFromCommandLine()
+        {
+            yield return new WaitForSeconds(1f);
+            if (!IsConnecting && !IsConnectedToDedicatedServer)
+            {
+                DebugLog.Info("Auto-joining dedicated server from client command-line flags");
+                StartDedicatedConnection();
             }
         }
 

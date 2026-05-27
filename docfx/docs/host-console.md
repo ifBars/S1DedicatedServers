@@ -5,7 +5,7 @@ DedicatedServerMod supports two host console transports:
 - TCP console for direct socket-based remote administration
 - stdio host console for platforms that inject commands through process stdin and capture logs from stdout/stderr
 
-The optional localhost web panel is a separate surface intended for local operators. Hosted panels should usually keep it disabled and rely on stdio instead.
+The optional web panel is a separate loopback-only surface intended for local operators on the server host. Hosted panels should usually keep it disabled and rely on stdio instead.
 
 For native Windows server installs, the packaged `start_server.bat` enables `--stdio-console` by default. That lets operators type DedicatedServerMod commands directly into the MelonLoader console without opening a separate TCP console session.
 
@@ -64,3 +64,4 @@ Use the TCP console when you want an explicitly separate remote admin surface wi
 - The default bind address is `127.0.0.1`, which keeps the console local-only.
 - If you change `tcpConsoleBindAddress` to `0.0.0.0` or another non-loopback address, the console becomes reachable on that interface and you must open or forward `tcpConsolePort` separately.
 - If you expose the TCP console beyond localhost, require a password and treat it as a trusted admin surface, not a public service.
+- The built-in web panel does not support LAN/public bind addresses. If you need a browser UI from another machine, use a hosted panel such as Pterodactyl or build an authenticated web panel on top of the TCP console or another supported control surface.

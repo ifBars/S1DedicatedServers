@@ -59,9 +59,9 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Option(config => config.TcpConsolePassword, option => option.Comment("TCP console password."))
                     .Option(config => config.StdioConsoleMode, option => option.Comment("Host stdio console mode: 'Disabled', 'Auto', or 'Enabled'.")))
                 .Section("webPanel", section => section
-                    .Comment("Integrated localhost browser panel for server owners.")
-                    .Option(config => config.WebPanelEnabled, option => option.Comment("Enable the integrated localhost web panel. Disabled by default for hosted or service-style deployments."))
-                    .Option(config => config.WebPanelBindAddress, option => option.Comment("Bind address for the web panel. Use '127.0.0.1' for local-only access."))
+                    .Comment("Integrated loopback-only browser panel for server owners.")
+                    .Option(config => config.WebPanelEnabled, option => option.Comment("Enable the integrated loopback-only web panel. Disabled by default for hosted or service-style deployments."))
+                    .Option(config => config.WebPanelBindAddress, option => option.Comment("Loopback bind address for the web panel. Only localhost/127.0.0.1-style addresses are supported."))
                     .Option(config => config.WebPanelPort, option => option.Comment("HTTP port for the integrated web panel."))
                     .Option(config => config.WebPanelOpenBrowserOnStart, option => option.Comment("Attempt to open the web panel in the default browser on startup."))
                     .Option(config => config.WebPanelSessionMinutes, option => option.Comment("Session lifetime in minutes for localhost browser access."))

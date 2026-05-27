@@ -30,8 +30,9 @@ Current beta builds continue initial IL2CPP support. If a problem only reproduce
 ### Web panel does not open
 - Confirm `[webPanel] webPanelEnabled = true` in `server_config.toml`.
 - Check the server log for the localhost launch URL. Browser auto-open is best-effort only.
-- Confirm `webPanelBindAddress` is still `127.0.0.1` and the configured `webPanelPort` is not already occupied.
-- If you are running under a hosted panel, leave the web panel disabled and use the stdio host console path instead.
+- Confirm `webPanelBindAddress` is still `127.0.0.1` or another loopback address and the configured `webPanelPort` is not already occupied.
+- If you set `webPanelBindAddress = '0.0.0.0'`, the panel will not bind. The built-in web panel is loopback-only for security and is not reachable from other LAN machines.
+- For remote administration, use the TCP console with a required password and appropriate firewall rules, or use the stdio host console path through a hosted panel such as Pterodactyl.
 
 ### Connection/port problems
 - Confirm that `serverPort` is forwarded correctly for both UDP gameplay and TCP status query.

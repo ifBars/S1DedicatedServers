@@ -1,6 +1,9 @@
+using System.Collections;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using DedicatedServerMod.API.Toml;
+using Newtonsoft.Json;
 
 namespace DedicatedServerMod.Shared.Toml.Binding
 {
@@ -77,10 +80,11 @@ namespace DedicatedServerMod.Shared.Toml.Binding
 
         public static bool IsValueComplete(string value)
         {
-            int bracketDepth = 0;
             bool inBasicString = false;
             bool inLiteralString = false;
             bool isEscaped = false;
+            int bracketDepth = 0;
+            int braceDepth = 0;
 
             foreach (char character in value ?? string.Empty)
             {
@@ -128,10 +132,16 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                     case ']':
                         bracketDepth--;
                         break;
+                    case '{':
+                        braceDepth++;
+                        break;
+                    case '}':
+                        braceDepth--;
+                        break;
                 }
             }
 
-            return bracketDepth <= 0 && !inBasicString && !inLiteralString;
+            return bracketDepth <= 0 && braceDepth <= 0 && !inBasicString && !inLiteralString;
         }
 
         public static bool TryParseToken(string rawValue, out TomlValue value, out string error)
@@ -141,6 +151,11 @@ namespace DedicatedServerMod.Shared.Toml.Binding
             if (trimmedValue.StartsWith("[", StringComparison.Ordinal))
             {
                 return TryParseArray(trimmedValue, out value, out error);
+            }
+
+            if (trimmedValue.StartsWith("{", StringComparison.Ordinal))
+            {
+                return TryParseInlineTable(trimmedValue, out value, out error);
             }
 
             if (TryParseString(trimmedValue, out string stringValue))
@@ -193,19 +208,10 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                     builder.Append(value.GetDouble().ToString("0.0###############", CultureInfo.InvariantCulture));
                     break;
                 case TomlValueKind.Array:
-                    builder.Append("[");
-                    IReadOnlyList<TomlValue> items = value.GetArray();
-                    for (int index = 0; index < items.Count; index++)
-                    {
-                        if (index > 0)
-                        {
-                            builder.Append(", ");
-                        }
-
-                        AppendFormattedValue(builder, items[index]);
-                    }
-
-                    builder.Append("]");
+                    AppendArray(builder, value.GetArray());
+                    break;
+                case TomlValueKind.InlineTable:
+                    AppendInlineTable(builder, value.GetInlineTable());
                     break;
                 default:
                     builder.Append("''");
@@ -350,6 +356,10 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                     return true;
                 }
             }
+            else if (TryGetListElementType(targetType, out Type elementType) && IsSerializableObjectType(elementType))
+            {
+                return TryConvertToObjectList(value, targetType, elementType, out convertedValue, out error);
+            }
 
             convertedValue = null;
             error = $"Unsupported TOML conversion to CLR type '{targetType.FullName}'.";
@@ -422,9 +432,94 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                 return true;
             }
 
+            if (TryGetListElementType(valueType, out Type elementType) && IsSerializableObjectType(elementType))
+            {
+                tomlValue = TomlValue.FromArray(ConvertObjectListToTomlValues((IEnumerable)value, elementType));
+                error = string.Empty;
+                return true;
+            }
+
             tomlValue = null;
             error = $"Unsupported CLR to TOML conversion for type '{valueType.FullName}'.";
             return false;
+        }
+
+        private static void AppendArray(StringBuilder builder, IReadOnlyList<TomlValue> items)
+        {
+            builder.Append("[");
+            for (int index = 0; index < items.Count; index++)
+            {
+                if (index > 0)
+                {
+                    builder.Append(", ");
+                }
+
+                AppendFormattedValue(builder, items[index]);
+            }
+
+            builder.Append("]");
+        }
+
+        private static void AppendInlineTable(StringBuilder builder, IReadOnlyDictionary<string, TomlValue> table)
+        {
+            builder.Append("{ ");
+            int entryIndex = 0;
+            foreach (KeyValuePair<string, TomlValue> entry in table)
+            {
+                if (entryIndex++ > 0)
+                {
+                    builder.Append(", ");
+                }
+
+                builder.Append(entry.Key).Append(" = ");
+                AppendFormattedValue(builder, entry.Value);
+            }
+
+            builder.Append(" }");
+        }
+
+        private static bool TryParseInlineTable(string rawValue, out TomlValue value, out string error)
+        {
+            string trimmed = rawValue.Trim();
+            if (!trimmed.StartsWith("{", StringComparison.Ordinal) || !trimmed.EndsWith("}", StringComparison.Ordinal))
+            {
+                value = null;
+                error = "Inline table values must start with '{' and end with '}'.";
+                return false;
+            }
+
+            Dictionary<string, TomlValue> entries = new Dictionary<string, TomlValue>(StringComparer.Ordinal);
+            foreach (string entryToken in SplitDelimitedItems(trimmed.Substring(1, trimmed.Length - 2)))
+            {
+                int equalsIndex = FindTopLevelEquals(entryToken);
+                if (equalsIndex <= 0)
+                {
+                    value = null;
+                    error = $"Inline table entry '{entryToken}' is missing a key/value separator.";
+                    return false;
+                }
+
+                string key = entryToken.Substring(0, equalsIndex).Trim();
+                string itemValueText = entryToken.Substring(equalsIndex + 1).Trim();
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    value = null;
+                    error = "Inline table entry key cannot be empty.";
+                    return false;
+                }
+
+                if (!TryParseToken(itemValueText, out TomlValue itemValue, out error))
+                {
+                    value = null;
+                    return false;
+                }
+
+                entries[key] = itemValue;
+            }
+
+            value = TomlValue.FromInlineTable(entries);
+            error = string.Empty;
+            return true;
         }
 
         private static bool TryParseArray(string rawValue, out TomlValue value, out string error)
@@ -437,11 +532,8 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                 return false;
             }
 
-            string inner = trimmed.Substring(1, trimmed.Length - 2);
-            List<string> itemTokens = SplitArrayItems(inner);
-            List<TomlValue> items = new List<TomlValue>(itemTokens.Count);
-
-            foreach (string itemToken in itemTokens)
+            List<TomlValue> items = new List<TomlValue>();
+            foreach (string itemToken in SplitDelimitedItems(trimmed.Substring(1, trimmed.Length - 2)))
             {
                 if (!TryParseToken(itemToken, out TomlValue itemValue, out error))
                 {
@@ -457,7 +549,7 @@ namespace DedicatedServerMod.Shared.Toml.Binding
             return true;
         }
 
-        private static List<string> SplitArrayItems(string inner)
+        private static List<string> SplitDelimitedItems(string inner)
         {
             List<string> items = new List<string>();
             StringBuilder currentItem = new StringBuilder();
@@ -465,6 +557,7 @@ namespace DedicatedServerMod.Shared.Toml.Binding
             bool inLiteralString = false;
             bool isEscaped = false;
             int bracketDepth = 0;
+            int braceDepth = 0;
 
             foreach (char character in inner ?? string.Empty)
             {
@@ -519,8 +612,16 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                         bracketDepth--;
                         currentItem.Append(character);
                         break;
-                    case ',' when bracketDepth == 0:
-                        AddArrayItem(items, currentItem);
+                    case '{':
+                        braceDepth++;
+                        currentItem.Append(character);
+                        break;
+                    case '}':
+                        braceDepth--;
+                        currentItem.Append(character);
+                        break;
+                    case ',' when bracketDepth == 0 && braceDepth == 0:
+                        AddDelimitedItem(items, currentItem);
                         break;
                     default:
                         currentItem.Append(character);
@@ -528,11 +629,11 @@ namespace DedicatedServerMod.Shared.Toml.Binding
                 }
             }
 
-            AddArrayItem(items, currentItem);
+            AddDelimitedItem(items, currentItem);
             return items;
         }
 
-        private static void AddArrayItem(ICollection<string> items, StringBuilder currentItem)
+        private static void AddDelimitedItem(ICollection<string> items, StringBuilder currentItem)
         {
             string item = currentItem.ToString().Trim();
             if (item.Length > 0)
@@ -541,6 +642,76 @@ namespace DedicatedServerMod.Shared.Toml.Binding
             }
 
             currentItem.Clear();
+        }
+
+        private static int FindTopLevelEquals(string value)
+        {
+            bool inBasicString = false;
+            bool inLiteralString = false;
+            bool isEscaped = false;
+            int bracketDepth = 0;
+            int braceDepth = 0;
+
+            for (int index = 0; index < (value ?? string.Empty).Length; index++)
+            {
+                char character = value[index];
+
+                if (isEscaped)
+                {
+                    isEscaped = false;
+                    continue;
+                }
+
+                if (inBasicString)
+                {
+                    if (character == '\\')
+                    {
+                        isEscaped = true;
+                    }
+                    else if (character == '"')
+                    {
+                        inBasicString = false;
+                    }
+
+                    continue;
+                }
+
+                if (inLiteralString)
+                {
+                    if (character == '\'')
+                    {
+                        inLiteralString = false;
+                    }
+
+                    continue;
+                }
+
+                switch (character)
+                {
+                    case '"':
+                        inBasicString = true;
+                        break;
+                    case '\'':
+                        inLiteralString = true;
+                        break;
+                    case '[':
+                        bracketDepth++;
+                        break;
+                    case ']':
+                        bracketDepth--;
+                        break;
+                    case '{':
+                        braceDepth++;
+                        break;
+                    case '}':
+                        braceDepth--;
+                        break;
+                    case '=' when bracketDepth == 0 && braceDepth == 0:
+                        return index;
+                }
+            }
+
+            return -1;
         }
 
         private static bool TryParseString(string trimmedValue, out string value)
@@ -683,6 +854,152 @@ namespace DedicatedServerMod.Shared.Toml.Binding
             }
 
             return true;
+        }
+
+        private static bool TryGetListElementType(Type type, out Type elementType)
+        {
+            if (type != null && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                elementType = type.GetGenericArguments()[0];
+                return true;
+            }
+
+            elementType = null;
+            return false;
+        }
+
+        private static bool IsSerializableObjectType(Type type)
+        {
+            return type != null
+                && type.IsClass
+                && type != typeof(string)
+                && HasParameterlessConstructor(type)
+                && GetSerializableProperties(type).Count > 0;
+        }
+
+        private static bool HasParameterlessConstructor(Type type)
+        {
+            return type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, null) != null;
+        }
+
+        private static IReadOnlyList<PropertyInfo> GetSerializableProperties(Type type)
+        {
+            return type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(property => property.CanRead
+                    && property.CanWrite
+                    && property.GetIndexParameters().Length == 0
+                    && property.GetCustomAttributes(typeof(JsonIgnoreAttribute), inherit: true).Length == 0
+                    && IsSupportedSerializableMemberType(property.PropertyType))
+                .ToList();
+        }
+
+        private static bool IsSupportedSerializableMemberType(Type type)
+        {
+            return type == typeof(string)
+                || type == typeof(bool)
+                || type == typeof(int)
+                || type == typeof(long)
+                || type == typeof(float)
+                || type == typeof(double)
+                || type.IsEnum
+                || type == typeof(List<string>)
+                || type == typeof(HashSet<string>);
+        }
+
+        private static bool TryConvertToObjectList(TomlValue value, Type listType, Type elementType, out object objectList, out string error)
+        {
+            if (!value.TryGetArray(out IReadOnlyList<TomlValue> items))
+            {
+                objectList = null;
+                error = "Expected a TOML array of inline tables.";
+                return false;
+            }
+
+            IList list = (IList)Activator.CreateInstance(listType);
+            foreach (TomlValue item in items)
+            {
+                if (!TryConvertInlineTableToObject(item, elementType, out object convertedItem, out error))
+                {
+                    objectList = null;
+                    return false;
+                }
+
+                list.Add(convertedItem);
+            }
+
+            objectList = list;
+            error = string.Empty;
+            return true;
+        }
+
+        private static bool TryConvertInlineTableToObject(TomlValue value, Type elementType, out object convertedObject, out string error)
+        {
+            if (!value.TryGetInlineTable(out IReadOnlyDictionary<string, TomlValue> table))
+            {
+                convertedObject = null;
+                error = "Expected an inline table item.";
+                return false;
+            }
+
+            object instance = Activator.CreateInstance(elementType, nonPublic: true);
+            foreach (PropertyInfo property in GetSerializableProperties(elementType))
+            {
+                string key = ResolvePropertyKey(property);
+                if (!table.TryGetValue(key, out TomlValue memberValue))
+                {
+                    continue;
+                }
+
+                if (!TryConvertToClr(memberValue, property.PropertyType, out object convertedValue, out error))
+                {
+                    convertedObject = null;
+                    return false;
+                }
+
+                property.SetValue(instance, convertedValue);
+            }
+
+            convertedObject = instance;
+            error = string.Empty;
+            return true;
+        }
+
+        private static IEnumerable<TomlValue> ConvertObjectListToTomlValues(IEnumerable values, Type elementType)
+        {
+            foreach (object item in values ?? Array.Empty<object>())
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+
+                yield return ConvertObjectToInlineTable(item, elementType);
+            }
+        }
+
+        private static TomlValue ConvertObjectToInlineTable(object value, Type elementType)
+        {
+            Dictionary<string, TomlValue> entries = new Dictionary<string, TomlValue>(StringComparer.Ordinal);
+            foreach (PropertyInfo property in GetSerializableProperties(elementType))
+            {
+                if (TryConvertFromClr(property.GetValue(value), property.PropertyType, out TomlValue memberValue, out _))
+                {
+                    entries[ResolvePropertyKey(property)] = memberValue;
+                }
+            }
+
+            return TomlValue.FromInlineTable(entries);
+        }
+
+        private static string ResolvePropertyKey(PropertyInfo property)
+        {
+            JsonPropertyAttribute attribute = property.GetCustomAttributes(typeof(JsonPropertyAttribute), inherit: true)
+                .OfType<JsonPropertyAttribute>()
+                .FirstOrDefault();
+
+            return string.IsNullOrWhiteSpace(attribute?.PropertyName)
+                ? property.Name
+                : attribute.PropertyName;
         }
     }
 }
