@@ -6,6 +6,12 @@ export default {
         targetUrl.protocol = "https:";
         targetUrl.hostname = TargetHostname;
 
-        return Response.redirect(targetUrl.toString(), 301);
+        return new Response(null, {
+            status: 301,
+            headers: {
+                "Cache-Control": "public, max-age=86400",
+                Location: targetUrl.toString(),
+            },
+        });
     },
 } satisfies ExportedHandler;

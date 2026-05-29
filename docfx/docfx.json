@@ -38,7 +38,10 @@
     "resource": [
       {
         "files": [
-          "docs/assets/**"
+          "docs/assets/**",
+          "404.html",
+          "_headers",
+          "robots.txt"
         ]
       }
     ],

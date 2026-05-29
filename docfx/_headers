@@ -1,0 +1,48 @@
+/*
+  X-Robots-Tag: index, follow
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+
+/index.html
+  Cache-Control: public, max-age=300, must-revalidate
+
+/404.html
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: public, max-age=300, must-revalidate
+
+/*.html
+  Cache-Control: public, max-age=300, must-revalidate
+
+/index.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/xrefmap.yml
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/toc.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/docs/toc.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/reference/toc.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/public/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
+/docs/assets/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
+/*.pdf
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
+/docs/*.pdf
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
+/reference/*.pdf
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
+/public/*.map
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800

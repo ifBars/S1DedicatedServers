@@ -138,6 +138,29 @@ jobs:
         run: |
           docfx docfx/docfx.json
 
+      - name: Replace source maps with crawler-safe stubs
+        shell: bash
+        run: |
+          find ./docfx/_site/public -type f -name '*.map' \
+            -exec sh -c 'printf "{\"version\":3,\"sources\":[],\"mappings\":\"\"}\n" > "$1"' _ {} \;
+
+      - name: Generate documentation sitemap
+        shell: bash
+        run: |
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            find ./docfx/_site -type f -name '*.html' \
+              | sed 's#^\./docfx/_site/##' \
+              | grep -Ev '(^|/)(404|toc)\.html$' \
+              | sed -E 's#(^|/)index\.html$#\1#; s#\.html$##' \
+              | sort \
+              | while read -r page; do
+                  printf '  <url><loc>https://docs.s1servers.com/%s</loc></url>\n' "$page"
+                done
+            echo '</urlset>'
+          } > ./docfx/_site/sitemap.xml
+
       - name: Upload documentation artifact
         uses: actions/upload-artifact@v4
         with:
