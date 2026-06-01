@@ -12,6 +12,7 @@
     "prerender": "bun scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
+    "cf:traffic": "bun scripts/cloudflare-traffic.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
