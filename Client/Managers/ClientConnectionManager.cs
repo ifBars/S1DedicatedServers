@@ -457,14 +457,7 @@ namespace DedicatedServerMod.Client.Managers
                 }
             }
 
-            try
-            {
-                ClearCriticalLoadState(loadManager);
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Warning($"Dedicated client cleanup fallback failed: {ex.Message}");
-            }
+            ClearCriticalLoadState(loadManager);
 
             if (!reflectedCleanUpSucceeded)
             {
@@ -474,30 +467,42 @@ namespace DedicatedServerMod.Client.Managers
 
         private static void ClearCriticalLoadState(LoadManager loadManager)
         {
-            GuidManagerType.Clear();
-            Quest.Quests.Clear();
-            Quest.ActiveQuests.Clear();
-            NodeLink.validNodeLinks.Clear();
-            Player.onLocalPlayerSpawned = null;
-            Player.PlayerList.Clear();
-            SupplierLocation.AllLocations.Clear();
-            Phone.ActiveApp = null;
-            ATM.WeeklyDepositSum = 0f;
-            NavMeshUtility.ClearCache();
-            Business.OwnedBusinesses.Clear();
-            Business.UnownedBusinesses.Clear();
-            Business.onOperationFinished = null;
-            Business.onOperationStarted = null;
-            Property.onPropertyAcquired = null;
-            Property.OwnedProperties.Clear();
-            Property.UnownedProperties.Clear();
-            PlayerMovement.StaticMoveSpeedMultiplier = 1f;
-            AvatarLookController.TempContainer = null;
-            Customer.onCustomerUnlocked = null;
-            Customer.UnlockedCustomers.Clear();
-            Customer.LockedCustomers.Clear();
-            loadManager.staggeredReplicators.Clear();
-            ManagementClipboard_Equippable.ResetHeatmapToggle();
+            TryClearLoadState("GUIDManager.Clear", () => GuidManagerType.Clear());
+            TryClearLoadState("Quest.Quests.Clear", () => Quest.Quests.Clear());
+            TryClearLoadState("Quest.ActiveQuests.Clear", () => Quest.ActiveQuests.Clear());
+            TryClearLoadState("NodeLink.validNodeLinks.Clear", () => NodeLink.validNodeLinks.Clear());
+            TryClearLoadState("Player.onLocalPlayerSpawned", () => Player.onLocalPlayerSpawned = null);
+            TryClearLoadState("Player.PlayerList.Clear", () => Player.PlayerList.Clear());
+            TryClearLoadState("SupplierLocation.AllLocations.Clear", () => SupplierLocation.AllLocations.Clear());
+            TryClearLoadState("Phone.ActiveApp", () => Phone.ActiveApp = null);
+            TryClearLoadState("ATM.WeeklyDepositSum", () => ATM.WeeklyDepositSum = 0f);
+            TryClearLoadState("NavMeshUtility.ClearCache", () => NavMeshUtility.ClearCache());
+            TryClearLoadState("Business.OwnedBusinesses.Clear", () => Business.OwnedBusinesses.Clear());
+            TryClearLoadState("Business.UnownedBusinesses.Clear", () => Business.UnownedBusinesses.Clear());
+            TryClearLoadState("Business.onOperationFinished", () => Business.onOperationFinished = null);
+            TryClearLoadState("Business.onOperationStarted", () => Business.onOperationStarted = null);
+            TryClearLoadState("Property.onPropertyAcquired", () => Property.onPropertyAcquired = null);
+            TryClearLoadState("Property.OwnedProperties.Clear", () => Property.OwnedProperties.Clear());
+            TryClearLoadState("Property.UnownedProperties.Clear", () => Property.UnownedProperties.Clear());
+            TryClearLoadState("PlayerMovement.StaticMoveSpeedMultiplier", () => PlayerMovement.StaticMoveSpeedMultiplier = 1f);
+            TryClearLoadState("AvatarLookController.TempContainer", () => AvatarLookController.TempContainer = null);
+            TryClearLoadState("Customer.onCustomerUnlocked", () => Customer.onCustomerUnlocked = null);
+            TryClearLoadState("Customer.UnlockedCustomers.Clear", () => Customer.UnlockedCustomers.Clear());
+            TryClearLoadState("Customer.LockedCustomers.Clear", () => Customer.LockedCustomers.Clear());
+            TryClearLoadState("LoadManager.staggeredReplicators.Clear", () => loadManager?.staggeredReplicators?.Clear());
+            TryClearLoadState("ManagementClipboard_Equippable.ResetHeatmapToggle", () => ManagementClipboard_Equippable.ResetHeatmapToggle());
+        }
+
+        private static void TryClearLoadState(string step, Action clear)
+        {
+            try
+            {
+                clear?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Dedicated client cleanup fallback step '{step}' failed: {ex.Message}");
+            }
         }
 
         /// <summary>

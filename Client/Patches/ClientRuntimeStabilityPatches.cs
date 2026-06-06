@@ -80,6 +80,11 @@ namespace DedicatedServerMod.Client.Patches
         {
             try
             {
+                if (NpcField == null)
+                {
+                    return true;
+                }
+
                 if (__instance == null || !CoroutineService.InstanceExists)
                 {
                     return false;

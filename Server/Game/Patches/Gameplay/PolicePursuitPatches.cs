@@ -1,6 +1,7 @@
 using DedicatedServerMod.Server.Game.Patches.Common;
 using DedicatedServerMod.Utils;
 using HarmonyLib;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 #if IL2CPP
@@ -94,14 +95,8 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return;
             }
 
-            for (int i = 0; i < PoliceOfficerType.Officers.Count; i++)
+            ForEachOfficer(officer =>
             {
-                PoliceOfficerType officer = PoliceOfficerType.Officers[i];
-                if (officer == null)
-                {
-                    continue;
-                }
-
                 if (officer.BodySearchBehaviour != null
                     && officer.BodySearchBehaviour.Enabled
                     && officer.BodySearchBehaviour.TargetPlayer == player)
@@ -122,7 +117,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 {
                     TryDisable(() => officer.VehiclePursuitBehaviour.Disable_Networked(null));
                 }
-            }
+            });
         }
 
         internal static void ClearInvalidPoliceTargets()
@@ -132,14 +127,8 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return;
             }
 
-            for (int i = 0; i < PoliceOfficerType.Officers.Count; i++)
+            ForEachOfficer(officer =>
             {
-                PoliceOfficerType officer = PoliceOfficerType.Officers[i];
-                if (officer == null)
-                {
-                    continue;
-                }
-
                 PlayerType bodySearchTarget = officer.BodySearchBehaviour?.TargetPlayer;
                 if (officer.BodySearchBehaviour != null
                     && officer.BodySearchBehaviour.Enabled
@@ -163,7 +152,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 {
                     TryDisable(() => officer.VehiclePursuitBehaviour.Disable_Networked(null));
                 }
-            }
+            });
         }
 
         internal static void RefreshServerSight(PlayerType player)
@@ -242,6 +231,49 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             return method.Invoke(instance, null) is bool visible && visible;
         }
 
+        private static void ForEachOfficer(System.Action<PoliceOfficerType> handleOfficer)
+        {
+            if (handleOfficer == null)
+            {
+                return;
+            }
+
+            var officers = PoliceOfficerType.Officers;
+            if (officers == null)
+            {
+                return;
+            }
+
+            var snapshot = new List<PoliceOfficerType>(officers.Count);
+            try
+            {
+                for (int i = 0; i < officers.Count; i++)
+                {
+                    PoliceOfficerType officer = officers[i];
+                    if (officer != null)
+                    {
+                        snapshot.Add(officer);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning("Failed while snapshotting officers for stale police target cleanup.", ex);
+            }
+
+            for (int i = 0; i < snapshot.Count; i++)
+            {
+                try
+                {
+                    handleOfficer(snapshot[i]);
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Warning("Failed while scanning officer for stale police target cleanup.", ex);
+                }
+            }
+        }
+
         private static void TryDisable(Action disable)
         {
             try
@@ -281,9 +313,9 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             return false;
         }
 
-        private static void Postfix(CombatBehaviourType __instance)
+        private static void Postfix(CombatBehaviourType __instance, bool __runOriginal)
         {
-            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
+            if (!__runOriginal || !DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
             {
                 return;
             }
@@ -310,6 +342,10 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         }
     }
 
+    /// <summary>
+    /// Patches <c>CombatBehaviour.BehaviourUpdate</c> on dedicated servers to skip
+    /// vanilla combat processing after a pursuit target becomes invalid or disconnected.
+    /// </summary>
     [HarmonyPatch(typeof(CombatBehaviourType), "BehaviourUpdate")]
     internal static class CombatBehaviourUpdatePatches
     {
@@ -331,6 +367,10 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         }
     }
 
+    /// <summary>
+    /// Patches <c>PursuitBehaviour.BehaviourUpdate</c> on dedicated servers to clear
+    /// stale pursuit targets and return false before vanilla dereferences them.
+    /// </summary>
     [HarmonyPatch(typeof(PursuitBehaviourType), "BehaviourUpdate")]
     internal static class PursuitBehaviourUpdatePatches
     {

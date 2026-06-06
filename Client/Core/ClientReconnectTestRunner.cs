@@ -22,16 +22,16 @@ namespace DedicatedServerMod.Client.Core
     /// </summary>
     internal sealed class ClientReconnectTestRunner
     {
-        private const string TestFlag = "--s1ds-reconnect-test";
-        private const string HostFlag = "--s1ds-reconnect-test-host";
-        private const string PortFlag = "--s1ds-reconnect-test-port";
-        private const string CyclesFlag = "--s1ds-reconnect-test-cycles";
-        private const string DwellFlag = "--s1ds-reconnect-test-dwell-seconds";
-        private const string StartDelayFlag = "--s1ds-reconnect-test-start-delay-seconds";
-        private const string StartMarkerFlag = "--s1ds-reconnect-test-start-marker";
-        private const string JoinTimeoutFlag = "--s1ds-reconnect-test-join-timeout-seconds";
-        private const string MenuTimeoutFlag = "--s1ds-reconnect-test-menu-timeout-seconds";
-        private const string QuitFlag = "--s1ds-reconnect-test-quit";
+        private const string TEST_FLAG = "--s1ds-reconnect-test";
+        private const string HOST_FLAG = "--s1ds-reconnect-test-host";
+        private const string PORT_FLAG = "--s1ds-reconnect-test-port";
+        private const string CYCLES_FLAG = "--s1ds-reconnect-test-cycles";
+        private const string DWELL_FLAG = "--s1ds-reconnect-test-dwell-seconds";
+        private const string START_DELAY_FLAG = "--s1ds-reconnect-test-start-delay-seconds";
+        private const string START_MARKER_FLAG = "--s1ds-reconnect-test-start-marker";
+        private const string JOIN_TIMEOUT_FLAG = "--s1ds-reconnect-test-join-timeout-seconds";
+        private const string MENU_TIMEOUT_FLAG = "--s1ds-reconnect-test-menu-timeout-seconds";
+        private const string QUIT_FLAG = "--s1ds-reconnect-test-quit";
 
         private readonly ClientConnectionManager _connectionManager;
         private ReconnectTestOptions _options;
@@ -76,6 +76,12 @@ namespace DedicatedServerMod.Client.Core
 
             _started = true;
             Log($"START cycles={_options.Cycles} dwellSeconds={_options.DwellSeconds:F1} startDelaySeconds={_options.StartDelaySeconds:F1} host={_options.Host} port={_options.Port}");
+
+            if (!string.IsNullOrWhiteSpace(_options.ParseError))
+            {
+                Fail(_options.ParseError);
+                yield break;
+            }
 
             if (!string.IsNullOrWhiteSpace(_options.StartMarkerPath))
             {
@@ -232,6 +238,7 @@ namespace DedicatedServerMod.Client.Core
             public float JoinTimeoutSeconds { get; private set; } = 120f;
             public float MenuTimeoutSeconds { get; private set; } = 45f;
             public bool QuitOnComplete { get; private set; } = true;
+            public string ParseError { get; private set; }
 
             public static ReconnectTestOptions Parse(string[] args)
             {
@@ -244,43 +251,53 @@ namespace DedicatedServerMod.Client.Core
                 for (int i = 0; i < args.Length; i++)
                 {
                     string arg = args[i];
-                    if (string.Equals(arg, TestFlag, StringComparison.Ordinal))
+                    if (string.Equals(arg, TEST_FLAG, StringComparison.Ordinal))
                     {
                         options.Enabled = true;
                     }
-                    else if (string.Equals(arg, HostFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string host))
+                    else if (string.Equals(arg, HOST_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string host))
                     {
                         options.Host = host;
                     }
-                    else if (string.Equals(arg, PortFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string portText) && int.TryParse(portText, out int port))
+                    else if (string.Equals(arg, PORT_FLAG, StringComparison.Ordinal))
                     {
-                        options.Port = port;
+                        if (!TryReadNext(args, i, out string portText) ||
+                            !int.TryParse(portText, out int port) ||
+                            port < 1 ||
+                            port > 65535)
+                        {
+                            options.ParseError = $"invalid reconnect test port '{portText ?? string.Empty}'";
+                        }
+                        else
+                        {
+                            options.Port = port;
+                        }
                     }
-                    else if (string.Equals(arg, CyclesFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string cyclesText) && int.TryParse(cyclesText, out int cycles))
+                    else if (string.Equals(arg, CYCLES_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string cyclesText) && int.TryParse(cyclesText, out int cycles))
                     {
                         options.Cycles = Mathf.Clamp(cycles, 1, 10);
                     }
-                    else if (string.Equals(arg, DwellFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string dwellText) && TryParseFloat(dwellText, out float dwellSeconds))
+                    else if (string.Equals(arg, DWELL_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string dwellText) && TryParseFloat(dwellText, out float dwellSeconds))
                     {
                         options.DwellSeconds = Mathf.Clamp(dwellSeconds, 1f, 300f);
                     }
-                    else if (string.Equals(arg, StartDelayFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string startDelayText) && TryParseFloat(startDelayText, out float startDelaySeconds))
+                    else if (string.Equals(arg, START_DELAY_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string startDelayText) && TryParseFloat(startDelayText, out float startDelaySeconds))
                     {
                         options.StartDelaySeconds = Mathf.Clamp(startDelaySeconds, 0f, 300f);
                     }
-                    else if (string.Equals(arg, StartMarkerFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string startMarkerPath))
+                    else if (string.Equals(arg, START_MARKER_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string startMarkerPath))
                     {
                         options.StartMarkerPath = startMarkerPath;
                     }
-                    else if (string.Equals(arg, JoinTimeoutFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string joinTimeoutText) && TryParseFloat(joinTimeoutText, out float joinTimeoutSeconds))
+                    else if (string.Equals(arg, JOIN_TIMEOUT_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string joinTimeoutText) && TryParseFloat(joinTimeoutText, out float joinTimeoutSeconds))
                     {
                         options.JoinTimeoutSeconds = Mathf.Clamp(joinTimeoutSeconds, 10f, 600f);
                     }
-                    else if (string.Equals(arg, MenuTimeoutFlag, StringComparison.Ordinal) && TryReadNext(args, i, out string menuTimeoutText) && TryParseFloat(menuTimeoutText, out float menuTimeoutSeconds))
+                    else if (string.Equals(arg, MENU_TIMEOUT_FLAG, StringComparison.Ordinal) && TryReadNext(args, i, out string menuTimeoutText) && TryParseFloat(menuTimeoutText, out float menuTimeoutSeconds))
                     {
                         options.MenuTimeoutSeconds = Mathf.Clamp(menuTimeoutSeconds, 10f, 300f);
                     }
-                    else if (string.Equals(arg, QuitFlag, StringComparison.Ordinal))
+                    else if (string.Equals(arg, QUIT_FLAG, StringComparison.Ordinal))
                     {
                         options.QuitOnComplete = true;
                     }
