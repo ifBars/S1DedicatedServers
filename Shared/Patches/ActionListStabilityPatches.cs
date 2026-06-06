@@ -11,15 +11,11 @@ using UnityEngine;
 #if IL2CPP
 using ActionListType = Il2Cpp.ActionList;
 using ActionType = Il2CppSystem.Action;
-using LoadManagerType = Il2CppScheduleOne.Persistence.LoadManager;
 using NativeActionListType = Il2CppSystem.Collections.Generic.List<Il2CppSystem.Action>;
-using SingletonType = Il2CppScheduleOne.DevUtilities.Singleton<Il2CppScheduleOne.Persistence.LoadManager>;
 #else
 using ActionListType = ActionList;
 using ActionType = System.Action;
-using LoadManagerType = ScheduleOne.Persistence.LoadManager;
 using NativeActionListType = System.Collections.Generic.List<System.Action>;
-using SingletonType = ScheduleOne.DevUtilities.Singleton<ScheduleOne.Persistence.LoadManager>;
 #endif
 
 namespace DedicatedServerMod.Shared.Patches
@@ -94,18 +90,7 @@ namespace DedicatedServerMod.Shared.Patches
                 return true;
             }
 
-            try
-            {
-                LoadManagerType loadManager = SingletonType.Instance;
-                return loadManager != null &&
-                       loadManager.IsLoading &&
-                       !loadManager.IsGameLoaded &&
-                       connectionManager?.IsConnecting != true;
-            }
-            catch
-            {
-                return false;
-            }
+            return false;
 #else
             return false;
 #endif
