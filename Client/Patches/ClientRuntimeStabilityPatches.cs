@@ -76,15 +76,16 @@ namespace DedicatedServerMod.Client.Patches
         private static readonly System.Reflection.FieldInfo NpcField =
             AccessTools.Field(typeof(NPCActionType), "npc");
 
+        [HarmonyPrepare]
+        private static bool Prepare()
+        {
+            return NpcField != null;
+        }
+
         private static bool Prefix(NPCEventStayInBuildingType __instance)
         {
             try
             {
-                if (NpcField == null)
-                {
-                    return true;
-                }
-
                 if (__instance == null || !CoroutineService.InstanceExists)
                 {
                     return false;
