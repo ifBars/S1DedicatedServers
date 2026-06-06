@@ -1,4 +1,6 @@
+using System;
 using HarmonyLib;
+using DedicatedServerMod.Utils;
 #if IL2CPP
 using BehaviourType = Il2CppScheduleOne.NPCs.Behaviour.Behaviour;
 using BehaviourListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.NPCs.Behaviour.Behaviour>;
@@ -54,7 +56,15 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             if (__instance.activeBehaviour != null && __instance.activeBehaviour.Active)
             {
-                __instance.activeBehaviour.BehaviourUpdate();
+                try
+                {
+                    __instance.activeBehaviour.BehaviourUpdate();
+                }
+                catch (Exception ex)
+                {
+                    DedicatedPolicePursuitAuthority.ClearInvalidPoliceTargets();
+                    DebugLog.Warning($"Suppressed stale NPC behaviour update after dedicated target cleanup: {ex.Message}");
+                }
             }
 
             return false;

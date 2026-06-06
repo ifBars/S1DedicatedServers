@@ -81,6 +81,11 @@ namespace DedicatedServerMod.Client.Core
         /// The loopback handler for ghost player management.
         /// </summary>
         private ClientLoopbackHandler _loopbackHandler;
+
+        /// <summary>
+        /// Optional real-game reconnect diagnostic runner enabled by command-line flag.
+        /// </summary>
+        private ClientReconnectTestRunner _reconnectTestRunner;
         
 
         /// <summary>
@@ -300,6 +305,9 @@ namespace DedicatedServerMod.Client.Core
             // Initialize UI manager (depends on connection manager)
             _uiManager = new ClientUIManager(_connectionManager);
             _uiManager.Initialize();
+
+            _reconnectTestRunner = new ClientReconnectTestRunner(_connectionManager);
+            _reconnectTestRunner.Initialize();
         }
 
         #endregion
@@ -412,6 +420,15 @@ namespace DedicatedServerMod.Client.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Error notifying client mods of shutdown: {ex.Message}");
+            }
+
+            try
+            {
+                _reconnectTestRunner?.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down reconnect test runner: {ex.Message}");
             }
 
             try

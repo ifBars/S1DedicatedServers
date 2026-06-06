@@ -59,9 +59,37 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 || player.CrimeData.CurrentPursuitLevel == PlayerCrimeDataType.EPursuitLevel.None;
         }
 
+        internal static bool IsInvalidOrDisconnectedTarget(PlayerType player)
+        {
+            if (player == null || DedicatedServerPatchCommon.IsGhostOrLoopbackPlayer(player))
+            {
+                return true;
+            }
+
+            try
+            {
+                if (player.Owner == null ||
+                    !player.Owner.IsActive ||
+                    player.NetworkObject == null ||
+                    player.Avatar == null ||
+                    player.CrimeData == null)
+                {
+                    return true;
+                }
+
+                return player.IsArrested
+                    || player.IsUnconscious
+                    || player.CrimeData.CurrentPursuitLevel == PlayerCrimeDataType.EPursuitLevel.None;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         internal static void ClearPoliceTargeting(PlayerType player)
         {
-            if (!ShouldRunForPlayer(player) || player.NetworkObject == null)
+            if (player == null || DedicatedServerPatchCommon.IsGhostOrLoopbackPlayer(player))
             {
                 return;
             }
@@ -78,21 +106,62 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                     && officer.BodySearchBehaviour.Enabled
                     && officer.BodySearchBehaviour.TargetPlayer == player)
                 {
-                    officer.BodySearchBehaviour.Disable_Networked(null);
+                    TryDisable(() => officer.BodySearchBehaviour.Disable_Networked(null));
                 }
 
                 if (officer.PursuitBehaviour != null
                     && officer.PursuitBehaviour.Enabled
                     && officer.PursuitBehaviour.TargetPlayer == player)
                 {
-                    officer.PursuitBehaviour.Disable_Networked(null);
+                    TryDisable(() => officer.PursuitBehaviour.Disable_Networked(null));
                 }
 
                 if (officer.VehiclePursuitBehaviour != null
                     && officer.VehiclePursuitBehaviour.Enabled
                     && officer.VehiclePursuitBehaviour.Target == player)
                 {
-                    officer.VehiclePursuitBehaviour.Disable_Networked(null);
+                    TryDisable(() => officer.VehiclePursuitBehaviour.Disable_Networked(null));
+                }
+            }
+        }
+
+        internal static void ClearInvalidPoliceTargets()
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
+            {
+                return;
+            }
+
+            for (int i = 0; i < PoliceOfficerType.Officers.Count; i++)
+            {
+                PoliceOfficerType officer = PoliceOfficerType.Officers[i];
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                PlayerType bodySearchTarget = officer.BodySearchBehaviour?.TargetPlayer;
+                if (officer.BodySearchBehaviour != null
+                    && officer.BodySearchBehaviour.Enabled
+                    && IsInvalidOrDisconnectedTarget(bodySearchTarget))
+                {
+                    TryDisable(() => officer.BodySearchBehaviour.Disable_Networked(null));
+                }
+
+                PlayerType pursuitTarget = officer.PursuitBehaviour?.TargetPlayer;
+                if (officer.PursuitBehaviour != null
+                    && officer.PursuitBehaviour.Enabled
+                    && IsInvalidOrDisconnectedTarget(pursuitTarget))
+                {
+                    TryDisable(() => officer.PursuitBehaviour.Disable_Networked(null));
+                }
+
+                PlayerType vehicleTarget = officer.VehiclePursuitBehaviour?.Target;
+                if (officer.VehiclePursuitBehaviour != null
+                    && officer.VehiclePursuitBehaviour.Enabled
+                    && IsInvalidOrDisconnectedTarget(vehicleTarget))
+                {
+                    TryDisable(() => officer.VehiclePursuitBehaviour.Disable_Networked(null));
                 }
             }
         }
@@ -172,6 +241,18 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             return method.Invoke(instance, null) is bool visible && visible;
         }
+
+        private static void TryDisable(Action disable)
+        {
+            try
+            {
+                disable?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Failed to clear stale police target: {ex.Message}");
+            }
+        }
     }
 
     /// <summary>
@@ -183,6 +264,23 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     [HarmonyPatch(typeof(CombatBehaviourType), "CheckTargetVisibility")]
     internal static class CombatBehaviourCheckTargetVisibilityPatches
     {
+        private static bool Prefix(CombatBehaviourType __instance)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
+            {
+                return true;
+            }
+
+            PursuitBehaviourType pursuit = __instance as PursuitBehaviourType;
+            if (pursuit == null || !DedicatedPolicePursuitAuthority.IsInvalidOrDisconnectedTarget(pursuit.TargetPlayer))
+            {
+                return true;
+            }
+
+            DedicatedPolicePursuitAuthority.ClearPoliceTargeting(pursuit.TargetPlayer);
+            return false;
+        }
+
         private static void Postfix(CombatBehaviourType __instance)
         {
             if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
@@ -209,6 +307,47 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             SafeReflection.TrySetInstanceFieldOrProperty(__instance, "visionEventReceived", true);
             DedicatedPolicePursuitAuthority.RefreshServerSight(targetPlayer);
+        }
+    }
+
+    [HarmonyPatch(typeof(CombatBehaviourType), "BehaviourUpdate")]
+    internal static class CombatBehaviourUpdatePatches
+    {
+        private static bool Prefix(CombatBehaviourType __instance)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer)
+            {
+                return true;
+            }
+
+            PursuitBehaviourType pursuit = __instance as PursuitBehaviourType;
+            if (pursuit == null || !DedicatedPolicePursuitAuthority.IsInvalidOrDisconnectedTarget(pursuit.TargetPlayer))
+            {
+                return true;
+            }
+
+            DedicatedPolicePursuitAuthority.ClearPoliceTargeting(pursuit.TargetPlayer);
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(PursuitBehaviourType), "BehaviourUpdate")]
+    internal static class PursuitBehaviourUpdatePatches
+    {
+        private static bool Prefix(PursuitBehaviourType __instance)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer() || !InstanceFinderType.IsServer || __instance == null)
+            {
+                return true;
+            }
+
+            if (!DedicatedPolicePursuitAuthority.IsInvalidOrDisconnectedTarget(__instance.TargetPlayer))
+            {
+                return true;
+            }
+
+            DedicatedPolicePursuitAuthority.ClearPoliceTargeting(__instance.TargetPlayer);
+            return false;
         }
     }
 

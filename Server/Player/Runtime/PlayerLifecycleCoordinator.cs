@@ -11,6 +11,7 @@ using FishNet.Transporting;
 using PlayerScript = ScheduleOne.PlayerScripts.Player;
 #endif
 using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Game.Patches.Gameplay;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ModVerification;
 using DedicatedServerMod.Shared.Networking;
@@ -699,6 +700,11 @@ namespace DedicatedServerMod.Server.Player.Runtime
             }
 
             _authentication.HandlePlayerDisconnected(removedPlayer);
+            if (removedPlayer.PlayerInstance != null)
+            {
+                DedicatedPolicePursuitAuthority.ClearPoliceTargeting(removedPlayer.PlayerInstance);
+            }
+
             _publishPlayerLeft(removedPlayer);
 
             try

@@ -12,21 +12,39 @@ using FishNet.Transporting.Tugboat;
 using MelonLoader;
 using System.Globalization;
 #if IL2CPP
+using GuidManagerType = Il2Cpp.GUIDManager;
 using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Economy;
 using Il2CppScheduleOne.Networking;
 using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.Quests;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Audio;
+using Il2CppScheduleOne.AvatarFramework.Animation;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.Property;
+using Il2CppScheduleOne.Tools;
 using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.UI.Phone;
 using Il2CppScheduleOne.UI.MainMenu;
+using Il2CppPathfinding;
 using Il2CppSteamworks;
 #else
+using GuidManagerType = global::GUIDManager;
+using Pathfinding;
 using ScheduleOne.Audio;
+using ScheduleOne.AvatarFramework.Animation;
 using ScheduleOne.DevUtilities;
+using ScheduleOne.Economy;
+using ScheduleOne.Money;
 using ScheduleOne.Networking;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
+using ScheduleOne.Property;
+using ScheduleOne.Quests;
+using ScheduleOne.Tools;
 using ScheduleOne.UI;
+using ScheduleOne.UI.Phone;
 using ScheduleOne.UI.MainMenu;
 using Steamworks;
 #endif
@@ -249,7 +267,7 @@ namespace DedicatedServerMod.Client.Managers
             // --- Step 6 (native 671): CleanUp ---
             // Clears GUIDManager, Quest lists, PlayerList, staggeredReplicators, etc.
             timeline.Mark("CleanUp");
-            CleanUpMethod?.Invoke(loadManager, null);
+            RunLoadManagerCleanUp(loadManager);
 
             // --- Step 7 (native 672-680): Configure transport and set timeout ---
             timeline.Mark("ConfigureTransport");
@@ -421,6 +439,65 @@ namespace DedicatedServerMod.Client.Managers
         private bool ShouldAbortJoinSequence(long joinAttemptId)
         {
             return joinAttemptId != _activeJoinAttemptId || _isReturningToMenu || !IsConnecting;
+        }
+
+        private static void RunLoadManagerCleanUp(LoadManager loadManager)
+        {
+            bool reflectedCleanUpSucceeded = false;
+            if (CleanUpMethod != null)
+            {
+                try
+                {
+                    CleanUpMethod.Invoke(loadManager, null);
+                    reflectedCleanUpSucceeded = true;
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Warning($"LoadManager.CleanUp reflection failed; applying dedicated client cleanup fallback: {ex.Message}");
+                }
+            }
+
+            try
+            {
+                ClearCriticalLoadState(loadManager);
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Dedicated client cleanup fallback failed: {ex.Message}");
+            }
+
+            if (!reflectedCleanUpSucceeded)
+            {
+                DebugLog.Debug("Applied dedicated client cleanup fallback without native LoadManager.CleanUp.");
+            }
+        }
+
+        private static void ClearCriticalLoadState(LoadManager loadManager)
+        {
+            GuidManagerType.Clear();
+            Quest.Quests.Clear();
+            Quest.ActiveQuests.Clear();
+            NodeLink.validNodeLinks.Clear();
+            Player.onLocalPlayerSpawned = null;
+            Player.PlayerList.Clear();
+            SupplierLocation.AllLocations.Clear();
+            Phone.ActiveApp = null;
+            ATM.WeeklyDepositSum = 0f;
+            NavMeshUtility.ClearCache();
+            Business.OwnedBusinesses.Clear();
+            Business.UnownedBusinesses.Clear();
+            Business.onOperationFinished = null;
+            Business.onOperationStarted = null;
+            Property.onPropertyAcquired = null;
+            Property.OwnedProperties.Clear();
+            Property.UnownedProperties.Clear();
+            PlayerMovement.StaticMoveSpeedMultiplier = 1f;
+            AvatarLookController.TempContainer = null;
+            Customer.onCustomerUnlocked = null;
+            Customer.UnlockedCustomers.Clear();
+            Customer.LockedCustomers.Clear();
+            loadManager.staggeredReplicators.Clear();
+            ManagementClipboard_Equippable.ResetHeatmapToggle();
         }
 
         /// <summary>
