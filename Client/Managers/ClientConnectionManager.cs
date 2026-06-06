@@ -10,22 +10,43 @@ using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
 #endif
 using MelonLoader;
+using System.Globalization;
 #if IL2CPP
+using GuidManagerType = Il2Cpp.GUIDManager;
 using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Economy;
 using Il2CppScheduleOne.Networking;
 using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.Quests;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Audio;
+using Il2CppScheduleOne.AvatarFramework.Animation;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.Property;
+using Il2CppScheduleOne.Tools;
 using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.UI.Phone;
 using Il2CppScheduleOne.UI.MainMenu;
+using Il2CppPathfinding;
+using Il2CppSteamworks;
 #else
+using GuidManagerType = global::GUIDManager;
+using Pathfinding;
 using ScheduleOne.Audio;
+using ScheduleOne.AvatarFramework.Animation;
 using ScheduleOne.DevUtilities;
+using ScheduleOne.Economy;
+using ScheduleOne.Money;
 using ScheduleOne.Networking;
 using ScheduleOne.Persistence;
 using ScheduleOne.PlayerScripts;
+using ScheduleOne.Property;
+using ScheduleOne.Quests;
+using ScheduleOne.Tools;
 using ScheduleOne.UI;
+using ScheduleOne.UI.Phone;
 using ScheduleOne.UI.MainMenu;
+using Steamworks;
 #endif
 using System;
 using System.Collections;
@@ -42,6 +63,7 @@ using DedicatedServerMod.Utils;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using DSConstants = DedicatedServerMod.Utils.Constants;
 
 namespace DedicatedServerMod.Client.Managers
 {
@@ -245,7 +267,7 @@ namespace DedicatedServerMod.Client.Managers
             // --- Step 6 (native 671): CleanUp ---
             // Clears GUIDManager, Quest lists, PlayerList, staggeredReplicators, etc.
             timeline.Mark("CleanUp");
-            CleanUpMethod?.Invoke(loadManager, null);
+            RunLoadManagerCleanUp(loadManager);
 
             // --- Step 7 (native 672-680): Configure transport and set timeout ---
             timeline.Mark("ConfigureTransport");
@@ -419,6 +441,70 @@ namespace DedicatedServerMod.Client.Managers
             return joinAttemptId != _activeJoinAttemptId || _isReturningToMenu || !IsConnecting;
         }
 
+        private static void RunLoadManagerCleanUp(LoadManager loadManager)
+        {
+            bool reflectedCleanUpSucceeded = false;
+            if (CleanUpMethod != null)
+            {
+                try
+                {
+                    CleanUpMethod.Invoke(loadManager, null);
+                    reflectedCleanUpSucceeded = true;
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Warning($"LoadManager.CleanUp reflection failed; applying dedicated client cleanup fallback: {ex.Message}");
+                }
+            }
+
+            ClearCriticalLoadState(loadManager);
+
+            if (!reflectedCleanUpSucceeded)
+            {
+                DebugLog.Debug("Applied dedicated client cleanup fallback without native LoadManager.CleanUp.");
+            }
+        }
+
+        private static void ClearCriticalLoadState(LoadManager loadManager)
+        {
+            TryClearLoadState("GUIDManager.Clear", () => GuidManagerType.Clear());
+            TryClearLoadState("Quest.Quests.Clear", () => Quest.Quests.Clear());
+            TryClearLoadState("Quest.ActiveQuests.Clear", () => Quest.ActiveQuests.Clear());
+            TryClearLoadState("NodeLink.validNodeLinks.Clear", () => NodeLink.validNodeLinks.Clear());
+            TryClearLoadState("Player.onLocalPlayerSpawned", () => Player.onLocalPlayerSpawned = null);
+            TryClearLoadState("Player.PlayerList.Clear", () => Player.PlayerList.Clear());
+            TryClearLoadState("SupplierLocation.AllLocations.Clear", () => SupplierLocation.AllLocations.Clear());
+            TryClearLoadState("Phone.ActiveApp", () => Phone.ActiveApp = null);
+            TryClearLoadState("ATM.WeeklyDepositSum", () => ATM.WeeklyDepositSum = 0f);
+            TryClearLoadState("NavMeshUtility.ClearCache", () => NavMeshUtility.ClearCache());
+            TryClearLoadState("Business.OwnedBusinesses.Clear", () => Business.OwnedBusinesses.Clear());
+            TryClearLoadState("Business.UnownedBusinesses.Clear", () => Business.UnownedBusinesses.Clear());
+            TryClearLoadState("Business.onOperationFinished", () => Business.onOperationFinished = null);
+            TryClearLoadState("Business.onOperationStarted", () => Business.onOperationStarted = null);
+            TryClearLoadState("Property.onPropertyAcquired", () => Property.onPropertyAcquired = null);
+            TryClearLoadState("Property.OwnedProperties.Clear", () => Property.OwnedProperties.Clear());
+            TryClearLoadState("Property.UnownedProperties.Clear", () => Property.UnownedProperties.Clear());
+            TryClearLoadState("PlayerMovement.StaticMoveSpeedMultiplier", () => PlayerMovement.StaticMoveSpeedMultiplier = 1f);
+            TryClearLoadState("AvatarLookController.TempContainer", () => AvatarLookController.TempContainer = null);
+            TryClearLoadState("Customer.onCustomerUnlocked", () => Customer.onCustomerUnlocked = null);
+            TryClearLoadState("Customer.UnlockedCustomers.Clear", () => Customer.UnlockedCustomers.Clear());
+            TryClearLoadState("Customer.LockedCustomers.Clear", () => Customer.LockedCustomers.Clear());
+            TryClearLoadState("LoadManager.staggeredReplicators.Clear", () => loadManager?.staggeredReplicators?.Clear());
+            TryClearLoadState("ManagementClipboard_Equippable.ResetHeatmapToggle", () => ManagementClipboard_Equippable.ResetHeatmapToggle());
+        }
+
+        private static void TryClearLoadState(string step, Action clear)
+        {
+            try
+            {
+                clear?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Dedicated client cleanup fallback step '{step}' failed: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Configures Tugboat transport and starts the client connection.
         /// Matches native LoadAsClient transport setup (lines 672-691).
@@ -488,6 +574,91 @@ namespace DedicatedServerMod.Client.Managers
 #else
             Player.onLocalPlayerSpawned -= new Action(OnLocalPlayerSpawned);
 #endif
+
+            ClientBootstrap.Instance?.ConnectionManager?.StartLocalPlayerIdentityRecovery();
+        }
+
+        private void StartLocalPlayerIdentityRecovery()
+        {
+            MelonCoroutines.Start(RecoverLocalPlayerIdentityAfterSpawn());
+        }
+
+        private IEnumerator RecoverLocalPlayerIdentityAfterSpawn()
+        {
+            yield return new WaitForSeconds(0.5f);
+
+            if (!IsConnecting || _isReturningToMenu)
+            {
+                yield break;
+            }
+
+            var localPlayer = Player.Local;
+            if (localPlayer == null || localPlayer.playerDataRetrieveReturned)
+            {
+                yield break;
+            }
+
+            if (!ClientSteamRuntime.EnsureUserReady(attemptInitialization: true, out ulong steamId, out string steamStatus))
+            {
+                DebugLog.Warning($"Dedicated client could not recover local player identity after spawn: {steamStatus}");
+                yield break;
+            }
+
+            string playerName = ResolveSteamPersonaName(localPlayer);
+            string steamIdText = steamId.ToString(CultureInfo.InvariantCulture);
+
+            try
+            {
+                localPlayer.SendPlayerNameData(playerName, steamId);
+                DebugLog.PlayerLifecycleDebug($"Recovered local player identity after spawn: {playerName} ({steamIdText})");
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Failed to resend local player identity after spawn: {ex.Message}");
+            }
+
+            try
+            {
+                if (!InstanceFinder.IsServer)
+                {
+                    localPlayer.RequestPlayerData(steamIdText);
+                    DebugLog.PlayerLifecycleDebug($"Requested player data after identity recovery for SteamID {steamIdText}");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Failed to request player data after identity recovery: {ex.Message}");
+            }
+        }
+
+        private static string ResolveSteamPersonaName(Player localPlayer)
+        {
+            try
+            {
+                string personaName = SteamFriends.GetPersonaName();
+                if (!string.IsNullOrWhiteSpace(personaName))
+                {
+                    return personaName;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Failed to read Steam persona name during identity recovery: {ex.Message}");
+            }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(localPlayer?.PlayerName))
+                {
+                    return localPlayer.PlayerName;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"Failed to read local player name during identity recovery: {ex.Message}");
+            }
+
+            return "Player";
         }
 
         private void HandleConnectionError(string errorMessage)
@@ -825,7 +996,7 @@ namespace DedicatedServerMod.Client.Managers
 
         private void OnClientMessageReceived(string command, string data)
         {
-            if (!string.Equals(command, Constants.Messages.DisconnectNotice, StringComparison.Ordinal))
+            if (!string.Equals(command, DSConstants.Messages.DisconnectNotice, StringComparison.Ordinal))
             {
                 return;
             }

@@ -84,7 +84,13 @@ namespace DedicatedServerMod.Shared.Patches
         private static bool ShouldAbortStaggeredInvocation()
         {
 #if CLIENT
-            return ClientBootstrap.Instance?.ConnectionManager?.IsReturningToMenu == true;
+            var connectionManager = ClientBootstrap.Instance?.ConnectionManager;
+            if (connectionManager?.IsReturningToMenu == true)
+            {
+                return true;
+            }
+
+            return false;
 #else
             return false;
 #endif

@@ -765,6 +765,7 @@
 
 		<!-- Client bootstrap and entry point -->
 		<Compile Include="Client\Core\ClientBootstrap.cs" />
+		<Compile Include="Client\Core\ClientReconnectTestRunner.cs" />
 		<Compile Include="Client\Core\ClientSteamRuntime.cs" />
 
 		<!-- Client managers -->
