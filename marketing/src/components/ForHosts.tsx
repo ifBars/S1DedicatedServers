@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useMounted } from "@/hooks/useMounted";
 import gasMart from "@/assets/web-panel.png";
-import { Check, ExternalLink } from "lucide-react";
+import { Check } from "lucide-react";
 
 const capabilities = [
   { label: "24/7 uptime", detail: "Your server runs headless, always on." },
@@ -70,29 +70,6 @@ const ForHosts = () => {
                   </motion.li>
                 ))}
               </ul>
-
-              <div className="mt-8 border-t border-border/25 pt-6">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                  Hosting Providers
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  Some third-party hosts may offer S1DedicatedServers-compatible service independently.
-                  They are not official partners or endorsed providers unless the docs explicitly say so.
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  Commercial hosts can contact the project maintainer for setup guidance, version coordination,
-                  attribution guidelines, and partnership or affiliate options.
-                </p>
-                <a
-                  href="https://docs.s1servers.com/docs/hosting-providers.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center text-sm font-medium text-foreground underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary"
-                >
-                  Hosting provider guidance
-                  <ExternalLink className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-              </div>
             </div>
           </motion.div>
 

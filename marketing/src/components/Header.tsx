@@ -3,8 +3,7 @@ import logoIcon from "@/assets/logo-icon.png";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { label: "For Hosts", href: "/#for-hosts" },
-  { label: "For Developers", href: "/#for-developers" },
+  { label: "Server Hosting", href: "https://docs.s1servers.com/docs/hosting-providers.html" },
   { label: "Config Generator", href: "/config-generator" },
   { label: "Getting Started", href: "/#getting-started" },
   { label: "Docs", href: "https://docs.s1servers.com/" },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Github } from "lucide-react";
+import { Download, ExternalLink, Github } from "lucide-react";
+import cybranceeLogo from "@/assets/cybrancee-logo-dark.png";
 
 const heroModules = import.meta.glob("../assets/heros/*.{png,jpg,jpeg,webp,avif}", {
   eager: true,
@@ -64,32 +65,26 @@ const Hero = () => {
             loading={index === 0 ? "eager" : "lazy"}
           />
         ))}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,hsl(var(--accent)/0.01),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(0_0%_7%/0.02)_0%,hsl(0_0%_7%/0.01)_34%,hsl(0_0%_7%/0.5)_100%)]" />
+        <div
+          className="absolute inset-0 bg-background/45 backdrop-blur-[1.5px]"
+          style={{ opacity: overlayOpacity }}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_42%,hsl(0_0%_7%/0.18)_0%,hsl(0_0%_7%/0.36)_42%,hsl(0_0%_7%/0.78)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(0_0%_7%/0.62)_0%,hsl(0_0%_7%/0.18)_26%,hsl(0_0%_7%/0.48)_66%,hsl(0_0%_7%/0.9)_100%)]" />
       </div>
 
       {/* Content */}
       <motion.div
-        className="relative z-10 container px-4 md:px-8 max-w-4xl mx-auto text-center pt-24 pb-32"
+        className="relative z-10 container mx-auto max-w-4xl px-4 pb-24 pt-24 text-center md:px-8 md:pt-28"
         initial={false}
         animate={{ y: [0, -5, 0] }}
         transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
       >
-        <motion.div
-          initial={false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <p className="text-xs font-medium tracking-[0.25em] uppercase text-foreground/78 mb-8">
-            Open Source &middot; Beta
-          </p>
-        </motion.div>
-
         <motion.h1
-          className="mb-8 flex flex-col items-center text-4xl font-extrabold leading-[0.93] tracking-tight [text-shadow:0_10px_36px_hsl(0_0%_7%/0.48)] sm:text-6xl md:text-7xl lg:text-[7rem]"
+          className="mb-9 flex flex-col items-center text-4xl font-extrabold leading-[0.93] tracking-tight [text-shadow:0_10px_36px_hsl(0_0%_7%/0.48)] sm:text-6xl md:text-7xl lg:text-[7rem]"
           initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 1, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
         >
           <span className="block md:whitespace-nowrap">Dedicated Servers</span>
           <span className="block text-primary">for Schedule&nbsp;I</span>
@@ -99,7 +94,7 @@ const Hero = () => {
           className="text-lg md:text-xl text-foreground/88 max-w-xl mx-auto mb-12 leading-relaxed [text-shadow:0_8px_28px_hsl(0_0%_7%/0.42)]"
           initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.8, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
         >
           Run your Schedule I world 24/7, customize the experience
           and build the foundation for the community server you actually want.
@@ -141,6 +136,21 @@ const Hero = () => {
             className="text-sm font-medium text-foreground/80 underline decoration-primary/60 underline-offset-4 transition-colors hover:text-foreground"
           >
             Open the dedicated server docs
+          </a>
+          <a
+            href="https://cybrancee.com/bars"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-md border border-border/45 bg-background/35 px-4 py-2 text-sm font-medium text-foreground/86 backdrop-blur-md transition-colors hover:border-primary/55 hover:bg-background/50 hover:text-foreground sm:w-auto sm:max-w-full"
+          >
+            <img
+              src={cybranceeLogo}
+              alt="Cybrancee"
+              className="h-4 w-auto max-w-[116px] shrink-0 object-contain"
+              loading="eager"
+            />
+            <span className="min-w-0 truncate">Rent a Server</span>
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           </a>
         </motion.div>
       </motion.div>

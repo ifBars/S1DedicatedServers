@@ -3,6 +3,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useMounted } from "@/hooks/useMounted";
 import nightCity from "@/assets/banners/night-city.png";
 import logoIcon from "@/assets/logo-icon.png";
+import { ExternalLink } from "lucide-react";
 
 const Footer = () => {
   const { ref, visible } = useScrollReveal(0.1);
@@ -42,7 +43,7 @@ const Footer = () => {
             Download, configure, and launch your dedicated server in minutes.
           </motion.p>
           <motion.div
-            className="flex items-center justify-center gap-4"
+            className="flex flex-col items-center justify-center gap-4 sm:flex-row"
             initial={false}
             animate={ctaAnimation}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -51,7 +52,7 @@ const Footer = () => {
               href="https://github.com/ifBars/S1DedicatedServers/releases"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)]"
+              className="inline-flex w-full items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)] sm:w-auto"
             >
               Get Started
             </a>
@@ -59,11 +60,28 @@ const Footer = () => {
               href="https://docs.s1servers.com/docs/index.html"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-md border border-border/50 px-7 py-3 text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors duration-200"
+              className="inline-flex w-full items-center justify-center rounded-md border border-border/50 px-7 py-3 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-secondary/50 sm:w-auto"
             >
               Documentation
             </a>
           </motion.div>
+          <motion.p
+            className="mt-7 text-sm leading-relaxed text-muted-foreground"
+            initial={false}
+            animate={ctaAnimation}
+            transition={{ duration: 0.6, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Prefer managed hosting?{" "}
+            <a
+              href="https://cybrancee.com/bars"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-foreground underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary"
+            >
+              Rent a server with Cybrancee
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </motion.p>
         </div>
       </section>
 
@@ -92,7 +110,7 @@ const Footer = () => {
                 s1servers.com
               </a>
               . Similarly named closed-source projects are separate and unaffiliated.
-              Third-party hosting providers may support this project independently and are not endorsed unless explicitly marked in the documentation.
+              Cybrancee is the primary recommended hosting provider, and other commercial hosts are independent unless listed in the documentation.
               All game assets and trademarks belong to their respective owners.
             </p>
           </div>
