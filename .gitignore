@@ -335,6 +335,7 @@ s1ds-local.tar
 .agents/
 Assets/S1-Assets
 .claude/
+skills-lock.json
 
 # Local real-game harnesses and install-specific repro scripts.
 tests/Run-*RealGameTest.ps1

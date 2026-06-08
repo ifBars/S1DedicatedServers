@@ -27,12 +27,11 @@ Want a hosted server instead of running the dedicated server yourself? The provi
       </div>
       <div class="hosting-provider-details">
         <p>
-          Confirmed for Mono and IL2CPP hosting, with an ongoing maintainer
-          test server available for future S1DedicatedServers update checks.
+          Confirmed for supported hosting, with an ongoing maintainer
+          test server available for future S1DedicatedServers updates.
         </p>
         <div class="hosting-provider-actions">
           <a class="hosting-provider-button" href="https://cybrancee.com/bars">Visit Cybrancee</a>
-          <a class="hosting-provider-button hosting-provider-button--secondary" href="hosting-providers/cybrancee.md">Cybrancee setup notes</a>
         </div>
       </div>
     </div>
