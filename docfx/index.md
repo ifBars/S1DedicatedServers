@@ -15,7 +15,7 @@ Run authoritative, headless Schedule I servers and build server/client mods agai
 - Server and client should use matching Schedule I builds.
 - Supported MelonLoader versions are `0.6.x`, `0.7.0`, and `0.7.2+`.
 - Avoid MelonLoader `0.7.1`.
-- Current beta builds continue initial IL2CPP support for both dedicated-server and client installs. Expect rough edges, and report IL2CPP issues on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps.
+- Mono and IL2CPP are both supported for dedicated-server and client installs. Report runtime-specific issues on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs, runtime type, and reproduction steps.
 - Windows is the primary target for server hosting. Linux hosting typically requires Wine or Proton.
 
 ## Host Sizing Baseline
@@ -42,9 +42,9 @@ Set `S1DS_RUNTIME=mono` or `S1DS_RUNTIME=il2cpp` when the container starts. If y
 
 ## Hosting Providers
 
-Some third-party hosting providers may offer Schedule I or S1DedicatedServers-compatible hosting independently. They are not official partners, affiliates, or endorsed providers unless the [Hosting Providers](docs/hosting-providers.md) page explicitly marks them that way.
+Cybrancee and Kinetic Hosting are supported providers that have been tested with S1DedicatedServers by the project maintainer. Cybrancee is the recommended hosted option.
 
-Commercial hosts can contact the project maintainer for setup guidance, version coordination, attribution guidelines, and partnership or affiliate options.
+See [Hosting Providers](docs/hosting-providers.md) for provider links, affiliate disclosure, verification notes, and third-party host guidance.
 
 ## Create a Server Install
 
@@ -76,7 +76,7 @@ For save path details, see [Save Path](docs/configuration/save-path.md).
 - [Overview](docs/index.md)
 - [Configuration](docs/configuration.md) to harden and tune the server
 - [Authentication](docs/configuration/authentication.md)
-- [Hosting Providers](docs/hosting-providers.md) for third-party host and commercial provider guidance
+- [Hosting Providers](docs/hosting-providers.md) for supported provider and third-party host guidance
 - [Host Console](docs/host-console.md) for panel-hosted stdin/stdout administration
 - [Web Panel](docs/configuration/web-panel.md) for local browser-based administration
 - [Troubleshooting](docs/troubleshooting.md) if startup or connection fails

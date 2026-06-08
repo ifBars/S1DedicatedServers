@@ -5,13 +5,13 @@
 [![GitHub stars](https://img.shields.io/github/stars/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/issues)
-[![Version](https://img.shields.io/github/v/release/ifBars/S1DedicatedServers?include_prereleases&label=version)](https://github.com/ifBars/S1DedicatedServers/releases)
+[![Version](https://img.shields.io/github/v/release/ifBars/S1DedicatedServers?label=version)](https://github.com/ifBars/S1DedicatedServers/releases)
 [![GitHub license](https://img.shields.io/github/license/ifBars/S1DedicatedServers)](https://github.com/ifBars/S1DedicatedServers/blob/master/LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/ifBars/S1DedicatedServers/master)](https://github.com/ifBars/S1DedicatedServers/commits/master)
 
 DedicatedServerMod adds authoritative, headless dedicated servers to Schedule I, along with admin tooling, remote console support, an optional loopback-only web panel, and a public mod API for server and client extensions.
 
-Current beta builds continue the initial IL2CPP support for dedicated server and client workflows. Treat IL2CPP support as beta: if you hit IL2CPP-specific regressions or startup issues, report them on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs and reproduction steps. Docker deployment now supports both Mono and IL2CPP through the same image and release package by setting `S1DS_RUNTIME`.
+DedicatedServerMod supports both Mono and IL2CPP dedicated server and client workflows. If you hit runtime-specific regressions or startup issues, report them on the [GitHub issue tracker](https://github.com/ifBars/S1DedicatedServers/issues) with logs, runtime type, and reproduction steps. Docker deployment supports both Mono and IL2CPP through the same image and release package by setting `S1DS_RUNTIME`.
 
 ## What It Provides
 

@@ -5,7 +5,7 @@ description: Diagnose common DedicatedServerMod startup, connection, authenticat
 
 # Troubleshooting
 
-Current beta builds continue initial IL2CPP support. If a problem only reproduces on IL2CPP, open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues) and include whether the failing runtime is `Il2cpp_Server` or `Il2cpp_Client`, plus the relevant logs.
+Mono and IL2CPP are both supported. If a problem only reproduces on one runtime, open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues) and include whether the failing runtime is `Mono_Server`, `Mono_Client`, `Il2cpp_Server`, or `Il2cpp_Client`, plus the relevant logs.
 
 ### Server won’t start: save path not set
 - Error mentions `saveGamePath` not configured.

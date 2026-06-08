@@ -6,7 +6,7 @@ namespace DedicatedServerMod.API
     /// <remarks>
     /// Release tooling, assembly metadata, Docker tags, and user-facing documentation should treat
     /// <see cref="ModVersion"/> as the source of truth. The presence of a prerelease suffix such as
-    /// <c>-beta</c> controls prerelease behavior in release automation.
+    /// <c>-rc.1</c>, <c>-beta.1</c>, or <c>-alpha.1</c> controls prerelease behavior in release automation.
     /// </remarks>
     public static class Version
     {
@@ -15,29 +15,29 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The mod version following semantic versioning, including a prerelease suffix when applicable.
         /// </summary>
-        public const string ModVersion = "0.9.13";
+        public const string ModVersion = "1.0.0";
 
         /// <summary>
         /// The major version number for breaking change tracking.
         /// </summary>
-        public const int MajorVersion = 0;
+        public const int MajorVersion = 1;
 
         /// <summary>
         /// The minor version number for feature additions.
         /// </summary>
-        public const int MinorVersion = 9;
+        public const int MinorVersion = 0;
 
         /// <summary>
         /// The patch version number for bug fixes.
         /// </summary>
-        public const int PatchVersion = 13;
+        public const int PatchVersion = 0;
 
         /// <summary>
         /// The public API version advertised to addon authors.
         /// </summary>
         /// <remarks>
         /// This aliases <see cref="ModVersion"/> so callers do not need to track a separate API
-        /// version while the project is still pre-1.0.
+        /// version while the public API version tracks the mod release version.
         /// </remarks>
         public const string APIVersion = ModVersion;
 
@@ -252,7 +252,7 @@ namespace DedicatedServerMod.API
         /// This is human-facing release metadata. The release workflow derives release behavior from
         /// <see cref="ModVersion"/>, not from this date.
         /// </remarks>
-        public const string ReleaseDate = "2026-05-22";
+        public const string ReleaseDate = "2026-06-08";
 
         /// <summary>
         /// The Git commit or tag this version was built from.

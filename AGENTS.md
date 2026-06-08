@@ -671,7 +671,7 @@ CI uses `ci.build.props` generated dynamically:
 Current version: See `API/Version.cs`.
 
 - **API Version**: Aliased to the mod version in `API/Version.cs`
-- **Status**: Beta (pre-1.0, expect breaking changes)
+- **Status**: Stable 1.0 release line
 
 Version bumping:
 1. Update `API/Version.cs`

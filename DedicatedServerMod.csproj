@@ -12,6 +12,10 @@
 		<LangVersion>default</LangVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server;Documentation</Configurations>
+		<Version>1.0.0</Version>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<InformationalVersion>1.0.0</InformationalVersion>
 		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' == 'true'">false</AutomateLocalDeployment>
 		<AutomateLocalDeployment Condition="'$(AutomateLocalDeployment)' == '' and '$(CI)' != 'true'">true</AutomateLocalDeployment>
 	</PropertyGroup>
