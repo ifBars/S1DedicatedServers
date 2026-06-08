@@ -89,6 +89,17 @@
   color: var(--bs-body-color);
 }
 
+.hosting-provider-button--secondary {
+  border-color: var(--bs-border-color);
+  background: transparent;
+  font-weight: 650;
+}
+
+.hosting-provider-button--secondary:hover {
+  border-color: rgba(76, 175, 80, 0.55);
+  background: rgba(127, 127, 127, 0.06);
+}
+
 .hosting-provider-primary__body,
 .hosting-provider-secondary__body {
   display: grid;
