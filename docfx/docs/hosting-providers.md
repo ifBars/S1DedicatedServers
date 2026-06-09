@@ -19,7 +19,7 @@ Want a hosted server instead of running the dedicated server yourself? The provi
   <section id="cybrancee" class="hosting-provider-primary" aria-label="Cybrancee supported provider">
     <div class="hosting-provider-primary__body">
       <div class="hosting-provider-brand">
-        <p class="hosting-provider-eyebrow">Recommended provider</p>
+        <p class="hosting-provider-eyebrow">Supported provider</p>
         <a class="hosting-provider-logo-link" href="https://cybrancee.com/bars" aria-label="Open Cybrancee">
           <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/cybrancee-logo-light.png" alt="Cybrancee" />
           <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/cybrancee-logo-dark.png" alt="Cybrancee" />
