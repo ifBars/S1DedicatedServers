@@ -35,7 +35,7 @@
 
 .hosting-provider-logo-link--kinetic {
   max-width: 100%;
-  width: 10.5rem;
+  width: 12rem;
 }
 
 .hosting-provider-logo {
@@ -45,7 +45,9 @@
 }
 
 .hosting-provider-logo-link--kinetic .hosting-provider-logo {
-  width: 10.5rem;
+  width: 12rem;
+  max-height: 3.35rem;
+  object-fit: contain;
 }
 
 .hosting-provider-logo--dark-theme {
