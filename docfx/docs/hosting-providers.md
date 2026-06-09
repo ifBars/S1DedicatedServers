@@ -42,8 +42,8 @@ Want a hosted server instead of running the dedicated server yourself? The provi
       <div class="hosting-provider-brand">
         <p class="hosting-provider-eyebrow">Supported provider</p>
         <a class="hosting-provider-logo-link hosting-provider-logo-link--kinetic" href="https://billing.kinetichosting.com/aff.php?aff=1417" aria-label="Open Kinetic Hosting">
-          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/kinetic-logo-light.svg?v=20260609" alt="Kinetic Hosting" />
-          <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/kinetic-logo-dark.svg?v=20260609" alt="Kinetic Hosting" />
+          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/kinetic-logo-light-20260609.svg" alt="Kinetic Hosting" />
+          <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/kinetic-logo-dark-20260609.svg" alt="Kinetic Hosting" />
         </a>
       </div>
       <div class="hosting-provider-details">
