@@ -8,8 +8,6 @@
     href: docker.md
   - name: Hosting Providers
     href: hosting-providers.md
-  - name: Cybrancee Hosting
-    href: hosting-providers/cybrancee.md
 - name: Configuration
   items:
   - name: Overview

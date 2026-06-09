@@ -53,6 +53,7 @@ If you launch the executable manually instead of using the packaged batch file, 
 - EOF on stdin detaches the stdio reader and does not shut down the server
 - `exit` and `quit` remain TCP-session commands only and are not special in stdio mode
 - TCP console sessions do not have a server-side idle read timeout, so long-lived `nc` or telnet sessions stay usable until the client or network closes them
+- TCP console sessions are command sessions, not live stdout mirrors. Use `logs [lines]` or `tail [lines]` to print a bounded snapshot from the current MelonLoader log when a hosted panel proxies the TCP console instead of forwarding process logs.
 
 ### When to use TCP instead
 

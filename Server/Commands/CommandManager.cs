@@ -300,6 +300,8 @@ namespace DedicatedServerMod.Server.Commands
             RegisterCommand(new SaveCommand(playerManager));
             RegisterCommand(new SetTimeCommand(playerManager));
             RegisterCommand(new SetTimeScaleCommand(playerManager));
+            RegisterCommand(new LogsCommand(playerManager));
+            RegisterCommand(new TailCommand(playerManager));
             RegisterCommand(new ShutdownCommand(playerManager));
 
             DebugLog.StartupDebug($"Registered {serverCommands.Count} server commands");
