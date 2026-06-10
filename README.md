@@ -19,6 +19,13 @@ DedicatedServerMod supports both Mono and IL2CPP dedicated server and client wor
 - Operators, admins, configurable command permissions, and remote console access
 - Configurable authentication and messaging backends for private or public hosting
 - Server and client mod APIs with lifecycle hooks, persistence hooks, and more for mod developers
+
+## Managed Hosting
+
+Prefer renting a server instead of running one yourself? [Cybrancee](https://cybrancee.com/bars) is the recommended hosted provider for S1DedicatedServers, with an ongoing maintainer test server available for future update validation.
+
+For provider status, compatibility notes, and self-hosting guidance, see the [Hosting Providers documentation](https://docs.s1servers.com/docs/hosting-providers).
+
 ## Quick Start
 
 1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
