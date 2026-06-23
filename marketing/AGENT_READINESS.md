@@ -11,15 +11,25 @@ Required GitHub configuration:
 
 - Secret `CLOUDFLARE_ACCOUNT_ID`
 - Secret `CLOUDFLARE_API_TOKEN`
-- Repository variable `CLOUDFLARE_ZONE_ID`
+- Repository variable or secret `CLOUDFLARE_ZONE_ID`
 - Repository variable `CLOUDFLARE_MARKETING_PROJECT_NAME`
 
 `CLOUDFLARE_MARKETING_PROJECT_NAME` must be the Cloudflare Pages project that serves
 `https://s1servers.com/`.
 
-`CLOUDFLARE_ZONE_ID` must be the Cloudflare zone id for `s1servers.com`. The DNS
-workflow falls back to resolving the zone by name, but scoped DNS tokens may not
-have permission to list zones.
+`CLOUDFLARE_ZONE_ID` must be the Cloudflare zone id for `s1servers.com`. It can be
+stored as either a repository variable or a repository secret. The DNS workflow
+falls back to resolving the zone by name, but scoped DNS tokens may not have
+permission to list zones.
+
+The Cloudflare API token must be scoped to the `s1servers.com` zone and allow
+DNS record management:
+
+- Zone resources: the specific `s1servers.com` zone
+- Permissions: `Zone / DNS / Edit`
+
+If the DNSSEC step fails with a permission error, enable DNSSEC manually in
+Cloudflare or expand the token to allow DNSSEC changes for the same zone.
 
 ## DNS-AID records
 

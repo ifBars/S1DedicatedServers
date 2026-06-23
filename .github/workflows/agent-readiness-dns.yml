@@ -13,7 +13,7 @@ jobs:
       - name: Configure DNS-AID records
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID || secrets.CLOUDFLARE_ZONE_ID }}
           ZONE_NAME: s1servers.com
         shell: bash
         run: |
@@ -23,17 +23,31 @@ jobs:
             local method="$1"
             local path="$2"
             local data="${3:-}"
+            local body_file
+            local status
+
+            body_file="$(mktemp)"
 
             if [ -n "$data" ]; then
-              curl -fsS -X "$method" "https://api.cloudflare.com/client/v4$path" \
+              status="$(curl -sS -o "$body_file" -w "%{http_code}" -X "$method" "https://api.cloudflare.com/client/v4$path" \
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                 -H "Content-Type: application/json" \
-                --data "$data"
+                --data "$data")"
             else
-              curl -fsS -X "$method" "https://api.cloudflare.com/client/v4$path" \
+              status="$(curl -sS -o "$body_file" -w "%{http_code}" -X "$method" "https://api.cloudflare.com/client/v4$path" \
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                -H "Content-Type: application/json"
+                -H "Content-Type: application/json")"
             fi
+
+            if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+              echo "Cloudflare API request failed: $method $path returned HTTP $status" >&2
+              cat "$body_file" >&2
+              rm -f "$body_file"
+              return 1
+            fi
+
+            cat "$body_file"
+            rm -f "$body_file"
           }
 
           zone_id="${CLOUDFLARE_ZONE_ID:-}"
@@ -45,7 +59,7 @@ jobs:
 
           if [ -z "$zone_id" ]; then
             echo "Could not resolve Cloudflare zone id for $ZONE_NAME"
-            echo "Set repository variable CLOUDFLARE_ZONE_ID, or grant the token zone read access for $ZONE_NAME."
+            echo "Set repository variable or secret CLOUDFLARE_ZONE_ID, or grant the token zone read access for $ZONE_NAME."
             if [ -n "${zone_response:-}" ]; then
               echo "$zone_response"
             fi
@@ -76,7 +90,7 @@ jobs:
       - name: Enable DNSSEC if available
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID || secrets.CLOUDFLARE_ZONE_ID }}
           ZONE_NAME: s1servers.com
         shell: bash
         run: |
@@ -93,7 +107,7 @@ jobs:
 
           if [ -z "$zone_id" ]; then
             echo "Could not resolve Cloudflare zone id for $ZONE_NAME"
-            echo "Set repository variable CLOUDFLARE_ZONE_ID, or grant the token zone read access for $ZONE_NAME."
+            echo "Set repository variable or secret CLOUDFLARE_ZONE_ID, or grant the token zone read access for $ZONE_NAME."
             exit 1
           fi
 
