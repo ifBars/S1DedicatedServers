@@ -1,0 +1,161 @@
+name: Build and Deploy Marketing Site
+
+"on":
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - "marketing/**"
+      - ".github/workflows/marketing.yml"
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - "marketing/**"
+      - ".github/workflows/marketing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "marketing-pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Build marketing site
+        run: bun run build
+
+      - name: Upload marketing artifact
+        uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: marketing-site
+          path: marketing/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download marketing artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: marketing-site
+          path: marketing/dist
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Resolve Cloudflare Pages project name
+        id: pages-project
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_MARKETING_PROJECT_NAME: ${{ vars.CLOUDFLARE_MARKETING_PROJECT_NAME }}
+          MARKETING_DOMAIN: s1servers.com
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "$CLOUDFLARE_MARKETING_PROJECT_NAME" ]; then
+            echo "project_name=$CLOUDFLARE_MARKETING_PROJECT_NAME" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          project_name="$(python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.request
+
+          account_id = os.environ["CLOUDFLARE_ACCOUNT_ID"]
+          token = os.environ["CLOUDFLARE_API_TOKEN"]
+          marketing_domain = os.environ["MARKETING_DOMAIN"]
+
+          def request(path):
+              req = urllib.request.Request(
+                  f"https://api.cloudflare.com/client/v4{path}",
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  payload = json.load(response)
+              if not payload.get("success", False):
+                  raise RuntimeError(payload)
+              return payload
+
+          projects = request(f"/accounts/{account_id}/pages/projects").get("result", [])
+          for project in projects:
+              name = project.get("name")
+              if not name:
+                  continue
+
+              domains = request(f"/accounts/{account_id}/pages/projects/{name}/domains").get("result", [])
+              for domain in domains:
+                  if domain.get("name") == marketing_domain:
+                      print(name)
+                      sys.exit(0)
+
+          print("", end="")
+          PY
+          )"
+
+          if [ -z "$project_name" ]; then
+            echo "Could not discover a Cloudflare Pages project with custom domain s1servers.com."
+            echo "Set repository variable CLOUDFLARE_MARKETING_PROJECT_NAME to the Pages project name."
+            exit 1
+          fi
+
+          echo "project_name=$project_name" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_MARKETING_PROJECT_NAME: ${{ steps.pages-project.outputs.project_name }}
+        shell: bash
+        run: |
+          attempts=5
+          delay=15
+
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Cloudflare Pages deploy attempt $attempt/$attempts"
+
+            if bunx wrangler pages deploy ./dist --project-name="$CLOUDFLARE_MARKETING_PROJECT_NAME" --branch=master; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "Cloudflare Pages deploy failed after $attempts attempts."
+              exit 1
+            fi
+
+            echo "Retrying in ${delay}s after transient deploy failure..."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done

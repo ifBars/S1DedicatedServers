@@ -1,0 +1,30 @@
+{
+  "issuer": "https://s1servers.com",
+  "authorization_endpoint": "https://s1servers.com/agent-auth",
+  "token_endpoint": "https://s1servers.com/agent-token",
+  "jwks_uri": "https://s1servers.com/.well-known/jwks.json",
+  "service_documentation": "https://docs.s1servers.com/",
+  "scopes_supported": [
+    "public"
+  ],
+  "response_types_supported": [
+    "none"
+  ],
+  "grant_types_supported": [
+    "none"
+  ],
+  "agent_auth": {
+    "skill": "https://s1servers.com/auth.md",
+    "registration_required": false,
+    "registration_note": "Public S1DedicatedServers discovery endpoints do not require OAuth registration.",
+    "identity_types_supported": [
+      "anonymous"
+    ],
+    "anonymous": {
+      "credential_types_supported": [
+        "none"
+      ],
+      "claim_uri": "https://s1servers.com/auth.md"
+    }
+  }
+}

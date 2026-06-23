@@ -21,7 +21,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="S1DedicatedServers" />
     <meta property="og:url" content="https://s1servers.com/" />
-    <meta property="og:image" content="/social-card.png" />
+    <meta property="og:image" content="https://s1servers.com/social-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="S1DedicatedServers social preview card" />
@@ -32,7 +32,10 @@
       name="twitter:description"
       content="Free, open-source dedicated server mod for Schedule I with 24/7 hosting, remote administration, configuration guides, and optional web panel support."
     />
-    <meta name="twitter:image" content="/social-card.png" />
+    <meta name="twitter:image" content="https://s1servers.com/social-card.png" />
+    <link rel="alternate" type="text/markdown" href="https://s1servers.com/llms.txt" title="S1DedicatedServers agent guide" />
+    <link rel="service-desc" type="application/openapi+json" href="https://s1servers.com/openapi.json" />
+    <link rel="api-catalog" type="application/linkset+json" href="https://s1servers.com/.well-known/api-catalog" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -67,6 +70,19 @@
             "operatingSystem": "Windows",
             "downloadUrl": "https://github.com/ifBars/S1DedicatedServers/releases",
             "softwareHelp": "https://docs.s1servers.com/",
+            "softwareVersion": "1.0",
+            "publisher": {
+              "@id": "https://s1servers.com/#organization"
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://s1servers.com/config-generator#webapp",
+            "name": "S1DedicatedServers Config Generator",
+            "url": "https://s1servers.com/config-generator",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Any",
+            "isAccessibleForFree": true,
             "publisher": {
               "@id": "https://s1servers.com/#organization"
             }

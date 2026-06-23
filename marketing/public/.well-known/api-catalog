@@ -1,0 +1,33 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://s1servers.com/",
+      "service-desc": [
+        {
+          "href": "https://s1servers.com/openapi.json",
+          "type": "application/openapi+json",
+          "title": "OpenAPI description"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://docs.s1servers.com/",
+          "type": "text/html",
+          "title": "S1DedicatedServers documentation"
+        },
+        {
+          "href": "https://s1servers.com/llms.txt",
+          "type": "text/markdown",
+          "title": "Agent guide"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://s1servers.com/",
+          "type": "text/html",
+          "title": "Homepage"
+        }
+      ]
+    }
+  ]
+}

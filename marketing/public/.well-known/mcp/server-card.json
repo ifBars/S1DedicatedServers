@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "2025-06-18",
+  "serverInfo": {
+    "name": "S1DedicatedServers Public Site",
+    "version": "1.0.0",
+    "description": "Discovery card for public S1DedicatedServers documentation, releases, and configuration tooling."
+  },
+  "transport": {
+    "type": "web",
+    "endpoint": "https://s1servers.com/"
+  },
+  "capabilities": {
+    "resources": [
+      {
+        "name": "S1DedicatedServers agent guide",
+        "uri": "https://s1servers.com/llms.txt",
+        "mimeType": "text/markdown"
+      },
+      {
+        "name": "S1DedicatedServers documentation",
+        "uri": "https://docs.s1servers.com/",
+        "mimeType": "text/html"
+      }
+    ],
+    "tools": [
+      {
+        "name": "open_config_generator",
+        "description": "Open the browser-based Schedule I dedicated server configuration generator.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "find_latest_release",
+        "description": "Open the latest S1DedicatedServers release page on GitHub.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
+  }
+}
