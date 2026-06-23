@@ -20,7 +20,7 @@ namespace DedicatedServerMod.Client.Patches
     [HarmonyPatch]
     internal static class GhostHostUiPatches
     {
-        public static void Initialize()
+        internal static void Initialize()
         {
             DebugLog.StartupDebug("Ghost host UI patches initialized");
         }

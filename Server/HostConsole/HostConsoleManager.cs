@@ -7,7 +7,7 @@ namespace DedicatedServerMod.Server.HostConsole
     /// <summary>
     /// Owns server host console transports such as TCP and stdio.
     /// </summary>
-    public sealed class HostConsoleManager : IDisposable
+    internal sealed class HostConsoleManager : IDisposable
     {
         private readonly CommandManager _commandManager;
         private readonly MelonLogger.Instance _logger;
@@ -16,7 +16,7 @@ namespace DedicatedServerMod.Server.HostConsole
         /// <summary>
         /// Initializes a new host console manager.
         /// </summary>
-        public HostConsoleManager(CommandManager commandManager, MelonLogger.Instance logger)
+        internal HostConsoleManager(CommandManager commandManager, MelonLogger.Instance logger)
         {
             _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -26,7 +26,7 @@ namespace DedicatedServerMod.Server.HostConsole
         /// <summary>
         /// Starts all configured host console transports.
         /// </summary>
-        public void Start()
+        internal void Start()
         {
             ServerConfig config = ServerConfig.Instance;
             TryStartTcpTransport(config);

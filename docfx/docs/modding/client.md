@@ -25,7 +25,6 @@ Prefer the `ModManager` events above for optional client hooks. Keep `IClientMod
 
 Available in `CLIENT` builds via `S1DS.Client`:
 
-- `ClientCore`
 - `Connection`
 - `UI`
 - `Console`

@@ -16,10 +16,9 @@ namespace DedicatedServerMod.API
         /// Primary facade for DedicatedServerMod client functionality.
         /// </summary>
         /// <remarks>
-        /// Client mods should normally access dedicated-server features through this facade
-        /// rather than by depending directly on <see cref="ClientBootstrap"/>. The bootstrap
-        /// creates and owns the managers exposed here, while <see cref="IClientMod"/> lifecycle
-        /// callbacks tell you when those managers are ready to use.
+        /// Client mods should access dedicated-server features through this facade. The client
+        /// runtime creates and owns the managers exposed here, while <see cref="IClientMod"/>
+        /// lifecycle callbacks tell you when those managers are ready to use.
         /// <para>
         /// Use <see cref="IsInitialized"/> to determine whether client systems have been created.
         /// Use <see cref="ModManager.ClientPlayerReady"/> or
@@ -51,17 +50,6 @@ namespace DedicatedServerMod.API
         /// </example>
         public static class Client
         {
-            /// <summary>
-            /// Gets the underlying client bootstrap created by MelonLoader for the client build.
-            /// </summary>
-            /// <remarks>
-            /// This is the lowest-level client entry point exposed by the API. Most mods should
-            /// prefer the more specific properties on <see cref="Client"/>, such as
-            /// <see cref="Connection"/> or <see cref="UI"/>, unless they specifically need
-            /// bootstrap-owned state.
-            /// </remarks>
-            public static ClientBootstrap ClientCore => ClientBootstrap.Instance;
-
             /// <summary>
             /// Gets the client connection manager responsible for dedicated-server connection state.
             /// </summary>
@@ -118,8 +106,8 @@ namespace DedicatedServerMod.API
             /// Gets a value indicating whether the DedicatedServerMod client bootstrap has initialized.
             /// </summary>
             /// <remarks>
-            /// When this returns <see langword="true"/>, <see cref="ClientBootstrap"/> has finished
-            /// creating the client managers exposed through this facade. This is normally true by
+            /// When this returns <see langword="true"/>, the client runtime has finished creating
+            /// the client managers exposed through this facade. This is normally true by
             /// the time <see cref="IClientMod.OnClientInitialize"/> is called.
             /// </remarks>
             public static bool IsInitialized => ClientBootstrap.Instance?.IsApiModsReady ?? false;

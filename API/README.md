@@ -150,7 +150,6 @@ Available through `S1DS.Server` in server builds:
 
 Available through `S1DS.Client` in client builds:
 
-- `ClientCore`
 - `Connection`
 - `UI`
 - `Console`

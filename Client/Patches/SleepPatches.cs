@@ -21,12 +21,12 @@ namespace DedicatedServerMod.Client.Patches
     {
         private static bool _ignoreGhostHostForSleep = true;
 
-        public static void Initialize()
+        internal static void Initialize()
         {
             DebugLog.StartupDebug("Sleep patches initialized");
         }
 
-        public static bool IgnoreGhostHostForSleep
+        internal static bool IgnoreGhostHostForSleep
         {
             get => _ignoreGhostHostForSleep;
             set

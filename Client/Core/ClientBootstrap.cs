@@ -28,12 +28,11 @@ namespace DedicatedServerMod.Client.Core
     /// backing implementation for the public client API rather than a type to instantiate directly.
     /// <para>
     /// In most mod code, prefer <see cref="DedicatedServerMod.API.S1DS.Client.Connection"/>,
-    /// <see cref="DedicatedServerMod.API.S1DS.Client.UI"/>, and related facade properties. Use
-    /// <see cref="DedicatedServerMod.API.S1DS.Client.ClientCore"/> only when you specifically need
-    /// bootstrap-owned state that is not already exposed by a narrower API property.
+    /// <see cref="DedicatedServerMod.API.S1DS.Client.UI"/>, and the other narrower facade
+    /// properties exposed by <see cref="DedicatedServerMod.API.S1DS.Client"/>.
     /// </para>
     /// </remarks>
-    public sealed class ClientBootstrap : MelonMod
+    internal sealed class ClientBootstrap : MelonMod
     {
         #region Private Fields
 
@@ -100,21 +99,20 @@ namespace DedicatedServerMod.Client.Core
 
         #endregion
 
-        #region Public Properties
+        #region Internal Properties
 
         /// <summary>
         /// Gets the singleton bootstrap instance for the client runtime.
         /// </summary>
         /// <remarks>
-        /// This property backs <see cref="DedicatedServerMod.API.S1DS.Client.ClientCore"/> and is
-        /// <see langword="null"/> until <see cref="OnInitializeMelon"/> runs.
+        /// This property is <see langword="null"/> until <see cref="OnInitializeMelon"/> runs.
         /// </remarks>
-        public static ClientBootstrap Instance => _instance;
+        internal static ClientBootstrap Instance => _instance;
 
         /// <summary>
         /// Gets the logger instance for this mod.
         /// </summary>
-        public MelonLogger.Instance Logger => _logger;
+        internal MelonLogger.Instance Logger => _logger;
 
         /// <summary>
         /// Gets the dedicated-server connection manager created during client bootstrap initialization.
@@ -168,7 +166,7 @@ namespace DedicatedServerMod.Client.Core
         /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
         /// </summary>
-        public static bool IgnoreGhostHostForSleep
+        internal static bool IgnoreGhostHostForSleep
         {
             get => Instance?._ignoreGhostHostForSleep ?? true;
             set
@@ -498,7 +496,7 @@ namespace DedicatedServerMod.Client.Core
         /// Logs a message with the debug logging system.
         /// </summary>
         /// <param name="message">The message to log</param>
-        public void DebugLog(string message)
+        internal void DebugLog(string message)
         {
             Utils.DebugLog.Debug(message);
         }

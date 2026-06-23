@@ -15,17 +15,17 @@ namespace DedicatedServerMod.Client.Permissions
         /// <summary>
         /// Raised after the local snapshot changes.
         /// </summary>
-        public static event Action<PermissionCapabilitySnapshot> SnapshotUpdated;
+        internal static event Action<PermissionCapabilitySnapshot> SnapshotUpdated;
 
         /// <summary>
         /// Gets the current local snapshot.
         /// </summary>
-        public static PermissionCapabilitySnapshot Current => _current;
+        internal static PermissionCapabilitySnapshot Current => _current;
 
         /// <summary>
         /// Initializes the snapshot store.
         /// </summary>
-        public static void Initialize()
+        internal static void Initialize()
         {
             Reset();
         }
@@ -34,7 +34,7 @@ namespace DedicatedServerMod.Client.Permissions
         /// Replaces the current snapshot.
         /// </summary>
         /// <param name="snapshot">The latest snapshot from the server.</param>
-        public static void Update(PermissionCapabilitySnapshot snapshot)
+        internal static void Update(PermissionCapabilitySnapshot snapshot)
         {
             _current = snapshot ?? new PermissionCapabilitySnapshot
             {
@@ -48,7 +48,7 @@ namespace DedicatedServerMod.Client.Permissions
         /// <summary>
         /// Clears the current snapshot.
         /// </summary>
-        public static void Reset()
+        internal static void Reset()
         {
             _current = new PermissionCapabilitySnapshot
             {

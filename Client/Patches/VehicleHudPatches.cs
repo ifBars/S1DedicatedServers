@@ -25,7 +25,7 @@ namespace DedicatedServerMod.Client.Patches
             AccessTools.FieldRefAccess<VehicleCanvas, LandVehicleType>("currentVehicle");
 #endif
 
-        public static void Initialize()
+        internal static void Initialize()
         {
             DebugLog.StartupDebug("Vehicle HUD patches initialized");
         }

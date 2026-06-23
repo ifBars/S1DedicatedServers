@@ -53,11 +53,11 @@ namespace DedicatedServerMod.Server.Core
     /// <summary>
     /// Orchestrates the full dedicated server start sequence to mirror the legacy flow.
     /// </summary>
-    public static class ServerStartupOrchestrator
+    internal static class ServerStartupOrchestrator
     {
         private static bool _loopbackHandled = false;
 
-        public static IEnumerator StartDedicatedServer(string savePathOverride = null)
+        internal static IEnumerator StartDedicatedServer(string savePathOverride = null)
         {
             DebugLog.Info("Starting dedicated server loading sequence (orchestrator)");
 
@@ -695,7 +695,7 @@ namespace DedicatedServerMod.Server.Core
         /// <summary>
         /// Initialize default quests on server if needed (e.g., welcome quest) and save.
         /// </summary>
-        public static IEnumerator InitializeServerQuests()
+        internal static IEnumerator InitializeServerQuests()
         {
             yield return new WaitForSeconds(2f);
             try
@@ -918,7 +918,7 @@ namespace DedicatedServerMod.Server.Core
         /// <summary>
         /// Ensure quest state for a newly initialized client matches the server.
         /// </summary>
-        public static IEnumerator EnsureQuestInitializationForNewClient(ScheduleOne.PlayerScripts.Player player)
+        internal static IEnumerator EnsureQuestInitializationForNewClient(ScheduleOne.PlayerScripts.Player player)
         {
             yield return new WaitForSeconds(1f);
             try

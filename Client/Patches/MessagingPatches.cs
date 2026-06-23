@@ -40,7 +40,7 @@ namespace DedicatedServerMod.Client.Patches
         /// <summary>
         /// Initialize the messaging patches with a logger instance.
         /// </summary>
-        public static void Initialize()
+        internal static void Initialize()
         {
             DebugLog.StartupDebug("Messaging patches initialized (using attribute-based patching)");
         }
@@ -88,7 +88,7 @@ namespace DedicatedServerMod.Client.Patches
         /// Event raised when a custom message is received from the server.
         /// Delegates to Shared.Networking.CustomMessaging.ClientMessageReceived.
         /// </summary>
-        public static event Action<string, string> ClientMessageReceived
+        internal static event Action<string, string> ClientMessageReceived
         {
             add => Shared.Networking.CustomMessaging.ClientMessageReceived += value;
             remove => Shared.Networking.CustomMessaging.ClientMessageReceived -= value;
@@ -98,7 +98,7 @@ namespace DedicatedServerMod.Client.Patches
         /// Event raised when a custom message is received from a client.
         /// Delegates to Shared.Networking.CustomMessaging.ServerMessageReceived.
         /// </summary>
-        public static event Action<FishNet.Connection.NetworkConnection, string, string> ServerMessageReceived
+        internal static event Action<FishNet.Connection.NetworkConnection, string, string> ServerMessageReceived
         {
             add => Shared.Networking.CustomMessaging.ServerMessageReceived += value;
             remove => Shared.Networking.CustomMessaging.ServerMessageReceived -= value;

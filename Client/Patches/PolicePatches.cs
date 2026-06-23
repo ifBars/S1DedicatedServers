@@ -21,7 +21,7 @@ namespace DedicatedServerMod.Client.Patches
     /// </summary>
     internal static class PolicePatches
     {
-        public static void Initialize()
+        internal static void Initialize()
         {
             DebugLog.StartupDebug("Police patches initialized");
         }

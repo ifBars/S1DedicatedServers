@@ -10,9 +10,9 @@ using AssetBundleType = UnityEngine.AssetBundle;
 
 namespace DedicatedServerMod.Assets
 {
-	public static class AssetBundleLoader
+	internal static class AssetBundleLoader
 	{
-		public static AssetBundleType LoadEmbeddedBundle(string resourceName, Action<string> logError, Action<string> logInfo)
+		internal static AssetBundleType LoadEmbeddedBundle(string resourceName, Action<string> logError, Action<string> logInfo)
 		{
 			try
 			{
@@ -48,7 +48,7 @@ namespace DedicatedServerMod.Assets
 			}
 		}
 
-		public static T LoadAsset<T>(AssetBundleType bundle, string name, Action<string> logError) where T : UnityEngine.Object
+		internal static T LoadAsset<T>(AssetBundleType bundle, string name, Action<string> logError) where T : UnityEngine.Object
 		{
 			try
 			{

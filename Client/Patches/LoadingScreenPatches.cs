@@ -16,7 +16,7 @@ namespace DedicatedServerMod.Client.Patches
     [HarmonyPatch]
     internal static class LoadingScreenPatches
     {
-        public static void Initialize()
+        internal static void Initialize()
         {
             DebugLog.StartupDebug("LoadingScreen patches initialized (using attribute-based patching)");
         }
