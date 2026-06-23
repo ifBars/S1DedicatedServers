@@ -11,10 +11,15 @@ Required GitHub configuration:
 
 - Secret `CLOUDFLARE_ACCOUNT_ID`
 - Secret `CLOUDFLARE_API_TOKEN`
+- Repository variable `CLOUDFLARE_ZONE_ID`
 - Repository variable `CLOUDFLARE_MARKETING_PROJECT_NAME`
 
 `CLOUDFLARE_MARKETING_PROJECT_NAME` must be the Cloudflare Pages project that serves
 `https://s1servers.com/`.
+
+`CLOUDFLARE_ZONE_ID` must be the Cloudflare zone id for `s1servers.com`. The DNS
+workflow falls back to resolving the zone by name, but scoped DNS tokens may not
+have permission to list zones.
 
 ## DNS-AID records
 

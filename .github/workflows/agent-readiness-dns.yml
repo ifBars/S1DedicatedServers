@@ -13,6 +13,7 @@ jobs:
       - name: Configure DNS-AID records
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
           ZONE_NAME: s1servers.com
         shell: bash
         run: |
@@ -35,12 +36,19 @@ jobs:
             fi
           }
 
-          zone_response="$(api GET "/zones?name=$ZONE_NAME")"
-          zone_id="$(echo "$zone_response" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+          zone_id="${CLOUDFLARE_ZONE_ID:-}"
+
+          if [ -z "$zone_id" ]; then
+            zone_response="$(api GET "/zones?name=$ZONE_NAME")"
+            zone_id="$(echo "$zone_response" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+          fi
 
           if [ -z "$zone_id" ]; then
             echo "Could not resolve Cloudflare zone id for $ZONE_NAME"
-            echo "$zone_response"
+            echo "Set repository variable CLOUDFLARE_ZONE_ID, or grant the token zone read access for $ZONE_NAME."
+            if [ -n "${zone_response:-}" ]; then
+              echo "$zone_response"
+            fi
             exit 1
           fi
 
@@ -68,18 +76,24 @@ jobs:
       - name: Enable DNSSEC if available
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
           ZONE_NAME: s1servers.com
         shell: bash
         run: |
           set -euo pipefail
 
-          zone_response="$(curl -fsS "https://api.cloudflare.com/client/v4/zones?name=$ZONE_NAME" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H "Content-Type: application/json")"
-          zone_id="$(echo "$zone_response" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+          zone_id="${CLOUDFLARE_ZONE_ID:-}"
+
+          if [ -z "$zone_id" ]; then
+            zone_response="$(curl -fsS "https://api.cloudflare.com/client/v4/zones?name=$ZONE_NAME" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json")"
+            zone_id="$(echo "$zone_response" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+          fi
 
           if [ -z "$zone_id" ]; then
             echo "Could not resolve Cloudflare zone id for $ZONE_NAME"
+            echo "Set repository variable CLOUDFLARE_ZONE_ID, or grant the token zone read access for $ZONE_NAME."
             exit 1
           fi
 
