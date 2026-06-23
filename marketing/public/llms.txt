@@ -1,0 +1,26 @@
+# S1DedicatedServers
+
+S1DedicatedServers is the canonical home for the free, open-source dedicated server mod for Schedule I.
+
+## Start here
+
+- Site: https://s1servers.com/
+- Documentation: https://docs.s1servers.com/
+- Latest releases: https://github.com/ifBars/S1DedicatedServers/releases
+- Config generator: https://s1servers.com/config-generator
+- Hosting providers: https://docs.s1servers.com/docs/hosting-providers.html
+
+## Common user intents
+
+- Set up a Schedule I dedicated server.
+- Download the correct server and client mod packages.
+- Generate or explain `server_config.toml`.
+- Find hosting provider guidance and affiliate disclosure.
+- Find developer documentation for server/client mod APIs.
+
+## Agent discovery
+
+- API catalog: https://s1servers.com/.well-known/api-catalog
+- OpenAPI description: https://s1servers.com/openapi.json
+- MCP server card: https://s1servers.com/.well-known/mcp/server-card.json
+- Agent skills index: https://s1servers.com/.well-known/agent-skills/index.json

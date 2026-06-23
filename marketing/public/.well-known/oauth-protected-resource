@@ -1,0 +1,15 @@
+{
+  "resource": "https://s1servers.com",
+  "authorization_servers": [
+    "https://s1servers.com"
+  ],
+  "scopes_supported": [
+    "public"
+  ],
+  "resource_documentation": "https://docs.s1servers.com/",
+  "bearer_methods_supported": [
+    "header"
+  ],
+  "authorization_details_types_supported": [],
+  "public_access": true
+}

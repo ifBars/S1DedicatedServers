@@ -22,3 +22,4 @@ Allow: /
 User-agent: *
 Allow: /
 Sitemap: https://s1servers.com/sitemap.xml
+Host: s1servers.com

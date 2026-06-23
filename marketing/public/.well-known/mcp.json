@@ -1,0 +1,8 @@
+{
+  "servers": [
+    {
+      "name": "S1DedicatedServers Public Site",
+      "url": "https://s1servers.com/.well-known/mcp/server-card.json"
+    }
+  ]
+}

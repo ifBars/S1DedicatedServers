@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "s1servers-navigation",
+      "type": "skill-md",
+      "description": "Find S1DedicatedServers downloads, documentation, hosting guidance, and configuration tooling.",
+      "url": "https://s1servers.com/.well-known/agent-skills/s1servers-navigation/SKILL.md",
+      "digest": "sha256:fc8e51f1518f804a17b6d6db88e1a5d83967d26c8fb8f5fcb64fc46aeafdbcd9"
+    }
+  ]
+}

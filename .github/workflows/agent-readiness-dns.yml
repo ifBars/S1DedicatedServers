@@ -1,0 +1,91 @@
+name: Configure Agent Readiness DNS
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure DNS-AID records
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_NAME: s1servers.com
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api() {
+            local method="$1"
+            local path="$2"
+            local data="${3:-}"
+
+            if [ -n "$data" ]; then
+              curl -fsS -X "$method" "https://api.cloudflare.com/client/v4$path" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "$data"
+            else
+              curl -fsS -X "$method" "https://api.cloudflare.com/client/v4$path" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json"
+            fi
+          }
+
+          zone_response="$(api GET "/zones?name=$ZONE_NAME")"
+          zone_id="$(echo "$zone_response" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+
+          if [ -z "$zone_id" ]; then
+            echo "Could not resolve Cloudflare zone id for $ZONE_NAME"
+            echo "$zone_response"
+            exit 1
+          fi
+
+          upsert_https_record() {
+            local name="$1"
+            local data
+            data="$(python -c 'import json,sys; name=sys.argv[1]; print(json.dumps({"type":"HTTPS","name":name,"ttl":3600,"data":{"priority":1,"target":"s1servers.com","value":"alpn=\"h2\" port=443 mandatory=alpn,port"}}))' "$name")"
+
+            existing="$(api GET "/zones/$zone_id/dns_records?type=HTTPS&name=$name")"
+            record_id="$(echo "$existing" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+
+            if [ -n "$record_id" ]; then
+              api PUT "/zones/$zone_id/dns_records/$record_id" "$data" >/dev/null
+              echo "Updated $name"
+            else
+              api POST "/zones/$zone_id/dns_records" "$data" >/dev/null
+              echo "Created $name"
+            fi
+          }
+
+          upsert_https_record "_index._agents.$ZONE_NAME"
+          upsert_https_record "_a2a._agents.$ZONE_NAME"
+          upsert_https_record "_mcp._agents.$ZONE_NAME"
+
+      - name: Enable DNSSEC if available
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_NAME: s1servers.com
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          zone_response="$(curl -fsS "https://api.cloudflare.com/client/v4/zones?name=$ZONE_NAME" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")"
+          zone_id="$(echo "$zone_response" | python -c 'import json,sys; data=json.load(sys.stdin); print(data["result"][0]["id"] if data.get("result") else "")')"
+
+          if [ -z "$zone_id" ]; then
+            echo "Could not resolve Cloudflare zone id for $ZONE_NAME"
+            exit 1
+          fi
+
+          curl -fsS -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_id/dnssec" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"status":"active"}' >/dev/null || {
+              echo "DNSSEC could not be enabled automatically. Enable it manually in Cloudflare if the scanner still reports DNSSEC missing."
+            }

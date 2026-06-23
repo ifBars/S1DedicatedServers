@@ -1,0 +1,50 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "S1DedicatedServers Public Site",
+    "version": "1.0.0",
+    "description": "Static discovery surface for the S1DedicatedServers marketing site and configuration generator."
+  },
+  "servers": [
+    {
+      "url": "https://s1servers.com"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Marketing homepage",
+        "description": "Returns the S1DedicatedServers homepage. Requests with Accept: text/markdown receive a markdown summary for agents.",
+        "responses": {
+          "200": {
+            "description": "Homepage HTML or markdown summary"
+          }
+        }
+      }
+    },
+    "/config-generator": {
+      "get": {
+        "summary": "Configuration generator",
+        "description": "Interactive browser tool for creating a Schedule I dedicated server configuration.",
+        "responses": {
+          "200": {
+            "description": "Configuration generator HTML"
+          }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "summary": "Agent guide",
+        "responses": {
+          "200": {
+            "description": "Markdown guide for agents",
+            "content": {
+              "text/markdown": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

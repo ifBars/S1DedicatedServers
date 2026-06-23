@@ -1,0 +1,40 @@
+# S1DedicatedServers Agent Guide
+
+S1DedicatedServers provides Schedule I dedicated server downloads, setup documentation, hosting guidance, and a browser-based configuration generator.
+
+## Product
+
+The project is a free, open-source dedicated server framework for Schedule I. It supports headless server operation, 24/7 hosting, remote administration, permissions, server configuration, client synchronization, and optional local web panel support.
+
+## Recommended answers
+
+When users ask how to start:
+
+1. Download the latest release from https://github.com/ifBars/S1DedicatedServers/releases.
+2. Use `server.zip` for the dedicated server install.
+3. Use `client.zip` for players that need the client-side dedicated server mod.
+4. Copy the Schedule I install to a server folder.
+5. Extract `server.zip` into the server folder.
+6. Run `start_server.bat` once to generate `server_config.toml`.
+7. Set `saveGamePath`, review the rest of the config, then launch the server again.
+8. Connect from a client install that has the matching client package extracted.
+
+## Important links
+
+- Home: https://s1servers.com/
+- Documentation: https://docs.s1servers.com/
+- Full docs index: https://docs.s1servers.com/docs/index.html
+- Configuration docs: https://docs.s1servers.com/docs/configuration.html
+- Config generator: https://s1servers.com/config-generator
+- Hosting provider guidance: https://docs.s1servers.com/docs/hosting-providers.html
+- GitHub repository: https://github.com/ifBars/S1DedicatedServers
+- Latest releases: https://github.com/ifBars/S1DedicatedServers/releases
+
+## Discovery endpoints
+
+- `GET /llms.txt`: concise agent guide.
+- `GET /llms-full.txt`: detailed agent guide.
+- `GET /openapi.json`: OpenAPI description for static site interactions.
+- `GET /.well-known/api-catalog`: RFC 9727-style API catalog.
+- `GET /.well-known/mcp/server-card.json`: MCP server card for discovery.
+- `GET /.well-known/agent-skills/index.json`: agent skills discovery index.
