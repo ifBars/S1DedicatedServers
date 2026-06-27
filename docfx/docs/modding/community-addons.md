@@ -13,6 +13,7 @@ Use this page as a discovery list and starting point. Always read the linked add
 | [S1DS-PlayerList](https://github.com/ZackaryH8/S1DS-PlayerList) | ZackaryH8 | Client and server companion addon | Adds a client-side player list overlay for players connected to a dedicated server. The client builds the visible roster locally and requests server-provided role and ping metadata while the panel is open. |
 | [S1DS-PlayerRobbery](https://github.com/ifBars/S1DS-PlayerRobbery) | bars | Client and server companion addon | Adds hands-up state and server-authoritative player robbery using S1DS custom messaging and a native pickpocket-style client UI. |
 | [S1DS-CustomClothing](https://github.com/ifBars/S1DS-CustomClothing) | bars | Client and server companion addon | Lets servers register custom clothing textures, publish a status-query manifest, and prepare joining clients by downloading and caching required clothing assets before connection finalization. |
+| [S1 VoiceChat](https://github.com/ifBars/S1-VoiceChat) | bars | Client and server companion addon | Adds push-to-talk proximity voice chat with SteamNetworkLib transport and dedicated-server relay support. Dedicated server processes forward voice packets but do not record or play audio. |
 
 ## Compatibility Expectations
 
