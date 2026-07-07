@@ -5,7 +5,6 @@ using Il2CppFishNet.Object.Synchronizing;
 using EnvironmentManagerType = Il2CppScheduleOne.Weather.EnvironmentManager;
 using LandVehicleType = Il2CppScheduleOne.Vehicles.LandVehicle;
 using VehicleSettingsType = Il2CppScheduleOne.Experimental.VehicleSettings;
-using WeatherConditionsType = Il2CppScheduleOne.Weather.WeatherConditions;
 using WeatherVolumeType = Il2CppScheduleOne.Weather.WeatherVolume;
 using WheelDataType = Il2CppScheduleOne.Experimental.WheelData;
 using WheelOverrideDataType = Il2CppScheduleOne.Experimental.WheelOverrideData;
@@ -84,9 +83,29 @@ namespace DedicatedServerMod.Shared.Patches
     internal static class WheelOnWeatherChangePatches
     {
 #if IL2CPP
+        private static float GetRainyBlend(object newConditions)
+        {
+            if (newConditions == null)
+            {
+                return 0f;
+            }
+
+            var type = newConditions.GetType();
+            var property = type.GetProperty("Rainy");
+            if (property != null && property.GetValue(newConditions) is float propertyValue)
+            {
+                return propertyValue;
+            }
+
+            var field = type.GetField("Rainy");
+            return field != null && field.GetValue(newConditions) is float fieldValue
+                ? fieldValue
+                : 0f;
+        }
+
         private static bool Prefix(
             WheelType __instance,
-            WeatherConditionsType newConditions)
+            object newConditions)
         {
             if (__instance == null)
             {
@@ -109,16 +128,17 @@ namespace DedicatedServerMod.Shared.Patches
                 return false;
             }
 
-            bool canApplyRainOverride = newConditions.Rainy > 0f
+            float rainy = GetRainyBlend(newConditions);
+            bool canApplyRainOverride = rainy > 0f
                 && resolvedVehicle != null
                 && !resolvedVehicle.IsUnderCover
                 && rainOverrideData?.Settings != null;
 
             if (canApplyRainOverride)
             {
-                resolvedSettings = resolvedSettings.Blend(rainOverrideData.Settings, newConditions.Rainy);
+                resolvedSettings = resolvedSettings.Blend(rainOverrideData.Settings, rainy);
             }
-            else if (newConditions.Rainy > 0f && rainOverrideData?.Settings == null)
+            else if (rainy > 0f && rainOverrideData?.Settings == null)
             {
                 WeatherStabilityLog.WarningOnce(
                     "wheel-missing-rain-override",
@@ -190,7 +210,14 @@ namespace DedicatedServerMod.Shared.Patches
     [HarmonyPatch(typeof(LandVehicleType), nameof(LandVehicleType.OnWeatherChange))]
     internal static class LandVehicleOnWeatherChangePatches
     {
+#if IL2CPP
+        private static readonly System.Reflection.MethodInfo WheelOnWeatherChangeMethod =
+            AccessTools.Method(typeof(WheelType), nameof(WheelType.OnWeatherChange));
+
+        private static bool Prefix(LandVehicleType __instance, object newConditions)
+#else
         private static bool Prefix(LandVehicleType __instance, WeatherConditionsType newConditions)
+#endif
         {
             if (__instance?.wheels == null || __instance.wheels.Count == 0)
             {
@@ -207,7 +234,11 @@ namespace DedicatedServerMod.Shared.Patches
 
                 try
                 {
+#if IL2CPP
+                    WheelOnWeatherChangeMethod?.Invoke(wheel, new[] { newConditions });
+#else
                     wheel.OnWeatherChange(newConditions);
+#endif
                 }
                 catch (Exception ex)
                 {

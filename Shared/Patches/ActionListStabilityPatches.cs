@@ -29,7 +29,11 @@ namespace DedicatedServerMod.Shared.Patches
     {
         private static bool Prefix(ActionListType __instance, float staggerTime)
         {
+#if IL2CPP
+            NativeActionListType invocationList = __instance?.list;
+#else
             NativeActionListType invocationList = __instance?.GetInvocationList();
+#endif
             if (invocationList == null || invocationList.Count == 0)
             {
                 return false;

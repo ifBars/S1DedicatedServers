@@ -51,6 +51,16 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
 
         public static bool AllowDedicatedServerPlayerNameDataPrefix(PlayerType __instance, string playerName, ulong id)
         {
+            return AllowDedicatedServerPlayerNameData(__instance, playerName, id.ToString(CultureInfo.InvariantCulture));
+        }
+
+        public static bool AllowDedicatedServerPlayerNameDataStringPrefix(PlayerType __instance, string playerName, string id)
+        {
+            return AllowDedicatedServerPlayerNameData(__instance, playerName, id);
+        }
+
+        private static bool AllowDedicatedServerPlayerNameData(PlayerType __instance, string playerName, string id)
+        {
             try
             {
                 if (!InstanceFinder.IsServer)
@@ -64,7 +74,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                     return true;
                 }
 
-                string steamId = id.ToString(CultureInfo.InvariantCulture);
+                string steamId = id ?? string.Empty;
                 ReceivePlayerNameDataMethod.Invoke(__instance, new object[] { null, playerName, steamId });
                 __instance.PlayerName = playerName;
                 __instance.PlayerCode = steamId;

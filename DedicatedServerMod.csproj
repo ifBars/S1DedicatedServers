@@ -420,7 +420,7 @@
 		</Reference>
 		<!-- Tell Krafs.Publicizer to publicize Assembly-CSharp -->
 		<Publicize Include="Assembly-CSharp" />
-		<Reference Include="Il2CppCinemachine">
+		<Reference Include="Il2CppCinemachine" Condition="Exists('$(ManagedPath)\Il2CppCinemachine.dll')">
 			<HintPath>$(ManagedPath)\Il2CppCinemachine.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2Cppcom.rlabrecque.steamworks.net">
@@ -444,7 +444,7 @@
 		<Reference Include="Il2CppPathfinding.Poly2Tri">
 			<HintPath>$(ManagedPath)\Il2CppPathfinding.Poly2Tri.dll</HintPath>
 		</Reference>
-		<Reference Include="Il2CppRadiantGI">
+		<Reference Include="Il2CppRadiantGI" Condition="Exists('$(ManagedPath)\Il2CppRadiantGI.dll')">
 			<HintPath>$(ManagedPath)\Il2CppRadiantGI.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppRootMotion">
