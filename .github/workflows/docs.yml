@@ -191,6 +191,8 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_DOCS_PROJECT_NAME: ${{ vars.CLOUDFLARE_DOCS_PROJECT_NAME || 's1ds-docs' }}
+          WRANGLER_VERSION: "4.103.0"
         shell: bash
         run: |
           attempts=5
@@ -199,7 +201,7 @@ jobs:
           for attempt in $(seq 1 "$attempts"); do
             echo "Cloudflare Pages deploy attempt $attempt/$attempts"
 
-            if bunx wrangler pages deploy ./docfx/_site --project-name=s1ds-docs --branch=master; then
+            if bunx wrangler@$WRANGLER_VERSION pages deploy ./docfx/_site --project-name="$CLOUDFLARE_DOCS_PROJECT_NAME" --branch=master; then
               exit 0
             fi
 
