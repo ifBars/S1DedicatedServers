@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\local.build.props" Condition="Exists('..\..\local.build.props')" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>default</LangVersion>
+    <AssemblyName>DialogueQuestReplaySmoke</AssemblyName>
+    <RootNamespace>DialogueQuestReplaySmoke</RootNamespace>
+    <GamePath Condition="'$(GamePath)' == ''">$(MonoGamePath)</GamePath>
+    <ManagedPath>$(GamePath)\Schedule I_Data\Managed</ManagedPath>
+    <MelonLoaderPath>$(GamePath)\MelonLoader\net35</MelonLoaderPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="MelonLoader">
+      <HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ScreenCaptureModule">
+      <HintPath>$(ManagedPath)\UnityEngine.ScreenCaptureModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateGamePath" BeforeTargets="ResolveReferences" Condition="'$(GamePath)' == ''">
+    <Error Text="Set GamePath or MonoGamePath to a Mono Schedule I installation." />
+  </Target>
+</Project>

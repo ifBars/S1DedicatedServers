@@ -10,9 +10,9 @@ using EnvironmentManagerType = ScheduleOne.Weather.EnvironmentManager;
 using LandVehicleType = ScheduleOne.Vehicles.LandVehicle;
 using NpcType = ScheduleOne.NPCs.NPC;
 using SkateboardType = ScheduleOne.Skating.Skateboard;
-using WeatherEntityType = ScheduleOne.Weather.IWeatherEntity;
-using WeatherEntityListType = System.Collections.Generic.IList<ScheduleOne.Weather.IWeatherEntity>;
-using WeatherProfileType = ScheduleOne.Weather.WeatherProfile;
+using WeatherEntityType = ScheduleOne.Core.Weather.IWeatherEntity;
+using WeatherEntityListType = System.Collections.Generic.IList<ScheduleOne.Core.Weather.IWeatherEntity>;
+using WeatherProfileType = ScheduleOne.Core.Weather.WeatherProfile;
 #endif
 
 namespace DedicatedServerMod.Server.Game.Patches.Weather

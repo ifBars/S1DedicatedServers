@@ -3,15 +3,18 @@ using System.Reflection;
 using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using DedicatedServerMod.Server.Player;
+using DedicatedServerMod.Server.Player.Runtime;
 using DedicatedServerMod.Utils;
 using HarmonyLib;
 #if IL2CPP
 using Il2CppFishNet;
 using Il2CppFishNet.Connection;
+using PlayerManagerType = Il2CppScheduleOne.PlayerScripts.PlayerManager;
 using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet;
 using FishNet.Connection;
+using PlayerManagerType = ScheduleOne.PlayerScripts.PlayerManager;
 using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
 
@@ -119,12 +122,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                     return;
                 }
 
-                if (!__instance.IsGhostHost() || __instance.HasCompletedIntro)
+                if (!__instance.IsGhostHost() || PlayerGameCompatibility.GetHasCompletedIntro(__instance))
                 {
                     return;
                 }
 
-                __instance.HasCompletedIntro = true;
+                PlayerGameCompatibility.SetHasCompletedIntro(__instance, true);
                 DebugLog.Info("Marked dedicated server loopback host intro as completed before PlayerLoaded.");
             }
             catch (Exception ex)
@@ -169,9 +172,23 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
         }
     }
 
-    [HarmonyPatch(typeof(PlayerType), nameof(PlayerType.AreAllPlayersReadyToSleep))]
+    [HarmonyPatch]
     internal static class PlayerSleepPatches
     {
+        private static readonly MethodBase SleepReadinessMethod = ResolveTargetMethod();
+
+        [HarmonyPrepare]
+        private static bool Prepare()
+        {
+            return SleepReadinessMethod != null;
+        }
+
+        [HarmonyTargetMethod]
+        private static MethodBase TargetMethod()
+        {
+            return SleepReadinessMethod;
+        }
+
         private static bool Prefix(ref bool __result)
         {
             if (!InstanceFinder.IsServer || !Shared.Configuration.ServerConfig.Instance.IgnoreGhostHostForSleep)
@@ -219,6 +236,13 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
                 DebugLog.Warning($"AreAllPlayersReadyToSleep prefix error: {ex.Message}");
                 return true;
             }
+        }
+
+        private static MethodBase ResolveTargetMethod()
+        {
+            const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            return typeof(PlayerManagerType).GetMethod("AreAllPlayersReadyToSleep", flags)
+                ?? typeof(PlayerType).GetMethod("AreAllPlayersReadyToSleep", flags);
         }
     }
 }

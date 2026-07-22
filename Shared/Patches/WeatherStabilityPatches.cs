@@ -14,7 +14,7 @@ using FishNet.Object.Synchronizing;
 using EnvironmentManagerType = ScheduleOne.Weather.EnvironmentManager;
 using LandVehicleType = ScheduleOne.Vehicles.LandVehicle;
 using VehicleSettingsType = ScheduleOne.Experimental.VehicleSettings;
-using WeatherConditionsType = ScheduleOne.Weather.WeatherConditions;
+using WeatherConditionsType = ScheduleOne.Core.Weather.WeatherConditions;
 using WeatherVolumeType = ScheduleOne.Weather.WeatherVolume;
 using WheelDataType = ScheduleOne.Experimental.WheelData;
 using WheelOverrideDataType = ScheduleOne.Experimental.WheelOverrideData;

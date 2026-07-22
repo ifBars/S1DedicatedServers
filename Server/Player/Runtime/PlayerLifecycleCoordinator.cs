@@ -753,7 +753,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
             try
             {
-                return PlayerScript.GetPlayer(connection);
+                return PlayerGameCompatibility.GetPlayer(connection);
             }
             catch
             {

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using DedicatedServerMod.API;
+using DedicatedServerMod.Server.Player.Runtime;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.Networking;
 using DedicatedServerMod.Utils;
@@ -656,7 +657,7 @@ namespace DedicatedServerMod.Server.Core
                 if (p != null && p.Owner != null && p.Owner.IsLocalClient)
                 {
                     p.gameObject.name = Constants.GhostHostObjectName;
-                    p.HasCompletedIntro = true;
+                    PlayerGameCompatibility.SetHasCompletedIntro(p, true);
                     p.SetVisible(false, network: true);
                     p.SetVisibleToLocalPlayer(false);
                     var mv = p.GetComponent<PlayerMovement>();
@@ -750,7 +751,7 @@ namespace DedicatedServerMod.Server.Core
                 if (!File.Exists(playerJsonPath))
                 {
                     DebugLog.Warning($"Loopback player data file missing: {playerJsonPath}");
-                    ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                    PlayerGameCompatibility.SetHasCompletedIntro(ScheduleOne.PlayerScripts.Player.Local, true);
                     return;
                 }
 
@@ -759,7 +760,7 @@ namespace DedicatedServerMod.Server.Core
                 if (playerData == null)
                 {
                     DebugLog.Warning("Failed to deserialize loopback Player_0 data; forcing intro complete in memory.");
-                    ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                    PlayerGameCompatibility.SetHasCompletedIntro(ScheduleOne.PlayerScripts.Player.Local, true);
                     return;
                 }
 
@@ -770,7 +771,7 @@ namespace DedicatedServerMod.Server.Core
 
                 playerData.IntroCompleted = true;
                 ScheduleOne.PlayerScripts.Player.Local.Load(playerData, player0Dir);
-                ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                PlayerGameCompatibility.SetHasCompletedIntro(ScheduleOne.PlayerScripts.Player.Local, true);
                 DebugLog.StartupDebug("Loopback host data loaded directly from Player_0 before onLoadComplete.");
             }
             catch (Exception ex)
@@ -778,7 +779,7 @@ namespace DedicatedServerMod.Server.Core
                 DebugLog.Warning($"Failed to load loopback host data directly: {ex.Message}");
                 if (ScheduleOne.PlayerScripts.Player.Local != null)
                 {
-                    ScheduleOne.PlayerScripts.Player.Local.HasCompletedIntro = true;
+                    PlayerGameCompatibility.SetHasCompletedIntro(ScheduleOne.PlayerScripts.Player.Local, true);
                 }
             }
         }
@@ -915,44 +916,6 @@ namespace DedicatedServerMod.Server.Core
             }
         }
 
-        /// <summary>
-        /// Ensure quest state for a newly initialized client matches the server.
-        /// </summary>
-        internal static IEnumerator EnsureQuestInitializationForNewClient(ScheduleOne.PlayerScripts.Player player)
-        {
-            yield return new WaitForSeconds(1f);
-            try
-            {
-                if (player == null || player.gameObject == null) yield break;
-                var qm = NetworkSingleton<QuestManager>.Instance;
-                if (qm == null) yield break;
-
-                if (qm.DefaultQuests != null)
-                {
-                    foreach (var quest in qm.DefaultQuests)
-                    {
-                        if (quest == null) continue;
-                        // Sync main quest state to the specific client
-                        if (quest.State != EQuestState.Inactive)
-                        {
-                            qm.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.State);
-                        }
-                        for (int i = 0; i < quest.Entries.Count; i++)
-                        {
-                            if (quest.Entries[i].State != EQuestState.Inactive)
-                                qm.ReceiveQuestEntryState(player.Owner, quest.GUID.ToString(), i, quest.Entries[i].State);
-                        }
-                        if (quest.IsTracked)
-                            qm.SetQuestTracked(player.Owner, quest.GUID.ToString(), true);
-                    }
-                }
-                DebugLog.StartupDebug($"Quest synchronization completed for new client: {player.PlayerName}");
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error($"Error ensuring quest sync for new client: {ex}");
-            }
-        }
     }
 }
 

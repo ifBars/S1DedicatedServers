@@ -491,11 +491,7 @@ namespace DedicatedServerMod.Client.Managers
             TryClearLoadState("Customer.LockedCustomers.Clear", () => Customer.LockedCustomers.Clear());
             TryClearLoadState("LoadManager.staggeredReplicators.Clear", () =>
             {
-#if IL2CPP
                 LoadManager.staggeredReplicators?.Clear();
-#else
-                loadManager?.staggeredReplicators?.Clear();
-#endif
             });
             TryClearLoadState("ManagementClipboard_Equippable.ResetHeatmapToggle", () => ManagementClipboard_Equippable.ResetHeatmapToggle());
         }

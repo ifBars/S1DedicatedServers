@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using HarmonyLib;
 using DedicatedServerMod.Utils;
 #if IL2CPP
@@ -20,7 +21,22 @@ namespace DedicatedServerMod.Client.Patches
     /// </summary>
     internal static class VehicleHudPatches
     {
-#if !IL2CPP
+#if IL2CPP
+        private const BindingFlags InstanceMemberFlags =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        private static readonly PropertyInfo LegacyPromptsContainerProperty =
+            typeof(VehicleCanvas).GetProperty("DriverPromptsContainer", InstanceMemberFlags);
+
+        private static readonly PropertyInfo VehicleStateProperty =
+            typeof(LandVehicleType).GetProperty("State", InstanceMemberFlags);
+
+        private static readonly PropertyInfo VehiclePromptsProperty =
+            typeof(VehicleCanvas).GetProperty("VehiclePrompts", InstanceMemberFlags);
+
+        private static readonly PropertyInfo DriverPromptsProperty =
+            typeof(VehicleCanvas).GetProperty("DriverPrompts", InstanceMemberFlags);
+#else
         private static readonly AccessTools.FieldRef<VehicleCanvas, LandVehicleType> CurrentVehicleRef =
             AccessTools.FieldRefAccess<VehicleCanvas, LandVehicleType>("currentVehicle");
 #endif
@@ -57,7 +73,15 @@ namespace DedicatedServerMod.Client.Patches
                 }
 
                 __instance.Canvas.enabled = false;
-                __instance.DriverPromptsContainer?.SetActive(false);
+#if IL2CPP
+                HideIl2CppVehiclePrompts(__instance, trackedVehicle);
+#else
+                if (trackedVehicle?.State != null)
+                {
+                    trackedVehicle.State.UnloadModule(__instance.VehiclePrompts);
+                    trackedVehicle.State.UnloadModule(__instance.DriverPrompts);
+                }
+#endif
                 SetTrackedVehicle(__instance, null);
             }
             catch (Exception ex)
@@ -74,6 +98,55 @@ namespace DedicatedServerMod.Client.Patches
             return CurrentVehicleRef(canvas);
 #endif
         }
+
+#if IL2CPP
+        private static void HideIl2CppVehiclePrompts(VehicleCanvas canvas, LandVehicleType vehicle)
+        {
+            object legacyContainer = LegacyPromptsContainerProperty?.GetValue(canvas);
+            if (legacyContainer != null)
+            {
+                MethodInfo setActiveMethod = legacyContainer.GetType().GetMethod(
+                    "SetActive",
+                    InstanceMemberFlags,
+                    null,
+                    new[] { typeof(bool) },
+                    null);
+                setActiveMethod?.Invoke(legacyContainer, new object[] { false });
+                return;
+            }
+
+            object state = vehicle != null ? VehicleStateProperty?.GetValue(vehicle) : null;
+            if (state == null)
+            {
+                return;
+            }
+
+            UnloadStateModule(state, VehiclePromptsProperty?.GetValue(canvas));
+            UnloadStateModule(state, DriverPromptsProperty?.GetValue(canvas));
+        }
+
+        private static void UnloadStateModule(object state, object module)
+        {
+            if (module == null)
+            {
+                return;
+            }
+
+            MethodInfo[] methods = state.GetType().GetMethods(InstanceMemberFlags);
+            for (int i = 0; i < methods.Length; i++)
+            {
+                MethodInfo method = methods[i];
+                ParameterInfo[] parameters = method.GetParameters();
+                if (method.Name == "UnloadModule"
+                    && parameters.Length == 1
+                    && parameters[0].ParameterType.IsInstanceOfType(module))
+                {
+                    method.Invoke(state, new[] { module });
+                    return;
+                }
+            }
+        }
+#endif
 
         private static void SetTrackedVehicle(VehicleCanvas canvas, LandVehicleType vehicle)
         {
