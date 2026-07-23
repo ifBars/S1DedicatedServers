@@ -47,6 +47,21 @@ Available in `SERVER` builds via `S1DS.Server`:
 
 `Players` is the main server-side API most addons should build on today. `StatusQuery` and `Permissions` are the intended extension points for status-query registration and authorization lookups. Some other properties currently expose lower-level managers and may narrow into cleaner facades over time.
 
+### Migrating from the 1.0.0 low-level server surface
+
+The following version 1.0.0 implementation types remain available temporarily with non-error
+`Obsolete` warnings:
+
+- `ConsoleCommandAdapter`
+- `ServerRuntimeConfigurationApplier`
+- `ServerStartupOrchestrator`
+- `HostConsoleManager`
+- `SaveInitializer`
+
+They are retained only for source and binary compatibility and will become internal in a future
+release. New code should use the managers and extension points on `S1DS.Server`; there is no
+supported one-for-one replacement for these framework-owned implementation helpers.
+
 Example:
 
 ```csharp

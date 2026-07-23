@@ -38,6 +38,7 @@ using Il2CppScheduleOne.Persistence.Datas;
 using SaveLoaderType = Il2CppScheduleOne.Persistence.Loaders.Loader;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Quests;
+using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence;
@@ -45,6 +46,7 @@ using ScheduleOne.Persistence.Datas;
 using SaveLoaderType = ScheduleOne.Persistence.Loaders.Loader;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Quests;
+using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -54,11 +56,14 @@ namespace DedicatedServerMod.Server.Core
     /// <summary>
     /// Orchestrates the full dedicated server start sequence to mirror the legacy flow.
     /// </summary>
-    internal static class ServerStartupOrchestrator
+    [Obsolete(
+        "This implementation type is retained for compatibility and will become internal in a future release.",
+        false)]
+    public static class ServerStartupOrchestrator
     {
         private static bool _loopbackHandled = false;
 
-        internal static IEnumerator StartDedicatedServer(string savePathOverride = null)
+        public static IEnumerator StartDedicatedServer(string savePathOverride = null)
         {
             DebugLog.Info("Starting dedicated server loading sequence (orchestrator)");
 
@@ -696,7 +701,7 @@ namespace DedicatedServerMod.Server.Core
         /// <summary>
         /// Initialize default quests on server if needed (e.g., welcome quest) and save.
         /// </summary>
-        internal static IEnumerator InitializeServerQuests()
+        public static IEnumerator InitializeServerQuests()
         {
             yield return new WaitForSeconds(2f);
             try
@@ -913,6 +918,70 @@ namespace DedicatedServerMod.Server.Core
                 string destinationPath = Path.Combine(destinationDir, relativePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? destinationDir);
                 File.Copy(file, destinationPath, overwrite);
+            }
+        }
+
+        /// <summary>
+        /// Ensures quest state for a newly initialized client matches the server.
+        /// </summary>
+        /// <param name="player">The player whose owning connection receives the current quest state.</param>
+        /// <remarks>
+        /// This compatibility method preserves the version 1.0.0 contract. The framework now
+        /// performs quest replay as part of its internal player-join bootstrap flow.
+        /// </remarks>
+        public static IEnumerator EnsureQuestInitializationForNewClient(PlayerType player)
+        {
+            yield return new WaitForSeconds(1f);
+
+            try
+            {
+                if (player == null || player.gameObject == null)
+                {
+                    yield break;
+                }
+
+                QuestManager questManager = NetworkSingleton<QuestManager>.Instance;
+                if (questManager?.DefaultQuests == null)
+                {
+                    yield break;
+                }
+
+                foreach (Quest quest in questManager.DefaultQuests)
+                {
+                    if (quest == null)
+                    {
+                        continue;
+                    }
+
+                    if (quest.State != EQuestState.Inactive)
+                    {
+                        questManager.ReceiveQuestState(player.Owner, quest.GUID.ToString(), quest.State);
+                    }
+
+                    for (int entryIndex = 0; entryIndex < quest.Entries.Count; entryIndex++)
+                    {
+                        QuestEntry entry = quest.Entries[entryIndex];
+                        if (entry != null && entry.State != EQuestState.Inactive)
+                        {
+                            questManager.ReceiveQuestEntryState(
+                                player.Owner,
+                                quest.GUID.ToString(),
+                                entryIndex,
+                                entry.State);
+                        }
+                    }
+
+                    if (quest.IsTracked)
+                    {
+                        questManager.SetQuestTracked(player.Owner, quest.GUID.ToString(), tracked: true);
+                    }
+                }
+
+                DebugLog.StartupDebug($"Quest synchronization completed for new client: {player.PlayerName}");
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error($"Error ensuring quest sync for new client: {ex}");
             }
         }
 

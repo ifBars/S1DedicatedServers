@@ -18,7 +18,10 @@ namespace DedicatedServerMod.Server.Persistence
 	/// extracting an embedded Player_0 template, and ensuring required JSON files
 	/// exist with tutorial disabled.
 	/// </summary>
-	internal static class SaveInitializer
+	[System.Obsolete(
+		"This implementation type is retained for compatibility and will become internal in a future release.",
+		false)]
+	public static class SaveInitializer
 	{
 		/// <summary>
 		/// Ensure a save at <paramref name="saveFolderPath"/> is ready for loading.
@@ -27,7 +30,7 @@ namespace DedicatedServerMod.Server.Persistence
 		/// - Extracts embedded Player_0.zip into Players
 		/// - Ensures Game.json and Metadata.json exist with sane defaults (PlayTutorial=false)
 		/// </summary>
-		internal static void EnsureSavePrepared(string saveFolderPath, string organisationName, string serverPlayerCode)
+		public static void EnsureSavePrepared(string saveFolderPath, string organisationName, string serverPlayerCode)
 		{
 			if (string.IsNullOrWhiteSpace(saveFolderPath))
 				throw new ArgumentException("Save path is null or empty", nameof(saveFolderPath));

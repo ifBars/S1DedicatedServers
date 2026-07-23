@@ -15,7 +15,10 @@ namespace DedicatedServerMod.Client.Managers
     /// Manages main menu animations when transitioning to/from the server browser.
     /// Handles sliding and fading animations for menu elements.
     /// </summary>
-    internal sealed class MenuAnimationController
+    [Obsolete(
+        "This implementation type is retained for compatibility and will become internal in a future release.",
+        false)]
+    public class MenuAnimationController
     {
         #region Private Fields
 
@@ -58,7 +61,7 @@ namespace DedicatedServerMod.Client.Managers
 
         #region Constructor
 
-        internal MenuAnimationController()
+        public MenuAnimationController()
         {
         }
 
@@ -70,7 +73,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Toggles the main menu visibility with animations.
         /// </summary>
         /// <param name="show">True to show the menu, false to hide it</param>
-        internal void ToggleMenuVisibility(bool show)
+        public void ToggleMenuVisibility(bool show)
         {
             try
             {
@@ -128,7 +131,7 @@ namespace DedicatedServerMod.Client.Managers
         /// Resets the animation controller state.
         /// Call this when returning to the menu scene.
         /// </summary>
-        internal void Reset()
+        public void Reset()
         {
             // Stop any in-flight coroutines
             if (mainMenuBankCoroutine != null)

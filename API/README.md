@@ -158,6 +158,17 @@ Available through `S1DS.Client` in client builds:
 - `IsConnected`
 - `IsInitialized`
 
+## Legacy Implementation API Migration
+
+Low-level implementation types that were public in version 1.0.0 remain available temporarily
+with non-error `Obsolete` warnings. This preserves binary and source compatibility while giving
+mods time to move onto the supported `S1DS.Client` and `S1DS.Server` facades.
+
+Do not add new dependencies on these compatibility types. `S1DS.Client.ClientCore` and
+`ClientBootstrap` usages should move to the narrower `S1DS.Client` properties. Server mods should
+use the managers and extension points exposed through `S1DS.Server` instead of bootstrap,
+startup, console-host, or persistence implementation helpers.
+
 ## `S1DS.Shared.Config`
 
 `S1DS.Shared.Config` exposes `ServerConfig.Instance`, but its behavior differs by side:
