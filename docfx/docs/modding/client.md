@@ -33,6 +33,26 @@ Available in `CLIENT` builds via `S1DS.Client`:
 - `IsConnected`
 - `IsInitialized`
 
+### Migrating from the 1.0.0 low-level client surface
+
+The following version 1.0.0 contracts remain available temporarily with non-error `Obsolete`
+warnings so existing mods continue to load and compile:
+
+- `S1DS.Client.ClientCore`
+- `ClientBootstrap`
+- `AssetBundleLoader`
+- `MenuAnimationController`
+- `ServerDataStore`
+
+Replace `S1DS.Client.ClientCore` and direct `ClientBootstrap` access with the narrower
+`S1DS.Client` properties. Use your mod's `LoggerInstance` instead of `ClientBootstrap.Logger` or
+`ClientBootstrap.DebugLog`. Ghost-host sleep behavior is framework-owned and should not be changed
+through `ClientBootstrap.IgnoreGhostHostForSleep`.
+
+The other listed types are implementation helpers without a supported direct replacement. Avoid
+new dependencies on them while migrating existing code to the relevant `S1DS.Client` manager or
+mod-owned implementation.
+
 Example:
 
 ```csharp

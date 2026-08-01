@@ -203,7 +203,8 @@ namespace DedicatedServerMod.Server.Game
                         ParameterInfo[] prms = mi.GetParameters();
                         return prms.Length == 2
                             && prms[0].ParameterType == typeof(string)
-                            && prms[1].ParameterType == typeof(ulong);
+                            && (prms[1].ParameterType == typeof(ulong)
+                                || prms[1].ParameterType == typeof(string));
                     });
 
                 if (target == null)
@@ -219,7 +220,8 @@ namespace DedicatedServerMod.Server.Game
                             ParameterInfo[] prms = mi.GetParameters();
                             return prms.Length == 2
                                 && prms[0].ParameterType == typeof(string)
-                                && prms[1].ParameterType == typeof(ulong)
+                                && (prms[1].ParameterType == typeof(ulong)
+                                    || prms[1].ParameterType == typeof(string))
                                 && string.Equals(prms[0].Name, "playerName", StringComparison.OrdinalIgnoreCase)
                                 && string.Equals(prms[1].Name, "id", StringComparison.OrdinalIgnoreCase);
                         });
@@ -231,7 +233,10 @@ namespace DedicatedServerMod.Server.Game
                     return;
                 }
 
-                MethodInfo prefix = typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.AllowDedicatedServerPlayerNameDataPrefix), BindingFlags.Public | BindingFlags.Static);
+                Type idParameterType = target.GetParameters()[1].ParameterType;
+                MethodInfo prefix = idParameterType == typeof(string)
+                    ? typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.AllowDedicatedServerPlayerNameDataStringPrefix), BindingFlags.Public | BindingFlags.Static)
+                    : typeof(PlayerPatches).GetMethod(nameof(PlayerPatches.AllowDedicatedServerPlayerNameDataPrefix), BindingFlags.Public | BindingFlags.Static);
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
                 DebugLog.StartupDebug($"Patched Player server name validation RPC: {target.Name}");
             }

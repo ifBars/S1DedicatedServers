@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 #if IL2CPP
 using Il2CppScheduleOne.PlayerScripts;
@@ -36,65 +38,126 @@ namespace DedicatedServerMod.Client.Patches
             }
         }
 
-        [HarmonyPatch(typeof(Player), nameof(Player.AreAllPlayersReadyToSleep))]
-        [HarmonyPrefix]
-        private static bool AreAllPlayersReadyToSleepPrefix(ref bool __result)
+        [HarmonyPatch]
+        private static class AreAllPlayersReadyToSleepPatch
         {
-            if (!_ignoreGhostHostForSleep || !FishNet.InstanceFinder.IsClient)
-                return true;
+            private static readonly MethodBase SleepReadinessMethod = ResolveTargetMethod();
 
-            try
+            [HarmonyPrepare]
+            private static bool Prepare()
             {
-                var playerList = Player.PlayerList;
-                if (playerList.Count == 0)
+                return SleepReadinessMethod != null;
+            }
+
+            [HarmonyTargetMethod]
+            private static MethodBase TargetMethod()
+            {
+                return SleepReadinessMethod;
+            }
+
+            [HarmonyPrefix]
+            private static bool Prefix(ref bool __result)
+            {
+                if (!_ignoreGhostHostForSleep || !FishNet.InstanceFinder.IsClient)
                 {
-                    __result = false;
-                    return false;
+                    return true;
                 }
 
-                int eligiblePlayers = 0;
-
-                for (int i = 0; i < playerList.Count; i++)
+                try
                 {
-                    var player = playerList[i];
-                    if (player == null) continue;
-
-                    if (player.IsGhostHost())
-                        continue;
-
-                    eligiblePlayers++;
-
-                    if (!player.IsReadyToSleep)
+                    var playerList = Player.PlayerList;
+                    if (playerList.Count == 0)
                     {
                         __result = false;
                         return false;
                     }
-                }
 
-                if (eligiblePlayers == 0)
-                {
-                    __result = false;
+                    int eligiblePlayers = 0;
+
+                    for (int i = 0; i < playerList.Count; i++)
+                    {
+                        var player = playerList[i];
+                        if (player == null)
+                        {
+                            continue;
+                        }
+
+                        if (player.IsGhostHost())
+                        {
+                            continue;
+                        }
+
+                        eligiblePlayers++;
+
+                        if (!player.IsReadyToSleep)
+                        {
+                            __result = false;
+                            return false;
+                        }
+                    }
+
+                    if (eligiblePlayers == 0)
+                    {
+                        __result = false;
+                        return false;
+                    }
+
+                    __result = true;
                     return false;
                 }
-
-                __result = true;
-                return false;
+                catch (Exception ex)
+                {
+                    DebugLog.Error($"Error in AreAllPlayersReadyToSleep patch: {ex}");
+                    return true;
+                }
             }
-            catch (Exception ex)
+
+            private static MethodBase ResolveTargetMethod()
             {
-                DebugLog.Error($"Error in AreAllPlayersReadyToSleep patch: {ex}");
-                return true;
+                const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+                return typeof(PlayerManager).GetMethod("AreAllPlayersReadyToSleep", flags)
+                    ?? typeof(Player).GetMethod("AreAllPlayersReadyToSleep", flags);
             }
         }
 
-        [HarmonyPatch(typeof(SleepCanvas), nameof(SleepCanvas.SetIsOpen))]
-        [HarmonyPrefix]
-        private static bool SleepCanvas_SetIsOpen_Prefix(SleepCanvas __instance, bool open)
+        [HarmonyPatch]
+        private static class SleepCanvasOpenPatch
+        {
+            [HarmonyTargetMethods]
+            private static IEnumerable<MethodBase> TargetMethods()
+            {
+                var setIsOpen = AccessTools.Method(typeof(SleepCanvas), "SetIsOpen");
+                if (setIsOpen != null)
+                {
+                    yield return setIsOpen;
+                }
+
+                var openMenu = AccessTools.Method(typeof(SleepCanvas), "OpenMenu");
+                if (openMenu != null)
+                {
+                    yield return openMenu;
+                }
+            }
+
+            [HarmonyPrefix]
+            private static bool Prefix(MethodBase __originalMethod, object[] __args)
+            {
+                bool opensCanvas = __originalMethod.Name != "SetIsOpen"
+                    || (__args.Length > 0 && __args[0] is bool open && open);
+
+                if (!opensCanvas)
+                {
+                    return true;
+                }
+
+                return SleepCanvasOpenPrefix();
+            }
+        }
+
+        private static bool SleepCanvasOpenPrefix()
         {
             try
             {
-                if (!open) return true;
-
                 if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsHost)
                 {
                     if (!Managers.ServerDataStore.AllowSleeping)

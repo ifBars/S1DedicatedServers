@@ -29,7 +29,7 @@ namespace DedicatedServerMod.Shared.Patches
     {
         private static bool Prefix(ActionListType __instance, float staggerTime)
         {
-            NativeActionListType invocationList = __instance?.GetInvocationList();
+            NativeActionListType invocationList = __instance?.list;
             if (invocationList == null || invocationList.Count == 0)
             {
                 return false;

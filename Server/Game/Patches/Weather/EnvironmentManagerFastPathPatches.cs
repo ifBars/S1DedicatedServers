@@ -4,22 +4,15 @@ using DedicatedServerMod.Server.Game.Patches.Common;
 using HarmonyLib;
 using UnityEngine;
 #if IL2CPP
-using Il2CppInterop.Runtime;
 using EnvironmentManagerType = Il2CppScheduleOne.Weather.EnvironmentManager;
-using LandVehicleType = Il2CppScheduleOne.Vehicles.LandVehicle;
-using NpcType = Il2CppScheduleOne.NPCs.NPC;
-using SkateboardType = Il2CppScheduleOne.Skating.Skateboard;
-using WeatherEntityType = Il2CppScheduleOne.Weather.IWeatherEntity;
-using WeatherEntityListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Weather.IWeatherEntity>;
-using WeatherProfileType = Il2CppScheduleOne.Weather.WeatherProfile;
 #else
 using EnvironmentManagerType = ScheduleOne.Weather.EnvironmentManager;
 using LandVehicleType = ScheduleOne.Vehicles.LandVehicle;
 using NpcType = ScheduleOne.NPCs.NPC;
 using SkateboardType = ScheduleOne.Skating.Skateboard;
-using WeatherEntityType = ScheduleOne.Weather.IWeatherEntity;
-using WeatherEntityListType = System.Collections.Generic.IList<ScheduleOne.Weather.IWeatherEntity>;
-using WeatherProfileType = ScheduleOne.Weather.WeatherProfile;
+using WeatherEntityType = ScheduleOne.Core.Weather.IWeatherEntity;
+using WeatherEntityListType = System.Collections.Generic.IList<ScheduleOne.Core.Weather.IWeatherEntity>;
+using WeatherProfileType = ScheduleOne.Core.Weather.WeatherProfile;
 #endif
 
 namespace DedicatedServerMod.Server.Game.Patches.Weather
@@ -68,6 +61,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
         }
     }
 
+#if !IL2CPP
     internal sealed class WeatherSampleState
     {
         internal WeatherSampleState(WeatherProfileType profile, bool isUnderCover, float createdAt)
@@ -369,6 +363,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
 #endif
         }
     }
+#endif
 
     /// <summary>
     /// Replaces the weather presentation update loop with a dedicated-server fast path that keeps authoritative weather state for gameplay entities on an adaptive cadence.
@@ -388,8 +383,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Weather
                 return false;
             }
 
+#if IL2CPP
+            return true;
+#else
             AdaptiveWeatherEntityUpdater.Update(__instance);
             return false;
+#endif
         }
     }
 }

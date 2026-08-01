@@ -2,12 +2,16 @@
 using Il2CppFishNet;
 using Il2CppFishNet.Connection;
 using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Quests;
 using LoadManagerType = Il2CppScheduleOne.Persistence.LoadManager;
+using QuestManagerType = Il2CppScheduleOne.Quests.QuestManager;
 using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
 #else
 using FishNet.Connection;
 using ScheduleOne.DevUtilities;
+using ScheduleOne.Quests;
 using LoadManagerType = ScheduleOne.Persistence.LoadManager;
+using QuestManagerType = ScheduleOne.Quests.QuestManager;
 using TimeManagerType = ScheduleOne.GameTime.TimeManager;
 #endif
 using System.Collections;
@@ -30,6 +34,8 @@ namespace DedicatedServerMod.Server.Player.Runtime
         private const int InitialTimeReplayAttempts = 4;
         private const float InitialTimeReplayFirstDelaySeconds = 0.35f;
         private const float InitialTimeReplayIntervalSeconds = 0.75f;
+        private const float QuestReplayPollIntervalSeconds = 0.25f;
+        private const float QuestReplayTimeoutSeconds = 15f;
 
         private static readonly MethodInfo SetTimeDataClientMethod = AccessTools.Method(
             typeof(TimeManagerType),
@@ -52,6 +58,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
             SendInitialServerDataToClient(playerInfo.Connection);
             MelonCoroutines.Start(ReplayInitialTimeDataToClient(playerInfo));
+            MelonCoroutines.Start(ReplayQuestStateToClient(playerInfo));
         }
 
         internal void SendInitialServerDataToClient(NetworkConnection connection)
@@ -133,6 +140,98 @@ namespace DedicatedServerMod.Server.Player.Runtime
                     yield return new WaitForSecondsRealtime(InitialTimeReplayIntervalSeconds);
                 }
             }
+        }
+
+        private IEnumerator ReplayQuestStateToClient(ConnectedPlayerInfo playerInfo)
+        {
+            if (playerInfo == null || playerInfo.IsLoopbackConnection)
+            {
+                yield break;
+            }
+
+            float startedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - startedAt < QuestReplayTimeoutSeconds)
+            {
+                if (!_registry.IsTrackedPlayerActive(playerInfo))
+                {
+                    yield break;
+                }
+
+                LoadManagerType loadManager = Singleton<LoadManagerType>.Instance;
+                QuestManagerType questManager = NetworkSingleton<QuestManagerType>.Instance;
+                bool playerDataReady = playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.playerDataRetrieveReturned;
+                bool worldReady = loadManager != null && !loadManager.IsLoading && loadManager.IsGameLoaded;
+
+                if (playerDataReady && worldReady && questManager?.DefaultQuests != null)
+                {
+                    try
+                    {
+                        int questStateCount = 0;
+                        int entryStateCount = 0;
+                        int trackedQuestCount = 0;
+
+                        foreach (Quest quest in questManager.DefaultQuests)
+                        {
+                            if (quest == null)
+                            {
+                                continue;
+                            }
+
+                            for (int entryIndex = 0; entryIndex < quest.Entries.Count; entryIndex++)
+                            {
+                                QuestEntry entry = quest.Entries[entryIndex];
+                                if (entry != null && entry.State != EQuestState.Inactive)
+                                {
+                                    questManager.ReceiveQuestEntryState(
+                                        playerInfo.Connection,
+                                        quest.GUID.ToString(),
+                                        entryIndex,
+                                        entry.State);
+                                    entryStateCount++;
+                                }
+                            }
+
+                            if (quest.State != EQuestState.Inactive)
+                            {
+                                questManager.ReceiveQuestState(
+                                    playerInfo.Connection,
+                                    quest.GUID.ToString(),
+                                    quest.State);
+                                questStateCount++;
+                            }
+
+                            if (quest.IsTracked)
+                            {
+                                questManager.SetQuestTracked(
+                                    playerInfo.Connection,
+                                    quest.GUID.ToString(),
+                                    tracked: true);
+                                trackedQuestCount++;
+                            }
+                        }
+
+                        DebugLog.Info(
+                            $"Replayed authoritative quest state to ClientId {playerInfo.ClientId}: " +
+                            $"quests={questStateCount}, entries={entryStateCount}, tracked={trackedQuestCount}");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLog.Warning($"Failed to replay quest state to ClientId {playerInfo.ClientId}: {ex.Message}");
+                    }
+
+                    yield break;
+                }
+
+                yield return new WaitForSecondsRealtime(QuestReplayPollIntervalSeconds);
+            }
+
+            LoadManagerType timedOutLoadManager = Singleton<LoadManagerType>.Instance;
+            bool timedOutPlayerDataReady = playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.playerDataRetrieveReturned;
+            bool timedOutWorldReady = timedOutLoadManager != null && !timedOutLoadManager.IsLoading && timedOutLoadManager.IsGameLoaded;
+            DebugLog.Warning(
+                $"Timed out replaying quest state to ClientId {playerInfo.ClientId}: " +
+                $"playerDataReady={timedOutPlayerDataReady}, worldReady={timedOutWorldReady}, " +
+                $"questManagerReady={NetworkSingleton<QuestManagerType>.Instance?.DefaultQuests != null}");
         }
     }
 }

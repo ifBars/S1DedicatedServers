@@ -13,7 +13,10 @@ namespace DedicatedServerMod.Server.Commands
     /// <summary>
     /// Adapter to integrate server commands with the game's console system.
     /// </summary>
-    internal sealed class ConsoleCommandAdapter : Console.ConsoleCommand
+    [Obsolete(
+        "This implementation type is retained for compatibility and will become internal in a future release.",
+        false)]
+    public class ConsoleCommandAdapter : Console.ConsoleCommand
     {
         private readonly CommandManager _commandManager;
         private readonly IServerCommand _serverCommand;
@@ -21,7 +24,7 @@ namespace DedicatedServerMod.Server.Commands
         /// <summary>
         /// Initializes a new game console adapter.
         /// </summary>
-        internal ConsoleCommandAdapter(CommandManager commandManager, IServerCommand serverCommand)
+        public ConsoleCommandAdapter(CommandManager commandManager, IServerCommand serverCommand)
         {
             _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
             _serverCommand = serverCommand ?? throw new ArgumentNullException(nameof(serverCommand));

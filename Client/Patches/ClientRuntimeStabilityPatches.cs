@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using HarmonyLib;
 using DedicatedServerMod.Utils;
 #if IL2CPP
@@ -29,9 +30,21 @@ namespace DedicatedServerMod.Client.Patches
     /// Prevents native client minute-pass callbacks from dereferencing player movement after
     /// dedicated-server cleanup has started or before the local player singleton is rebuilt.
     /// </summary>
-    [HarmonyPatch(typeof(TrashItemType), "MinPass")]
+    [HarmonyPatch]
     internal static class TrashItemMinPassClientPatches
     {
+        [HarmonyPrepare]
+        private static bool Prepare()
+        {
+            return ResolveTargetMethod() != null;
+        }
+
+        [HarmonyTargetMethod]
+        private static MethodBase TargetMethod()
+        {
+            return ResolveTargetMethod();
+        }
+
         private static bool Prefix(TrashItemType __instance)
         {
             if (__instance == null || __instance.transform == null)
@@ -40,6 +53,12 @@ namespace DedicatedServerMod.Client.Patches
             }
 
             return PlayerSingleton<PlayerMovement>.InstanceExists;
+        }
+
+        private static MethodBase ResolveTargetMethod()
+        {
+            return AccessTools.Method(typeof(TrashItemType), "MinPass")
+                ?? AccessTools.Method(typeof(TrashItemType), "OnTick");
         }
     }
 

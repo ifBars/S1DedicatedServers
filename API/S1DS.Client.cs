@@ -51,6 +51,18 @@ namespace DedicatedServerMod.API
         public static class Client
         {
             /// <summary>
+            /// Gets the underlying client bootstrap created by MelonLoader for the client build.
+            /// </summary>
+            /// <remarks>
+            /// This compatibility property is retained temporarily for mods compiled against
+            /// version 1.0.0. New code should use the narrower properties on <see cref="Client"/>.
+            /// </remarks>
+            [System.Obsolete(
+                "Use the narrower properties on S1DS.Client instead. ClientCore will be removed in a future release.",
+                false)]
+            public static ClientBootstrap ClientCore => ClientBootstrap.Instance;
+
+            /// <summary>
             /// Gets the client connection manager responsible for dedicated-server connection state.
             /// </summary>
             /// <remarks>

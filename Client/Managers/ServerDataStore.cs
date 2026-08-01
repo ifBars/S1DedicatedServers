@@ -6,23 +6,26 @@ namespace DedicatedServerMod.Client.Managers
 	/// <summary>
 	/// Client-side storage for minimal server data shared by the server.
 	/// </summary>
-	internal static class ServerDataStore
+	[Obsolete(
+		"This implementation type is retained for compatibility and will become internal in a future release.",
+		false)]
+	public static class ServerDataStore
 	{
-		internal static event Action<ServerData> OnUpdated;
+		public static event Action<ServerData> OnUpdated;
 
 		private static ServerData _current = new ServerData();
-		internal static ServerData Current => _current;
+		public static ServerData Current => _current;
 
-		internal static bool AllowSleeping => _current?.AllowSleeping ?? true;
+		public static bool AllowSleeping => _current?.AllowSleeping ?? true;
 
-		internal static void Update(ServerData newData)
+		public static void Update(ServerData newData)
 		{
 			if (newData == null) return;
 			_current = newData;
 			try { OnUpdated?.Invoke(_current); } catch { }
 		}
 
-		internal static void Reset()
+		public static void Reset()
 		{
 			_current = new ServerData();
 		}

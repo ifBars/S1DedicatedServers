@@ -8,7 +8,10 @@ namespace DedicatedServerMod.Server.Core
     /// <summary>
     /// Applies server runtime behavior derived from configuration without pushing that logic into bootstrap orchestration.
     /// </summary>
-    internal sealed class ServerRuntimeConfigurationApplier
+    [System.Obsolete(
+        "This implementation type is retained for compatibility and will become internal in a future release.",
+        false)]
+    public sealed class ServerRuntimeConfigurationApplier
     {
         private readonly ServerConfig _config;
         private readonly MelonLogger.Instance _logger;
@@ -19,7 +22,7 @@ namespace DedicatedServerMod.Server.Core
         /// <param name="config">Resolved server configuration to apply.</param>
         /// <param name="logger">Logger used for runtime configuration diagnostics.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> or <paramref name="logger"/> is <see langword="null"/>.</exception>
-        internal ServerRuntimeConfigurationApplier(ServerConfig config, MelonLogger.Instance logger)
+        public ServerRuntimeConfigurationApplier(ServerConfig config, MelonLogger.Instance logger)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -28,7 +31,7 @@ namespace DedicatedServerMod.Server.Core
         /// <summary>
         /// Applies runtime settings needed for the dedicated server process.
         /// </summary>
-        internal void Apply()
+        public void Apply()
         {
             ApplyPerformanceSettings();
             LogResolvedSavePath();

@@ -32,7 +32,10 @@ namespace DedicatedServerMod.Client.Core
     /// properties exposed by <see cref="DedicatedServerMod.API.S1DS.Client"/>.
     /// </para>
     /// </remarks>
-    internal sealed class ClientBootstrap : MelonMod
+    [Obsolete(
+        "Use DedicatedServerMod.API.S1DS.Client instead. ClientBootstrap will become internal in a future release.",
+        false)]
+    public sealed class ClientBootstrap : MelonMod
     {
         #region Private Fields
 
@@ -99,7 +102,7 @@ namespace DedicatedServerMod.Client.Core
 
         #endregion
 
-        #region Internal Properties
+        #region Compatibility Properties
 
         /// <summary>
         /// Gets the singleton bootstrap instance for the client runtime.
@@ -107,12 +110,12 @@ namespace DedicatedServerMod.Client.Core
         /// <remarks>
         /// This property is <see langword="null"/> until <see cref="OnInitializeMelon"/> runs.
         /// </remarks>
-        internal static ClientBootstrap Instance => _instance;
+        public static ClientBootstrap Instance => _instance;
 
         /// <summary>
         /// Gets the logger instance for this mod.
         /// </summary>
-        internal MelonLogger.Instance Logger => _logger;
+        public MelonLogger.Instance Logger => _logger;
 
         /// <summary>
         /// Gets the dedicated-server connection manager created during client bootstrap initialization.
@@ -166,7 +169,7 @@ namespace DedicatedServerMod.Client.Core
         /// <summary>
         /// Gets or sets whether to ignore the ghost host when checking sleep readiness.
         /// </summary>
-        internal static bool IgnoreGhostHostForSleep
+        public static bool IgnoreGhostHostForSleep
         {
             get => Instance?._ignoreGhostHostForSleep ?? true;
             set
@@ -496,7 +499,7 @@ namespace DedicatedServerMod.Client.Core
         /// Logs a message with the debug logging system.
         /// </summary>
         /// <param name="message">The message to log</param>
-        internal void DebugLog(string message)
+        public void DebugLog(string message)
         {
             Utils.DebugLog.Debug(message);
         }
