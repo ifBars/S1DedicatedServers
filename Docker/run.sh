@@ -30,6 +30,7 @@ STEAM_GUARD=${STEAM_GUARD:-""}
 STEAMWORKS_REDIST_DIR=${STEAMWORKS_REDIST_DIR:-"/home/steam/steamworks_redist"}
 FORCE_STEAMCMD_UPDATE=${FORCE_STEAMCMD_UPDATE:-"false"}
 GAME_EXE_PATH="${STEAMAPPDIR}/Schedule I.exe"
+CPP2IL_OUTPUT_DIR="${STEAMAPPDIR}/MelonLoader/Dependencies/Il2CppAssemblyGenerator/Cpp2IL/cpp2il_out"
 
 case "${S1DS_RUNTIME}" in
     mono)
@@ -77,6 +78,25 @@ should_refresh_steamworks_redist() {
     done
 
     return 1
+}
+
+ensure_game_process_not_running() {
+    if pgrep -f '[S]chedule I\.exe' > /dev/null; then
+        echo "ERROR: Refusing to clear Cpp2IL output while Schedule I is running."
+        pgrep -af '[S]chedule I\.exe' || true
+        exit 1
+    fi
+}
+
+clear_stale_cpp2il_output() {
+    ensure_game_process_not_running
+
+    if [ -d "${CPP2IL_OUTPUT_DIR}" ]; then
+        echo "Removing disposable Cpp2IL output before Wine launch: ${CPP2IL_OUTPUT_DIR}"
+        rm -rf -- "${CPP2IL_OUTPUT_DIR}"
+    else
+        echo "Cpp2IL output is already absent; no stale output to remove."
+    fi
 }
 
 # Update/install the game via SteamCMD only when needed.
@@ -176,6 +196,11 @@ if [ -f "/home/steam/bootstrap/mods/${MOD_DLL_NAME}" ]; then
 else
     echo "WARNING: Missing bootstrap mod DLL: /home/steam/bootstrap/mods/${MOD_DLL_NAME}"
 fi
+
+# Cpp2IL output is a disposable cache. A persistent game volume can retain
+# assemblies removed by a game update, which Il2CppInterop then consumes.
+# This runs after game/bootstrap application and before Wine launches.
+clear_stale_cpp2il_output
 
 # Check if the game executable exists
 if [ ! -f "${GAME_EXE_PATH}" ]; then

@@ -157,6 +157,22 @@ docker compose up -d
 
 To build locally from `Docker.zip` instead of pulling from GHCR, replace the `image:` line in the Compose file with the commented `build:` block before running `docker compose up -d --build`.
 
+## IL2CPP Interop Cache Cleanup
+
+After SteamCMD and the pinned MelonLoader bootstrap are applied, and before Wine starts Schedule I, the entrypoint confirms the game is not running and removes only this disposable Cpp2IL output directory:
+
+```text
+/home/steam/game/MelonLoader/Dependencies/Il2CppAssemblyGenerator/Cpp2IL/cpp2il_out
+```
+
+This cleanup is safe and idempotent on every startup. It does not remove `MelonLoader/Il2CppAssemblies`, `Mods`, configuration, saves, or logs. It prevents Il2CppInterop from consuming assemblies that a game update removed but a persistent game volume retained in Cpp2IL output.
+
+### Troubleshooting IL2CPP Interop Generation After A Game Update
+
+If startup reports an Il2CppInterop generation error such as `Pass11ComputeTypeSpecifics`, stop the server, delete only the `cpp2il_out` directory shown above, then start the server so it regenerates the output. The container performs this recovery automatically on every startup.
+
+Do not use a MelonLoader downgrade or reinstall as the primary fix: the inspected `0.7.0` through `0.7.3` releases share the stale-output behavior, and reinstalling often appears to help only because it removes this directory. The image remains pinned to the currently tested MelonLoader `0.7.2` until an upstream release containing [MelonLoader PR #1193](https://github.com/LavaGang/MelonLoader/pull/1193) is tested.
+
 ## Notes
 
 - `STEAM_GUARD` can be supplied when Steam prompts for a guard code.
