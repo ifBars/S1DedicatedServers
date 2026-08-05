@@ -107,6 +107,10 @@ Commercial providers should:
 - make the installed runtime and version visible to customers
 - avoid implying supported-provider, recommended, affiliate, sponsor, official, or exclusive status unless a written arrangement exists
 
+### Game Update Invariant
+
+For every Schedule I update, stop the server before touching its files, then follow this order: update or validate the game, reapply the pinned MelonLoader version, delete only `MelonLoader/Dependencies/Il2CppAssemblyGenerator/Cpp2IL/cpp2il_out`, reapply the DedicatedServerMod release files, then start the server. This prevents stale Cpp2IL output from a prior game build from being passed to Il2CppInterop. Do not use a MelonLoader downgrade as the primary recovery; inspected `0.7.0` through `0.7.3` releases share this behavior, while a reinstall often appears to help only because it removes `cpp2il_out`.
+
 Partnership, affiliate, sponsorship, supported-provider, and recommended-host placements should be disclosed clearly wherever they appear.
 
 ## Related Documentation
