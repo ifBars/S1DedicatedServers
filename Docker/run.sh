@@ -31,6 +31,7 @@ STEAMWORKS_REDIST_DIR=${STEAMWORKS_REDIST_DIR:-"/home/steam/steamworks_redist"}
 FORCE_STEAMCMD_UPDATE=${FORCE_STEAMCMD_UPDATE:-"false"}
 GAME_EXE_PATH="${STEAMAPPDIR}/Schedule I.exe"
 CPP2IL_OUTPUT_DIR="${STEAMAPPDIR}/MelonLoader/Dependencies/Il2CppAssemblyGenerator/Cpp2IL/cpp2il_out"
+GAME_LIFECYCLE_LOCK="${STEAMAPPDIR}/.s1ds-lifecycle.lock"
 
 case "${S1DS_RUNTIME}" in
     mono)
@@ -80,24 +81,54 @@ should_refresh_steamworks_redist() {
     return 1
 }
 
+acquire_game_lifecycle_lock() {
+    mkdir -p "${STEAMAPPDIR}"
+
+    if ! exec 9>"${GAME_LIFECYCLE_LOCK}"; then
+        echo "ERROR: Could not open game lifecycle lock: ${GAME_LIFECYCLE_LOCK}"
+        return 1
+    fi
+
+    if ! flock -n 9; then
+        echo "ERROR: Another dedicated server entrypoint is using ${STEAMAPPDIR}."
+        echo "Stop the other server before updating, cleaning Cpp2IL output, or launching this instance."
+        return 1
+    fi
+
+    echo "Acquired game lifecycle lock: ${GAME_LIFECYCLE_LOCK}"
+}
+
 ensure_game_process_not_running() {
     if pgrep -f '[S]chedule I\.exe' > /dev/null; then
         echo "ERROR: Refusing to clear Cpp2IL output while Schedule I is running."
         pgrep -af '[S]chedule I\.exe' || true
-        exit 1
+        return 1
     fi
 }
 
 clear_stale_cpp2il_output() {
-    ensure_game_process_not_running
+    if ! ensure_game_process_not_running; then
+        return 1
+    fi
 
     if [ -d "${CPP2IL_OUTPUT_DIR}" ]; then
         echo "Removing disposable Cpp2IL output before Wine launch: ${CPP2IL_OUTPUT_DIR}"
-        rm -rf -- "${CPP2IL_OUTPUT_DIR}"
+        if ! rm -rf -- "${CPP2IL_OUTPUT_DIR}"; then
+            echo "ERROR: Failed to remove disposable Cpp2IL output: ${CPP2IL_OUTPUT_DIR}"
+            return 1
+        fi
+    elif [ -e "${CPP2IL_OUTPUT_DIR}" ]; then
+        echo "ERROR: Cpp2IL output path exists but is not a directory: ${CPP2IL_OUTPUT_DIR}"
+        return 1
     else
         echo "Cpp2IL output is already absent; no stale output to remove."
     fi
 }
+
+if ! acquire_game_lifecycle_lock; then
+    kill $XVFB_PID 2>/dev/null || true
+    exit 1
+fi
 
 # Update/install the game via SteamCMD only when needed.
 echo "SteamCMD update mode: FORCE_STEAMCMD_UPDATE=${FORCE_STEAMCMD_UPDATE}"
@@ -200,7 +231,10 @@ fi
 # Cpp2IL output is a disposable cache. A persistent game volume can retain
 # assemblies removed by a game update, which Il2CppInterop then consumes.
 # This runs after game/bootstrap application and before Wine launches.
-clear_stale_cpp2il_output
+if ! clear_stale_cpp2il_output; then
+    kill $XVFB_PID 2>/dev/null || true
+    exit 1
+fi
 
 # Check if the game executable exists
 if [ ! -f "${GAME_EXE_PATH}" ]; then

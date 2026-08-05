@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     xz-utils \
     procps \
+    util-linux \
     xvfb \
     x11-utils \
     && rm -rf /var/lib/apt/lists/*
