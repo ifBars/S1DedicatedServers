@@ -58,8 +58,10 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
         private static MethodBase ResolveTargetMethod()
         {
-            return AccessTools.Method(typeof(TrashItemType), "MinPass")
-                ?? AccessTools.Method(typeof(TrashItemType), "OnTick");
+            const BindingFlags instanceMethodFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+            return typeof(TrashItemType).GetMethod("MinPass", instanceMethodFlags)
+                ?? typeof(TrashItemType).GetMethod("OnTick", instanceMethodFlags);
         }
     }
 }
