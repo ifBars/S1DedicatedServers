@@ -146,8 +146,9 @@ namespace DedicatedServerMod.Server.HostConsole
                     }
 
                     WriteLine("ScheduleOne Dedicated Server Console");
-                    WriteLine("Command session. Try: help, serverinfo, logs [lines], tail [lines].");
-                    WriteLine("If your host panel does not stream stdout, use logs or tail for recent server output.");
+                    WriteLine(HostConsoleSessionMessages.ReadyForCommands);
+                    WriteLine(HostConsoleSessionMessages.CommandSessionHint);
+                    WriteLine(HostConsoleSessionMessages.LogRetrievalHint);
                     WriteLine($"Connected at {DateTime.Now}.");
                     if (_passwordOrNull != null)
                     {
