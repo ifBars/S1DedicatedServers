@@ -8,6 +8,8 @@ namespace DedicatedServerMod.Server.HostConsole
         /// <summary>
         /// Preserves the established host-panel readiness signal.
         /// </summary>
+        // Cybrancee marks the server as running when it detects this exact line after TCP console connection.
+        // Keep the wording intact and emit it before extended command-session guidance.
         internal const string ReadyForCommands = "Type 'help' for commands.";
 
         /// <summary>
