@@ -22,6 +22,20 @@ on:
           - main
           - master
           - beta
+      publish_nexus:
+        description: "Upload stable release packages to Nexus Mods"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+  NEXUSMODS_MOD_ID: "2169"
+  NEXUSMODS_MONO_SERVER_FILE_GROUP_ID: "7516787"
+  NEXUSMODS_MONO_CLIENT_FILE_GROUP_ID: "7516781"
+  NEXUSMODS_IL2CPP_SERVER_FILE_GROUP_ID: "7516778"
+  NEXUSMODS_IL2CPP_CLIENT_FILE_GROUP_ID: "7516772"
+  RELEASE_DESCRIPTION: Headless dedicated servers for Schedule I with admin commands, save/load support, optional web panel, and client companion support.
 
 jobs:
   check-version:
@@ -60,7 +74,10 @@ jobs:
             echo "Current version from API/Version.cs: $current_version"
           fi
 
-          if git rev-parse "v$current_version" >/dev/null 2>&1; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual trigger requested; publishing or refreshing v$current_version"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git rev-parse "v$current_version" >/dev/null 2>&1; then
             echo "Tag v$current_version already exists, skipping release"
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -274,6 +291,7 @@ jobs:
       - name: Prepare Release Packages
         shell: pwsh
         run: |
+          $version = '${{ needs.check-version.outputs.new-version }}'
           $releaseRoot = Join-Path $PWD 'release'
           $serverRoot = Join-Path $releaseRoot 'Server'
           $clientRoot = Join-Path $releaseRoot 'Client'
@@ -282,18 +300,72 @@ jobs:
           $dockerRoot = Join-Path $releaseRoot 'Docker'
 
           Remove-Item $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path (Join-Path $serverRoot 'Mods') -Force | Out-Null
-          New-Item -ItemType Directory -Path (Join-Path $clientRoot 'Mods') -Force | Out-Null
-          New-Item -ItemType Directory -Path (Join-Path $il2cppServerRoot 'Mods') -Force | Out-Null
-          New-Item -ItemType Directory -Path (Join-Path $il2cppClientRoot 'Mods') -Force | Out-Null
           New-Item -ItemType Directory -Path $dockerRoot -Force | Out-Null
 
-          Copy-Item 'bin/Mono_Server/netstandard2.1/DedicatedServerMod_Mono_Server.dll' (Join-Path $serverRoot 'Mods/DedicatedServerMod_Mono_Server.dll')
-          Copy-Item 'bin/Mono_Client/netstandard2.1/DedicatedServerMod_Mono_Client.dll' (Join-Path $clientRoot 'Mods/DedicatedServerMod_Mono_Client.dll')
-          Copy-Item 'bin/Il2cpp_Server/net6.0/DedicatedServerMod_Il2cpp_Server.dll' (Join-Path $il2cppServerRoot 'Mods/DedicatedServerMod_Il2cpp_Server.dll')
-          Copy-Item 'bin/Il2cpp_Client/net6.0/DedicatedServerMod_Il2cpp_Client.dll' (Join-Path $il2cppClientRoot 'Mods/DedicatedServerMod_Il2cpp_Client.dll')
-          Copy-Item 'packaging/Server/start_server.bat' (Join-Path $serverRoot 'start_server.bat')
-          Copy-Item 'packaging/Server/start_server.bat' (Join-Path $il2cppServerRoot 'start_server.bat')
+          function Write-PackageTemplate {
+            param(
+              [Parameter(Mandatory)] [string] $Source,
+              [Parameter(Mandatory)] [string] $Destination,
+              [Parameter(Mandatory)] [hashtable] $Tokens
+            )
+
+            $content = [System.IO.File]::ReadAllText((Join-Path $PWD $Source))
+            foreach ($token in $Tokens.GetEnumerator()) {
+              $content = $content.Replace("{{$($token.Key)}}", [string] $token.Value)
+            }
+
+            if ($content -match '\{\{[A-Z_]+\}\}') {
+              throw "Unresolved package template token in $Source"
+            }
+
+            [System.IO.File]::WriteAllText(
+              $Destination,
+              $content,
+              [System.Text.UTF8Encoding]::new($false)
+            )
+          }
+
+          function Initialize-ModPackage {
+            param(
+              [Parameter(Mandatory)] [string] $Root,
+              [Parameter(Mandatory)] [string] $Runtime,
+              [Parameter(Mandatory)] [ValidateSet('Server', 'Client')] [string] $Side,
+              [Parameter(Mandatory)] [string] $DllSource,
+              [Parameter(Mandatory)] [string] $DllName
+            )
+
+            $modsRoot = Join-Path $Root 'Mods'
+            $fomodRoot = Join-Path $Root 'fomod'
+            New-Item -ItemType Directory -Path $modsRoot, $fomodRoot -Force | Out-Null
+
+            Copy-Item $DllSource (Join-Path $modsRoot $DllName)
+            Copy-Item 'marketing/src/assets/logo-icon.png' (Join-Path $Root 'icon.png')
+
+            if ($Side -eq 'Server') {
+              Copy-Item 'packaging/Server/start_server.bat' (Join-Path $Root 'start_server.bat')
+              $serverFile = '                <file source="start_server.bat" destination="" priority="0" />'
+            } else {
+              $serverFile = ''
+            }
+
+            $tokens = @{
+              VERSION = $version
+              RUNTIME = $Runtime
+              SIDE = $Side
+              DLL_NAME = $DllName
+              SERVER_FILE = $serverFile
+            }
+
+            Write-PackageTemplate "packaging/$Side/README.md" (Join-Path $Root 'README.md') $tokens
+            Write-PackageTemplate 'packaging/fomod/info.xml' (Join-Path $fomodRoot 'info.xml') $tokens
+            Write-PackageTemplate 'packaging/fomod/ModuleConfig.xml' (Join-Path $fomodRoot 'ModuleConfig.xml') $tokens
+          }
+
+          Initialize-ModPackage $serverRoot 'Mono' 'Server' 'bin/Mono_Server/netstandard2.1/DedicatedServerMod_Mono_Server.dll' 'DedicatedServerMod_Mono_Server.dll'
+          Initialize-ModPackage $clientRoot 'Mono' 'Client' 'bin/Mono_Client/netstandard2.1/DedicatedServerMod_Mono_Client.dll' 'DedicatedServerMod_Mono_Client.dll'
+          Initialize-ModPackage $il2cppServerRoot 'IL2CPP' 'Server' 'bin/Il2cpp_Server/net6.0/DedicatedServerMod_Il2cpp_Server.dll' 'DedicatedServerMod_Il2cpp_Server.dll'
+          Initialize-ModPackage $il2cppClientRoot 'IL2CPP' 'Client' 'bin/Il2cpp_Client/net6.0/DedicatedServerMod_Il2cpp_Client.dll' 'DedicatedServerMod_Il2cpp_Client.dll'
+
           Copy-Item 'Docker/Dockerfile' (Join-Path $dockerRoot 'Dockerfile')
           Copy-Item 'Docker/docker-compose.example.yml' (Join-Path $dockerRoot 'docker-compose.example.yml')
           Copy-Item 'Docker/run.sh' (Join-Path $dockerRoot 'run.sh')
@@ -315,6 +387,33 @@ jobs:
           Compress-Archive -Path (Join-Path $il2cppServerRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Server.zip') -Force
           Compress-Archive -Path (Join-Path $il2cppClientRoot '*') -DestinationPath (Join-Path $releaseRoot 'Il2cpp_Client.zip') -Force
           Compress-Archive -Path (Get-ChildItem -Path $dockerRoot -Force | ForEach-Object { $_.FullName }) -DestinationPath (Join-Path $releaseRoot 'Docker.zip') -Force
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+          function Assert-ZipEntries {
+            param(
+              [Parameter(Mandatory)] [string] $ZipPath,
+              [Parameter(Mandatory)] [string[]] $RequiredEntries
+            )
+
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+            try {
+              $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+              foreach ($entry in $RequiredEntries) {
+                if ($entry -notin $entries) {
+                  throw "Package '$ZipPath' is missing '$entry'"
+                }
+              }
+            } finally {
+              $archive.Dispose()
+            }
+          }
+
+          $commonEntries = @('README.md', 'icon.png', 'fomod/info.xml', 'fomod/ModuleConfig.xml')
+          Assert-ZipEntries (Join-Path $releaseRoot 'Mono-Server.zip') ($commonEntries + @('Mods/DedicatedServerMod_Mono_Server.dll', 'start_server.bat'))
+          Assert-ZipEntries (Join-Path $releaseRoot 'Mono-Client.zip') ($commonEntries + @('Mods/DedicatedServerMod_Mono_Client.dll'))
+          Assert-ZipEntries (Join-Path $releaseRoot 'Il2cpp_Server.zip') ($commonEntries + @('Mods/DedicatedServerMod_Il2cpp_Server.dll', 'start_server.bat'))
+          Assert-ZipEntries (Join-Path $releaseRoot 'Il2cpp_Client.zip') ($commonEntries + @('Mods/DedicatedServerMod_Il2cpp_Client.dll'))
 
       - name: Upload Docker Image Context
         uses: actions/upload-artifact@v4
@@ -371,6 +470,79 @@ jobs:
             release/Il2cpp_Server.zip
             release/Il2cpp_Client.zip
             release/Docker.zip
+
+      - name: Upload Mono Server to Nexus Mods
+        if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        with:
+          api_key: ${{ env.NEXUSMODS_API_KEY }}
+          file_id: ${{ env.NEXUSMODS_MONO_SERVER_FILE_GROUP_ID }}
+          mod_id: ${{ env.NEXUSMODS_MOD_ID }}
+          filename: release/Mono-Server.zip
+          version: ${{ needs.check-version.outputs.new-version }}
+          display_name: S1DedicatedServers Server - Mono ${{ needs.check-version.outputs.new-version }}
+          description: ${{ env.RELEASE_DESCRIPTION }}
+          category: main
+          archive_existing_version: true
+          update_mod_version: true
+          allow_mod_manager_download: true
+          show_requirements_pop_up: false
+
+      - name: Upload Mono Client to Nexus Mods
+        if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        with:
+          api_key: ${{ env.NEXUSMODS_API_KEY }}
+          file_id: ${{ env.NEXUSMODS_MONO_CLIENT_FILE_GROUP_ID }}
+          mod_id: ${{ env.NEXUSMODS_MOD_ID }}
+          filename: release/Mono-Client.zip
+          version: ${{ needs.check-version.outputs.new-version }}
+          display_name: S1DedicatedServers Client - Mono ${{ needs.check-version.outputs.new-version }}
+          description: ${{ env.RELEASE_DESCRIPTION }}
+          category: main
+          archive_existing_version: true
+          update_mod_version: true
+          allow_mod_manager_download: true
+          show_requirements_pop_up: false
+
+      - name: Upload IL2CPP Server to Nexus Mods
+        if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        with:
+          api_key: ${{ env.NEXUSMODS_API_KEY }}
+          file_id: ${{ env.NEXUSMODS_IL2CPP_SERVER_FILE_GROUP_ID }}
+          mod_id: ${{ env.NEXUSMODS_MOD_ID }}
+          filename: release/Il2cpp_Server.zip
+          version: ${{ needs.check-version.outputs.new-version }}
+          display_name: S1DedicatedServers Server - Il2cpp ${{ needs.check-version.outputs.new-version }}
+          description: ${{ env.RELEASE_DESCRIPTION }}
+          category: main
+          archive_existing_version: true
+          update_mod_version: true
+          allow_mod_manager_download: true
+          show_requirements_pop_up: false
+
+      - name: Upload IL2CPP Client to Nexus Mods
+        if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        with:
+          api_key: ${{ env.NEXUSMODS_API_KEY }}
+          file_id: ${{ env.NEXUSMODS_IL2CPP_CLIENT_FILE_GROUP_ID }}
+          mod_id: ${{ env.NEXUSMODS_MOD_ID }}
+          filename: release/Il2cpp_Client.zip
+          version: ${{ needs.check-version.outputs.new-version }}
+          display_name: S1DedicatedServers Client - Il2cpp ${{ needs.check-version.outputs.new-version }}
+          description: ${{ env.RELEASE_DESCRIPTION }}
+          category: main
+          archive_existing_version: true
+          update_mod_version: true
+          allow_mod_manager_download: true
+          show_requirements_pop_up: false
+
+      - name: Skip Nexus Mods uploads
+        if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY == '' }}
+        shell: bash
+        run: echo "::notice::Skipping Nexus Mods uploads because NEXUSMODS_API_KEY is not configured. Rerun this workflow manually after adding the secret."
 
       - name: Summary
         shell: pwsh
