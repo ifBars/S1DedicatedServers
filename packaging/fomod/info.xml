@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fomod>
+  <Name>S1DedicatedServers {{RUNTIME}} {{SIDE}}</Name>
+  <Author>ifBars</Author>
+  <Version>{{VERSION}}</Version>
+  <Website>https://github.com/ifBars/S1DedicatedServers</Website>
+  <Description>Headless dedicated servers for Schedule I with admin commands, save/load support, optional web panel, and client companion support.</Description>
+  <Groups>
+    <element>Utilities</element>
+  </Groups>
+</fomod>

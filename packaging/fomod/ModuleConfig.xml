@@ -1,0 +1,26 @@
+<!-- Created for S1DedicatedServers release packaging -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+  <moduleName>S1DedicatedServers {{RUNTIME}} {{SIDE}}</moduleName>
+  <moduleImage path="icon.png" />
+  <installSteps order="Explicit">
+    <installStep name="Install">
+      <optionalFileGroups order="Explicit">
+        <group name="S1DedicatedServers {{RUNTIME}} {{SIDE}}" type="SelectAll">
+          <plugins order="Explicit">
+            <plugin name="S1DedicatedServers {{RUNTIME}} {{SIDE}}">
+              <description>Install S1DedicatedServers {{RUNTIME}} {{SIDE}}.</description>
+              <image path="icon.png" />
+              <files>
+                <folder source="Mods" destination="Mods" priority="0" />
+{{SERVER_FILE}}
+              </files>
+              <typeDescriptor>
+                <type name="Optional"/>
+              </typeDescriptor>
+            </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+  </installSteps>
+</config>
