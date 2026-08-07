@@ -56,25 +56,40 @@ jobs:
 
       - name: Check if version needs release
         id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
           set -euo pipefail
 
           git fetch --tags
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.version }}" ]]; then
-            current_version="${{ inputs.version }}"
-            echo "Manual trigger with version: $current_version"
-          else
-            current_version=$(grep -oP 'public const string ModVersion = "\K[^"]+' API/Version.cs | head -n 1)
-            if [[ -z "$current_version" ]]; then
-              echo "Failed to determine version from API/Version.cs" >&2
+          source_version=$(grep -oP 'public const string ModVersion = "\K[^"]+' API/Version.cs | head -n 1)
+          if [[ -z "$source_version" ]]; then
+            echo "Failed to determine version from API/Version.cs" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+            echo "Source version '$source_version' does not match the expected release format" >&2
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]] && [[ -n "$MANUAL_VERSION" ]]; then
+            if [[ "$MANUAL_VERSION" != "$source_version" ]]; then
+              echo "Manual version '$MANUAL_VERSION' does not match API/Version.cs version '$source_version'" >&2
               exit 1
             fi
+
+            current_version="$MANUAL_VERSION"
+            echo "Manual trigger with version: $current_version"
+          else
+            current_version="$source_version"
             echo "Current version from API/Version.cs: $current_version"
           fi
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "Manual trigger requested; publishing or refreshing v$current_version"
             echo "changed=true" >> "$GITHUB_OUTPUT"
           elif git rev-parse "v$current_version" >/dev/null 2>&1; then
@@ -129,12 +144,15 @@ jobs:
 
       - name: Determine Assembly Branch
         id: assembly-branch
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_ASSEMBLY_BRANCH: ${{ inputs.assembly_branch }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
-            requested_branch="${{ inputs.assembly_branch }}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]] && [[ -n "$REQUESTED_ASSEMBLY_BRANCH" ]]; then
+            requested_branch="$REQUESTED_ASSEMBLY_BRANCH"
           else
             requested_branch="master"
           fi
@@ -289,9 +307,11 @@ jobs:
         run: rm -f Directory.Build.targets
 
       - name: Prepare Release Packages
+        env:
+          RELEASE_VERSION: ${{ needs.check-version.outputs.new-version }}
         shell: pwsh
         run: |
-          $version = '${{ needs.check-version.outputs.new-version }}'
+          $version = $env:RELEASE_VERSION
           $releaseRoot = Join-Path $PWD 'release'
           $serverRoot = Join-Path $releaseRoot 'Server'
           $clientRoot = Join-Path $releaseRoot 'Client'
@@ -423,9 +443,11 @@ jobs:
           if-no-files-found: error
 
       - name: Generate Release Notes
+        env:
+          RELEASE_VERSION: ${{ needs.check-version.outputs.new-version }}
         shell: pwsh
         run: |
-          $version = '${{ needs.check-version.outputs.new-version }}'
+          $version = $env:RELEASE_VERSION
           $lastTag = (git for-each-ref refs/tags --sort=-creatordate --format='%(refname:strip=2)' | Select-Object -First 1)
 
           if ($lastTag) {
@@ -473,7 +495,7 @@ jobs:
 
       - name: Upload Mono Server to Nexus Mods
         if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
         with:
           api_key: ${{ env.NEXUSMODS_API_KEY }}
           file_id: ${{ env.NEXUSMODS_MONO_SERVER_FILE_GROUP_ID }}
@@ -490,7 +512,7 @@ jobs:
 
       - name: Upload Mono Client to Nexus Mods
         if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
         with:
           api_key: ${{ env.NEXUSMODS_API_KEY }}
           file_id: ${{ env.NEXUSMODS_MONO_CLIENT_FILE_GROUP_ID }}
@@ -507,7 +529,7 @@ jobs:
 
       - name: Upload IL2CPP Server to Nexus Mods
         if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
         with:
           api_key: ${{ env.NEXUSMODS_API_KEY }}
           file_id: ${{ env.NEXUSMODS_IL2CPP_SERVER_FILE_GROUP_ID }}
@@ -524,7 +546,7 @@ jobs:
 
       - name: Upload IL2CPP Client to Nexus Mods
         if: ${{ needs.check-version.outputs.prerelease != 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_nexus) && env.NEXUSMODS_API_KEY != '' }}
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
         with:
           api_key: ${{ env.NEXUSMODS_API_KEY }}
           file_id: ${{ env.NEXUSMODS_IL2CPP_CLIENT_FILE_GROUP_ID }}
@@ -545,12 +567,15 @@ jobs:
         run: echo "::notice::Skipping Nexus Mods uploads because NEXUSMODS_API_KEY is not configured. Rerun this workflow manually after adding the secret."
 
       - name: Summary
+        env:
+          RELEASE_VERSION: ${{ needs.check-version.outputs.new-version }}
+          RELEASE_PRERELEASE: ${{ needs.check-version.outputs.prerelease }}
         shell: pwsh
         run: |
           Add-Content $env:GITHUB_STEP_SUMMARY "### Release Created Successfully"
           Add-Content $env:GITHUB_STEP_SUMMARY ""
-          Add-Content $env:GITHUB_STEP_SUMMARY "**Version:** v${{ needs.check-version.outputs.new-version }}"
-          Add-Content $env:GITHUB_STEP_SUMMARY "**Prerelease:** ${{ needs.check-version.outputs.prerelease }}"
+          Add-Content $env:GITHUB_STEP_SUMMARY "**Version:** v$env:RELEASE_VERSION"
+          Add-Content $env:GITHUB_STEP_SUMMARY "**Prerelease:** $env:RELEASE_PRERELEASE"
           Add-Content $env:GITHUB_STEP_SUMMARY ""
           Add-Content $env:GITHUB_STEP_SUMMARY "**Artifacts:**"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Mono-Server.zip"

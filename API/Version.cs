@@ -30,7 +30,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The patch version number for bug fixes.
         /// </summary>
-        public const int PatchVersion = 1;
+        public const int PatchVersion = 2;
 
         /// <summary>
         /// The public API version advertised to addon authors.
