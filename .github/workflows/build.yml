@@ -223,16 +223,9 @@ jobs:
           </Project>
           EOF
 
-      - name: Disable Publicizer For IL2CPP
+      - name: Configure Publicizer For IL2CPP
         shell: bash
-        run: |
-          cat > Directory.Build.targets << 'EOF'
-          <Project>
-              <ItemGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
-                  <Publicize Remove="Assembly-CSharp" />
-              </ItemGroup>
-          </Project>
-          EOF
+        run: cp .github/ci/il2cpp-publicizer.targets Directory.Build.targets
 
       - name: Remove Mono Assembly Trees Before IL2CPP Build
         shell: bash

@@ -38,6 +38,7 @@ namespace DedicatedServerMod.Server.Core
         private static CommandManager _commandManager;
         private static PersistenceManager _persistenceManager;
         private static GameSystemManager _gameSystemManager;
+        private static ServerRuntimeConfigurationApplier _runtimeConfigurationApplier;
         private static HostConsoleManager _hostConsoleManager;
         private static WebPanelManager _webPanelManager;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
@@ -129,8 +130,8 @@ namespace DedicatedServerMod.Server.Core
             PermissionManager.Initialize(_logger);
             PlayerResolver.Initialize(_logger);
             
-            ServerRuntimeConfigurationApplier runtimeConfigurationApplier = new ServerRuntimeConfigurationApplier(ServerConfig.Instance, _logger);
-            runtimeConfigurationApplier.Apply();
+            _runtimeConfigurationApplier = new ServerRuntimeConfigurationApplier(ServerConfig.Instance, _logger);
+            _runtimeConfigurationApplier.Apply();
             _permissionService = new ServerPermissionService(_logger);
             _permissionService.Initialize();
             DebugLog.StartupDebug("Permission service initialized");
@@ -184,6 +185,7 @@ namespace DedicatedServerMod.Server.Core
             WirePlayerEvents();
             
             _isInitialized = true;
+            _runtimeConfigurationApplier.StartMonitoringConfiguration();
             DebugLog.StartupDebug("=== Dedicated Server Bootstrap Complete ===");
 
             // Notify API mods: server initialized and running
@@ -228,6 +230,16 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Queued command tick error: {ex.Message}");
+            }
+
+            try
+            {
+                _runtimeConfigurationApplier?.Tick();
+                _runtimeConfigurationApplier?.WaitForNextFrame();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Runtime configuration tick error: {ex.Message}");
             }
 
             try
@@ -385,6 +397,7 @@ namespace DedicatedServerMod.Server.Core
                 _playerManager?.NotifyShutdownAndDisconnectAll(reason);
 
                 // Shutdown in reverse order
+                try { _runtimeConfigurationApplier?.StopMonitoringConfiguration(); } catch { }
                 try { _webPanelManager?.Dispose(); } catch { }
                 try { _hostConsoleManager?.Dispose(); } catch { }
                 _serverStatusQueryService?.Shutdown();
@@ -396,6 +409,7 @@ namespace DedicatedServerMod.Server.Core
                 Shared.Networking.CustomMessaging.Shutdown();
                 _playerManager?.Shutdown();
                 _networkManager?.Shutdown();
+                _runtimeConfigurationApplier = null;
                 
                 _isInitialized = false;
                 _logger.Msg("=== Server Shutdown Complete ===");

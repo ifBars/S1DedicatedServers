@@ -2,6 +2,7 @@ using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Console;
 using DedicatedServerMod.Server.Game.Patches.Gameplay;
 using DedicatedServerMod.Server.Game.Patches.Player;
+using DedicatedServerMod.Server.Game.Patches.Common;
 using DedicatedServerMod.Server.Game.Patches.UI;
 using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Shared.ConsoleSupport;
@@ -11,10 +12,12 @@ using MelonLoader;
 using UnityEngine;
 #if IL2CPP
 using Il2CppFishNet.Connection;
+using SettingsType = Il2CppScheduleOne.DevUtilities.Settings;
 using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
 using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet.Connection;
+using SettingsType = ScheduleOne.DevUtilities.Settings;
 using TimeManagerType = ScheduleOne.GameTime.TimeManager;
 using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
@@ -70,6 +73,7 @@ namespace DedicatedServerMod.Server.Game
                 PatchCasinoRemoteClientFlow();
                 PatchHeadlessSleepCompletion();
                 PatchEasyFeedbackHeadlessLogCollector();
+                PatchDisplaySettingsPerformanceOverride();
 
                 // 3) Console command permissions
                 PatchConsoleSubmitCommand();
@@ -82,6 +86,35 @@ namespace DedicatedServerMod.Server.Game
             catch (Exception ex)
             {
                 DebugLog.Error("Error applying server patches", ex);
+            }
+        }
+
+        /// <summary>
+        /// Reapplies dedicated-server frame pacing after the game loads player display preferences.
+        /// Schedule I otherwise overwrites the server target frame rate during Settings.Start().
+        /// </summary>
+        private void PatchDisplaySettingsPerformanceOverride()
+        {
+            try
+            {
+                MethodInfo target = AccessTools.Method(typeof(SettingsType), nameof(SettingsType.ApplyDisplaySettings));
+                MethodInfo postfix = typeof(DisplaySettingsPerformancePatches).GetMethod(
+                    nameof(DisplaySettingsPerformancePatches.ReapplyDedicatedServerPerformanceSettings),
+                    BindingFlags.Public | BindingFlags.Static);
+
+                if (target == null || postfix == null)
+                {
+                    DebugLog.Warning("Could not patch Schedule I display settings; the dedicated-server frame cap may be overwritten.");
+                    return;
+                }
+
+                harmony.Patch(target, postfix: new HarmonyMethod(postfix));
+                appliedPatches.Add("DisplaySettingsPerformanceOverridePatch");
+                DebugLog.StartupDebug("Patched Schedule I display settings to preserve dedicated-server frame pacing.");
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Error("Error patching Schedule I display settings", ex);
             }
         }
 

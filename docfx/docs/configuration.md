@@ -101,7 +101,7 @@ targetFrameRate = 60
 vSyncCount = 0
 ```
 
-`targetFrameRate` in the `30-60` range is the normal dedicated-server target. `vSyncCount` should usually stay at `0`.
+`targetFrameRate` accepts `-1` for unlimited operation or a value from `1-300`; the `30-60` range is the normal dedicated-server target. `vSyncCount` should usually stay at `0`. DedicatedServerMod paces the headless main loop directly because Unity can report the configured target without enforcing it in headless mode. Changes saved or reloaded through the web panel are applied to the running server on its next update.
 
 ## Startup and Deployment Details
 

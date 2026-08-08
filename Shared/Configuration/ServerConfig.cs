@@ -1093,7 +1093,7 @@ namespace DedicatedServerMod.Shared.Configuration
             }
 
             // Validate target framerate
-            if (TargetFrameRate < -1 || TargetFrameRate > 300)
+            if (TargetFrameRate < -1 || TargetFrameRate == 0 || TargetFrameRate > 300)
             {
                 DebugLog.Warning($"Invalid target framerate {TargetFrameRate}, using default 60");
                 TargetFrameRate = 60;

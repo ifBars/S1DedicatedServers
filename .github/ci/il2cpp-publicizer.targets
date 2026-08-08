@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
+    <!--
+      CI consumes already-generated IL2CPP wrapper assemblies and does not need to rewrite Assembly-CSharp.
+      Keep Publicizer's Unsafe strategy enabled so its targets remain valid without emitting an
+      IgnoresAccessChecksTo attribute whose assembly name would be empty after removing Publicize.
+    -->
+    <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EffectiveConfiguration)'=='Il2cpp_Client' Or '$(EffectiveConfiguration)'=='Il2cpp_Server'">
+    <Publicize Remove="Assembly-CSharp" />
+  </ItemGroup>
+
+  <Target Name="RejectEmptyIgnoresAccessChecksToAttribute" AfterTargets="PublicizeAssemblies">
+    <ItemGroup>
+      <_EmptyIgnoresAccessChecksToAttribute
+        Include="@(AssemblyAttribute)"
+        Condition="'%(AssemblyAttribute.Identity)' == 'System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute' And '%(AssemblyAttribute._Parameter1)' == ''" />
+    </ItemGroup>
+
+    <Error
+      Condition="'@(_EmptyIgnoresAccessChecksToAttribute)' != ''"
+      Text="Refusing to build an assembly with an empty IgnoresAccessChecksTo target. Keep IL2CPP CI on the Unsafe-only Publicizer strategy when no assemblies are publicized." />
+  </Target>
+</Project>

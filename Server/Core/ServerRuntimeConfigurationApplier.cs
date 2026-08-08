@@ -13,8 +13,11 @@ namespace DedicatedServerMod.Server.Core
         false)]
     public sealed class ServerRuntimeConfigurationApplier
     {
-        private readonly ServerConfig _config;
+        private readonly System.Collections.Concurrent.ConcurrentQueue<string> _pendingApplyReasons = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        private readonly ServerFramePacer _framePacer;
+        private ServerConfig _config;
         private readonly MelonLogger.Instance _logger;
+        private bool _isMonitoringConfiguration;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServerRuntimeConfigurationApplier"/> class.
@@ -26,6 +29,7 @@ namespace DedicatedServerMod.Server.Core
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _framePacer = new ServerFramePacer();
         }
 
         /// <summary>
@@ -33,17 +37,78 @@ namespace DedicatedServerMod.Server.Core
         /// </summary>
         public void Apply()
         {
-            ApplyPerformanceSettings();
+            ApplyConfiguredPerformanceSettings("server startup");
             LogResolvedSavePath();
         }
 
-        private void ApplyPerformanceSettings()
+        internal void StartMonitoringConfiguration()
         {
-            Application.targetFrameRate = _config.TargetFrameRate;
-            QualitySettings.vSyncCount = _config.VSyncCount;
+            if (_isMonitoringConfiguration)
+            {
+                return;
+            }
+
+            ServerConfig.Saved += OnConfigurationSaved;
+            ServerConfig.Reloaded += OnConfigurationReloaded;
+            _isMonitoringConfiguration = true;
+        }
+
+        internal void StopMonitoringConfiguration()
+        {
+            if (!_isMonitoringConfiguration)
+            {
+                return;
+            }
+
+            ServerConfig.Saved -= OnConfigurationSaved;
+            ServerConfig.Reloaded -= OnConfigurationReloaded;
+            _isMonitoringConfiguration = false;
+        }
+
+        internal void Tick()
+        {
+            string reason = null;
+            while (_pendingApplyReasons.TryDequeue(out string pendingReason))
+            {
+                reason = pendingReason;
+            }
+
+            if (reason == null)
+            {
+                return;
+            }
+
+            _config = ServerConfig.Instance;
+            ApplyConfiguredPerformanceSettings(reason);
+        }
+
+        internal void WaitForNextFrame()
+        {
+            _framePacer.WaitForNextFrame();
+        }
+
+        internal static void ApplyPerformanceSettings(ServerConfig config, string reason)
+        {
+            if (config == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+
+            QualitySettings.vSyncCount = config.VSyncCount;
+            Application.targetFrameRate = config.TargetFrameRate;
             Application.runInBackground = true;
 
-            DebugLog.StartupDebug($"Performance settings applied: Target FPS={Application.targetFrameRate}, VSync={QualitySettings.vSyncCount}, Background={Application.runInBackground}");
+            DebugLog.Info(
+                $"Runtime performance settings applied after {reason}: " +
+                $"configured Target FPS={config.TargetFrameRate}, configured VSync={config.VSyncCount}, " +
+                $"effective Target FPS={Application.targetFrameRate}, effective VSync={QualitySettings.vSyncCount}, " +
+                $"software pacing Target FPS={config.TargetFrameRate}, Background={Application.runInBackground}");
+        }
+
+        private void ApplyConfiguredPerformanceSettings(string reason)
+        {
+            _framePacer.SetTargetFrameRate(_config.TargetFrameRate);
+            ApplyPerformanceSettings(_config, reason);
         }
 
         private void LogResolvedSavePath()
@@ -57,6 +122,16 @@ namespace DedicatedServerMod.Server.Core
             }
 
             _logger.Msg($"Using custom save location: {resolvedSavePath}");
+        }
+
+        private void OnConfigurationSaved()
+        {
+            _pendingApplyReasons.Enqueue("configuration save");
+        }
+
+        private void OnConfigurationReloaded()
+        {
+            _pendingApplyReasons.Enqueue("configuration reload");
         }
     }
 }
