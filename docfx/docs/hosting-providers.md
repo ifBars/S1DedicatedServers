@@ -120,15 +120,13 @@ For hosted control panels, [Host Console](host-console.md) is usually the right 
 
 ## For Commercial Hosting Providers
 
-If you offer commercial S1DedicatedServers hosting, contact the project maintainer for setup guidance, version coordination, attribution guidelines, and partnership or affiliate options.
+If you offer commercial S1DedicatedServers hosting, you are welcome to contact the project maintainer for setup guidance, version coordination, or partnership and affiliate options.
 
-Commercial providers should:
+Attribution and links to the project are optional, but appreciated. If you choose to provide attribution, use `S1DedicatedServers` / `DedicatedServerMod` by `ifBars` and link to the official releases or documentation.
 
-- attribute the project as `S1DedicatedServers` / `DedicatedServerMod` by `ifBars`
-- link users to the official releases and documentation
-- keep bundled builds current with public releases
-- make the installed runtime and version visible to customers
-- avoid implying supported-provider, recommended, affiliate, sponsor, official, or exclusive status unless a written arrangement exists
+We also recommend keeping bundled builds current with public releases and showing customers the installed runtime and version.
+
+Commercial providers must not imply supported-provider, recommended, affiliate, sponsor, official, or exclusive status unless a written arrangement exists.
 
 ### Game Update Invariant
 
