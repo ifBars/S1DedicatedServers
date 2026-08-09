@@ -23,7 +23,7 @@ Key docs:
 - Please search existing issues before opening a new one; if you don't see your problem reported, opening an issue on GitHub is encouraged.
 - Mono and IL2CPP are both supported. If you hit runtime-specific issues, please open a GitHub issue and include logs, runtime type, and reproduction steps.
 - Docker deployment now supports both Mono and IL2CPP through the same image and release package by setting `S1DS_RUNTIME`.
-- Cybrancee and Kinetic Hosting are supported providers, with Cybrancee as the recommended hosted option; see [Hosting Providers](hosting-providers.md) for provider status, verification notes, and third-party host guidance.
+- Cybrancee, Kinetic Hosting, and RespawnHost are supported providers, with Cybrancee as the recommended hosted option and RespawnHost as an option players in Germany may prefer; see [Hosting Providers](hosting-providers.md) for provider status, verification notes, and third-party host guidance.
 - Reproduction steps, logs, and any installed mods details are extremely helpful.
 - Feedback, suggestions, and pull requests are welcome and appreciated.
 

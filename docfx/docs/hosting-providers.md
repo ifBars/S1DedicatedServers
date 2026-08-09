@@ -13,7 +13,7 @@ Some provider links may be affiliate links. Using them can support continued S1D
 
 ## Supported Providers
 
-Want a hosted server instead of running the dedicated server yourself? The providers below have been tested by the maintainer with S1DedicatedServers. Cybrancee is the recommended option and the provider used for ongoing hosted-server validation.
+Want a hosted server instead of running the dedicated server yourself? The providers below support S1DedicatedServers. Cybrancee is the recommended option and the provider used for ongoing hosted-server validation.
 
 <div class="hosting-provider-showcase">
   <section id="cybrancee" class="hosting-provider-primary" aria-label="Cybrancee supported provider">
@@ -57,6 +57,28 @@ Want a hosted server instead of running the dedicated server yourself? The provi
       </div>
     </div>
   </section>
+
+  <section id="respawnhost" class="hosting-provider-secondary" aria-label="RespawnHost supported provider">
+    <div class="hosting-provider-secondary__body">
+      <div class="hosting-provider-brand">
+        <p class="hosting-provider-eyebrow">Supported provider</p>
+        <a class="hosting-provider-logo-link hosting-provider-logo-link--respawnhost" href="https://rspwn.click/bars" aria-label="Open RespawnHost">
+          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/respawnhost-logo.webp" alt="RespawnHost" />
+          <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/respawnhost-logo.webp" alt="RespawnHost" />
+        </a>
+      </div>
+      <div class="hosting-provider-details">
+        <p>
+          RespawnHost supports S1DedicatedServers from locations in Frankfurt and
+          Salt Lake City. Players in Germany may prefer its German-language service
+          and nearby Frankfurt location.
+        </p>
+        <div class="hosting-provider-actions">
+          <a class="hosting-provider-button" href="https://rspwn.click/bars">Visit RespawnHost</a>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 ## Self-Hosting
@@ -70,7 +92,7 @@ Self-hosting remains the baseline deployment path. Use the release packages and 
 
 ## Third-Party Hosting
 
-Hosting providers other than Cybrancee and Kinetic may advertise Schedule I or S1DedicatedServers-compatible hosting. These providers operate independently and may use their own panels, packaging, update timing, support processes, and compatibility assumptions.
+Hosting providers other than Cybrancee, Kinetic Hosting, and RespawnHost may advertise Schedule I or S1DedicatedServers-compatible hosting. These providers operate independently and may use their own panels, packaging, update timing, support processes, and compatibility assumptions.
 
 Unless this page lists a provider as recommended or verified, do not treat third-party listings, provider documentation, control-panel templates, bundled installs, or customer support claims as project verification or endorsement.
 
@@ -90,6 +112,7 @@ Public provider notes:
 
 - **Cybrancee:** publicly advertises game servers on Ryzen CPUs over 4GHz with NVMe SSDs, a customized Pterodactyl panel for game hosting, DDoS protection, backups, international locations, 24/7 support, and a 90-day money-back guarantee. Its Trustpilot profile is currently rated 4.8 Excellent.
 - **Kinetic Hosting:** publicly lists Schedule 1 among supported games and advertises performance packages with NVMe SSDs, up to Ryzen 9 9950X at 5.7GHz, 6-8 CPU threads on common 8GB/16GB packages, default 60GB storage with free storage upgrades under fair use, backups, split servers, game swapping, a custom panel, 15 locations, 24/7 human support, public node stats, and a 7-day refund window. Its Trustpilot profile is currently rated 4.8 Excellent.
+- **RespawnHost:** publicly advertises pay-per-use game servers, NVMe storage, backups, file and SFTP access, mod integration, and locations in Frankfurt and Salt Lake City. Its German-language service and Frankfurt location may make it a preferable option for players in Germany.
 
 Because provider pages change, verify current package specs and S1DedicatedServers runtime support with the provider before purchase.
 

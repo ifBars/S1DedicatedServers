@@ -38,6 +38,11 @@
   width: 12rem;
 }
 
+.hosting-provider-logo-link--respawnhost {
+  max-width: 100%;
+  width: 12rem;
+}
+
 .hosting-provider-logo {
   display: block;
   width: min(12rem, 100%);
@@ -48,6 +53,16 @@
   width: 12rem;
   max-height: 3.35rem;
   object-fit: contain;
+}
+
+.hosting-provider-logo-link--respawnhost .hosting-provider-logo {
+  width: 12rem;
+  max-height: 3.35rem;
+  object-fit: contain;
+}
+
+.hosting-provider-logo-link--respawnhost .hosting-provider-logo--light-theme {
+  filter: brightness(0);
 }
 
 .hosting-provider-logo--dark-theme {
