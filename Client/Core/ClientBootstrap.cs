@@ -88,6 +88,11 @@ namespace DedicatedServerMod.Client.Core
         /// Optional real-game reconnect diagnostic runner enabled by command-line flag.
         /// </summary>
         private ClientReconnectTestRunner _reconnectTestRunner;
+
+        /// <summary>
+        /// Optional real-game NPC ragdoll recovery test runner enabled by command-line flag.
+        /// </summary>
+        private ClientNpcRagdollRecoveryTestRunner _npcRagdollRecoveryTestRunner;
         
 
         /// <summary>
@@ -309,6 +314,9 @@ namespace DedicatedServerMod.Client.Core
 
             _reconnectTestRunner = new ClientReconnectTestRunner(_connectionManager);
             _reconnectTestRunner.Initialize();
+
+            _npcRagdollRecoveryTestRunner = new ClientNpcRagdollRecoveryTestRunner(_connectionManager);
+            _npcRagdollRecoveryTestRunner.Initialize();
         }
 
         #endregion

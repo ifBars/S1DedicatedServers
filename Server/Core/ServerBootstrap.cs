@@ -43,6 +43,7 @@ namespace DedicatedServerMod.Server.Core
         private static WebPanelManager _webPanelManager;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
+        private static ServerNpcRagdollRecoveryTestRunner _npcRagdollRecoveryTestRunner;
         
         // Server state
         private static bool _autoStartServer = false;
@@ -186,6 +187,8 @@ namespace DedicatedServerMod.Server.Core
             
             _isInitialized = true;
             _runtimeConfigurationApplier.StartMonitoringConfiguration();
+            _npcRagdollRecoveryTestRunner = new ServerNpcRagdollRecoveryTestRunner();
+            _npcRagdollRecoveryTestRunner.Initialize();
             DebugLog.StartupDebug("=== Dedicated Server Bootstrap Complete ===");
 
             // Notify API mods: server initialized and running
