@@ -763,8 +763,6 @@
 	  <Compile Include="Shared\Networking\Messaging\*.cs" />
 	  <!-- Permissions -->
 	  <Compile Include="Shared\Permissions\*.cs" />
-	  <!-- Opt-in real-game regression probes -->
-	  <Compile Include="Shared\Testing\NpcRagdollRecoveryTestProtocol.cs" />
 	  <!-- Patches -->
 	  <Compile Include="Shared\Patches\*.cs" />
 	</ItemGroup>
@@ -776,7 +774,6 @@
 
 		<!-- Client bootstrap and entry point -->
 		<Compile Include="Client\Core\ClientBootstrap.cs" />
-		<Compile Include="Client\Core\ClientNpcRagdollRecoveryTestRunner.cs" />
 		<Compile Include="Client\Core\ClientReconnectTestRunner.cs" />
 		<Compile Include="Client\Core\ClientSteamRuntime.cs" />
 
@@ -808,7 +805,6 @@
 		<!-- Core server bootstrap -->
 		<Compile Include="Server\Core\ServerBootstrap.cs" />
 		<Compile Include="Server\Core\ServerFramePacer.cs" />
-		<Compile Include="Server\Core\ServerNpcRagdollRecoveryTestRunner.cs" />
 		<Compile Include="Server\Core\ServerRuntimeConfigurationApplier.cs" />
 		<Compile Include="Server\Core\ServerStartupOrchestrator.cs" />
 		<Compile Include="Server\Configuration\*.cs" />
