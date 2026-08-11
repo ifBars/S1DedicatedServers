@@ -19,8 +19,11 @@ namespace DedicatedServerMod.Client.Patches
     /// Reconciles local police-related presentation state that vanilla only updates on the owner-authoritative path.
     /// Dedicated servers can advance pursuit state for remote-owned players without replaying these client-side side effects.
     /// </summary>
+    [HarmonyPatch]
     internal static class PolicePatches
     {
+        private static int _vanillaPursuitTransitionDepth;
+
         internal static void Initialize()
         {
             DebugLog.StartupDebug("Police patches initialized");
@@ -69,34 +72,137 @@ namespace DedicatedServerMod.Client.Patches
             {
                 if (!FishNet.InstanceFinder.IsClient
                     || __instance?.Player == null
-                    || !__instance.Player.IsOwner
-                    || __instance.Player.VisualState == null)
+                    || !__instance.Player.IsOwner)
                 {
                     return;
                 }
 
-                bool shouldHaveWantedState = __instance.CurrentPursuitLevel != PlayerCrimeData.EPursuitLevel.None;
-                bool hasWantedState = __instance.Player.VisualState.GetState("Wanted") != null;
-                if (shouldHaveWantedState == hasWantedState)
-                {
-                    return;
-                }
-
-                if (shouldHaveWantedState)
-                {
-                    __instance.Player.VisualState.ApplyState("Wanted", EVisualState.Wanted);
-                }
-                else
-                {
-                    __instance.Player.VisualState.RemoveState("Wanted");
-                }
-
-                DebugLog.Debug($"PolicePatches: Reconciled local wanted state to pursuit level {__instance.CurrentPursuitLevel}.");
+                ReconcileWantedState(__instance);
             }
             catch (Exception ex)
             {
-                DebugLog.Warning($"PolicePatches: Failed to reconcile wanted state: {ex.Message}");
+                DebugLog.Warning($"PolicePatches: Failed to reconcile pursuit state: {ex.Message}");
             }
+        }
+
+        [HarmonyPatch(typeof(PlayerCrimeData), nameof(PlayerCrimeData.SetPursuitLevel))]
+        [HarmonyPrefix]
+        private static void PlayerCrimeDataSetPursuitLevelPrefix(PlayerCrimeData __instance)
+        {
+            if (IsLocalClientCrimeData(__instance))
+            {
+                _vanillaPursuitTransitionDepth++;
+            }
+        }
+
+        [HarmonyPatch(typeof(PlayerCrimeData), nameof(PlayerCrimeData.SetPursuitLevel))]
+        [HarmonyPostfix]
+        private static void PlayerCrimeDataSetPursuitLevelPostfix(PlayerCrimeData __instance)
+        {
+            if (IsLocalClientCrimeData(__instance) && _vanillaPursuitTransitionDepth > 0)
+            {
+                _vanillaPursuitTransitionDepth--;
+            }
+        }
+
+        [HarmonyPatch(
+            typeof(PlayerCrimeData),
+            "SyncAccessor_<CurrentPursuitLevel>k__BackingField",
+            MethodType.Setter)]
+        [HarmonyPrefix]
+        private static void PlayerCrimeDataPursuitSyncAccessorPrefix(
+            PlayerCrimeData __instance,
+            out PlayerCrimeData.EPursuitLevel __state)
+        {
+            __state = __instance != null
+                ? __instance.CurrentPursuitLevel
+                : PlayerCrimeData.EPursuitLevel.None;
+        }
+
+        [HarmonyPatch(
+            typeof(PlayerCrimeData),
+            "SyncAccessor_<CurrentPursuitLevel>k__BackingField",
+            MethodType.Setter)]
+        [HarmonyPostfix]
+        private static void PlayerCrimeDataPursuitSyncAccessorPostfix(
+            PlayerCrimeData __instance,
+            PlayerCrimeData.EPursuitLevel __state)
+        {
+            if (_vanillaPursuitTransitionDepth != 0 || !IsLocalClientCrimeData(__instance))
+            {
+                return;
+            }
+
+            PlayerCrimeData.EPursuitLevel currentLevel = __instance.CurrentPursuitLevel;
+            if (__state == currentLevel)
+            {
+                return;
+            }
+
+            ApplyLocalPursuitTransition(__instance, __state, currentLevel);
+        }
+
+        private static bool IsLocalClientCrimeData(PlayerCrimeData crimeData)
+        {
+            return FishNet.InstanceFinder.IsClient
+                && crimeData?.Player != null
+                && crimeData.Player.IsOwner;
+        }
+
+        private static void ApplyLocalPursuitTransition(
+            PlayerCrimeData crimeData,
+            PlayerCrimeData.EPursuitLevel previousLevel,
+            PlayerCrimeData.EPursuitLevel currentLevel)
+        {
+            if (currentLevel != PlayerCrimeData.EPursuitLevel.None)
+            {
+                crimeData.BodySearchPending = false;
+            }
+
+            if (previousLevel == PlayerCrimeData.EPursuitLevel.None
+                && currentLevel != PlayerCrimeData.EPursuitLevel.None)
+            {
+                crimeData.TimeSincePursuitStart = 0f;
+                crimeData.TimeSinceSighted = 0f;
+            }
+
+            if (previousLevel != PlayerCrimeData.EPursuitLevel.None
+                && currentLevel == PlayerCrimeData.EPursuitLevel.None)
+            {
+                crimeData.ClearCrimes();
+            }
+
+            crimeData.CurrentPursuitLevelDuration = 0f;
+            crimeData.onPursuitLevelChange?.Invoke(previousLevel, currentLevel);
+            ReconcileWantedState(crimeData);
+            DebugLog.Debug(
+                $"PolicePatches: Replayed local pursuit transition {previousLevel} -> {currentLevel}.");
+        }
+
+        private static void ReconcileWantedState(PlayerCrimeData crimeData)
+        {
+            if (crimeData.Player.VisualState == null)
+            {
+                return;
+            }
+
+            bool shouldHaveWantedState = crimeData.CurrentPursuitLevel != PlayerCrimeData.EPursuitLevel.None;
+            bool hasWantedState = crimeData.Player.VisualState.GetState("Wanted") != null;
+            if (shouldHaveWantedState == hasWantedState)
+            {
+                return;
+            }
+
+            if (shouldHaveWantedState)
+            {
+                crimeData.Player.VisualState.ApplyState("Wanted", EVisualState.Wanted);
+            }
+            else
+            {
+                crimeData.Player.VisualState.RemoveState("Wanted");
+            }
+
+            DebugLog.Debug($"PolicePatches: Reconciled local wanted state to pursuit level {crimeData.CurrentPursuitLevel}.");
         }
 
         private static bool ShouldSuppressPoliceVisibleNotice(VisionCone visionCone, VisionEvent visionEvent)
