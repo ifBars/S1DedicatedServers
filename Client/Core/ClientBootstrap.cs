@@ -315,8 +315,15 @@ namespace DedicatedServerMod.Client.Core
             _reconnectTestRunner = new ClientReconnectTestRunner(_connectionManager);
             _reconnectTestRunner.Initialize();
 
-            _npcRagdollRecoveryTestRunner = new ClientNpcRagdollRecoveryTestRunner(_connectionManager);
-            _npcRagdollRecoveryTestRunner.Initialize();
+            try
+            {
+                _npcRagdollRecoveryTestRunner = new ClientNpcRagdollRecoveryTestRunner(_connectionManager);
+                _npcRagdollRecoveryTestRunner.Initialize();
+            }
+            catch (Exception ex)
+            {
+                Utils.DebugLog.Warning($"NPC ragdoll recovery test runner failed to start: {ex.Message}");
+            }
         }
 
         #endregion

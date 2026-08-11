@@ -187,8 +187,7 @@ namespace DedicatedServerMod.Server.Core
             
             _isInitialized = true;
             _runtimeConfigurationApplier.StartMonitoringConfiguration();
-            _npcRagdollRecoveryTestRunner = new ServerNpcRagdollRecoveryTestRunner();
-            _npcRagdollRecoveryTestRunner.Initialize();
+            TryStartNpcRagdollRecoveryTestRunner();
             DebugLog.StartupDebug("=== Dedicated Server Bootstrap Complete ===");
 
             // Notify API mods: server initialized and running
@@ -441,6 +440,19 @@ namespace DedicatedServerMod.Server.Core
             catch (Exception ex)
             {
                 DebugLog.Warning($"Status query service failed to start: {ex.Message}");
+            }
+        }
+
+        private void TryStartNpcRagdollRecoveryTestRunner()
+        {
+            try
+            {
+                _npcRagdollRecoveryTestRunner = new ServerNpcRagdollRecoveryTestRunner();
+                _npcRagdollRecoveryTestRunner.Initialize();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"NPC ragdoll recovery test runner failed to start: {ex.Message}");
             }
         }
 

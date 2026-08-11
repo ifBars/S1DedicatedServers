@@ -764,7 +764,7 @@
 	  <!-- Permissions -->
 	  <Compile Include="Shared\Permissions\*.cs" />
 	  <!-- Opt-in real-game regression probes -->
-	  <Compile Include="Shared\Testing\*.cs" />
+	  <Compile Include="Shared\Testing\NpcRagdollRecoveryTestProtocol.cs" />
 	  <!-- Patches -->
 	  <Compile Include="Shared\Patches\*.cs" />
 	</ItemGroup>

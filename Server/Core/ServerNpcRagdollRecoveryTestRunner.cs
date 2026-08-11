@@ -97,7 +97,7 @@ namespace DedicatedServerMod.Server.Core
             float nextStateLogTime = activationTime;
             while (Time.realtimeSinceStartup - activationTime <= _options.TimeoutSeconds)
             {
-                if (npc == null || npc.Avatar == null || npc.Movement == null)
+                if (npc == null || npc.Avatar == null || npc.Movement == null || npc.Health == null)
                 {
                     Fail("target NPC became unavailable during recovery");
                     yield break;
@@ -150,6 +150,12 @@ namespace DedicatedServerMod.Server.Core
 
         private IEnumerator VerifyKnockoutExclusion(NpcType npc)
         {
+            if (npc == null || npc.Health == null || npc.Avatar == null)
+            {
+                Fail("target NPC became unavailable before the knockout exclusion check");
+                yield break;
+            }
+
             npc.Health.KnockOut();
             float knockoutStartedAt = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - knockoutStartedAt <= _options.TimeoutSeconds)
@@ -166,6 +172,12 @@ namespace DedicatedServerMod.Server.Core
                 }
 
                 yield return null;
+            }
+
+            if (npc == null || npc.Health == null || npc.Avatar == null)
+            {
+                Fail("target NPC became unavailable during knockout exclusion check");
+                yield break;
             }
 
             if (!npc.Health.IsKnockedOut || !npc.Avatar.Ragdolled)

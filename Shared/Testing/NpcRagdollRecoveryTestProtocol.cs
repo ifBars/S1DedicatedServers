@@ -42,13 +42,32 @@ namespace DedicatedServerMod.Shared.Testing
                         {
                             parseError = $"missing value for {RUN_DIRECTORY_FLAG}";
                         }
+                        else
+                        {
+                            i++;
+                        }
                     }
                     else if (string.Equals(argument, TIMEOUT_FLAG, StringComparison.Ordinal))
                     {
-                        if (!TryReadNext(arguments, i, out string timeoutText) ||
-                            !float.TryParse(timeoutText, NumberStyles.Float, CultureInfo.InvariantCulture, out timeoutSeconds))
+                        if (!TryReadNext(arguments, i, out string timeoutText))
                         {
                             parseError = $"invalid value for {TIMEOUT_FLAG}";
+                        }
+                        else
+                        {
+                            i++;
+                            if (float.TryParse(
+                                timeoutText,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out float parsedTimeoutSeconds))
+                            {
+                                timeoutSeconds = parsedTimeoutSeconds;
+                            }
+                            else
+                            {
+                                parseError = $"invalid value for {TIMEOUT_FLAG}";
+                            }
                         }
                     }
                 }

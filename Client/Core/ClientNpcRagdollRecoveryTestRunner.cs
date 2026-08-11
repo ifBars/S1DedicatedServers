@@ -29,7 +29,7 @@ namespace DedicatedServerMod.Client.Core
 
         internal ClientNpcRagdollRecoveryTestRunner(ClientConnectionManager connectionManager)
         {
-            _connectionManager = connectionManager;
+            _connectionManager = connectionManager ?? throw new ArgumentNullException(nameof(connectionManager));
         }
 
         internal void Initialize()
@@ -73,7 +73,32 @@ namespace DedicatedServerMod.Client.Core
                 yield break;
             }
 
-            string targetId = File.ReadAllText(targetPath).Trim();
+            string targetId = null;
+            float targetReadStartedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - targetReadStartedAt <= _options.TimeoutSeconds)
+            {
+                try
+                {
+                    targetId = File.ReadAllText(targetPath).Trim();
+                }
+                catch (IOException)
+                {
+                    targetId = null;
+                }
+
+                if (!string.IsNullOrWhiteSpace(targetId))
+                {
+                    break;
+                }
+
+                yield return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetId))
+            {
+                Fail("target file did not contain a target id");
+                yield break;
+            }
             NpcType npc = null;
             float targetWaitStartedAt = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - targetWaitStartedAt <= _options.TimeoutSeconds)

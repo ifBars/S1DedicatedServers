@@ -27,6 +27,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private const float FALLBACK_RECOVERY_SECONDS = 8f;
 
         private static readonly ConditionalWeakTable<NpcMovementType, RecoveryState> RecoveryStates = new();
+        private static readonly ConditionalWeakTable<NpcMovementType, EligibilityFailureState> EligibilityFailures = new();
 
         private static void Postfix(NpcMovementType __instance)
         {
@@ -90,13 +91,25 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 
             try
             {
-                return movement.CanRecoverFromRagdoll();
+                bool canRecover = movement.CanRecoverFromRagdoll();
+                EligibilityFailures.Remove(movement);
+                return canRecover;
             }
             catch (Exception ex)
             {
-                DebugLog.Warning($"Could not evaluate ragdoll recovery eligibility for '{npc.FullName}': {ex.Message}");
+                if (!EligibilityFailures.TryGetValue(movement, out _))
+                {
+                    EligibilityFailures.Add(movement, new EligibilityFailureState());
+                    DebugLog.Warning(
+                        $"Could not evaluate ragdoll recovery eligibility for '{npc.FullName}': {ex.Message}");
+                }
+
                 return false;
             }
+        }
+
+        private sealed class EligibilityFailureState
+        {
         }
 
         private sealed class RecoveryState
