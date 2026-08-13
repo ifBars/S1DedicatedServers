@@ -258,6 +258,7 @@ namespace DedicatedServerMod.Client.Core
                 Patches.SleepPatches.Initialize();
                 Patches.PolicePatches.Initialize();
                 Patches.GhostHostUiPatches.Initialize();
+                Patches.PauseMenuPatches.Initialize();
                 Patches.MessagingPatches.Initialize();
                 Patches.LoadingScreenPatches.Initialize();
                 Patches.VehicleHudPatches.Initialize();
