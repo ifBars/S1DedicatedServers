@@ -41,7 +41,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             if (!InstanceFinder.IsServer ||
                 !Application.isBatchMode ||
                 multiplier > 0f ||
-                TimeManagerPausePolicy.ShouldPauseGame())
+                (multiplier == 0f && TimeManagerPausePolicy.ShouldPauseGame()))
             {
                 return;
             }
