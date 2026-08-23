@@ -1,5 +1,7 @@
 using HarmonyLib;
+using DedicatedServerMod.Server.Core;
 using DedicatedServerMod.Server.Game.Patches.Common;
+using DedicatedServerMod.Shared.Configuration;
 using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
@@ -16,12 +18,30 @@ using UnityEngine;
 
 namespace DedicatedServerMod.Server.Game.Patches.Gameplay
 {
+    internal static class TimeManagerPausePolicy
+    {
+        internal static bool ShouldPauseGame()
+        {
+            if (!InstanceFinder.IsServer ||
+                !Application.isBatchMode ||
+                !ServerConfig.Instance.PauseGameWhenEmpty)
+            {
+                return false;
+            }
+
+            return ServerBootstrap.Players != null && ServerBootstrap.Players.ConnectedPlayerCount == 0;
+        }
+    }
+
     [HarmonyPatch(typeof(TimeManagerType), nameof(TimeManagerType.SetTimeSpeedMultiplier))]
     internal static class TimeManagerSetTimeSpeedMultiplierPatches
     {
         private static void Prefix(ref float multiplier)
         {
-            if (!InstanceFinder.IsServer || !Application.isBatchMode || multiplier > 0f)
+            if (!InstanceFinder.IsServer ||
+                !Application.isBatchMode ||
+                multiplier > 0f ||
+                TimeManagerPausePolicy.ShouldPauseGame())
             {
                 return;
             }
@@ -46,7 +66,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 return;
             }
 
-            if (__instance.TimeSpeedMultiplier <= 0f)
+            bool shouldPauseGame = TimeManagerPausePolicy.ShouldPauseGame();
+            if (shouldPauseGame && __instance.TimeSpeedMultiplier != 0f)
+            {
+                __instance.SetTimeSpeedMultiplier(0f);
+            }
+            else if (!shouldPauseGame && __instance.TimeSpeedMultiplier <= 0f)
             {
                 __instance.SetTimeSpeedMultiplier(1f);
             }
