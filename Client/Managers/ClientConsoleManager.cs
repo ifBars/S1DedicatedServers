@@ -33,6 +33,9 @@ namespace DedicatedServerMod.Client.Managers
     /// </summary>
     public sealed class ClientConsoleManager
     {
+        private const string CurrentConsoleEnabledPropertyName = "IsConsoleEnabled";
+        private const string LegacyConsoleEnabledPropertyName = "IS_CONSOLE_ENABLED";
+
         private HarmonyLib.Harmony harmony;
 
         internal ClientConsoleManager()
@@ -64,7 +67,7 @@ namespace DedicatedServerMod.Client.Managers
         {
             try
             {
-                // Patch ConsoleUI.IS_CONSOLE_ENABLED property getter
+                // Patch the ConsoleUI enabled property getter.
                 PatchConsoleEnabled();
                 
                 // Patch ConsoleUI.SetIsOpen method
@@ -85,24 +88,28 @@ namespace DedicatedServerMod.Client.Managers
         }
 
         /// <summary>
-        /// Patch the IS_CONSOLE_ENABLED property to allow admin access
+        /// Patches ConsoleUI.IsConsoleEnabled or the legacy ConsoleUI.IS_CONSOLE_ENABLED property
+        /// to allow admin access.
         /// </summary>
         private void PatchConsoleEnabled()
         {
             var consoleUIType = typeof(ConsoleUI);
-            var consoleEnabledProperty = consoleUIType.GetProperty("IS_CONSOLE_ENABLED", 
-                BindingFlags.Public | BindingFlags.Instance);
+            var consoleEnabledProperty = consoleUIType.GetProperty(CurrentConsoleEnabledPropertyName,
+                BindingFlags.Public | BindingFlags.Instance) ??
+                consoleUIType.GetProperty(LegacyConsoleEnabledPropertyName,
+                    BindingFlags.Public | BindingFlags.Instance);
             
             if (consoleEnabledProperty?.GetGetMethod() != null)
             {
                 var prefixMethod = typeof(ClientConsoleManager).GetMethod(nameof(ConsoleEnabledPrefix), 
                     BindingFlags.Static | BindingFlags.NonPublic);
                 harmony.Patch(consoleEnabledProperty.GetGetMethod(), new HarmonyMethod(prefixMethod));
-                DebugLog.StartupDebug("Patched ConsoleUI.IS_CONSOLE_ENABLED");
+                DebugLog.StartupDebug($"Patched ConsoleUI.{consoleEnabledProperty.Name}");
             }
             else
             {
-                DebugLog.Error("Could not find ConsoleUI.IS_CONSOLE_ENABLED property");
+                DebugLog.Error($"Could not find ConsoleUI.{CurrentConsoleEnabledPropertyName} or " +
+                    $"ConsoleUI.{LegacyConsoleEnabledPropertyName} property");
             }
         }
 
@@ -153,7 +160,8 @@ namespace DedicatedServerMod.Client.Managers
         #region Harmony Prefix Methods
 
         /// <summary>
-        /// Harmony prefix for ConsoleUI.IS_CONSOLE_ENABLED property
+        /// Harmony prefix for ConsoleUI.IsConsoleEnabled or the legacy
+        /// ConsoleUI.IS_CONSOLE_ENABLED property.
         /// Allows admin/operator players to access console on dedicated servers
         /// </summary>
         private static bool ConsoleEnabledPrefix(ConsoleUI __instance, ref bool __result)
