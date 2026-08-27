@@ -1,4 +1,5 @@
 using System.Reflection;
+using HarmonyLib;
 using MelonLoader;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Economy;
@@ -14,19 +15,30 @@ namespace CustomerOfferExpirySmoke
 {
     internal sealed class Core : MelonMod
     {
-        private static readonly FieldInfo OfferedContractField = typeof(Customer).GetField(
+        private static readonly FieldInfo _offeredContractField = typeof(Customer).GetField(
             "offeredContractInfo",
             BindingFlags.Instance | BindingFlags.NonPublic);
 
-        private bool _completed;
-        private float _startedAt;
+        private static MSGConversation _targetConversation;
+        private static bool _clientClearReceived;
 
+        private bool _completed;
+        private bool _expiryTriggered;
+        private float _startedAt;
+        private float _expiryTriggeredAt;
+        private Customer _customer;
+        private int _chainsBefore;
+        private int _thrownExceptions;
+
+        /// <inheritdoc />
         public override void OnInitializeMelon()
         {
+            new HarmonyLib.Harmony("DedicatedServerMod.Tests.CustomerOfferExpirySmoke").PatchAll();
             _startedAt = Time.realtimeSinceStartup;
             LoggerInstance.Msg("[CUSTOMER_OFFER_EXPIRY_SMOKE] START");
         }
 
+        /// <inheritdoc />
         public override void OnUpdate()
         {
             if (_completed)
@@ -46,31 +58,51 @@ namespace CustomerOfferExpirySmoke
                 return;
             }
 
-            Customer customer = Customer.UnlockedCustomers.FirstOrDefault(candidate =>
-                candidate?.NPC?.MSGConversation != null &&
-                candidate.NPC.DialogueHandler?.Database?.HasChain(
-                    ScheduleOne.Dialogue.EDialogueModule.Customer,
-                    "offer_expired") == true);
-            if (customer != null)
+            if (!_expiryTriggered)
             {
-                RunExpiryRegression(customer);
+                Customer customer = Customer.UnlockedCustomers.FirstOrDefault(candidate =>
+                    candidate?.NPC?.MSGConversation != null &&
+                    candidate.NPC.DialogueHandler?.Database?.HasChain(
+                        ScheduleOne.Dialogue.EDialogueModule.Customer,
+                        "offer_expired") == true);
+                if (customer != null)
+                {
+                    TriggerExpiryRegression(customer);
+                }
+
+                return;
+            }
+
+            if (_clientClearReceived || Time.realtimeSinceStartup - _expiryTriggeredAt >= 5f)
+            {
+                CompleteExpiryRegression();
             }
         }
 
-        private void RunExpiryRegression(Customer customer)
+        internal static void RecordClientClear(MSGConversation conversation, bool network)
         {
-            if (OfferedContractField == null)
+            if (!network && ReferenceEquals(conversation, _targetConversation))
+            {
+                _clientClearReceived = true;
+            }
+        }
+
+        private void TriggerExpiryRegression(Customer customer)
+        {
+            if (_offeredContractField == null)
             {
                 Complete("FAIL|reason=offered-contract-field-missing");
                 return;
             }
 
+            _customer = customer;
             MSGConversation conversation = customer.NPC.MSGConversation;
-            int chainsBefore = conversation.messageChainHistory.Count;
+            _targetConversation = conversation;
+            _clientClearReceived = false;
+            _chainsBefore = conversation.messageChainHistory.Count;
             conversation.currentResponses.Add(new Response("Accept", "ACCEPT"));
-            OfferedContractField.SetValue(customer, new ContractInfo());
+            _offeredContractField.SetValue(customer, new ContractInfo());
 
-            int thrownExceptions = 0;
             for (int i = 0; i < 10; i++)
             {
                 try
@@ -79,18 +111,26 @@ namespace CustomerOfferExpirySmoke
                 }
                 catch (Exception ex)
                 {
-                    thrownExceptions++;
+                    _thrownExceptions++;
                     LoggerInstance.Error($"[CUSTOMER_OFFER_EXPIRY_SMOKE] expiry {i + 1} threw: {ex}");
                 }
             }
 
-            int addedChains = conversation.messageChainHistory.Count - chainsBefore;
-            bool offerCleared = customer.OfferedContractInfo == null;
-            bool responsesCleared = conversation.currentResponses.Count == 0;
-            bool passed = thrownExceptions == 0 && offerCleared && responsesCleared && addedChains == 1;
+            _expiryTriggered = true;
+            _expiryTriggeredAt = Time.realtimeSinceStartup;
+        }
+
+        private void CompleteExpiryRegression()
+        {
+            int addedChains = _targetConversation.messageChainHistory.Count - _chainsBefore;
+            bool offerCleared = _customer.OfferedContractInfo == null;
+            bool responsesCleared = _targetConversation.currentResponses.Count == 0;
+            bool passed = _thrownExceptions == 0 && offerCleared && responsesCleared &&
+                _clientClearReceived && addedChains == 1;
             Complete(
                 $"{(passed ? "PASS" : "FAIL")}|offerCleared={offerCleared}|responsesCleared={responsesCleared}|" +
-                $"expiryExceptions={thrownExceptions}|addedChains={addedChains}");
+                $"clientClearReceived={_clientClearReceived}|expiryExceptions={_thrownExceptions}|" +
+                $"addedChains={addedChains}");
         }
 
         private void Complete(string result)
@@ -98,6 +138,15 @@ namespace CustomerOfferExpirySmoke
             _completed = true;
             LoggerInstance.Msg($"[CUSTOMER_OFFER_EXPIRY_SMOKE] {result}");
             Application.Quit();
+        }
+    }
+
+    [HarmonyPatch(typeof(MSGConversation), "ClearResponses")]
+    internal static class MSGConversationClearResponsesObserverPatch
+    {
+        private static void Prefix(MSGConversation __instance, bool network)
+        {
+            Core.RecordClientClear(__instance, network);
         }
     }
 }
