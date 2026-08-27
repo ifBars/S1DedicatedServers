@@ -2,19 +2,23 @@ using HarmonyLib;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using UnityEngine;
 #if IL2CPP
+using Il2CppScheduleOne.DevUtilities;
 using MessageChainListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.UI.Phone.Messages.MessageChain>;
 using MessageChainType = Il2CppScheduleOne.UI.Phone.Messages.MessageChain;
 using MessageListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Messaging.Message>;
 using MessageType = Il2CppScheduleOne.Messaging.Message;
+using MessagingManagerType = Il2CppScheduleOne.Messaging.MessagingManager;
 using MSGConversationType = Il2CppScheduleOne.Messaging.MSGConversation;
 using ResponseListType = Il2CppSystem.Collections.Generic.List<Il2CppScheduleOne.Messaging.Response>;
 using ResponseType = Il2CppScheduleOne.Messaging.Response;
 #else
 using System.Collections.Generic;
+using ScheduleOne.DevUtilities;
 using MessageChainListType = System.Collections.Generic.List<ScheduleOne.UI.Phone.Messages.MessageChain>;
 using MessageChainType = ScheduleOne.UI.Phone.Messages.MessageChain;
 using MessageListType = System.Collections.Generic.List<ScheduleOne.Messaging.Message>;
 using MessageType = ScheduleOne.Messaging.Message;
+using MessagingManagerType = ScheduleOne.Messaging.MessagingManager;
 using MSGConversationType = ScheduleOne.Messaging.MSGConversation;
 using ResponseListType = System.Collections.Generic.List<ScheduleOne.Messaging.Response>;
 using ResponseType = ScheduleOne.Messaging.Response;
@@ -100,7 +104,10 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
             conversation.onResponsesShown?.Invoke();
         }
 
-        internal static void ClearResponses(MSGConversationType conversation)
+        /// <summary>
+        /// Clears authoritative response state without touching phone UI and optionally relays the clear to clients.
+        /// </summary>
+        internal static void ClearResponses(MSGConversationType conversation, bool network = false)
         {
             if (conversation == null)
             {
@@ -109,6 +116,11 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
 
             conversation.currentResponses.Clear();
             conversation.HasChanged = true;
+
+            if (network)
+            {
+                NetworkSingleton<MessagingManagerType>.Instance.ClearResponses(conversation.sender.ID);
+            }
         }
 
         internal static void ApplyResponseChosen(MSGConversationType conversation, ResponseType response)
@@ -236,12 +248,12 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
     {
         private static bool Prefix(MSGConversationType __instance, bool network)
         {
-            if (!HeadlessMessagingPatchState.ShouldBypassPhoneUi() || network)
+            if (!HeadlessMessagingPatchState.ShouldBypassPhoneUi())
             {
                 return true;
             }
 
-            HeadlessMessagingPatchState.ClearResponses(__instance);
+            HeadlessMessagingPatchState.ClearResponses(__instance, network);
             return false;
         }
     }
