@@ -253,9 +253,9 @@ namespace DedicatedServerMod.Client.Core
         {
             try
             {
-                // Initialize attribute-based patches with logger
-                // MelonLoader will automatically apply patches marked with [HarmonyPatch]
+                // Initialize client-side patch helpers.
                 Patches.SleepPatches.Initialize();
+                Patches.DailySummaryPatches.Initialize();
                 Patches.PolicePatches.Initialize();
                 Patches.GhostHostUiPatches.Initialize();
                 Patches.PauseMenuPatches.Initialize();
