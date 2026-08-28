@@ -1,3 +1,4 @@
+#if CLIENT
 using System.Reflection;
 using DedicatedServerMod.Client.Core;
 using DedicatedServerMod.Utils;
@@ -6,10 +7,12 @@ using HarmonyLib;
 using Il2CppScheduleOne;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.UI;
-#else
+#elif MONO
 using ScheduleOne;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.UI;
+#else
+#error DailySummaryPatches requires either the MONO or IL2CPP runtime symbol.
 #endif
 
 namespace DedicatedServerMod.Client.Patches
@@ -66,7 +69,8 @@ namespace DedicatedServerMod.Client.Patches
         }
 
         /// <summary>
-        /// Starts a new client summary sequence before the headless host can signal sleep completion.
+        /// Patches <see cref="SleepCanvas.SleepStart"/> to begin tracking before the headless host can signal sleep
+        /// completion.
         /// </summary>
         private static void SleepStartPrefix()
         {
@@ -80,7 +84,8 @@ namespace DedicatedServerMod.Client.Patches
         }
 
         /// <summary>
-        /// Defers the native sleep-end clear until both daily-summary panels have captured their values.
+        /// Patches the native <c>DailySummary.ClearStats</c> method to defer its sleep-end clear until both summary
+        /// panels have captured their values.
         /// </summary>
         private static bool ClearStatsPrefix()
         {
@@ -94,7 +99,8 @@ namespace DedicatedServerMod.Client.Patches
         }
 
         /// <summary>
-        /// Clears the retained values after the rank summary has synchronously read the daily XP total.
+        /// Patches <see cref="RankUpCanvas.StartEvent"/> to clear retained values after it synchronously reads the
+        /// daily XP total.
         /// </summary>
         private static void RankUpStartEventPostfix()
         {
@@ -102,7 +108,7 @@ namespace DedicatedServerMod.Client.Patches
         }
 
         /// <summary>
-        /// Handles tutorial sleep sequences, which do not enqueue the rank summary.
+        /// Patches <see cref="DailySummary.Close"/> to clear tutorial summaries, which do not enqueue the rank panel.
         /// </summary>
         private static void DailySummaryClosePostfix()
         {
@@ -154,3 +160,4 @@ namespace DedicatedServerMod.Client.Patches
         }
     }
 }
+#endif
