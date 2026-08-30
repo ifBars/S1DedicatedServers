@@ -105,6 +105,23 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
         }
 
         /// <summary>
+        /// Preserves conversation visibility state without accessing the client-only phone entry.
+        /// </summary>
+        internal static void ApplyEntryVisibility(MSGConversationType conversation, bool visible)
+        {
+            if (conversation == null)
+            {
+                return;
+            }
+
+            bool conversationCanBeHidden = conversation.sender?.NPCData?.Messaging?.ConversationCanBeHidden == true;
+            if (ConversationEntryVisibilityPolicy.ShouldApply(visible, conversationCanBeHidden))
+            {
+                conversation.EntryVisible = visible;
+            }
+        }
+
+        /// <summary>
         /// Clears authoritative response state without touching phone UI and optionally relays the clear to clients.
         /// </summary>
         internal static void ClearResponses(MSGConversationType conversation, bool network = false)
@@ -183,6 +200,24 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
         private static bool Prefix()
         {
             return !HeadlessMessagingPatchState.ShouldBypassPhoneUi();
+        }
+    }
+
+    /// <summary>
+    /// Preserves server-side conversation visibility while skipping phone entry and selectable updates.
+    /// </summary>
+    [HarmonyPatch(typeof(MSGConversationType), "SetEntryVisibility")]
+    internal static class MSGConversationSetEntryVisibilityHeadlessPatches
+    {
+        private static bool Prefix(MSGConversationType __instance, bool v)
+        {
+            if (!HeadlessMessagingPatchState.ShouldBypassPhoneUi())
+            {
+                return true;
+            }
+
+            HeadlessMessagingPatchState.ApplyEntryVisibility(__instance, v);
+            return false;
         }
     }
 

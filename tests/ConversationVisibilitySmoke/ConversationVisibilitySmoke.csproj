@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\local.build.props" Condition="Exists('..\..\local.build.props')" />
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>default</LangVersion>
+    <AssemblyName>ConversationVisibilitySmoke</AssemblyName>
+    <RootNamespace>ConversationVisibilitySmoke</RootNamespace>
+    <GamePath Condition="'$(GamePath)' == ''">$(Il2CppGamePath)</GamePath>
+    <ManagedPath>$(GamePath)\MelonLoader\Il2CppAssemblies</ManagedPath>
+    <MelonLoaderPath>$(GamePath)\MelonLoader\net6</MelonLoaderPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="MelonLoader">
+      <HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppFishNet.Runtime">
+      <HintPath>$(ManagedPath)\Il2CppFishNet.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(ManagedPath)\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(MelonLoaderPath)\Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateGamePath" BeforeTargets="ResolveReferences" Condition="'$(GamePath)' == ''">
+    <Error Text="Set GamePath or Il2CppGamePath to an IL2CPP Schedule I installation." />
+  </Target>
+</Project>
