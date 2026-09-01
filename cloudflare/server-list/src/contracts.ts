@@ -53,3 +53,7 @@ export interface ListingRecord {
   state: "active" | "revoked" | "banned";
   last_persisted_at: number | null;
 }
+
+export interface ActiveListingIdRecord {
+  id: string;
+}

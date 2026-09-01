@@ -7,6 +7,7 @@ This Worker provides opt-in discovery for DedicatedServerMod. It does not proxy 
 - D1 stores account-linked operators, Discord/Steam identities, hashed sessions, durable listing identities, hashed listing secrets, and moderation state.
 - KV stores short-lived `v2:active:` presence records with a 15-minute TTL.
 - KV metadata contains the compact public response, avoiding a `KV.get()` request for every listed server.
+- One indexed D1 query per page applies current ownership and moderation state before candidates are returned.
 - Cloudflare rate-limit bindings protect portal actions, heartbeat, and public-list routes.
 
 The existing v1 tables and KV prefixes are intentionally untouched.

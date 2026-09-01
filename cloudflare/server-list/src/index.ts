@@ -4,6 +4,7 @@ import {
   API_VERSION,
   MAX_REQUEST_BYTES,
   type ActiveServer,
+  type ActiveListingIdRecord,
   type ErrorResponse,
   type ListingRecord,
   type ServerListResponse,
@@ -168,7 +169,7 @@ async function listServers(request: Request, url: URL, env: Env): Promise<Respon
     cursor,
   });
   const oldestAcceptedHeartbeat = Date.now() - ACTIVE_SERVER_TTL_SECONDS * 1000;
-  const servers = result.keys
+  const candidates = result.keys
     .map((key) => key.metadata)
     .filter((server): server is ActiveServer =>
       server !== null &&
@@ -176,6 +177,8 @@ async function listServers(request: Request, url: URL, env: Env): Promise<Respon
       server.protocolVersion === API_VERSION &&
       server.lastHeartbeat >= oldestAcceptedHeartbeat,
     );
+  const activeListingIds = await getActiveListingIds(candidates, env.DB);
+  const servers = candidates.filter((server) => activeListingIds.has(server.listingId));
 
   const response: ServerListResponse = {
     success: true,
@@ -183,6 +186,22 @@ async function listServers(request: Request, url: URL, env: Env): Promise<Respon
     ...(!result.list_complete && result.cursor ? { nextCursor: result.cursor } : {}),
   };
   return json(response, 200, { "Cache-Control": "public, max-age=10" });
+}
+
+async function getActiveListingIds(candidates: ActiveServer[], db: D1Database): Promise<Set<string>> {
+  if (candidates.length === 0) {
+    return new Set<string>();
+  }
+
+  const placeholders = candidates.map(() => "?").join(", ");
+  const active = await db
+    .prepare(
+      `SELECT id FROM server_listings_v2
+       WHERE state = 'active' AND operator_id IS NOT NULL AND id IN (${placeholders})`,
+    )
+    .bind(...candidates.map((candidate) => candidate.listingId))
+    .all<ActiveListingIdRecord>();
+  return new Set(active.results.map((record) => record.id));
 }
 
 async function authenticateListing(
