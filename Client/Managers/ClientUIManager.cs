@@ -89,6 +89,7 @@ namespace DedicatedServerMod.Client.Managers
         private readonly PublicServerDirectoryClient publicServerDirectoryClient = new PublicServerDirectoryClient();
         private readonly HashSet<string> statusQueriesInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool publicDirectoryRefreshInFlight;
+        private string publicDirectoryLastErrorForTest;
         private object pendingMenuCursorRestoreCoroutine;
         private ServerBrowserTab activeTab = ServerBrowserTab.Favorites;
         private float gameplayPingSampleTimer;
@@ -719,6 +720,63 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
+        internal bool TryShowPublicServerListForTest()
+        {
+            if (!string.Equals(SceneManager.GetActiveScene().name, "Menu", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            ToggleServerMenu(true);
+            if (dsServerBrowserPanel == null || dsPublicListPanel == null || dsPublicButton == null)
+            {
+                return false;
+            }
+
+            SetActiveTab(ServerBrowserTab.Public);
+            RefreshPublicDirectory();
+            return dsServerBrowserPanel.gameObject.activeSelf && dsPublicListPanel.gameObject.activeSelf;
+        }
+
+        internal bool HasPublicServerForTest(string serverName)
+        {
+            return publicServers.Any(server =>
+                string.Equals(server.ServerName, serverName, StringComparison.Ordinal) ||
+                string.Equals(server.Name, serverName, StringComparison.Ordinal));
+        }
+
+        internal bool IsPublicDirectoryRefreshInFlightForTest => publicDirectoryRefreshInFlight;
+
+        internal int PublicServerCountForTest => publicServers.Count;
+
+        internal string PublicDirectoryLastErrorForTest => publicDirectoryLastErrorForTest;
+
+        internal bool IsStartupNoticeVisibleForTest()
+        {
+            const string noticeText = "TVGS does not condone";
+            foreach (TMP_Text text in GameObject.FindObjectsOfType<TMP_Text>())
+            {
+                if (text != null &&
+                    text.gameObject.activeInHierarchy &&
+                    text.text?.IndexOf(noticeText, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            foreach (Text text in GameObject.FindObjectsOfType<Text>())
+            {
+                if (text != null &&
+                    text.gameObject.activeInHierarchy &&
+                    text.text?.IndexOf(noticeText, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private bool HasLiveMenuUi()
         {
             return serversButton != null || dsServerBrowserPanel != null || dsAddServerPanel != null || serverMenuPanel != null;
@@ -1157,6 +1215,14 @@ namespace DedicatedServerMod.Client.Managers
                 buttonObject.name = "PublicButton";
                 buttonObject.transform.SetSiblingIndex(dsHistoryButton.transform.GetSiblingIndex() + 1);
                 dsPublicButton = buttonObject.GetComponent<Button>();
+                RectTransform historyRect = dsHistoryButton.GetComponent<RectTransform>();
+                RectTransform publicRect = buttonObject.GetComponent<RectTransform>();
+                LayoutGroup tabLayout = dsHistoryButton.transform.parent?.GetComponent<LayoutGroup>();
+                if (tabLayout == null && historyRect != null && publicRect != null)
+                {
+                    publicRect.anchoredPosition = historyRect.anchoredPosition + new Vector2(historyRect.rect.width + 8f, 0f);
+                }
+
                 TMP_Text label = buttonObject.GetComponentInChildren<TMP_Text>(true);
                 if (label != null)
                 {
@@ -1245,6 +1311,7 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             publicDirectoryRefreshInFlight = true;
+            publicDirectoryLastErrorForTest = null;
             MelonCoroutines.Start(RefreshPublicDirectoryCoroutine());
         }
 
@@ -1259,7 +1326,10 @@ namespace DedicatedServerMod.Client.Managers
             publicDirectoryRefreshInFlight = false;
             if (task.IsFaulted || task.IsCanceled)
             {
-                DebugLog.Warning($"Public server directory refresh failed: {task.Exception?.GetBaseException().Message}");
+                publicDirectoryLastErrorForTest = task.IsCanceled
+                    ? "request-canceled"
+                    : task.Exception?.GetBaseException().Message ?? "unknown-error";
+                DebugLog.Warning($"Public server directory refresh failed: {publicDirectoryLastErrorForTest}");
                 if (dsPublicEmptyPlaceholder != null && publicServers.Count == 0)
                 {
                     dsPublicEmptyPlaceholder.text = "Public server list unavailable. Direct connect still works.";
@@ -1267,6 +1337,7 @@ namespace DedicatedServerMod.Client.Managers
                 yield break;
             }
 
+            publicDirectoryLastErrorForTest = null;
             publicServers.Clear();
             publicServers.AddRange(task.Result);
             if (dsPublicEmptyPlaceholder != null)
@@ -1440,7 +1511,7 @@ namespace DedicatedServerMod.Client.Managers
             string pingText = BuildLatencyText(entry, isCurrentConnection);
             string playerCountText = BuildPlayerCountText(entry, isCurrentConnection, hasResponsiveQuery);
 
-            SetText(entryRoot, "ServerName", primaryName);
+            SetText(entryRoot, "ServerName", TruncateUiText(primaryName, 34));
             SetText(entryRoot, "ServerIP", $"{entry.Host}:{entry.Port}");
             SetText(entryRoot, "ServerDescription", description);
             SetText(entryRoot, "Ping", pingText);
@@ -1564,6 +1635,16 @@ namespace DedicatedServerMod.Client.Managers
         private static string NormalizeUiText(string value)
         {
             return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        }
+
+        private static string TruncateUiText(string value, int maximumLength)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length <= maximumLength)
+            {
+                return value ?? string.Empty;
+            }
+
+            return value.Substring(0, maximumLength - 1) + "…";
         }
 
         private static string BuildEndpointKey(string host, int port)

@@ -88,6 +88,11 @@ namespace DedicatedServerMod.Client.Core
         /// Optional real-game reconnect diagnostic runner enabled by command-line flag.
         /// </summary>
         private ClientReconnectTestRunner _reconnectTestRunner;
+
+        /// <summary>
+        /// Optional public server-list UI diagnostic runner enabled by command-line flag.
+        /// </summary>
+        private ClientPublicServerListTestRunner _publicServerListTestRunner;
         
 
         /// <summary>
@@ -310,6 +315,9 @@ namespace DedicatedServerMod.Client.Core
 
             _reconnectTestRunner = new ClientReconnectTestRunner(_connectionManager);
             _reconnectTestRunner.Initialize();
+
+            _publicServerListTestRunner = new ClientPublicServerListTestRunner(_uiManager);
+            _publicServerListTestRunner.Initialize();
         }
 
         #endregion
@@ -431,6 +439,15 @@ namespace DedicatedServerMod.Client.Core
             catch (Exception ex)
             {
                 _logger?.Warning($"Error shutting down reconnect test runner: {ex.Message}");
+            }
+
+            try
+            {
+                _publicServerListTestRunner?.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error shutting down public server-list test runner: {ex.Message}");
             }
 
             try

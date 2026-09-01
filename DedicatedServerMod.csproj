@@ -320,6 +320,9 @@
 		<Reference Include="UnityEngine.PhysicsModule">
 			<HintPath>$(ManagedPath)\UnityEngine.PhysicsModule.dll</HintPath>
 		</Reference>
+		<Reference Include="UnityEngine.ScreenCaptureModule">
+			<HintPath>$(ManagedPath)\UnityEngine.ScreenCaptureModule.dll</HintPath>
+		</Reference>
 		<Reference Include="UnityEngine.SubstanceModule">
 			<HintPath>$(ManagedPath)\UnityEngine.SubstanceModule.dll</HintPath>
 		</Reference>
@@ -776,6 +779,7 @@
 		<!-- Client bootstrap and entry point -->
 		<Compile Include="Client\Core\ClientBootstrap.cs" />
 		<Compile Include="Client\Core\ClientReconnectTestRunner.cs" />
+		<Compile Include="Client\Core\ClientPublicServerListTestRunner.cs" />
 		<Compile Include="Client\Core\ClientSteamRuntime.cs" />
 
 		<!-- Client managers -->

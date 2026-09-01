@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ACTIVE_SERVER_TTL_SECONDS } from "./contracts";
 import { validateHeartbeat } from "./validation";
 
 const validHeartbeat = {
@@ -14,6 +15,10 @@ const validHeartbeat = {
 };
 
 describe("validateHeartbeat", () => {
+  test("keeps presence for three five-minute heartbeat intervals", () => {
+    expect(ACTIVE_SERVER_TTL_SECONDS).toBe(15 * 60);
+  });
+
   test("normalizes a valid heartbeat", () => {
     const result = validateHeartbeat(validHeartbeat);
 

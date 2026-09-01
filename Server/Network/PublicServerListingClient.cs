@@ -14,7 +14,7 @@ namespace DedicatedServerMod.Server.Network
 {
     internal sealed class PublicServerListingClient : IDisposable
     {
-        private const int HEARTBEAT_INTERVAL_SECONDS = 60;
+        private const int HEARTBEAT_INTERVAL_SECONDS = 5 * 60;
 
         private readonly HttpClient _httpClient;
         private readonly MelonLogger.Instance _logger;

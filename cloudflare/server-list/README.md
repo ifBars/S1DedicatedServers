@@ -5,7 +5,7 @@ This Worker provides opt-in discovery for DedicatedServerMod. It does not proxy 
 ## Storage model
 
 - D1 stores durable listing identities, hashed bearer secrets, and moderation state.
-- KV stores short-lived `v2:active:` presence records with a 180-second TTL.
+- KV stores short-lived `v2:active:` presence records with a 15-minute TTL.
 - KV metadata contains the compact public response, avoiding a `KV.get()` request for every listed server.
 - Cloudflare rate-limit bindings protect registration, heartbeat, and public-list routes.
 

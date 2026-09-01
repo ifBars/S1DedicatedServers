@@ -37,7 +37,7 @@ The directory does not publish the server password, operator identities, player 
 
 ## Availability and Verification
 
-The server sends a heartbeat every 60 seconds. Directory presence expires automatically after 180 seconds without a heartbeat, so a crash or network outage does not leave a permanent online entry. Graceful shutdown attempts immediate removal, but TTL expiry remains authoritative.
+The server sends a heartbeat every five minutes. Directory presence expires automatically after 15 minutes without a heartbeat, preserving the same three-missed-heartbeat tolerance while reducing Cloudflare requests. Graceful shutdown attempts immediate removal, but TTL expiry remains authoritative.
 
 Clients treat directory results as discovery candidates. They query the existing TCP status endpoint before showing verified latency and live metadata. Public hosting therefore still requires `serverPort` to be reachable over both UDP for gameplay and TCP for status queries.
 
