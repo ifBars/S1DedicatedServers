@@ -46,6 +46,15 @@ namespace DedicatedServerMod.Utils
         public const int DefaultServerPort = 38465;
 
         /// <summary>
+        /// Gets the default HTTPS endpoint for the opt-in public server directory.
+        /// </summary>
+        /// <remarks>
+        /// Servers use this endpoint only when public listing is explicitly enabled. Direct IP and port
+        /// connections do not depend on this service.
+        /// </remarks>
+        public const string DefaultPublicServerListServiceUrl = "https://list.s1servers.com";
+
+        /// <summary>
         /// Default port for the TCP console server.
         /// </summary>
         public const int DefaultTcpConsolePort = 4050;
@@ -434,6 +443,33 @@ namespace DedicatedServerMod.Utils
             public const string MaxPlayers = "maxPlayers";
             public const string ServerPort = "serverPort";
             public const string ServerPassword = "serverPassword";
+            /// <summary>
+            /// Identifies the Boolean configuration value that opts a server into public discovery.
+            /// </summary>
+            /// <remarks>The accepted value is <see langword="true"/> or <see langword="false"/>.</remarks>
+            /// <example><code>publicListingEnabled = true</code></example>
+            public const string PublicListingEnabled = "publicListingEnabled";
+
+            /// <summary>
+            /// Identifies the absolute HTTPS URL used for public-listing requests.
+            /// </summary>
+            /// <remarks>Authenticated production requests reject non-HTTPS service URLs.</remarks>
+            /// <example><code>publicListingServiceUrl = "https://list.s1servers.com"</code></example>
+            public const string PublicListingServiceUrl = "publicListingServiceUrl";
+
+            /// <summary>
+            /// Identifies the account-issued listing UUID assigned to this server.
+            /// </summary>
+            /// <remarks>The value must be a listing owned by the operator account that issued the secret.</remarks>
+            /// <example><code>publicListingId = "00000000-0000-0000-0000-000000000001"</code></example>
+            public const string PublicListingId = "publicListingId";
+
+            /// <summary>
+            /// Identifies the bearer secret used to authenticate listing heartbeats.
+            /// </summary>
+            /// <remarks>The value is shown once by the portal and must not be committed or logged.</remarks>
+            /// <example><code>publicListingSecret = "replace-with-portal-issued-secret"</code></example>
+            public const string PublicListingSecret = "publicListingSecret";
             public const string RequireAuthentication = "requireAuthentication";
             public const string AuthProvider = "authProvider";
             public const string AuthTimeoutSeconds = "authTimeoutSeconds";

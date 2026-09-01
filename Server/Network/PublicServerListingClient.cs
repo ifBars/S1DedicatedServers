@@ -1,0 +1,196 @@
+using System.Collections;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using DedicatedServerMod.Server.Player;
+using DedicatedServerMod.Shared;
+using DedicatedServerMod.Shared.Configuration;
+using DedicatedServerMod.Utils;
+using MelonLoader;
+using Newtonsoft.Json;
+using UnityEngine;
+
+namespace DedicatedServerMod.Server.Network
+{
+    internal sealed class PublicServerListingClient : IDisposable
+    {
+        private const int HEARTBEAT_INTERVAL_SECONDS = 5 * 60;
+
+        private readonly HttpClient _httpClient;
+        private readonly MelonLogger.Instance _logger;
+        private readonly PlayerManager _playerManager;
+        private object _heartbeatCoroutine;
+        private bool _isRunning;
+
+        internal PublicServerListingClient(MelonLogger.Instance logger, PlayerManager playerManager)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _playerManager = playerManager ?? throw new ArgumentNullException(nameof(playerManager));
+            _httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
+        }
+
+        internal void Start()
+        {
+            if (_isRunning || !ServerConfig.Instance.PublicListingEnabled)
+            {
+                return;
+            }
+
+            if (!TryGetAuthenticatedServiceUri(out _))
+            {
+                DebugLog.Warning("Public listing is enabled, but publicListingServiceUrl is not a valid HTTPS endpoint.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ServerConfig.Instance.PublicListingId) ||
+                string.IsNullOrWhiteSpace(ServerConfig.Instance.PublicListingSecret))
+            {
+                DebugLog.Warning("Public listing is enabled without credentials. Issue a listing key at https://s1servers.com/server-portal and add it to server_config.toml.");
+                return;
+            }
+
+            _isRunning = true;
+            _heartbeatCoroutine = MelonCoroutines.Start(RunHeartbeatLoop());
+            DebugLog.Info("Public server listing enabled; starting five-minute heartbeats.");
+        }
+
+        internal void Shutdown()
+        {
+            if (!_isRunning)
+            {
+                return;
+            }
+
+            _isRunning = false;
+            if (_heartbeatCoroutine != null)
+            {
+                MelonCoroutines.Stop(_heartbeatCoroutine);
+                _heartbeatCoroutine = null;
+            }
+
+            TryRemovePresence();
+        }
+
+        /// <summary>
+        /// Stops public listing heartbeats, attempts to remove the active presence, and releases HTTP resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Shutdown();
+            _httpClient.Dispose();
+        }
+
+        private IEnumerator RunHeartbeatLoop()
+        {
+            while (_isRunning)
+            {
+                Task<bool> heartbeatTask = SendHeartbeatAsync(ServerConfig.Instance);
+                while (_isRunning && !heartbeatTask.IsCompleted)
+                {
+                    yield return null;
+                }
+
+                if (heartbeatTask.IsFaulted)
+                {
+                    DebugLog.Warning($"Public listing heartbeat failed: {heartbeatTask.Exception?.GetBaseException().Message}");
+                }
+
+                if (_isRunning)
+                {
+                    yield return new WaitForSecondsRealtime(HEARTBEAT_INTERVAL_SECONDS);
+                }
+            }
+        }
+
+        private async Task<bool> SendHeartbeatAsync(ServerConfig config)
+        {
+            if (!TryGetAuthenticatedServiceUri(out Uri serviceUri))
+            {
+                DebugLog.Warning("Public listing heartbeats require an HTTPS publicListingServiceUrl because they carry a reusable credential.");
+                return false;
+            }
+
+            var heartbeat = new PublicListingHeartbeatRequest
+            {
+                ServerName = config.ServerName,
+                ServerDescription = config.ServerDescription,
+                CurrentPlayers = _playerManager.GetVisiblePlayerCount(),
+                MaxPlayers = config.MaxPlayers,
+                Port = config.ServerPort,
+                PasswordProtected = !string.IsNullOrEmpty(config.ServerPassword),
+                GameVersion = Application.version,
+                ModVersion = API.Version.ModVersion
+            };
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Put,
+                new Uri(serviceUri, $"/api/v2/listings/{Uri.EscapeDataString(config.PublicListingId)}/heartbeat"));
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", config.PublicListingSecret);
+            request.Content = new StringContent(JsonConvert.SerializeObject(heartbeat), Encoding.UTF8, "application/json");
+
+            using HttpResponseMessage response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                DebugLog.Warning("Public listing credentials were rejected. Rotate or replace them at https://s1servers.com/server-portal.");
+                return false;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                DebugLog.Warning($"Public listing heartbeat returned HTTP {(int)response.StatusCode}.");
+                return false;
+            }
+
+            DebugLog.Verbose("Public listing heartbeat accepted.");
+            return true;
+        }
+
+        private void TryRemovePresence()
+        {
+            ServerConfig config = ServerConfig.Instance;
+            if (string.IsNullOrWhiteSpace(config.PublicListingId) || string.IsNullOrWhiteSpace(config.PublicListingSecret) || !TryGetAuthenticatedServiceUri(out Uri serviceUri))
+            {
+                return;
+            }
+
+            try
+            {
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Delete,
+                    new Uri(serviceUri, $"/api/v2/listings/{Uri.EscapeDataString(config.PublicListingId)}/presence"));
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", config.PublicListingSecret);
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                using HttpResponseMessage response = _httpClient.SendAsync(request, timeout.Token).ConfigureAwait(false).GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                {
+                    DebugLog.Verbose($"Public listing presence removal returned HTTP {(int)response.StatusCode}; TTL expiry will remove it.");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Verbose($"Public listing presence removal did not complete: {ex.Message}. TTL expiry will remove it.");
+            }
+        }
+
+        private static bool TryGetServiceUri(out Uri serviceUri)
+        {
+            string value = ServerConfig.Instance.PublicListingServiceUrl?.Trim().TrimEnd('/');
+            if (!Uri.TryCreate(value, UriKind.Absolute, out serviceUri))
+            {
+                return false;
+            }
+
+            return string.Equals(serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+                   (string.Equals(serviceUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) && serviceUri.IsLoopback);
+        }
+
+        private static bool TryGetAuthenticatedServiceUri(out Uri serviceUri)
+        {
+            return TryGetServiceUri(out serviceUri) &&
+                   string.Equals(serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}
