@@ -7,18 +7,6 @@ namespace DedicatedServerMod.Shared
         internal const int Version = 2;
     }
 
-    internal sealed class PublicListingRegistrationResponse
-    {
-        [JsonProperty("success")]
-        internal bool Success { get; set; }
-
-        [JsonProperty("listingId")]
-        internal string ListingId { get; set; } = string.Empty;
-
-        [JsonProperty("secret")]
-        internal string Secret { get; set; } = string.Empty;
-    }
-
     internal sealed class PublicListingHeartbeatRequest
     {
         [JsonProperty("protocolVersion")]

@@ -32,8 +32,8 @@ namespace DedicatedServerMod.Shared.Configuration
                     .Comment("Optional public discovery. Direct IP connections do not depend on this service.")
                     .Option(config => config.PublicListingEnabled, option => option.Comment("Publish this server while it is online. Disabled by default."))
                     .Option(config => config.PublicListingServiceUrl, option => option.Comment("HTTPS endpoint for the public server directory."))
-                    .Option(config => config.PublicListingId, option => option.Comment("Directory identity populated automatically after registration."))
-                    .Option(config => config.PublicListingSecret, option => option.Comment("Directory bearer secret populated automatically. Keep this credential private.")))
+                    .Option(config => config.PublicListingId, option => option.Comment("Directory identity issued at https://s1servers.com/server-portal."))
+                    .Option(config => config.PublicListingSecret, option => option.Comment("Directory secret issued by the server portal. Keep this credential private.")))
                 .Section("authentication", section => section
                     .Comment("Dedicated server authentication and client mod verification.")
                     .Option(config => config.AuthProvider, option => option.Comment("Authentication provider: 'SteamGameServer' for normal hosting, or 'None' for local development. Legacy 'SteamWebApi' values are migrated to 'SteamGameServer'."))

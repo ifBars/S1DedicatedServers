@@ -6,10 +6,10 @@ import {
   type ActiveServer,
   type ErrorResponse,
   type ListingRecord,
-  type RegisterListingResponse,
   type ServerListResponse,
 } from "./contracts";
-import { generateSecret, getConnectingIp, readBearerSecret, sha256Hex } from "./security";
+import { getConnectingIp, readBearerSecret, sha256Hex } from "./security";
+import { isPortalPath, routePortal } from "./portal";
 import { isKvMetadataWithinLimit, validateHeartbeat } from "./validation";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
@@ -33,12 +33,20 @@ export default {
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
 
+  if (!isHttpsRequest(request, url)) {
+    return errorResponse(400, "HTTPS_REQUIRED", "This endpoint requires HTTPS.");
+  }
+
   if (request.method === "GET" && url.pathname === "/health") {
     return json({ status: "ok", protocolVersion: API_VERSION });
   }
 
+  if (isPortalPath(url.pathname)) {
+    return routePortal(request, url, env);
+  }
+
   if (request.method === "POST" && url.pathname === "/api/v2/listings") {
-    return registerListing(request, env);
+    return errorResponse(403, "PORTAL_REQUIRED", "Create listing credentials at https://s1servers.com/server-portal.");
   }
 
   if (request.method === "GET" && url.pathname === "/api/v2/servers") {
@@ -58,32 +66,8 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   return errorResponse(404, "NOT_FOUND", "Endpoint not found.");
 }
 
-async function registerListing(request: Request, env: Env): Promise<Response> {
-  const sourceIp = getConnectingIp(request);
-  if (!sourceIp) {
-    return errorResponse(400, "MISSING_SOURCE_IP", "Cloudflare source address is unavailable.");
-  }
-
-  const rateLimit = await env.REGISTRATION_RATE_LIMITER.limit({ key: sourceIp });
-  if (!rateLimit.success) {
-    return errorResponse(429, "RATE_LIMITED", "Too many listing registrations from this address.");
-  }
-
-  const listingId = crypto.randomUUID();
-  const secret = generateSecret();
-  const secretHash = await sha256Hex(secret);
-  const now = Date.now();
-
-  await env.DB.prepare(
-    `INSERT INTO server_listings_v2
-      (id, secret_hash, state, created_at, updated_at, last_seen, last_persisted_at, last_ip)
-     VALUES (?, ?, 'active', ?, ?, NULL, NULL, ?)`,
-  )
-    .bind(listingId, secretHash, now, now, sourceIp)
-    .run();
-
-  console.log(JSON.stringify({ event: "listing_registered", listingId }));
-  return json<RegisterListingResponse>({ success: true, listingId, secret }, 201);
+function isHttpsRequest(request: Request, url: URL): boolean {
+  return url.protocol === "https:" || /"scheme"\s*:\s*"https"/i.test(request.headers.get("CF-Visitor") ?? "");
 }
 
 async function heartbeat(
@@ -104,6 +88,7 @@ async function heartbeat(
 
   const listing = await authenticateListing(request, listingId, env.DB);
   if (!listing) {
+    await env.SERVER_CACHE.delete(`${ACTIVE_SERVER_PREFIX}${listingId}`);
     return errorResponse(401, "UNAUTHORIZED", "Listing credentials are invalid or inactive.");
   }
 
@@ -210,7 +195,7 @@ async function authenticateListing(
     .prepare(
       `SELECT state, last_persisted_at
        FROM server_listings_v2
-       WHERE id = ? AND secret_hash = ? AND state = 'active'`,
+       WHERE id = ? AND secret_hash = ? AND state = 'active' AND operator_id IS NOT NULL`,
     )
     .bind(listingId, secretHash)
     .first<ListingRecord>();

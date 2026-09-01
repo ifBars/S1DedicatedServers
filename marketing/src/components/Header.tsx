@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 const navLinks = [
   { label: "Server Hosting", href: "https://docs.s1servers.com/docs/hosting-providers.html" },
   { label: "Config Generator", href: "/config-generator" },
+  { label: "Server Portal", href: "/server-portal" },
   { label: "Getting Started", href: "/#getting-started" },
   { label: "Docs", href: "https://docs.s1servers.com/" },
 ];

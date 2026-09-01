@@ -1,4 +1,7 @@
 const encoder = new TextEncoder();
+type TimingSafeSubtleCrypto = SubtleCrypto & {
+  timingSafeEqual(left: ArrayBuffer | ArrayBufferView, right: ArrayBuffer | ArrayBufferView): boolean;
+};
 
 export function generateSecret(byteLength = 32): string {
   const bytes = crypto.getRandomValues(new Uint8Array(byteLength));
@@ -13,6 +16,15 @@ export function generateSecret(byteLength = 32): string {
 export async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function secureEqual(left: string, right: string): Promise<boolean> {
+  const [leftHash, rightHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(left)),
+    crypto.subtle.digest("SHA-256", encoder.encode(right)),
+  ]);
+  // workerd exposes timingSafeEqual; Bun's ambient SubtleCrypto type currently omits the extension.
+  return (crypto.subtle as TimingSafeSubtleCrypto).timingSafeEqual(leftHash, rightHash);
 }
 
 export function readBearerSecret(request: Request): string | null {

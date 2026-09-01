@@ -15,6 +15,9 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  "vars": {
+    "PORTAL_ORIGIN": "https://s1servers.com"
+  },
   "d1_databases": [
     {
       "binding": "DB",

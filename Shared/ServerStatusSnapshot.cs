@@ -11,6 +11,16 @@ namespace DedicatedServerMod.Shared
     public sealed class ServerStatusSnapshot
     {
         /// <summary>
+        /// Gets or sets the public-directory protocol version implemented by this endpoint.
+        /// </summary>
+        public int ProtocolVersion { get; set; }
+
+        /// <summary>
+        /// Gets or sets the account-issued public listing identity bound to this server.
+        /// </summary>
+        public string ListingId { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the public server display name.
         /// </summary>
         public string ServerName { get; set; } = "Schedule One Dedicated Server";

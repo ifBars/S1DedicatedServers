@@ -39,15 +39,22 @@ namespace DedicatedServerMod.Server.Network
                 return;
             }
 
-            if (!TryGetServiceUri(out _))
+            if (!TryGetAuthenticatedServiceUri(out _))
             {
-                DebugLog.Warning("Public listing is enabled, but publicListingServiceUrl is not a valid HTTP or HTTPS endpoint.");
+                DebugLog.Warning("Public listing is enabled, but publicListingServiceUrl is not a valid HTTPS endpoint.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ServerConfig.Instance.PublicListingId) ||
+                string.IsNullOrWhiteSpace(ServerConfig.Instance.PublicListingSecret))
+            {
+                DebugLog.Warning("Public listing is enabled without credentials. Issue a listing key at https://s1servers.com/server-portal and add it to server_config.toml.");
                 return;
             }
 
             _isRunning = true;
             _heartbeatCoroutine = MelonCoroutines.Start(RunHeartbeatLoop());
-            DebugLog.Info("Public server listing enabled; starting background registration and heartbeat.");
+            DebugLog.Info("Public server listing enabled; starting five-minute heartbeats.");
         }
 
         internal void Shutdown()
@@ -80,7 +87,7 @@ namespace DedicatedServerMod.Server.Network
         {
             while (_isRunning)
             {
-                Task<bool> heartbeatTask = EnsureRegisteredAndSendHeartbeatAsync();
+                Task<bool> heartbeatTask = SendHeartbeatAsync(ServerConfig.Instance);
                 while (_isRunning && !heartbeatTask.IsCompleted)
                 {
                     yield return null;
@@ -96,63 +103,6 @@ namespace DedicatedServerMod.Server.Network
                     yield return new WaitForSecondsRealtime(HEARTBEAT_INTERVAL_SECONDS);
                 }
             }
-        }
-
-        private async Task<bool> EnsureRegisteredAndSendHeartbeatAsync()
-        {
-            ServerConfig config = ServerConfig.Instance;
-            if (string.IsNullOrWhiteSpace(config.PublicListingId) || string.IsNullOrWhiteSpace(config.PublicListingSecret))
-            {
-                if (!await RegisterAsync(config).ConfigureAwait(false))
-                {
-                    return false;
-                }
-            }
-
-            return await SendHeartbeatAsync(config).ConfigureAwait(false);
-        }
-
-        private async Task<bool> RegisterAsync(ServerConfig config)
-        {
-            if (!TryGetServiceUri(out Uri serviceUri))
-            {
-                return false;
-            }
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(serviceUri, "/api/v2/listings"))
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json")
-            };
-            using HttpResponseMessage response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                DebugLog.Warning($"Public listing registration returned HTTP {(int)response.StatusCode}.");
-                return false;
-            }
-
-            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            PublicListingRegistrationResponse registration;
-            try
-            {
-                registration = JsonConvert.DeserializeObject<PublicListingRegistrationResponse>(json);
-            }
-            catch (JsonException ex)
-            {
-                DebugLog.Warning($"Public listing registration returned malformed JSON: {ex.Message}");
-                return false;
-            }
-
-            if (registration == null || !registration.Success || string.IsNullOrWhiteSpace(registration.ListingId) || string.IsNullOrWhiteSpace(registration.Secret))
-            {
-                DebugLog.Warning("Public listing registration returned an invalid response.");
-                return false;
-            }
-
-            config.PublicListingId = registration.ListingId;
-            config.PublicListingSecret = registration.Secret;
-            ServerConfig.SaveConfig();
-            DebugLog.Info($"Public listing registration created identity {registration.ListingId}.");
-            return true;
         }
 
         private async Task<bool> SendHeartbeatAsync(ServerConfig config)
@@ -184,10 +134,7 @@ namespace DedicatedServerMod.Server.Network
             using HttpResponseMessage response = await _httpClient.SendAsync(request).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                DebugLog.Warning("Public listing credentials were rejected; a new identity will be registered on the next heartbeat.");
-                config.PublicListingId = string.Empty;
-                config.PublicListingSecret = string.Empty;
-                ServerConfig.SaveConfig();
+                DebugLog.Warning("Public listing credentials were rejected. Rotate or replace them at https://s1servers.com/server-portal.");
                 return false;
             }
 

@@ -185,6 +185,8 @@ namespace DedicatedServerMod.Server.Network
 
             return new ServerStatusSnapshot
             {
+                ProtocolVersion = PublicServerListProtocol.Version,
+                ListingId = config.PublicListingEnabled ? config.PublicListingId : string.Empty,
                 ServerName = config.ServerName,
                 ServerDescription = config.ServerDescription,
                 CurrentPlayers = currentPlayers,

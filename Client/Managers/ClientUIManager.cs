@@ -1372,7 +1372,9 @@ namespace DedicatedServerMod.Client.Managers
                     ? "request-canceled"
                     : task.Exception?.GetBaseException().Message ?? "unknown-error";
                 DebugLog.Warning($"Public server directory refresh failed: {publicDirectoryLastErrorForTest}");
-                if (dsPublicEmptyPlaceholder != null && publicServers.Count == 0)
+                publicServers.Clear();
+                RefreshServerLists();
+                if (dsPublicEmptyPlaceholder != null)
                 {
                     dsPublicEmptyPlaceholder.text = "Public server list unavailable. Direct connect still works.";
                 }
@@ -1381,26 +1383,25 @@ namespace DedicatedServerMod.Client.Managers
 
             publicDirectoryLastErrorForTest = null;
             publicServers.Clear();
-            publicServers.AddRange(task.Result);
             if (dsPublicEmptyPlaceholder != null)
             {
                 dsPublicEmptyPlaceholder.text = "No opted-in public servers are online.";
             }
             RefreshServerLists();
-            yield return VerifyPublicServersCoroutine();
+            yield return VerifyPublicServersCoroutine(task.Result);
         }
 
-        private IEnumerator VerifyPublicServersCoroutine()
+        private IEnumerator VerifyPublicServersCoroutine(IReadOnlyList<SavedServerEntry> candidates)
         {
             const int batchSize = 6;
-            for (int offset = 0; offset < publicServers.Count; offset += batchSize)
+            for (int offset = 0; offset < candidates.Count; offset += batchSize)
             {
                 var batch = new List<PublicStatusQueryWork>();
-                int end = Math.Min(publicServers.Count, offset + batchSize);
+                int end = Math.Min(candidates.Count, offset + batchSize);
                 for (int i = offset; i < end; i++)
                 {
-                    SavedServerEntry entry = publicServers[i];
-                    batch.Add(new PublicStatusQueryWork(entry, serverStatusQueryService.QueryAsync(entry.Host, entry.Port)));
+                    SavedServerEntry entry = candidates[i];
+                    batch.Add(new PublicStatusQueryWork(entry, serverStatusQueryService.QueryAsync(entry.Host, entry.Port, entry.Id)));
                 }
 
                 while (batch.Any(work => !work.Task.IsCompleted))
@@ -1420,10 +1421,7 @@ namespace DedicatedServerMod.Client.Managers
                         work.Entry.MaxPlayers = Math.Max(0, result.Snapshot.MaxPlayers);
                         work.Entry.StatusQueryMilliseconds = result.StatusQueryMilliseconds;
                         work.Entry.LastMetadataRefreshUtc = DateTime.UtcNow;
-                    }
-                    else
-                    {
-                        work.Entry.StatusQueryMilliseconds = -1;
+                        publicServers.Add(work.Entry);
                     }
                 }
 
