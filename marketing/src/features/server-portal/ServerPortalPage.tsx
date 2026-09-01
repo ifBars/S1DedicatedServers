@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Copy, KeyRound, LogOut, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Copy, Gamepad2, KeyRound, LogOut, MessageCircle, RefreshCw, Trash2 } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
+import webPanel from "@/assets/web-panel.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,7 +13,6 @@ import {
   getListings,
   getProviders,
   logout,
-  PortalApiError,
   revokeListing,
   rotateListing,
   type IssuedCredential,
@@ -33,7 +33,6 @@ const ServerPortalPage = () => {
     enabled: accountQuery.isSuccess,
     retry: false,
   });
-  const signedOut = accountQuery.error instanceof PortalApiError && accountQuery.error.status === 401;
 
   const refreshListings = () => queryClient.invalidateQueries({ queryKey: ["portal-listings"] });
   const createMutation = useMutation({
@@ -92,34 +91,22 @@ const ServerPortalPage = () => {
           </a>
         </div>
       </header>
-      <main className="mx-auto max-w-[1240px] px-4 pb-20 pt-12 md:px-8 md:pt-16">
-        <section className="grid gap-5 border-b border-[#2b3025] pb-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
-          <div>
-            <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9ac36d]">
-              <ShieldCheck size={16} /> Account-linked directory access
-            </div>
-            <h1 className="max-w-4xl text-[clamp(2.7rem,5vw,5.4rem)] font-semibold leading-[0.94] tracking-[-0.04em]">
-              Public listing portal
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-[#b7c9a5] md:text-lg">
-              Issue and revoke credentials for servers you choose to publish. Direct IP connections remain available without a listing.
+      {!accountQuery.data && (
+        <SignIn
+          providers={providersQuery.data}
+          loading={providersQuery.isLoading || accountQuery.isLoading}
+          authStatus={authStatus}
+        />
+      )}
+
+      {accountQuery.data && (
+        <main className="mx-auto max-w-[1240px] px-4 pb-20 pt-12 md:px-8 md:pt-16">
+          <section className="border-b border-[#2b3025] pb-8">
+            <h1 className="text-3xl font-semibold tracking-[-0.025em] md:text-4xl">Server listings</h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-[#9eae91]">
+              Create and revoke the keys that let your servers appear in the public list.
             </p>
-          </div>
-          <p className="border-l border-[#3b4235] pl-5 text-sm leading-6 text-[#87947c]">
-            A portal identity establishes operator accountability. It does not claim that a modified server binary is official or tamper-proof.
-          </p>
-        </section>
-
-        {authStatus && authStatus !== "signed_in" && (
-          <Notice tone="error">Sign-in did not complete ({authStatus.replaceAll("_", " ")}). Try again.</Notice>
-        )}
-
-        {accountQuery.isLoading && <Notice>Checking your operator session…</Notice>}
-        {(signedOut || (!accountQuery.isLoading && !accountQuery.data)) && (
-          <SignIn providers={providersQuery.data} loading={providersQuery.isLoading} />
-        )}
-
-        {accountQuery.data && (
+          </section>
           <div className="mt-9 grid gap-10">
             <section className="flex flex-col gap-4 border-b border-[#2b3025] pb-7 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -209,33 +196,87 @@ const ServerPortalPage = () => {
               {(rotateMutation.error || revokeMutation.error) && <MutationError error={rotateMutation.error ?? revokeMutation.error} />}
             </section>
           </div>
-        )}
-      </main>
+        </main>
+      )}
     </div>
   );
 };
 
-const SignIn = ({ providers, loading }: { providers?: Record<"discord" | "steam", boolean>; loading: boolean }) => (
-  <section className="mt-10 grid gap-8 border-y border-[#30352d] py-8 lg:grid-cols-[300px_minmax(0,1fr)]">
-    <div>
-      <h2 className="text-xl font-semibold">Identify the operator</h2>
-      <p className="mt-2 text-sm leading-6 text-[#87947c]">
-        Sign in through an existing account. The portal stores the provider identity, not the provider access token.
-      </p>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-2">
-      <ProviderLink href={authUrl("steam")} disabled={loading || providers?.steam !== true} label={providers?.steam ? "Continue with Steam" : "Steam availability pending"} />
-      <ProviderLink href={authUrl("discord")} disabled={loading || providers?.discord !== true} label={providers?.discord ? "Continue with Discord" : "Discord setup pending"} />
-    </div>
-  </section>
+const SignIn = ({
+  providers,
+  loading,
+  authStatus,
+}: {
+  providers?: Record<"discord" | "steam", boolean>;
+  loading: boolean;
+  authStatus: string | null;
+}) => (
+  <main className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[1440px] lg:grid-cols-[minmax(420px,0.82fr)_minmax(0,1.18fr)]">
+    <section className="flex items-center px-5 py-14 sm:px-10 lg:px-14 xl:px-20">
+      <div className="mx-auto w-full max-w-[430px]">
+        <p className="mb-5 text-sm font-medium text-[#9ac36d]">S1DS server owners</p>
+        <h1 className="text-[clamp(2.25rem,4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.04em]">
+          Manage your server listings
+        </h1>
+        <p className="mt-4 text-base leading-7 text-[#9eae91]">
+          Sign in to create or revoke public listing keys for your servers.
+        </p>
+
+        {authStatus && authStatus !== "signed_in" && (
+          <Notice tone="error">Sign-in did not complete ({authStatus.replaceAll("_", " ")}). Try again.</Notice>
+        )}
+
+        <div className="mt-9 grid gap-3">
+          <ProviderLink
+            href={authUrl("steam")}
+            disabled={loading || providers?.steam !== true}
+            label={providers?.steam ? "Continue with Steam" : "Checking Steam…"}
+            icon={<Gamepad2 size={19} strokeWidth={1.8} />}
+          />
+          <ProviderLink
+            href={authUrl("discord")}
+            disabled={loading || providers?.discord !== true}
+            label={providers?.discord ? "Continue with Discord" : "Discord sign-in coming soon"}
+            icon={<MessageCircle size={19} strokeWidth={1.8} />}
+          />
+        </div>
+
+        <p className="mt-6 text-xs leading-5 text-[#65705f]">
+          We keep your provider account ID, not your provider access token.
+        </p>
+      </div>
+    </section>
+
+    <aside className="relative hidden min-h-[660px] overflow-hidden border-l border-[#2b3025] bg-[#171a14] lg:block">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(154,195,109,0.16),transparent_34%),linear-gradient(150deg,#1d2419_0%,#11130f_72%)]" />
+      <div className="relative flex h-full flex-col justify-between px-10 py-12 xl:px-14 xl:py-14">
+        <div className="max-w-md">
+          <h2 className="text-2xl font-semibold tracking-[-0.025em]">Your server, when you want it found.</h2>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-[#9eae91]">
+            Public listings are optional. Direct IP connections keep working either way.
+          </p>
+        </div>
+        <div className="relative mt-12 h-[410px] overflow-hidden border border-[#394034] bg-[#080b12] shadow-[0_28px_80px_rgba(0,0,0,0.38)]">
+          <img
+            src={webPanel}
+            alt="S1DS dedicated server control panel"
+            className="h-full w-full object-cover object-left-top"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#10130e]/35 via-transparent to-transparent" />
+        </div>
+      </div>
+    </aside>
+  </main>
 );
 
-const ProviderLink = ({ href, disabled, label }: { href: string; disabled: boolean; label: string }) =>
+const ProviderLink = ({ href, disabled, label, icon }: { href: string; disabled: boolean; label: string; icon: React.ReactNode }) =>
   disabled ? (
-    <span className="flex min-h-14 items-center justify-center border border-[#2b3025] px-4 text-sm text-[#65705f]">{label}</span>
+    <span aria-disabled="true" className="flex min-h-[52px] items-center justify-center gap-3 border border-[#2b3025] bg-[#131510] px-4 text-sm text-[#65705f]">
+      {icon} {label}
+    </span>
   ) : (
-    <a href={href} className="flex min-h-14 items-center justify-center border border-[#4b5740] bg-[#171a14] px-4 text-sm font-semibold text-[#e8f2dc] transition-colors hover:border-[#9ac36d] hover:bg-[#1d2218]">
-      {label}
+    <a href={href} className="flex min-h-[52px] items-center justify-center gap-3 border border-[#4b5740] bg-[#e8f2dc] px-4 text-sm font-semibold text-[#12150f] transition-colors hover:border-[#b5db8c] hover:bg-[#f4f8ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ac36d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#10110f]">
+      {icon} {label}
     </a>
   );
 
