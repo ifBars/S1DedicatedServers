@@ -2,6 +2,7 @@ export const API_VERSION = 2;
 export const ACTIVE_SERVER_PREFIX = "v2:active:";
 export const ACTIVE_SERVER_TTL_SECONDS = 15 * 60;
 export const MAX_REQUEST_BYTES = 16 * 1024;
+export const MAX_KV_METADATA_BYTES = 1024;
 
 export interface RegisterListingResponse {
   success: true;

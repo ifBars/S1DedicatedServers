@@ -15,20 +15,31 @@ namespace DedicatedServerMod.Client.Managers
     internal sealed class ServerStatusQueryService
     {
         private const string StatusRequestCommand = "DS_STATUS";
+        private const int QueryTimeoutMilliseconds = 2500;
 
-        internal Task<ServerStatusQueryResult> QueryAsync(string host, int port)
-        {
-            return Task.Run(() => Query(host, port));
-        }
-
-        private static ServerStatusQueryResult Query(string host, int port)
+        internal async Task<ServerStatusQueryResult> QueryAsync(string host, int port)
         {
             using var client = new TcpClient();
-            client.SendTimeout = 2500;
-            client.ReceiveTimeout = 2500;
+            client.SendTimeout = QueryTimeoutMilliseconds;
+            client.ReceiveTimeout = QueryTimeoutMilliseconds;
+
             var connectStopwatch = Stopwatch.StartNew();
-            client.Connect(host, port);
+            Task connectTask = client.ConnectAsync(host, port);
+            Task completedTask = await Task.WhenAny(connectTask, Task.Delay(QueryTimeoutMilliseconds)).ConfigureAwait(false);
+            if (completedTask != connectTask)
+            {
+                _ = connectTask.ContinueWith(
+                    task =>
+                    {
+                        _ = task.Exception;
+                    },
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+                throw new TimeoutException($"Status query connection to {host}:{port} timed out.");
+            }
+
+            await connectTask.ConfigureAwait(false);
             connectStopwatch.Stop();
+            int connectMilliseconds = (int)Math.Max(0, connectStopwatch.ElapsedMilliseconds);
 
             using NetworkStream stream = client.GetStream();
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), 1024, true) { AutoFlush = true };
@@ -41,7 +52,7 @@ namespace DedicatedServerMod.Client.Managers
                 throw new InvalidOperationException("Server returned an empty status response.");
             }
 
-            return new ServerStatusQueryResult(snapshot, (int)Math.Max(0, connectStopwatch.ElapsedMilliseconds));
+            return new ServerStatusQueryResult(snapshot, connectMilliseconds);
         }
 
         private static string SendCommand(string host, int port, string command, int receiveTimeoutMs)

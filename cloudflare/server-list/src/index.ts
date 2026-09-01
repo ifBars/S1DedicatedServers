@@ -10,7 +10,7 @@ import {
   type ServerListResponse,
 } from "./contracts";
 import { generateSecret, getConnectingIp, readBearerSecret, sha256Hex } from "./security";
-import { validateHeartbeat } from "./validation";
+import { isKvMetadataWithinLimit, validateHeartbeat } from "./validation";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 const PERSIST_LAST_SEEN_INTERVAL_MS = 15 * 60 * 1000;
@@ -120,8 +120,12 @@ async function heartbeat(
     host: sourceIp,
     lastHeartbeat: now,
   };
+  const serializedActiveServer = JSON.stringify(activeServer);
+  if (!isKvMetadataWithinLimit(serializedActiveServer)) {
+    return errorResponse(400, "INVALID_HEARTBEAT", "Heartbeat metadata exceeds the directory storage limit.");
+  }
 
-  await env.SERVER_CACHE.put(`${ACTIVE_SERVER_PREFIX}${listingId}`, JSON.stringify(activeServer), {
+  await env.SERVER_CACHE.put(`${ACTIVE_SERVER_PREFIX}${listingId}`, serializedActiveServer, {
     expirationTtl: ACTIVE_SERVER_TTL_SECONDS,
     metadata: activeServer,
   });

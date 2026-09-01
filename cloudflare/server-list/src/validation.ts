@@ -1,4 +1,4 @@
-import { API_VERSION, type ActiveServer, type HeartbeatRequest } from "./contracts";
+import { API_VERSION, MAX_KV_METADATA_BYTES, type ActiveServer, type HeartbeatRequest } from "./contracts";
 
 export type HeartbeatValidationResult =
   | { success: true; server: Omit<ActiveServer, "listingId" | "host" | "lastHeartbeat"> }
@@ -56,6 +56,10 @@ export function validateHeartbeat(value: unknown): HeartbeatValidationResult {
       modVersion,
     },
   };
+}
+
+export function isKvMetadataWithinLimit(serializedMetadata: string): boolean {
+  return new TextEncoder().encode(serializedMetadata).byteLength <= MAX_KV_METADATA_BYTES;
 }
 
 function normalizeText(value: unknown, maxLength: number): string {

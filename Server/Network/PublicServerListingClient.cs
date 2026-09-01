@@ -67,6 +67,9 @@ namespace DedicatedServerMod.Server.Network
             TryRemovePresence();
         }
 
+        /// <summary>
+        /// Stops public listing heartbeats, attempts to remove the active presence, and releases HTTP resources.
+        /// </summary>
         public void Dispose()
         {
             Shutdown();
@@ -128,7 +131,17 @@ namespace DedicatedServerMod.Server.Network
             }
 
             string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            PublicListingRegistrationResponse registration = JsonConvert.DeserializeObject<PublicListingRegistrationResponse>(json);
+            PublicListingRegistrationResponse registration;
+            try
+            {
+                registration = JsonConvert.DeserializeObject<PublicListingRegistrationResponse>(json);
+            }
+            catch (JsonException ex)
+            {
+                DebugLog.Warning($"Public listing registration returned malformed JSON: {ex.Message}");
+                return false;
+            }
+
             if (registration == null || !registration.Success || string.IsNullOrWhiteSpace(registration.ListingId) || string.IsNullOrWhiteSpace(registration.Secret))
             {
                 DebugLog.Warning("Public listing registration returned an invalid response.");
@@ -144,8 +157,9 @@ namespace DedicatedServerMod.Server.Network
 
         private async Task<bool> SendHeartbeatAsync(ServerConfig config)
         {
-            if (!TryGetServiceUri(out Uri serviceUri))
+            if (!TryGetAuthenticatedServiceUri(out Uri serviceUri))
             {
+                DebugLog.Warning("Public listing heartbeats require an HTTPS publicListingServiceUrl because they carry a reusable credential.");
                 return false;
             }
 
@@ -190,7 +204,7 @@ namespace DedicatedServerMod.Server.Network
         private void TryRemovePresence()
         {
             ServerConfig config = ServerConfig.Instance;
-            if (string.IsNullOrWhiteSpace(config.PublicListingId) || string.IsNullOrWhiteSpace(config.PublicListingSecret) || !TryGetServiceUri(out Uri serviceUri))
+            if (string.IsNullOrWhiteSpace(config.PublicListingId) || string.IsNullOrWhiteSpace(config.PublicListingSecret) || !TryGetAuthenticatedServiceUri(out Uri serviceUri))
             {
                 return;
             }
@@ -224,6 +238,12 @@ namespace DedicatedServerMod.Server.Network
 
             return string.Equals(serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
                    (string.Equals(serviceUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) && serviceUri.IsLoopback);
+        }
+
+        private static bool TryGetAuthenticatedServiceUri(out Uri serviceUri)
+        {
+            return TryGetServiceUri(out serviceUri) &&
+                   string.Equals(serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

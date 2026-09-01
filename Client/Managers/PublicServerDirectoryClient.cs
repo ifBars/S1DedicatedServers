@@ -29,8 +29,17 @@ namespace DedicatedServerMod.Client.Managers
                 response.EnsureSuccessStatusCode();
 
                 string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                PublicServerListResponse pageResponse = JsonConvert.DeserializeObject<PublicServerListResponse>(json);
-                if (pageResponse == null || !pageResponse.Success)
+                PublicServerListResponse pageResponse;
+                try
+                {
+                    pageResponse = JsonConvert.DeserializeObject<PublicServerListResponse>(json);
+                }
+                catch (JsonException ex)
+                {
+                    throw new InvalidOperationException("Public server directory returned malformed JSON.", ex);
+                }
+
+                if (pageResponse == null || !pageResponse.Success || pageResponse.Servers == null)
                 {
                     throw new InvalidOperationException("Public server directory returned an invalid response.");
                 }
@@ -74,6 +83,9 @@ namespace DedicatedServerMod.Client.Managers
                 .ToList();
         }
 
+        /// <summary>
+        /// Releases the HTTP resources used to query the public server directory.
+        /// </summary>
         public void Dispose()
         {
             _httpClient.Dispose();

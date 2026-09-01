@@ -56,6 +56,7 @@ namespace DedicatedServerMod.Client.Core
             float startedAt = Time.realtimeSinceStartup;
             bool publicTabVisible = false;
             bool publicTabLogged = false;
+            bool expectedServerVerified = false;
             while (_enabled && Time.realtimeSinceStartup - startedAt < _options.TimeoutSeconds)
             {
                 if (!publicTabVisible)
@@ -83,6 +84,7 @@ namespace DedicatedServerMod.Client.Core
                     }
 
                     Log($"PHASE expected-server-visible serverCount={_uiManager.PublicServerCountForTest}");
+                    expectedServerVerified = true;
                     break;
                 }
 
@@ -97,6 +99,12 @@ namespace DedicatedServerMod.Client.Core
             if (!publicTabVisible)
             {
                 Complete($"FAIL|reason=public-tab-unavailable|scene={SceneManager.GetActiveScene().name}", 2);
+                yield break;
+            }
+
+            if (!expectedServerVerified)
+            {
+                Complete($"FAIL|reason=expected-server-verification-timeout|serverCount={_uiManager.PublicServerCountForTest}|expectedServer={_options.ExpectedServerName}", 2);
                 yield break;
             }
 
@@ -120,7 +128,15 @@ namespace DedicatedServerMod.Client.Core
 
             yield return new WaitForSecondsRealtime(1f);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(_options.ScreenshotPath) ?? ".");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_options.ScreenshotPath) ?? ".");
+            }
+            catch (Exception ex)
+            {
+                Complete($"FAIL|reason=screenshot-directory-unavailable|error={ex.GetBaseException().Message}", 2);
+                yield break;
+            }
 #if IL2CPP
             ScreenCapture.CaptureScreenshot(_options.ScreenshotPath);
 #else
@@ -205,8 +221,15 @@ namespace DedicatedServerMod.Client.Core
 
             _completed = true;
             Log(result);
-            Directory.CreateDirectory(Path.GetDirectoryName(_options.ResultPath) ?? ".");
-            File.WriteAllText(_options.ResultPath, result);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_options.ResultPath) ?? ".");
+                File.WriteAllText(_options.ResultPath, result);
+            }
+            catch (Exception ex)
+            {
+                DebugLog.Warning($"[PUBLIC_LIST_TEST] Could not write result file: {ex.GetBaseException().Message}");
+            }
 
             if (!_options.QuitOnComplete)
             {

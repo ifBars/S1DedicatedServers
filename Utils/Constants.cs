@@ -46,8 +46,12 @@ namespace DedicatedServerMod.Utils
         public const int DefaultServerPort = 38465;
 
         /// <summary>
-        /// Default endpoint for the opt-in public server directory prototype.
+        /// Gets the default HTTPS endpoint for the opt-in public server directory prototype.
         /// </summary>
+        /// <remarks>
+        /// Servers use this endpoint only when public listing is explicitly enabled. Direct IP and port
+        /// connections do not depend on this service.
+        /// </remarks>
         public const string DefaultPublicServerListServiceUrl = "https://s1-server-list-v2-prototype.ifbars.workers.dev";
 
         /// <summary>
