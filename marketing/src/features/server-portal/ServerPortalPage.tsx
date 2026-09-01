@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, KeyRound, LogOut, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
+import { ArrowLeft, Check, Copy, KeyRound, LogOut, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -81,8 +80,19 @@ const ServerPortalPage = () => {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#10110f] text-[#f4eddf]">
-      <Header />
-      <main className="mx-auto max-w-[1240px] px-4 pb-24 pt-24 md:px-8">
+      <header className="border-b border-[#252a22]">
+        <div className="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-4 md:px-8">
+          <a href="/" className="flex items-center gap-2.5">
+            <img src={logoIcon} alt="S1DedicatedServers logo" className="h-7 w-7" />
+            <span className="text-sm font-semibold tracking-tight">S1DS</span>
+            <span className="hidden text-xs text-[#65705f] sm:inline">Operator portal</span>
+          </a>
+          <a href="/" className="inline-flex items-center gap-2 text-sm text-[#87947c] transition-colors hover:text-[#f4eddf]">
+            <ArrowLeft size={15} /> Back to site
+          </a>
+        </div>
+      </header>
+      <main className="mx-auto max-w-[1240px] px-4 pb-20 pt-12 md:px-8 md:pt-16">
         <section className="grid gap-5 border-b border-[#2b3025] pb-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
           <div>
             <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9ac36d]">
@@ -201,7 +211,6 @@ const ServerPortalPage = () => {
           </div>
         )}
       </main>
-      <Footer />
     </div>
   );
 };
