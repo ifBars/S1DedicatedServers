@@ -15,18 +15,18 @@ namespace DedicatedServerMod.Client.Managers
     internal sealed class ServerStatusQueryService
     {
         private const string StatusRequestCommand = "DS_STATUS";
-        private const int QueryTimeoutMilliseconds = 2500;
-        private const int MaxResponseBytes = 16 * 1024;
+        private const int QUERY_TIMEOUT_MILLISECONDS = 2500;
+        private const int MAX_RESPONSE_BYTES = 16 * 1024;
 
         internal async Task<ServerStatusQueryResult> QueryAsync(string host, int port, string expectedListingId = null)
         {
             using var client = new TcpClient();
-            client.SendTimeout = QueryTimeoutMilliseconds;
-            client.ReceiveTimeout = QueryTimeoutMilliseconds;
+            client.SendTimeout = QUERY_TIMEOUT_MILLISECONDS;
+            client.ReceiveTimeout = QUERY_TIMEOUT_MILLISECONDS;
 
             var connectStopwatch = Stopwatch.StartNew();
             Task connectTask = client.ConnectAsync(host, port);
-            Task completedTask = await Task.WhenAny(connectTask, Task.Delay(QueryTimeoutMilliseconds)).ConfigureAwait(false);
+            Task completedTask = await Task.WhenAny(connectTask, Task.Delay(QUERY_TIMEOUT_MILLISECONDS)).ConfigureAwait(false);
             if (completedTask != connectTask)
             {
                 _ = connectTask.ContinueWith(
@@ -45,7 +45,7 @@ namespace DedicatedServerMod.Client.Managers
             using NetworkStream stream = client.GetStream();
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), 1024, true) { AutoFlush = true };
             writer.WriteLine(StatusRequestCommand);
-            string json = await ReadBoundedLineAsync(stream, QueryTimeoutMilliseconds - (int)connectStopwatch.ElapsedMilliseconds).ConfigureAwait(false);
+            string json = await ReadBoundedLineAsync(stream, QUERY_TIMEOUT_MILLISECONDS - (int)connectStopwatch.ElapsedMilliseconds).ConfigureAwait(false);
             ServerStatusSnapshot snapshot = JsonConvert.DeserializeObject<ServerStatusSnapshot>(json ?? string.Empty);
             if (snapshot == null)
             {
@@ -72,7 +72,7 @@ namespace DedicatedServerMod.Client.Managers
             var deadline = Stopwatch.StartNew();
             using var buffer = new MemoryStream();
             var chunk = new byte[1024];
-            while (buffer.Length <= MaxResponseBytes)
+            while (buffer.Length <= MAX_RESPONSE_BYTES)
             {
                 int waitMilliseconds = remainingMilliseconds - (int)deadline.ElapsedMilliseconds;
                 if (waitMilliseconds <= 0)
@@ -98,9 +98,9 @@ namespace DedicatedServerMod.Client.Managers
 
                 int newline = Array.IndexOf(chunk, (byte)'\n', 0, count);
                 int bytesToWrite = newline >= 0 ? newline : count;
-                if (buffer.Length + bytesToWrite > MaxResponseBytes)
+                if (buffer.Length + bytesToWrite > MAX_RESPONSE_BYTES)
                 {
-                    throw new InvalidDataException($"Status query response exceeded {MaxResponseBytes} bytes.");
+                    throw new InvalidDataException($"Status query response exceeded {MAX_RESPONSE_BYTES} bytes.");
                 }
                 buffer.Write(chunk, 0, bytesToWrite);
                 if (newline >= 0)
@@ -111,7 +111,7 @@ namespace DedicatedServerMod.Client.Managers
                 }
             }
 
-            throw new InvalidDataException($"Status query response exceeded {MaxResponseBytes} bytes.");
+            throw new InvalidDataException($"Status query response exceeded {MAX_RESPONSE_BYTES} bytes.");
         }
 
         private static string SendCommand(string host, int port, string command, int receiveTimeoutMs)

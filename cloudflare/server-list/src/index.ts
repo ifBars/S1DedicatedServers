@@ -94,7 +94,6 @@ async function heartbeat(
 
   const listing = await authenticateListing(request, listingId, env.DB);
   if (!listing) {
-    await env.SERVER_CACHE.delete(`${ACTIVE_SERVER_PREFIX}${listingId}`);
     return errorResponse(401, "UNAUTHORIZED", "Listing credentials are invalid or inactive.");
   }
 

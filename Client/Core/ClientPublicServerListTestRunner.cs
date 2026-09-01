@@ -139,12 +139,15 @@ namespace DedicatedServerMod.Client.Core
             }
 #if IL2CPP
             ScreenCapture.CaptureScreenshot(_options.ScreenshotPath);
-#else
+#elif MONO
             if (!TryCaptureScreenshot(_options.ScreenshotPath, out string captureError))
             {
                 Complete($"FAIL|reason=screenshot-capture-unavailable|error={captureError}", 2);
                 yield break;
             }
+#else
+            Complete("FAIL|reason=screenshot-capture-unsupported-runtime", 2);
+            yield break;
 #endif
             float screenshotStartedAt = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - screenshotStartedAt < 10f)
@@ -154,8 +157,10 @@ namespace DedicatedServerMod.Client.Core
                     string runtime =
 #if IL2CPP
                         "Il2Cpp";
-#else
+#elif MONO
                         "Mono";
+#else
+                        "Unsupported";
 #endif
                     Complete(
                         $"PASS|runtime={runtime}|scene={SceneManager.GetActiveScene().name}|serverCount={_uiManager.PublicServerCountForTest}|expectedServer={_options.ExpectedServerName}|screenshot={_options.ScreenshotPath}",
@@ -169,7 +174,7 @@ namespace DedicatedServerMod.Client.Core
             Complete("FAIL|reason=screenshot-timeout", 2);
         }
 
-#if !IL2CPP
+#if MONO
         private static bool TryCaptureScreenshot(string path, out string error)
         {
             const string screenCaptureTypeName = "UnityEngine.ScreenCapture";

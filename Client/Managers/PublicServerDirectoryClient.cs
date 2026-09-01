@@ -86,6 +86,17 @@ namespace DedicatedServerMod.Client.Managers
         /// <summary>
         /// Releases the HTTP resources used to query the public server directory.
         /// </summary>
+        /// <remarks>
+        /// Call this method when the client UI manager shuts down. Reusing this instance after
+        /// disposal is not supported.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var directory = new PublicServerDirectoryClient();
+        /// try { /* query the directory */ }
+        /// finally { directory.Dispose(); }
+        /// </code>
+        /// </example>
         public void Dispose()
         {
             _httpClient.Dispose();
