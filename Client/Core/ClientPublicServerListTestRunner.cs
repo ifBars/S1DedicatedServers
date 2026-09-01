@@ -121,7 +121,15 @@ namespace DedicatedServerMod.Client.Core
             yield return new WaitForSecondsRealtime(1f);
 
             Directory.CreateDirectory(Path.GetDirectoryName(_options.ScreenshotPath) ?? ".");
+#if IL2CPP
             ScreenCapture.CaptureScreenshot(_options.ScreenshotPath);
+#else
+            if (!TryCaptureScreenshot(_options.ScreenshotPath, out string captureError))
+            {
+                Complete($"FAIL|reason=screenshot-capture-unavailable|error={captureError}", 2);
+                yield break;
+            }
+#endif
             float screenshotStartedAt = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - screenshotStartedAt < 10f)
             {
@@ -144,6 +152,49 @@ namespace DedicatedServerMod.Client.Core
 
             Complete("FAIL|reason=screenshot-timeout", 2);
         }
+
+#if !IL2CPP
+        private static bool TryCaptureScreenshot(string path, out string error)
+        {
+            const string screenCaptureTypeName = "UnityEngine.ScreenCapture";
+            Type screenCaptureType = Type.GetType($"{screenCaptureTypeName}, UnityEngine.ScreenCaptureModule");
+            if (screenCaptureType == null)
+            {
+                foreach (System.Reflection.Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    screenCaptureType = assembly.GetType(screenCaptureTypeName, false);
+                    if (screenCaptureType != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            System.Reflection.MethodInfo captureMethod = screenCaptureType?.GetMethod(
+                "CaptureScreenshot",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                null,
+                new[] { typeof(string) },
+                null);
+            if (captureMethod == null)
+            {
+                error = "UnityEngine.ScreenCapture.CaptureScreenshot(string)-not-found";
+                return false;
+            }
+
+            try
+            {
+                captureMethod.Invoke(null, new object[] { path });
+                error = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.GetBaseException().Message;
+                return false;
+            }
+        }
+#endif
 
         private void Complete(string result, int exitCode)
         {
