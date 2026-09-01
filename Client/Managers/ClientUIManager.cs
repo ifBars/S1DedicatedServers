@@ -1209,20 +1209,14 @@ namespace DedicatedServerMod.Client.Managers
 
         private void EnsurePublicServerTab()
         {
+            bool createdPublicButton = false;
             if (dsPublicButton == null && dsHistoryButton != null)
             {
                 GameObject buttonObject = GameObject.Instantiate(dsHistoryButton.gameObject, dsHistoryButton.transform.parent);
                 buttonObject.name = "PublicButton";
                 buttonObject.transform.SetSiblingIndex(dsHistoryButton.transform.GetSiblingIndex() + 1);
                 dsPublicButton = buttonObject.GetComponent<Button>();
-                RectTransform historyRect = dsHistoryButton.GetComponent<RectTransform>();
-                RectTransform publicRect = buttonObject.GetComponent<RectTransform>();
-                LayoutGroup tabLayout = dsHistoryButton.transform.parent?.GetComponent<LayoutGroup>();
-                if (tabLayout == null && historyRect != null && publicRect != null)
-                {
-                    publicRect.anchoredPosition = historyRect.anchoredPosition + new Vector2(historyRect.rect.width + 8f, 0f);
-                }
-
+                createdPublicButton = true;
                 TMP_Text label = buttonObject.GetComponentInChildren<TMP_Text>(true);
                 if (label != null)
                 {
@@ -1244,6 +1238,54 @@ namespace DedicatedServerMod.Client.Managers
                 }
                 dsPublicListPanel.gameObject.SetActive(false);
             }
+
+            if (createdPublicButton)
+            {
+                LayoutServerBrowserTabs();
+            }
+        }
+
+        private void LayoutServerBrowserTabs()
+        {
+            RectTransform favoritesRect = dsFavoritesButton?.GetComponent<RectTransform>();
+            RectTransform historyRect = dsHistoryButton?.GetComponent<RectTransform>();
+            RectTransform publicRect = dsPublicButton?.GetComponent<RectTransform>();
+            RectTransform tabContainer = historyRect?.parent?.GetComponent<RectTransform>();
+            RectTransform listRect = dsFavoritesListPanel?.GetComponent<RectTransform>();
+            if (favoritesRect == null ||
+                historyRect == null ||
+                publicRect == null ||
+                tabContainer == null ||
+                listRect == null)
+            {
+                return;
+            }
+
+            Canvas.ForceUpdateCanvases();
+
+            float favoritesCenter = tabContainer.InverseTransformPoint(favoritesRect.TransformPoint(favoritesRect.rect.center)).x;
+            float historyCenter = tabContainer.InverseTransformPoint(historyRect.TransformPoint(historyRect.rect.center)).x;
+            float tabStep = Mathf.Abs(historyCenter - favoritesCenter);
+            float gap = Mathf.Max(0f, tabStep - ((favoritesRect.rect.width + historyRect.rect.width) * 0.5f));
+            float originalContentWidth = favoritesRect.rect.width + gap + historyRect.rect.width;
+            float horizontalPadding = Mathf.Max(0f, tabContainer.rect.width - originalContentWidth);
+            float targetContainerWidth = favoritesRect.rect.width +
+                                         historyRect.rect.width +
+                                         publicRect.rect.width +
+                                         (gap * 2f) +
+                                         horizontalPadding;
+            tabContainer.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, targetContainerWidth);
+
+            publicRect.anchoredPosition = historyRect.anchoredPosition + new Vector2(tabStep, 0f);
+
+            float leftEdge = favoritesRect.anchoredPosition.x - (favoritesRect.rect.width * 0.5f);
+            float rightEdge = publicRect.anchoredPosition.x + (publicRect.rect.width * 0.5f);
+            float groupCenter = (leftEdge + rightEdge) * 0.5f;
+            float listCenter = tabContainer.InverseTransformPoint(listRect.TransformPoint(listRect.rect.center)).x;
+            float centerOffset = listCenter - groupCenter;
+            favoritesRect.anchoredPosition += new Vector2(centerOffset, 0f);
+            historyRect.anchoredPosition += new Vector2(centerOffset, 0f);
+            publicRect.anchoredPosition += new Vector2(centerOffset, 0f);
         }
 
         private void SetActiveTab(ServerBrowserTab tab)
