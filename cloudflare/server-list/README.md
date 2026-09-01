@@ -1,4 +1,4 @@
-# Public Server List Worker Prototype
+# Public Server List Worker
 
 This Worker provides opt-in discovery for DedicatedServerMod. It does not proxy game traffic and it is not required for direct IP connections.
 
@@ -22,7 +22,7 @@ bunx wrangler d1 migrations apply s1-servers --local
 bun run dev
 ```
 
-Do not apply the migration remotely or deploy the Worker until the prototype contract and client UI have been accepted.
+Production traffic is served from `https://list.s1servers.com`. Wrangler manages the custom-domain DNS record and certificate from `wrangler.jsonc`; the `workers.dev` route is disabled.
 
 ## API
 

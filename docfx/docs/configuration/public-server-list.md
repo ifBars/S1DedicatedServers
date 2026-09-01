@@ -16,7 +16,7 @@ Set `publicListingEnabled` under `[publicListing]`:
 ```toml
 [publicListing]
 publicListingEnabled = true
-publicListingServiceUrl = 'https://s1-server-list-v2-prototype.ifbars.workers.dev'
+publicListingServiceUrl = 'https://list.s1servers.com'
 publicListingId = ''
 publicListingSecret = ''
 ```
