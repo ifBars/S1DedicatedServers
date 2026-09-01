@@ -7,6 +7,8 @@ description: Opt a DedicatedServerMod server into public discovery while keeping
 
 Public discovery is optional and disabled by default. A server that does not opt in can still be reached by IP and port, saved as a favorite, and shown in client history.
 
+![Favorites, History, and Public tabs centered above the server list](../assets/public-server-list-tabs.png)
+
 ## Enable Listing
 
 Set `publicListingEnabled` under `[publicListing]`:
