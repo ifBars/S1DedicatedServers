@@ -43,6 +43,7 @@ namespace DedicatedServerMod.Server.Core
         private static WebPanelManager _webPanelManager;
         private static SteamNetworkLibCompatService _steamNetworkLibCompatService;
         private static ServerStatusQueryService _serverStatusQueryService;
+        private static PublicServerListingClient _publicServerListingClient;
         
         // Server state
         private static bool _autoStartServer = false;
@@ -180,6 +181,7 @@ namespace DedicatedServerMod.Server.Core
             _hostConsoleManager.Start();
             TryStartWebPanel();
             TryStartStatusQueryService();
+            _publicServerListingClient = new PublicServerListingClient(_logger, _playerManager);
             
             // Step 10: Wire up player events with persistence
             WirePlayerEvents();
@@ -401,6 +403,7 @@ namespace DedicatedServerMod.Server.Core
                 try { _webPanelManager?.Dispose(); } catch { }
                 try { _hostConsoleManager?.Dispose(); } catch { }
                 _serverStatusQueryService?.Shutdown();
+                _publicServerListingClient?.Dispose();
                 _gameSystemManager?.Shutdown();
                 _persistenceManager?.Shutdown();
                 _commandManager?.Shutdown();
@@ -439,6 +442,11 @@ namespace DedicatedServerMod.Server.Core
             {
                 DebugLog.Warning($"Status query service failed to start: {ex.Message}");
             }
+        }
+
+        internal static void StartPublicListing()
+        {
+            _publicServerListingClient?.Start();
         }
 
         private void TryStartWebPanel()

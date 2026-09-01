@@ -59,12 +59,17 @@ namespace DedicatedServerMod.Client.Managers
         private Button dsHistoryButton;
         private Transform dsFavoritesListPanel;
         private Transform dsHistoryListPanel;
+        private Transform dsPublicListPanel;
         private Transform dsFavoritesContent;
         private Transform dsHistoryContent;
+        private Transform dsPublicContent;
         private GameObject dsFavoritesEntryTemplate;
         private GameObject dsHistoryEntryTemplate;
+        private GameObject dsPublicEntryTemplate;
         private TMP_Text dsFavoritesEmptyPlaceholder;
         private TMP_Text dsHistoryEmptyPlaceholder;
+        private TMP_Text dsPublicEmptyPlaceholder;
+        private Button dsPublicButton;
         private GameObject dsAddServerPanel;
         private TMP_Text dsAddServerTitleText;
         private TMP_Text dsAddServerStatusText;
@@ -77,9 +82,13 @@ namespace DedicatedServerMod.Client.Managers
         private string pendingHistoryName;
         private readonly List<GameObject> spawnedFavoriteEntries = new List<GameObject>();
         private readonly List<GameObject> spawnedHistoryEntries = new List<GameObject>();
+        private readonly List<GameObject> spawnedPublicEntries = new List<GameObject>();
+        private readonly List<SavedServerEntry> publicServers = new List<SavedServerEntry>();
         private readonly ClientServerListRepository serverListRepository;
         private readonly ServerStatusQueryService serverStatusQueryService = new ServerStatusQueryService();
+        private readonly PublicServerDirectoryClient publicServerDirectoryClient = new PublicServerDirectoryClient();
         private readonly HashSet<string> statusQueriesInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private bool publicDirectoryRefreshInFlight;
         private object pendingMenuCursorRestoreCoroutine;
         private ServerBrowserTab activeTab = ServerBrowserTab.Favorites;
         private float gameplayPingSampleTimer;
@@ -501,6 +510,7 @@ namespace DedicatedServerMod.Client.Managers
                 serverListRepository.Changed -= OnServerListRepositoryChanged;
                 connectionManager.DedicatedServerConnected -= OnDedicatedServerConnected;
                 ServerDataStore.OnUpdated -= OnServerDataUpdated;
+                publicServerDirectoryClient.Dispose();
 
                 if (serversButton != null)
                 {
@@ -536,6 +546,8 @@ namespace DedicatedServerMod.Client.Managers
                 }
                 spawnedFavoriteEntries.Clear();
                 spawnedHistoryEntries.Clear();
+                spawnedPublicEntries.Clear();
+                publicServers.Clear();
                 if (dedicatedUiBundle != null)
                 {
                     try { dedicatedUiBundle.Unload(false); } catch { }
@@ -655,14 +667,19 @@ namespace DedicatedServerMod.Client.Managers
                 dsRefreshButton = null;
                 dsFavoritesButton = null;
                 dsHistoryButton = null;
+                dsPublicButton = null;
                 dsFavoritesListPanel = null;
                 dsHistoryListPanel = null;
+                dsPublicListPanel = null;
                 dsFavoritesContent = null;
                 dsHistoryContent = null;
+                dsPublicContent = null;
                 dsFavoritesEntryTemplate = null;
                 dsHistoryEntryTemplate = null;
+                dsPublicEntryTemplate = null;
                 dsFavoritesEmptyPlaceholder = null;
                 dsHistoryEmptyPlaceholder = null;
+                dsPublicEmptyPlaceholder = null;
                 dsOpenDirectConnectButton = null;
             }
 
@@ -774,6 +791,7 @@ namespace DedicatedServerMod.Client.Managers
                 dsHistoryEmptyPlaceholder = FindDeepChild(dsServerBrowserPanel, "HistoryListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "HistoryListPanel"), "EmptyPlaceholder")?.GetComponent<TMP_Text>() : null;
                 dsFavoritesEntryTemplate = FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "FavoritesListPanel"), "ServerEntryPrefab")?.gameObject : null;
                 dsHistoryEntryTemplate = FindDeepChild(dsServerBrowserPanel, "HistoryListPanel") != null ? FindDeepChild(FindDeepChild(dsServerBrowserPanel, "HistoryListPanel"), "ServerEntryPrefab")?.gameObject : null;
+                EnsurePublicServerTab();
                 dsConnectButton = FindDeepChild(dsDirectConnectPanel, "ConnectButton")?.GetComponent<Button>();
                 dsCancelButton = FindDeepChild(dsDirectConnectPanel, "CancelButton")?.GetComponent<Button>();
 
@@ -821,7 +839,7 @@ namespace DedicatedServerMod.Client.Managers
                 if (dsRefreshButton != null)
                 {
                     dsRefreshButton.onClick.RemoveAllListeners();
-                    dsRefreshButton.onClick.AddListener((UnityAction)RefreshAllServerMetadata);
+                    dsRefreshButton.onClick.AddListener((UnityAction)RefreshActiveServerTab);
                 }
                 if (dsFavoritesButton != null)
                 {
@@ -832,6 +850,11 @@ namespace DedicatedServerMod.Client.Managers
                 {
                     dsHistoryButton.onClick.RemoveAllListeners();
                     dsHistoryButton.onClick.AddListener((UnityAction)delegate { SetActiveTab(ServerBrowserTab.History); });
+                }
+                if (dsPublicButton != null)
+                {
+                    dsPublicButton.onClick.RemoveAllListeners();
+                    dsPublicButton.onClick.AddListener((UnityAction)delegate { SetActiveTab(ServerBrowserTab.Public); RefreshPublicDirectory(); });
                 }
                 if (dsCancelButton != null)
                 {
@@ -860,6 +883,7 @@ namespace DedicatedServerMod.Client.Managers
                 SetActiveTab(ServerBrowserTab.Favorites);
                 RefreshServerLists();
                 RefreshAllServerMetadata();
+                RefreshPublicDirectory();
                 PrefillDedicatedDirectConnectFields();
                 ShowServerBrowserView(ServerBrowserView.Browser);
 
@@ -1125,6 +1149,37 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
+        private void EnsurePublicServerTab()
+        {
+            if (dsPublicButton == null && dsHistoryButton != null)
+            {
+                GameObject buttonObject = GameObject.Instantiate(dsHistoryButton.gameObject, dsHistoryButton.transform.parent);
+                buttonObject.name = "PublicButton";
+                buttonObject.transform.SetSiblingIndex(dsHistoryButton.transform.GetSiblingIndex() + 1);
+                dsPublicButton = buttonObject.GetComponent<Button>();
+                TMP_Text label = buttonObject.GetComponentInChildren<TMP_Text>(true);
+                if (label != null)
+                {
+                    label.text = "Public";
+                }
+            }
+
+            if (dsPublicListPanel == null && dsHistoryListPanel != null)
+            {
+                GameObject panelObject = GameObject.Instantiate(dsHistoryListPanel.gameObject, dsHistoryListPanel.parent);
+                panelObject.name = "PublicListPanel";
+                dsPublicListPanel = panelObject.transform;
+                dsPublicContent = FindDeepChild(dsPublicListPanel, "Content");
+                dsPublicEntryTemplate = FindDeepChild(dsPublicListPanel, "ServerEntryPrefab")?.gameObject;
+                dsPublicEmptyPlaceholder = FindDeepChild(dsPublicListPanel, "EmptyPlaceholder")?.GetComponent<TMP_Text>();
+                if (dsPublicEmptyPlaceholder != null)
+                {
+                    dsPublicEmptyPlaceholder.text = "Loading opted-in public servers...";
+                }
+                dsPublicListPanel.gameObject.SetActive(false);
+            }
+        }
+
         private void SetActiveTab(ServerBrowserTab tab)
         {
             activeTab = tab;
@@ -1139,8 +1194,14 @@ namespace DedicatedServerMod.Client.Managers
                 dsHistoryListPanel.gameObject.SetActive(tab == ServerBrowserTab.History);
             }
 
+            if (dsPublicListPanel != null)
+            {
+                dsPublicListPanel.gameObject.SetActive(tab == ServerBrowserTab.Public);
+            }
+
             ApplyTabState(dsFavoritesButton, tab == ServerBrowserTab.Favorites);
             ApplyTabState(dsHistoryButton, tab == ServerBrowserTab.History);
+            ApplyTabState(dsPublicButton, tab == ServerBrowserTab.Public);
         }
 
         private void ApplyTabState(Button button, bool active)
@@ -1160,8 +1221,101 @@ namespace DedicatedServerMod.Client.Managers
 
         private void RefreshServerLists()
         {
-            RenderServerEntries(serverListRepository.Favorites, dsFavoritesContent, dsFavoritesEntryTemplate, dsFavoritesEmptyPlaceholder, spawnedFavoriteEntries, true);
-            RenderServerEntries(serverListRepository.History, dsHistoryContent, dsHistoryEntryTemplate, dsHistoryEmptyPlaceholder, spawnedHistoryEntries, false);
+            RenderServerEntries(serverListRepository.Favorites, dsFavoritesContent, dsFavoritesEntryTemplate, dsFavoritesEmptyPlaceholder, spawnedFavoriteEntries, ServerEntrySource.Favorite);
+            RenderServerEntries(serverListRepository.History, dsHistoryContent, dsHistoryEntryTemplate, dsHistoryEmptyPlaceholder, spawnedHistoryEntries, ServerEntrySource.History);
+            RenderServerEntries(publicServers, dsPublicContent, dsPublicEntryTemplate, dsPublicEmptyPlaceholder, spawnedPublicEntries, ServerEntrySource.Public);
+        }
+
+        private void RefreshActiveServerTab()
+        {
+            if (activeTab == ServerBrowserTab.Public)
+            {
+                RefreshPublicDirectory();
+                return;
+            }
+
+            RefreshAllServerMetadata();
+        }
+
+        private void RefreshPublicDirectory()
+        {
+            if (publicDirectoryRefreshInFlight)
+            {
+                return;
+            }
+
+            publicDirectoryRefreshInFlight = true;
+            MelonCoroutines.Start(RefreshPublicDirectoryCoroutine());
+        }
+
+        private IEnumerator RefreshPublicDirectoryCoroutine()
+        {
+            Task<IReadOnlyList<SavedServerEntry>> task = publicServerDirectoryClient.GetServersAsync();
+            while (!task.IsCompleted)
+            {
+                yield return null;
+            }
+
+            publicDirectoryRefreshInFlight = false;
+            if (task.IsFaulted || task.IsCanceled)
+            {
+                DebugLog.Warning($"Public server directory refresh failed: {task.Exception?.GetBaseException().Message}");
+                if (dsPublicEmptyPlaceholder != null && publicServers.Count == 0)
+                {
+                    dsPublicEmptyPlaceholder.text = "Public server list unavailable. Direct connect still works.";
+                }
+                yield break;
+            }
+
+            publicServers.Clear();
+            publicServers.AddRange(task.Result);
+            if (dsPublicEmptyPlaceholder != null)
+            {
+                dsPublicEmptyPlaceholder.text = "No opted-in public servers are online.";
+            }
+            RefreshServerLists();
+            yield return VerifyPublicServersCoroutine();
+        }
+
+        private IEnumerator VerifyPublicServersCoroutine()
+        {
+            const int batchSize = 6;
+            for (int offset = 0; offset < publicServers.Count; offset += batchSize)
+            {
+                var batch = new List<PublicStatusQueryWork>();
+                int end = Math.Min(publicServers.Count, offset + batchSize);
+                for (int i = offset; i < end; i++)
+                {
+                    SavedServerEntry entry = publicServers[i];
+                    batch.Add(new PublicStatusQueryWork(entry, serverStatusQueryService.QueryAsync(entry.Host, entry.Port)));
+                }
+
+                while (batch.Any(work => !work.Task.IsCompleted))
+                {
+                    yield return null;
+                }
+
+                foreach (PublicStatusQueryWork work in batch)
+                {
+                    if (work.Task.IsCompletedSuccessfully)
+                    {
+                        ServerStatusQueryResult result = work.Task.Result;
+                        work.Entry.ServerName = result.Snapshot.ServerName;
+                        work.Entry.Name = result.Snapshot.ServerName;
+                        work.Entry.ServerDescription = result.Snapshot.ServerDescription;
+                        work.Entry.CurrentPlayers = Math.Max(0, result.Snapshot.CurrentPlayers);
+                        work.Entry.MaxPlayers = Math.Max(0, result.Snapshot.MaxPlayers);
+                        work.Entry.StatusQueryMilliseconds = result.StatusQueryMilliseconds;
+                        work.Entry.LastMetadataRefreshUtc = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        work.Entry.StatusQueryMilliseconds = -1;
+                    }
+                }
+
+                RefreshServerLists();
+            }
         }
 
         private void RefreshAllServerMetadata()
@@ -1235,7 +1389,7 @@ namespace DedicatedServerMod.Client.Managers
             }
         }
 
-        private void RenderServerEntries(IReadOnlyList<SavedServerEntry> entries, Transform contentRoot, GameObject template, TMP_Text emptyPlaceholder, List<GameObject> spawnedEntries, bool favorites)
+        private void RenderServerEntries(IReadOnlyList<SavedServerEntry> entries, Transform contentRoot, GameObject template, TMP_Text emptyPlaceholder, List<GameObject> spawnedEntries, ServerEntrySource source)
         {
             if (contentRoot == null || template == null)
             {
@@ -1266,14 +1420,14 @@ namespace DedicatedServerMod.Client.Managers
             {
                 SavedServerEntry entry = entries[i];
                 GameObject row = GameObject.Instantiate(template, contentRoot);
-                row.name = $"{(favorites ? "Favorite" : "History")}_{entry.Id}";
+                row.name = $"{source}_{entry.Id}";
                 row.SetActive(true);
-                BindServerEntry(row.transform, entry, favorites);
+                BindServerEntry(row.transform, entry, source);
                 spawnedEntries.Add(row);
             }
         }
 
-        private void BindServerEntry(Transform entryRoot, SavedServerEntry entry, bool favorite)
+        private void BindServerEntry(Transform entryRoot, SavedServerEntry entry, ServerEntrySource source)
         {
             string primaryName = !string.IsNullOrWhiteSpace(entry.Name)
                 ? entry.Name
@@ -1282,7 +1436,7 @@ namespace DedicatedServerMod.Client.Managers
                     : $"{entry.Host}:{entry.Port}";
             bool isCurrentConnection = IsCurrentConnection(entry);
             bool hasResponsiveQuery = entry.StatusQueryMilliseconds >= 0;
-            string description = BuildDescriptionText(entry, favorite);
+            string description = BuildDescriptionText(entry, source);
             string pingText = BuildLatencyText(entry, isCurrentConnection);
             string playerCountText = BuildPlayerCountText(entry, isCurrentConnection, hasResponsiveQuery);
 
@@ -1303,14 +1457,15 @@ namespace DedicatedServerMod.Client.Managers
             Button deleteButton = FindDeepChild(entryRoot, "DeleteButton")?.GetComponent<Button>();
             if (deleteButton != null)
             {
+                deleteButton.gameObject.SetActive(source != ServerEntrySource.Public);
                 deleteButton.onClick.RemoveAllListeners();
                 deleteButton.onClick.AddListener((UnityAction)delegate
                 {
-                    if (favorite)
+                    if (source == ServerEntrySource.Favorite)
                     {
                         serverListRepository.RemoveFavorite(entry.Id);
                     }
-                    else
+                    else if (source == ServerEntrySource.History)
                     {
                         serverListRepository.RemoveHistory(entry.Id);
                     }
@@ -1320,16 +1475,25 @@ namespace DedicatedServerMod.Client.Managers
             Button editButton = FindDeepChild(entryRoot, "EditButton")?.GetComponent<Button>();
             if (editButton != null)
             {
-                editButton.gameObject.SetActive(favorite);
+                editButton.gameObject.SetActive(source != ServerEntrySource.History);
                 editButton.onClick.RemoveAllListeners();
-                if (favorite)
+                if (source == ServerEntrySource.Favorite)
                 {
                     editButton.onClick.AddListener((UnityAction)delegate { OpenAddServerPanel(serverListRepository.GetFavoriteById(entry.Id) ?? entry); });
+                }
+                else if (source == ServerEntrySource.Public)
+                {
+                    TMP_Text label = editButton.GetComponentInChildren<TMP_Text>(true);
+                    if (label != null)
+                    {
+                        label.text = "Favorite";
+                    }
+                    editButton.onClick.AddListener((UnityAction)delegate { OpenAddServerPanel(entry); });
                 }
             }
         }
 
-        private static string BuildDescriptionText(SavedServerEntry entry, bool favorite)
+        private static string BuildDescriptionText(SavedServerEntry entry, ServerEntrySource source)
         {
             string sourceName = NormalizeUiText(entry.ServerName);
             string sourceDescription = NormalizeUiText(entry.ServerDescription);
@@ -1349,7 +1513,12 @@ namespace DedicatedServerMod.Client.Managers
                 return sourceName;
             }
 
-            return favorite ? "Saved favorite server" : $"Joined {entry.LastJoinedUtc.ToLocalTime():MMM d, HH:mm}";
+            return source switch
+            {
+                ServerEntrySource.Favorite => "Saved favorite server",
+                ServerEntrySource.Public => "Opt-in public server",
+                _ => $"Joined {entry.LastJoinedUtc.ToLocalTime():MMM d, HH:mm}"
+            };
         }
 
         private string BuildLatencyText(SavedServerEntry entry, bool isCurrentConnection)
@@ -2159,7 +2328,28 @@ namespace DedicatedServerMod.Client.Managers
         private enum ServerBrowserTab
         {
             Favorites,
-            History
+            History,
+            Public
+        }
+
+        private enum ServerEntrySource
+        {
+            Favorite,
+            History,
+            Public
+        }
+
+        private sealed class PublicStatusQueryWork
+        {
+            internal PublicStatusQueryWork(SavedServerEntry entry, Task<ServerStatusQueryResult> task)
+            {
+                Entry = entry;
+                Task = task;
+            }
+
+            internal SavedServerEntry Entry { get; }
+
+            internal Task<ServerStatusQueryResult> Task { get; }
         }
 
         private enum ServerBrowserView

@@ -435,6 +435,15 @@ namespace DedicatedServerMod.Client.Core
 
             try
             {
+                _uiManager?.Cleanup();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning($"Error cleaning up client UI: {ex.Message}");
+            }
+
+            try
+            {
                 _connectionManager?.Shutdown();
             }
             catch (Exception ex)

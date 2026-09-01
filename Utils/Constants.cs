@@ -46,6 +46,11 @@ namespace DedicatedServerMod.Utils
         public const int DefaultServerPort = 38465;
 
         /// <summary>
+        /// Default endpoint for the opt-in public server directory prototype.
+        /// </summary>
+        public const string DefaultPublicServerListServiceUrl = "https://s1-server-list-v2-prototype.ifbars.workers.dev";
+
+        /// <summary>
         /// Default port for the TCP console server.
         /// </summary>
         public const int DefaultTcpConsolePort = 4050;
@@ -434,6 +439,10 @@ namespace DedicatedServerMod.Utils
             public const string MaxPlayers = "maxPlayers";
             public const string ServerPort = "serverPort";
             public const string ServerPassword = "serverPassword";
+            public const string PublicListingEnabled = "publicListingEnabled";
+            public const string PublicListingServiceUrl = "publicListingServiceUrl";
+            public const string PublicListingId = "publicListingId";
+            public const string PublicListingSecret = "publicListingSecret";
             public const string RequireAuthentication = "requireAuthentication";
             public const string AuthProvider = "authProvider";
             public const string AuthTimeoutSeconds = "authTimeoutSeconds";

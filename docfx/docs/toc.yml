@@ -20,6 +20,8 @@
     href: configuration/client-mod-verification.md
   - name: Web Panel
     href: configuration/web-panel.md
+  - name: Public Server List
+    href: configuration/public-server-list.md
   - name: Messaging Backends
     href: configuration/messaging-backends.md
   - name: Save Path

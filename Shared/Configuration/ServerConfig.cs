@@ -60,6 +60,41 @@ namespace DedicatedServerMod.Shared.Configuration
         public string ServerPassword { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets whether this server advertises itself through the public server directory.
+        /// </summary>
+        /// <remarks>
+        /// This setting is disabled by default. Direct IP and port connections remain available
+        /// regardless of the public directory state.
+        /// </remarks>
+        [JsonProp(Constants.ConfigKeys.PublicListingEnabled)]
+        public bool PublicListingEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the HTTPS endpoint used for opt-in public server discovery.
+        /// </summary>
+        [JsonProp(Constants.ConfigKeys.PublicListingServiceUrl)]
+        public string PublicListingServiceUrl { get; set; } = Constants.DefaultPublicServerListServiceUrl;
+
+        /// <summary>
+        /// Gets or sets the directory-issued identity for this server.
+        /// </summary>
+        /// <remarks>
+        /// This value is populated automatically after the first successful opt-in registration.
+        /// </remarks>
+        [JsonProp(Constants.ConfigKeys.PublicListingId)]
+        public string PublicListingId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the directory-issued bearer secret for this server.
+        /// </summary>
+        /// <remarks>
+        /// Treat this value as a credential. It is returned only during registration and is never
+        /// included in public directory responses or logs.
+        /// </remarks>
+        [JsonProp(Constants.ConfigKeys.PublicListingSecret)]
+        public string PublicListingSecret { get; set; } = string.Empty;
+
+        /// <summary>
         /// Authentication provider used for dedicated-server client validation.
         /// Defaults to <see cref="AuthenticationProvider.SteamGameServer"/>.
         /// Set to <see cref="AuthenticationProvider.None"/> only for development or local testing.

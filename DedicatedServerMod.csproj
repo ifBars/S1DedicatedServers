@@ -730,6 +730,7 @@
 	  <Compile Include="Shared\CustomMessaging.cs" />
 	  <Compile Include="Shared\ServerData.cs" />
 	  <Compile Include="Shared\ServerStatusSnapshot.cs" />
+	  <Compile Include="Shared\PublicServerListContracts.cs" />
 	  <Compile Include="Shared\Toml\Binding\*.cs" />
 	  <!-- Utils -->
 	  <Compile Include="Utils\*.cs" />
@@ -812,6 +813,7 @@
 		<!-- Network management -->
 		<Compile Include="Server\Network\NetworkManager.cs" />
 		<Compile Include="Server\Network\ServerStatusQueryService.cs" />
+		<Compile Include="Server\Network\PublicServerListingClient.cs" />
 		<Compile Include="Server\Network\SteamNetworkLibCompatService.cs" />
 		<Compile Include="Server\HostConsole\*.cs" />
 		<Compile Include="Server\WebPanel\*.cs" />
