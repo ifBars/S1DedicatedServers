@@ -33,7 +33,7 @@ export default {
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
 
-  if (!isHttpsRequest(request, url)) {
+  if (!isHttpsRequest(request, url, env)) {
     return errorResponse(400, "HTTPS_REQUIRED", "This endpoint requires HTTPS.");
   }
 
@@ -66,8 +66,13 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   return errorResponse(404, "NOT_FOUND", "Endpoint not found.");
 }
 
-function isHttpsRequest(request: Request, url: URL): boolean {
-  return url.protocol === "https:" || /"scheme"\s*:\s*"https"/i.test(request.headers.get("CF-Visitor") ?? "");
+function isHttpsRequest(request: Request, url: URL, env: Env): boolean {
+  if (url.protocol === "https:" || /"scheme"\s*:\s*"https"/i.test(request.headers.get("CF-Visitor") ?? "")) {
+    return true;
+  }
+
+  const portalOrigin = new URL(env.PORTAL_ORIGIN);
+  return portalOrigin.protocol === "http:" && (portalOrigin.hostname === "localhost" || portalOrigin.hostname === "127.0.0.1");
 }
 
 async function heartbeat(

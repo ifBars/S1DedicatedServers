@@ -215,8 +215,8 @@ const SignIn = ({ providers, loading }: { providers?: Record<"discord" | "steam"
       </p>
     </div>
     <div className="grid gap-3 sm:grid-cols-2">
-      <ProviderLink href={authUrl("steam")} disabled={loading || providers?.steam === false} label="Continue with Steam" />
-      <ProviderLink href={authUrl("discord")} disabled={loading || providers?.discord !== true} label={providers?.discord === false ? "Discord setup pending" : "Continue with Discord"} />
+      <ProviderLink href={authUrl("steam")} disabled={loading || providers?.steam !== true} label={providers?.steam ? "Continue with Steam" : "Steam availability pending"} />
+      <ProviderLink href={authUrl("discord")} disabled={loading || providers?.discord !== true} label={providers?.discord ? "Continue with Discord" : "Discord setup pending"} />
     </div>
   </section>
 );
