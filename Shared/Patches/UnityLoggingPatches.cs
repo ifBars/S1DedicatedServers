@@ -62,7 +62,7 @@ internal static class UnityLoggingPatches
     [HarmonyPrefix]
     private static bool Prefix(MethodBase __originalMethod, object[] __args)
     {
-        return !ShouldSuppress(__originalMethod, __args);
+        return !DedicatedRuntimeContext.IsActive || !ShouldSuppress(__originalMethod, __args);
     }
 
     private static bool ShouldSuppress(MethodBase originalMethod, object[] args)

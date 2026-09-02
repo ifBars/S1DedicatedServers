@@ -169,7 +169,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 // On dedicated servers, allow console UI for all clients; server will enforce per-command permissions
-                if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
+                if (DedicatedRuntimeContext.IsActive && InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
                     __result = AdminStatusManager.CanOpenConsole();
                     return false; // Skip original method
@@ -194,7 +194,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 // On dedicated servers, allow console UI for all clients and manage UI state here
-                if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
+                if (DedicatedRuntimeContext.IsActive && InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
                     if (open && !AdminStatusManager.CanOpenConsole())
                     {
@@ -254,7 +254,7 @@ namespace DedicatedServerMod.Client.Managers
             try
             {
                 // On dedicated servers, route all commands to server for centralized validation and execution
-                if (InstanceFinder.IsClient && !InstanceFinder.IsHost)
+                if (DedicatedRuntimeContext.IsActive && InstanceFinder.IsClient && !InstanceFinder.IsHost)
                 {
                     string commandWord = ExtractCommandWord(args);
                     if (!string.IsNullOrWhiteSpace(commandWord) && !AdminStatusManager.CanUseCommand(commandWord))

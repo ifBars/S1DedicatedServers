@@ -53,7 +53,7 @@ namespace DedicatedServerMod.Shared.Patches
 #if IL2CPP
         private static void Postfix(WheelType __instance)
         {
-            if (__instance == null || __instance._settings != null)
+            if (!DedicatedRuntimeContext.IsActive || __instance == null || __instance._settings != null)
             {
                 return;
             }
@@ -66,7 +66,7 @@ namespace DedicatedServerMod.Shared.Patches
 #else
         private static void Postfix(ref VehicleSettingsType ____settings, WheelDataType ____defaultData)
         {
-            if (____settings != null)
+            if (!DedicatedRuntimeContext.IsActive || ____settings != null)
             {
                 return;
             }
@@ -107,6 +107,11 @@ namespace DedicatedServerMod.Shared.Patches
             WheelType __instance,
             object newConditions)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             if (__instance == null)
             {
                 return false;
@@ -164,6 +169,11 @@ namespace DedicatedServerMod.Shared.Patches
             LandVehicleType ___vehicle,
             ref VehicleSettingsType ____settings)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             VehicleSettingsType resolvedSettings = ____defaultData?.Settings?.Clone()
                 ?? ____settings?.Clone()
                 ?? new VehicleSettingsType();
@@ -219,6 +229,11 @@ namespace DedicatedServerMod.Shared.Patches
         private static bool Prefix(LandVehicleType __instance, WeatherConditionsType newConditions)
 #endif
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             if (__instance?.wheels == null || __instance.wheels.Count == 0)
             {
                 return false;
@@ -260,6 +275,11 @@ namespace DedicatedServerMod.Shared.Patches
 #if IL2CPP
         private static bool Prefix(EnvironmentManagerType __instance)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             if (__instance == null)
             {
                 return false;
@@ -345,6 +365,11 @@ namespace DedicatedServerMod.Shared.Patches
             float ____neighbourWeatherBlendValue,
             AnimationCurve ____blendCurve)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             if (____activeWeatherVolumes == null || ____activeWeatherVolumes.Count == 0)
             {
                 return false;

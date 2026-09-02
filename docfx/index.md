@@ -71,6 +71,8 @@ For save path details, see [Save Path](docs/configuration/save-path.md).
 2. Extract `Mono-Client.zip` for Mono or `Il2cpp_Client.zip` for IL2CPP so the included `Mods/` contents merge into that install.
 3. Launch the game normally and connect to the server.
 
+The S1DS client can remain installed for single-player and native co-op. Dedicated transport, messaging, gameplay, and presentation behavior activates only when you start an S1DS dedicated-server connection.
+
 ## After First Boot
 
 - [Overview](docs/index.md)

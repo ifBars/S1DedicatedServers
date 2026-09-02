@@ -19,6 +19,8 @@ Client mods implement `IClientMod` or inherit `ClientModBase` / `ClientMelonModB
 
 Use `OnClientPlayerReady()` for logic that depends on UI and messaging already being initialized.
 
+`OnClientInitialize()` runs when the client assembly loads, including during single-player and native co-op. Keep dedicated-only behavior dormant there; activate it from `OnConnectedToServer()` and release session state from `OnDisconnectedFromServer()`.
+
 Prefer the `ModManager` events above for optional client hooks. Keep `IClientMod` and the base classes for coarse lifecycle participation, registration boundaries, and auto-discovery.
 
 ## Client Systems

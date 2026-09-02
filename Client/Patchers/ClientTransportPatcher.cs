@@ -95,6 +95,11 @@ namespace DedicatedServerMod.Client.Patchers
             [HarmonyPrefix]
             private static void Prefix(Multipass __instance)
             {
+                if (!DedicatedRuntimeContext.IsActive)
+                {
+                    return;
+                }
+
                 try
                 {
                     var tugboat = __instance.gameObject.GetComponent<Tugboat>();

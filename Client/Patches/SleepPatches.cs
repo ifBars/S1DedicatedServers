@@ -58,7 +58,9 @@ namespace DedicatedServerMod.Client.Patches
             [HarmonyPrefix]
             private static bool Prefix(ref bool __result)
             {
-                if (!_ignoreGhostHostForSleep || !FishNet.InstanceFinder.IsClient)
+                if (!DedicatedRuntimeContext.IsActive ||
+                    !_ignoreGhostHostForSleep ||
+                    !FishNet.InstanceFinder.IsClient)
                 {
                     return true;
                 }
@@ -156,6 +158,11 @@ namespace DedicatedServerMod.Client.Patches
 
         private static bool SleepCanvasOpenPrefix()
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             try
             {
                 if (FishNet.InstanceFinder.IsClient && !FishNet.InstanceFinder.IsHost)
