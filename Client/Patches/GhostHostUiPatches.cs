@@ -41,7 +41,7 @@ namespace DedicatedServerMod.Client.Patches
 
         private static bool ShouldFilterGhostHostUi()
         {
-            return InstanceFinder.IsClient && !InstanceFinder.IsServer;
+            return DedicatedRuntimeContext.IsActive && InstanceFinder.IsClient && !InstanceFinder.IsServer;
         }
 
         private static bool ShouldAllowPoiLifecycle(POI poi, string stage)

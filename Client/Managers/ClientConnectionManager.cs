@@ -191,6 +191,7 @@ namespace DedicatedServerMod.Client.Managers
             LastConnectionError = null;
             long joinAttemptId = ++_activeJoinAttemptId;
 
+            CustomMessaging.Initialize();
             MelonCoroutines.Start(ClientLoadSequence(joinAttemptId));
         }
 
@@ -938,6 +939,7 @@ namespace DedicatedServerMod.Client.Managers
 
             ClientBootstrap.Instance?.AuthManager?.OnDisconnected();
             ClientBootstrap.Instance?.ModVerificationManager?.OnDisconnected();
+            CustomMessaging.Shutdown();
 
             IsConnecting = false;
             IsConnectedToDedicatedServer = false;
@@ -1123,6 +1125,8 @@ namespace DedicatedServerMod.Client.Managers
                 return $"Error getting status: {ex.Message}";
             }
         }
+
+        internal static bool IsDedicatedServerSessionActive => _isTugboatMode;
 
         internal static bool IsTugboatMode => _isTugboatMode;
 

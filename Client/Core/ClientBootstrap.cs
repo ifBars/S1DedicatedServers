@@ -210,9 +210,6 @@ namespace DedicatedServerMod.Client.Core
                 PermissionSnapshotStore.Initialize();
                 ClientSteamAvatarService.Instance.Initialize();
 
-                // Initialize messaging service (backend selection)
-                Shared.Networking.CustomMessaging.Initialize();
-
                 // Initialize API mod discovery
                 API.ModManager.Initialize();
 

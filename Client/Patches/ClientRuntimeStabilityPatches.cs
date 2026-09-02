@@ -47,6 +47,11 @@ namespace DedicatedServerMod.Client.Patches
 
         private static bool Prefix(TrashItemType __instance)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             if (__instance == null || __instance.transform == null)
             {
                 return false;
@@ -77,6 +82,11 @@ namespace DedicatedServerMod.Client.Patches
                 return null;
             }
 
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return __exception;
+            }
+
             if (__exception is NullReferenceException)
             {
                 DebugLog.Warning("Suppressed stale MSGConversation.RenderMessage after client cleanup.");
@@ -105,6 +115,11 @@ namespace DedicatedServerMod.Client.Patches
 
         private static bool Prefix(NPCEventStayInBuildingType __instance)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             try
             {
                 if (__instance == null || !CoroutineService.InstanceExists)
@@ -141,7 +156,8 @@ namespace DedicatedServerMod.Client.Patches
     {
         private static bool Prefix(ConfigurationServiceNetworkerType __instance)
         {
-            return __instance != null && __instance.IsServerInitialized;
+            return !DedicatedRuntimeContext.IsActive ||
+                (__instance != null && __instance.IsServerInitialized);
         }
     }
 }
