@@ -66,7 +66,8 @@ namespace DedicatedServerMod.Client.Managers
         /// </summary>
         private void BeginHandshake()
         {
-            if (!InstanceFinder.IsClient || InstanceFinder.IsServer)
+            if (!ClientConnectionManager.IsDedicatedServerSessionActive ||
+                !InstanceFinder.IsClient || InstanceFinder.IsServer)
             {
                 return;
             }
