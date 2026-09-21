@@ -82,7 +82,7 @@ Want a hosted server instead of running the dedicated server yourself? The provi
   <section id="shockbyte" class="hosting-provider-secondary" aria-label="Shockbyte supported provider">
     <div class="hosting-provider-secondary__body">
       <div class="hosting-provider-brand">
-        <p class="hosting-provider-eyebrow">Supported provider · Affiliate partner</p>
+        <p class="hosting-provider-eyebrow">Supported provider</p>
         <a class="hosting-provider-logo-link hosting-provider-logo-link--shockbyte" href="https://shockbyte.com/partner/ifbars" rel="sponsored" aria-label="Open Shockbyte">
           <img class="hosting-provider-logo" src="assets/shockbyte-logo.svg" alt="Shockbyte" />
         </a>
