@@ -79,6 +79,27 @@ Want a hosted server instead of running the dedicated server yourself? The provi
       </div>
     </div>
   </section>
+  <section id="shockbyte" class="hosting-provider-secondary" aria-label="Shockbyte supported provider">
+    <div class="hosting-provider-secondary__body">
+      <div class="hosting-provider-brand">
+        <p class="hosting-provider-eyebrow">Supported provider · Affiliate partner</p>
+        <a class="hosting-provider-logo-link hosting-provider-logo-link--shockbyte" href="https://shockbyte.com/partner/ifbars" rel="sponsored" aria-label="Open Shockbyte">
+          <img class="hosting-provider-logo" src="assets/shockbyte-logo.svg" alt="Shockbyte" />
+        </a>
+      </div>
+      <div class="hosting-provider-details">
+        <p>
+          Shockbyte supports both IL2CPP and Mono. Following maintainer setup
+          feedback, Shockbyte confirmed support for panel console input and
+          graceful shutdown through the <code>shutdown</code> command.
+        </p>
+        <p>Use code <code>ifbars</code> for 25% off. Purchases through our referral link support S1DedicatedServers development.</p>
+        <div class="hosting-provider-actions">
+          <a class="hosting-provider-button" href="https://shockbyte.com/partner/ifbars" rel="sponsored">Visit Shockbyte</a>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 ## Self-Hosting
@@ -92,7 +113,7 @@ Self-hosting remains the baseline deployment path. Use the release packages and 
 
 ## Third-Party Hosting
 
-Hosting providers other than Cybrancee, Kinetic Hosting, and RespawnHost may advertise Schedule I or S1DedicatedServers-compatible hosting. These providers operate independently and may use their own panels, packaging, update timing, support processes, and compatibility assumptions.
+Hosting providers other than Cybrancee, Kinetic Hosting, RespawnHost, and Shockbyte may advertise Schedule I or S1DedicatedServers-compatible hosting. These providers operate independently and may use their own panels, packaging, update timing, support processes, and compatibility assumptions.
 
 Unless this page lists a provider as recommended or verified, do not treat third-party listings, provider documentation, control-panel templates, bundled installs, or customer support claims as project verification or endorsement.
 

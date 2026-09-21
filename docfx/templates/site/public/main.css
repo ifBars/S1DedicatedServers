@@ -38,6 +38,12 @@
   width: 12rem;
 }
 
+.hosting-provider-logo-link--shockbyte {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.4rem;
+  background: #101b2e;
+}
+
 .hosting-provider-logo-link--respawnhost {
   max-width: 100%;
   width: 12rem;
