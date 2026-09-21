@@ -29,6 +29,11 @@ namespace DedicatedServerMod.Shared.Patches
     {
         private static bool Prefix(ActionListType __instance, float staggerTime)
         {
+            if (!DedicatedRuntimeContext.IsActive)
+            {
+                return true;
+            }
+
             NativeActionListType invocationList = __instance?.list;
             if (invocationList == null || invocationList.Count == 0)
             {

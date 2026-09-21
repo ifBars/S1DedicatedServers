@@ -89,12 +89,25 @@ namespace DedicatedServerMod.Client.Patchers
             }
         }
 
+        /// <summary>
+        /// Adds the dedicated-server Tugboat transport before <see cref="Multipass.Initialize"/> runs.
+        /// </summary>
+        /// <remarks>
+        /// Outside an active dedicated-server session, the prefix leaves the transport list unchanged
+        /// so native single-player and co-op retain their original transport setup. The original
+        /// initialization method still runs in every session.
+        /// </remarks>
         [HarmonyPatch(typeof(Multipass), "Initialize")]
         private static class MultipassInitializePatch
         {
             [HarmonyPrefix]
             private static void Prefix(Multipass __instance)
             {
+                if (!DedicatedRuntimeContext.IsActive)
+                {
+                    return;
+                }
+
                 try
                 {
                     var tugboat = __instance.gameObject.GetComponent<Tugboat>();

@@ -52,7 +52,10 @@ namespace DedicatedServerMod.Client.Patches
         {
             try
             {
-                if (!InstanceFinder.IsClient || InstanceFinder.IsServer || __instance?.Canvas == null)
+                if (!DedicatedRuntimeContext.IsActive ||
+                    !InstanceFinder.IsClient ||
+                    InstanceFinder.IsServer ||
+                    __instance?.Canvas == null)
                 {
                     return;
                 }

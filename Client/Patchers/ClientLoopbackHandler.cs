@@ -70,7 +70,7 @@ namespace DedicatedServerMod.Client.Patchers
 
         private void OnPlayerSpawned_CheckLoopback(Player player)
         {
-            if (player == null || InstanceFinder.IsServer)
+            if (!DedicatedRuntimeContext.IsActive || player == null || InstanceFinder.IsServer)
                 return;
 
             try
@@ -106,7 +106,7 @@ namespace DedicatedServerMod.Client.Patchers
         {
             yield return new WaitForSeconds(0.5f);
 
-            if (player == null || player.gameObject == null)
+            if (!DedicatedRuntimeContext.IsActive || player == null || player.gameObject == null)
                 yield break;
 
             try
@@ -139,7 +139,7 @@ namespace DedicatedServerMod.Client.Patchers
 
         internal static void HideLoopbackPresentation(Player player)
         {
-            if (player == null)
+            if (!DedicatedRuntimeContext.IsActive || player == null)
                 return;
 
             DebugLog.Debug($"Hiding ghost host player presentation: {player.PlayerName ?? "Unknown"}");
@@ -156,7 +156,7 @@ namespace DedicatedServerMod.Client.Patchers
         {
             player = null;
 
-            if (poi == null)
+            if (!DedicatedRuntimeContext.IsActive || poi == null)
                 return false;
 
             player = UnityComponentAccess.GetComponentInParent<Player>(poi, includeInactive: true);
@@ -182,7 +182,7 @@ namespace DedicatedServerMod.Client.Patchers
 
             foreach (var player in Player.PlayerList)
             {
-                if (player == null || player.IsGhostHost())
+                if (player == null || (DedicatedRuntimeContext.IsActive && player.IsGhostHost()))
                     continue;
 
                 count++;

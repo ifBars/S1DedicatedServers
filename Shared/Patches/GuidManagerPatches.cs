@@ -31,6 +31,11 @@ internal static class GuidManagerPatches
     [HarmonyPatch("RegisterObject")]
     private static bool RegisterObjectPrefix(GuidRegisterableType obj, GameObject go = null)
     {
+        if (!DedicatedRuntimeContext.IsActive)
+        {
+            return true;
+        }
+
         if (obj == null)
         {
             return false;
@@ -53,6 +58,11 @@ internal static class GuidManagerPatches
     [HarmonyPatch("DeregisterObject")]
     private static bool DeregisterObjectPrefix(GuidRegisterableType obj)
     {
+        if (!DedicatedRuntimeContext.IsActive)
+        {
+            return true;
+        }
+
         if (obj == null)
         {
             return false;
@@ -67,6 +77,11 @@ internal static class GuidManagerPatches
     [HarmonyPatch("GenerateUniqueGUID")]
     private static bool GenerateUniqueGuidPrefix(ref GuidValueType __result)
     {
+        if (!DedicatedRuntimeContext.IsActive)
+        {
+            return true;
+        }
+
         GuidValueType guid;
         do
         {
@@ -82,6 +97,11 @@ internal static class GuidManagerPatches
     [HarmonyPatch("IsGUIDAlreadyRegistered")]
     private static bool IsGuidAlreadyRegisteredPrefix(GuidValueType guid, ref bool __result)
     {
+        if (!DedicatedRuntimeContext.IsActive)
+        {
+            return true;
+        }
+
         __result = GuidManagerType.guidToObject.ContainsKey(guid);
         return false;
     }
@@ -90,6 +110,11 @@ internal static class GuidManagerPatches
     [HarmonyPatch("Clear")]
     private static bool ClearPrefix()
     {
+        if (!DedicatedRuntimeContext.IsActive)
+        {
+            return true;
+        }
+
         GuidManagerType.registeredGUIDs.Clear();
         GuidManagerType.guidToObject.Clear();
         ConsoleType.Log("GUIDManager cleared!");

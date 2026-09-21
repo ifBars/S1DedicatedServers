@@ -70,7 +70,8 @@ namespace DedicatedServerMod.Client.Patches
         {
             try
             {
-                if (!FishNet.InstanceFinder.IsClient
+                if (!DedicatedRuntimeContext.IsActive
+                    || !FishNet.InstanceFinder.IsClient
                     || __instance?.Player == null
                     || !__instance.Player.IsOwner)
                 {
@@ -144,7 +145,8 @@ namespace DedicatedServerMod.Client.Patches
 
         private static bool IsLocalClientCrimeData(PlayerCrimeData crimeData)
         {
-            return FishNet.InstanceFinder.IsClient
+            return DedicatedRuntimeContext.IsActive
+                && FishNet.InstanceFinder.IsClient
                 && crimeData?.Player != null
                 && crimeData.Player.IsOwner;
         }
@@ -209,7 +211,8 @@ namespace DedicatedServerMod.Client.Patches
         {
             Player localPlayer = Player.Local;
             Player targetPlayer = TryGetTargetPlayer(visionEvent);
-            if (!FishNet.InstanceFinder.IsClient
+            if (!DedicatedRuntimeContext.IsActive
+                || !FishNet.InstanceFinder.IsClient
                 || visionCone == null
                 || visionEvent?.Target == null
                 || visionEvent.State == null

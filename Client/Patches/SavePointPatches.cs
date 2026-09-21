@@ -16,7 +16,7 @@ using ScheduleOne.UI;
 namespace DedicatedServerMod.Client.Patches
 {
     /// <summary>
-    /// Holds the loading screen open until dedicated-server authentication completes.
+    /// Suppresses native save-point interaction on dedicated-server clients.
     /// </summary>
     [HarmonyPatch]
     internal static class SavePointPatches
@@ -25,14 +25,14 @@ namespace DedicatedServerMod.Client.Patches
         [HarmonyPrefix]
         private static bool HoveredPrefix()
         {
-            return false;
+            return !DedicatedRuntimeContext.IsActive;
         }
 
         [HarmonyPatch(typeof(InteractableObject), nameof(InteractableObject.Hovered))]
         [HarmonyPrefix]
         private static bool InteractableHoveredPrefix(InteractableObject __instance)
         {
-            return !IsSavePointInteractable(__instance);
+            return !DedicatedRuntimeContext.IsActive || !IsSavePointInteractable(__instance);
         }
 
         private static bool IsSavePointInteractable(InteractableObject interactableObject)

@@ -61,6 +61,11 @@ namespace DedicatedServerMod.Client.Patches
         {
             private static void Postfix(DailySummary __instance)
             {
+                if (!DedicatedRuntimeContext.IsActive)
+                {
+                    return;
+                }
+
                 try
                 {
                     Shared.Networking.CustomMessaging.DailySummaryAwakePostfix(__instance);
