@@ -339,6 +339,8 @@ namespace DedicatedServerMod.Server.Core
             DebugLog.Info($"Loaded save: {Path.GetFileName(actualSaveInfo.SavePath)}");
             DebugLog.Info("Waiting for client connections...");
 
+            ServerBootstrap.StartPublicListing();
+
             // Notify API mods: server started
             ModManager.NotifyServerStarted();
         }

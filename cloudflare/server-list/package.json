@@ -1,0 +1,16 @@
+{
+  "name": "@s1ds/server-list-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "test": "bun test",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.127.1"
+  }
+}

@@ -11,6 +11,30 @@ namespace DedicatedServerMod.Shared
     public sealed class ServerStatusSnapshot
     {
         /// <summary>
+        /// Gets or sets the public-directory protocol version implemented by this endpoint.
+        /// </summary>
+        /// <remarks>
+        /// Public-directory clients accept the snapshot only when this value equals
+        /// <see cref="PublicServerListProtocol.Version"/>. Direct-connect status queries may leave it at zero.
+        /// </remarks>
+        /// <example>
+        /// <code>snapshot.ProtocolVersion = PublicServerListProtocol.Version;</code>
+        /// </example>
+        public int ProtocolVersion { get; set; }
+
+        /// <summary>
+        /// Gets or sets the account-issued public listing identity bound to this server.
+        /// </summary>
+        /// <remarks>
+        /// For a public-directory verification, this value must be the listing UUID expected by
+        /// the client. Direct-connect status queries may use an empty value.
+        /// </remarks>
+        /// <example>
+        /// <code>snapshot.ListingId = "00000000-0000-0000-0000-000000000001";</code>
+        /// </example>
+        public string ListingId { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the public server display name.
         /// </summary>
         public string ServerName { get; set; } = "Schedule One Dedicated Server";

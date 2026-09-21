@@ -16,6 +16,7 @@ S1DedicatedServers is a free, open-source dedicated server mod and hosting guide
 - Download the latest server and client release: https://github.com/ifBars/S1DedicatedServers/releases
 - Read the setup documentation: https://docs.s1servers.com/
 - Generate a server configuration: https://s1servers.com/config-generator
+- Issue an account-linked public listing credential: https://s1servers.com/server-portal
 - Review hosting provider guidance: https://docs.s1servers.com/docs/hosting-providers.html
 
 ## What agents can help with
