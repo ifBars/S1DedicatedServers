@@ -15,6 +15,7 @@ const { render } = await import(pathToFileURL(serverEntryPath).href);
 const routes = [
   { url: "/", outputPath: templatePath },
   { url: "/config-generator", outputPath: path.join(distDir, "config-generator", "index.html") },
+  { url: "/server-portal", outputPath: path.join(distDir, "server-portal", "index.html") },
 ];
 
 for (const route of routes) {

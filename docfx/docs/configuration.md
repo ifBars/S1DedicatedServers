@@ -77,6 +77,7 @@ Use the focused pages below when you need the full setting list, examples, or tr
 | Auto-save | Timed saves and player-triggered save hooks | [Auto-Save](configuration/autosave.md) |
 | Gameplay | Sleep, pause-when-empty, time flow, and fresh-save quest bootstrap | [Gameplay](configuration/gameplay.md) |
 | Web panel | Local browser-based operator UI | [Web Panel](configuration/web-panel.md) |
+| Public server list | Optional public discovery and heartbeat behavior | [Public Server List](configuration/public-server-list.md) |
 | Hosted/panel console | stdin/stdout operator flow for hosted environments | [Host Console](host-console.md) |
 
 ## Operator Surfaces

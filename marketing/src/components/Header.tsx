@@ -54,13 +54,21 @@ const Header = () => {
           ))}
         </nav>
 
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="lg:hidden p-2 text-muted-foreground hover:text-foreground"
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="/server-portal"
+            className="hidden rounded-md border border-border/50 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/60 hover:bg-secondary/50 lg:inline-flex"
+          >
+            Server owners
+          </a>
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-2 text-muted-foreground hover:text-foreground lg:hidden"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
@@ -77,6 +85,13 @@ const Header = () => {
               {l.label}
             </a>
           ))}
+          <a
+            href="/server-portal"
+            onClick={() => setMobileOpen(false)}
+            className="mt-2 block border-t border-border/30 py-3 text-sm font-medium text-foreground"
+          >
+            Server owners
+          </a>
         </div>
       )}
     </header>

@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "s1-server-list-v2-prototype",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "list.s1servers.com",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "PORTAL_ORIGIN": "https://s1servers.com"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "s1-servers",
+      "database_id": "29a88697-3499-4002-9aef-69246f87496d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SERVER_CACHE",
+      "id": "b17e3d2c714a4a61978575975b9618bd"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "REGISTRATION_RATE_LIMITER",
+      "namespace_id": "31645001",
+      "simple": { "limit": 3, "period": 60 }
+    },
+    {
+      "name": "HEARTBEAT_RATE_LIMITER",
+      "namespace_id": "31645002",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      "name": "LIST_RATE_LIMITER",
+      "namespace_id": "31645003",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ]
+}
