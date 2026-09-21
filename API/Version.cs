@@ -15,7 +15,7 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The mod version following semantic versioning, including a prerelease suffix when applicable.
         /// </summary>
-        public const string ModVersion = "1.0.8";
+        public const string ModVersion = "1.1.0";
 
         /// <summary>
         /// The major version number for breaking change tracking.
@@ -25,12 +25,12 @@ namespace DedicatedServerMod.API
         /// <summary>
         /// The minor version number for feature additions.
         /// </summary>
-        public const int MinorVersion = 0;
+        public const int MinorVersion = 1;
 
         /// <summary>
         /// The patch version number for bug fixes.
         /// </summary>
-        public const int PatchVersion = 8;
+        public const int PatchVersion = 0;
 
         /// <summary>
         /// The public API version advertised to addon authors.
@@ -252,7 +252,7 @@ namespace DedicatedServerMod.API
         /// This is human-facing release metadata. The release workflow derives release behavior from
         /// <see cref="ModVersion"/>, not from this date.
         /// </remarks>
-        public const string ReleaseDate = "2026-08-29";
+        public const string ReleaseDate = "2026-09-21";
 
         /// <summary>
         /// The Git commit or tag this version was built from.

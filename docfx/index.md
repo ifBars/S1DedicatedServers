@@ -42,7 +42,7 @@ Set `S1DS_RUNTIME=mono` or `S1DS_RUNTIME=il2cpp` when the container starts. If y
 
 ## Hosting Providers
 
-Cybrancee, Kinetic Hosting, and RespawnHost are supported providers. Cybrancee is the recommended hosted option, while players in Germany may prefer RespawnHost.
+Cybrancee, Kinetic Hosting, RespawnHost, and Shockbyte are supported providers. Cybrancee is the recommended hosted option, while players in Germany may prefer RespawnHost.
 
 See [Hosting Providers](docs/hosting-providers.md) for provider links, affiliate disclosure, verification notes, and third-party host guidance.
 

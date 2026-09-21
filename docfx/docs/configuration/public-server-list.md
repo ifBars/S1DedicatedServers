@@ -11,17 +11,19 @@ Public discovery is optional and disabled by default. A server that does not opt
 
 ## Enable Listing
 
-Set `publicListingEnabled` under `[publicListing]`:
+Sign in to the [server portal](https://s1servers.com/server-portal) and create a listing credential. Copy its listing ID and secret into `server_config.toml`, then enable listing under `[publicListing]`:
 
 ```toml
 [publicListing]
 publicListingEnabled = true
 publicListingServiceUrl = 'https://list.s1servers.com'
-publicListingId = ''
-publicListingSecret = ''
+publicListingId = 'YOUR_LISTING_ID'
+publicListingSecret = 'YOUR_LISTING_SECRET'
 ```
 
-Leave `publicListingId` and `publicListingSecret` empty when enabling discovery for the first time. The server registers after the game, save, gameplay transport, and TCP status-query endpoint are ready, then writes both values back to `server_config.toml`.
+Restart the server after saving the configuration. It starts publishing heartbeats after the game, save, gameplay transport, and TCP status-query endpoint are ready. Empty credentials leave the server unlisted; anonymous registration is not supported.
+
+The portal shows the secret only when it is issued. Use the portal to rotate a lost or exposed credential, replace the configured ID and secret together, and restart the server. Revoking a credential removes its public listing and prevents further heartbeats with that credential.
 
 `publicListingSecret` is a credential. Do not publish it in support logs, screenshots, container templates, or public configuration examples.
 

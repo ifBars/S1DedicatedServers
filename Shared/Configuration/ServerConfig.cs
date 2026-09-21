@@ -64,8 +64,8 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         /// <remarks>
         /// The default is <see langword="false"/>. Direct IP and port connections remain available
-        /// regardless of the public directory state. Set this to <see langword="true"/> to register
-        /// the server and publish five-minute heartbeats.
+        /// regardless of the public directory state. Set this to <see langword="true"/> with
+        /// portal-issued listing credentials to publish five-minute heartbeats.
         /// </remarks>
         [JsonProp(Constants.ConfigKeys.PublicListingEnabled)]
         public bool PublicListingEnabled { get; set; }
@@ -75,8 +75,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         /// <remarks>
         /// The default is <see cref="Constants.DefaultPublicServerListServiceUrl"/>. Authenticated
-        /// heartbeat and presence requests require HTTPS. Loopback HTTP is accepted only by the
-        /// unauthenticated registration path for local service testing.
+        /// heartbeat and presence requests require HTTPS.
         /// </remarks>
         [JsonProp(Constants.ConfigKeys.PublicListingServiceUrl)]
         public string PublicListingServiceUrl { get; set; } = Constants.DefaultPublicServerListServiceUrl;
@@ -85,8 +84,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// Gets or sets the directory-issued identity for this server.
         /// </summary>
         /// <remarks>
-        /// The default is an empty string. This value is populated automatically after the first
-        /// successful opt-in registration and should not be edited independently of
+        /// The default is an empty string. Copy this value from the server portal together with
         /// <see cref="PublicListingSecret"/>.
         /// </remarks>
         [JsonProp(Constants.ConfigKeys.PublicListingId)]
@@ -97,7 +95,7 @@ namespace DedicatedServerMod.Shared.Configuration
         /// </summary>
         /// <remarks>
         /// The default is an empty string. Treat a populated value as a credential. It is returned
-        /// only during registration and is never included in public directory responses or logs.
+        /// only when issued or rotated through the server portal and is never included in public directory responses or logs.
         /// </remarks>
         [JsonProp(Constants.ConfigKeys.PublicListingSecret)]
         public string PublicListingSecret { get; set; } = string.Empty;
