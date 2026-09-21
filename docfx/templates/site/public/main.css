@@ -4,14 +4,9 @@
   margin: 1.25rem 0 2rem;
 }
 
-.hosting-provider-primary,
-.hosting-provider-secondary {
+.hosting-provider-card {
   border: 1px solid var(--bs-border-color);
   border-radius: 0.875rem;
-}
-
-.hosting-provider-primary,
-.hosting-provider-secondary {
   padding: 1rem 1.1rem;
   background: rgba(127, 127, 127, 0.04);
 }
@@ -28,46 +23,22 @@
 .hosting-provider-logo-link {
   display: inline-flex;
   align-items: center;
-  max-width: 12rem;
+  width: 12rem;
+  max-width: 100%;
+  height: 3.35rem;
   margin: 0;
   border-bottom: 0;
 }
 
-.hosting-provider-logo-link--kinetic {
-  max-width: 100%;
-  width: 12rem;
-}
-
-.hosting-provider-logo-link--shockbyte {
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.4rem;
-  background: #101b2e;
-}
-
-.hosting-provider-logo-link--respawnhost {
-  max-width: 100%;
-  width: 12rem;
-}
-
 .hosting-provider-logo {
   display: block;
-  width: min(12rem, 100%);
-  height: auto;
-}
-
-.hosting-provider-logo-link--kinetic .hosting-provider-logo {
-  width: 12rem;
-  max-height: 3.35rem;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  object-position: left center;
 }
 
-.hosting-provider-logo-link--respawnhost .hosting-provider-logo {
-  width: 12rem;
-  max-height: 3.35rem;
-  object-fit: contain;
-}
-
-.hosting-provider-logo-link--respawnhost .hosting-provider-logo--light-theme {
+.hosting-provider-logo--monochrome {
   filter: brightness(0);
 }
 
@@ -85,9 +56,15 @@
 
 .hosting-provider-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 0.9rem;
+}
+
+.hosting-provider-offer {
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color);
 }
 
 .hosting-provider-button {
@@ -123,8 +100,7 @@
   background: rgba(127, 127, 127, 0.06);
 }
 
-.hosting-provider-primary__body,
-.hosting-provider-secondary__body {
+.hosting-provider-card__body {
   display: grid;
   grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
   gap: 1rem 1.35rem;
@@ -142,13 +118,8 @@
   margin-bottom: 0;
 }
 
-.hosting-provider-secondary p:last-child {
-  margin-bottom: 0;
-}
-
 @media (max-width: 767.98px) {
-  .hosting-provider-primary,
-  .hosting-provider-secondary {
+  .hosting-provider-card {
     padding: 1rem;
   }
 
@@ -156,8 +127,7 @@
     align-items: stretch;
   }
 
-  .hosting-provider-primary__body,
-  .hosting-provider-secondary__body {
+  .hosting-provider-card__body {
     grid-template-columns: 1fr;
   }
 

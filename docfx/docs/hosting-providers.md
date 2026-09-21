@@ -9,15 +9,15 @@ S1DedicatedServers is an open-source project. Players can self-host it directly,
 
 This page is the source of truth for supported hosted-provider guidance. Providers not listed here should be treated as independent third-party hosts.
 
-Some provider links may be affiliate links. Using them can support continued S1DedicatedServers development, but commercial hosting is optional and never required to use the mod.
+Some provider links are affiliate links, including the Shockbyte referral link. Purchases through these links support S1DedicatedServers development. Commercial hosting is optional and never required to use the mod.
 
 ## Supported Providers
 
 Want a hosted server instead of running the dedicated server yourself? The providers below support S1DedicatedServers. Cybrancee is the recommended option and the provider used for ongoing hosted-server validation.
 
 <div class="hosting-provider-showcase">
-  <section id="cybrancee" class="hosting-provider-primary" aria-label="Cybrancee supported provider">
-    <div class="hosting-provider-primary__body">
+  <section id="cybrancee" class="hosting-provider-card" aria-label="Cybrancee supported provider">
+    <div class="hosting-provider-card__body">
       <div class="hosting-provider-brand">
         <p class="hosting-provider-eyebrow">Supported provider</p>
         <a class="hosting-provider-logo-link" href="https://cybrancee.com/bars" aria-label="Open Cybrancee">
@@ -37,11 +37,11 @@ Want a hosted server instead of running the dedicated server yourself? The provi
     </div>
   </section>
 
-  <section id="kinetic-hosting" class="hosting-provider-secondary" aria-label="Kinetic Hosting supported provider">
-    <div class="hosting-provider-secondary__body">
+  <section id="kinetic-hosting" class="hosting-provider-card" aria-label="Kinetic Hosting supported provider">
+    <div class="hosting-provider-card__body">
       <div class="hosting-provider-brand">
         <p class="hosting-provider-eyebrow">Supported provider</p>
-        <a class="hosting-provider-logo-link hosting-provider-logo-link--kinetic" href="https://billing.kinetichosting.com/aff.php?aff=1417" aria-label="Open Kinetic Hosting">
+        <a class="hosting-provider-logo-link" href="https://billing.kinetichosting.com/aff.php?aff=1417" aria-label="Open Kinetic Hosting">
           <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/kinetic-logo-light-20260609.svg" alt="Kinetic Hosting" />
           <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/kinetic-logo-dark-20260609.svg" alt="Kinetic Hosting" />
         </a>
@@ -58,20 +58,19 @@ Want a hosted server instead of running the dedicated server yourself? The provi
     </div>
   </section>
 
-  <section id="respawnhost" class="hosting-provider-secondary" aria-label="RespawnHost supported provider">
-    <div class="hosting-provider-secondary__body">
+  <section id="respawnhost" class="hosting-provider-card" aria-label="RespawnHost supported provider">
+    <div class="hosting-provider-card__body">
       <div class="hosting-provider-brand">
         <p class="hosting-provider-eyebrow">Supported provider</p>
-        <a class="hosting-provider-logo-link hosting-provider-logo-link--respawnhost" href="https://rspwn.click/bars" aria-label="Open RespawnHost">
-          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/respawnhost-logo.webp" alt="RespawnHost" />
+        <a class="hosting-provider-logo-link" href="https://rspwn.click/bars" aria-label="Open RespawnHost">
+          <img class="hosting-provider-logo hosting-provider-logo--light-theme hosting-provider-logo--monochrome" src="assets/respawnhost-logo.webp" alt="RespawnHost" />
           <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/respawnhost-logo.webp" alt="RespawnHost" />
         </a>
       </div>
       <div class="hosting-provider-details">
         <p>
-          RespawnHost supports S1DedicatedServers from locations in Frankfurt and
-          Salt Lake City. Players in Germany may prefer its German-language service
-          and nearby Frankfurt location.
+          Supported hosting in Frankfurt and Salt Lake City, with German-language
+          service for players who prefer a nearby German host.
         </p>
         <div class="hosting-provider-actions">
           <a class="hosting-provider-button" href="https://rspwn.click/bars">Visit RespawnHost</a>
@@ -79,23 +78,23 @@ Want a hosted server instead of running the dedicated server yourself? The provi
       </div>
     </div>
   </section>
-  <section id="shockbyte" class="hosting-provider-secondary" aria-label="Shockbyte supported provider">
-    <div class="hosting-provider-secondary__body">
+  <section id="shockbyte" class="hosting-provider-card" aria-label="Shockbyte supported provider">
+    <div class="hosting-provider-card__body">
       <div class="hosting-provider-brand">
         <p class="hosting-provider-eyebrow">Supported provider</p>
-        <a class="hosting-provider-logo-link hosting-provider-logo-link--shockbyte" href="https://shockbyte.com/partner/ifbars" rel="sponsored" aria-label="Open Shockbyte">
-          <img class="hosting-provider-logo" src="assets/shockbyte-logo.svg" alt="Shockbyte" />
+        <a class="hosting-provider-logo-link" href="https://shockbyte.com/partner/ifbars" rel="sponsored" aria-label="Open Shockbyte">
+          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/shockbyte-logo-light.svg" alt="Shockbyte" />
+          <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/shockbyte-logo.svg" alt="Shockbyte" />
         </a>
       </div>
       <div class="hosting-provider-details">
         <p>
-          Shockbyte supports both IL2CPP and Mono. Following maintainer setup
-          feedback, Shockbyte confirmed support for panel console input and
-          graceful shutdown through the <code>shutdown</code> command.
+          Supports IL2CPP and Mono, with panel console input and graceful
+          shutdown confirmed by Shockbyte.
         </p>
-        <p>Use code <code>ifbars</code> for 25% off. Purchases through our referral link support S1DedicatedServers development.</p>
         <div class="hosting-provider-actions">
           <a class="hosting-provider-button" href="https://shockbyte.com/partner/ifbars" rel="sponsored">Visit Shockbyte</a>
+          <span class="hosting-provider-offer">25% off with <code>ifbars</code></span>
         </div>
       </div>
     </div>
