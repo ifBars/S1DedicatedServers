@@ -39,6 +39,8 @@ An opted-in server publishes:
 
 The directory does not publish the server password, operator identities, player identities, save data, or listing secret.
 
+Third-party services can read opted-in server metadata through the [Public Server List API](../public-server-list-api.md).
+
 ## Availability and Verification
 
 The server sends a heartbeat every five minutes. Directory presence expires automatically after 15 minutes without a heartbeat, preserving the same three-missed-heartbeat tolerance while reducing Cloudflare requests. Graceful shutdown attempts immediate removal, but TTL expiry remains authoritative.

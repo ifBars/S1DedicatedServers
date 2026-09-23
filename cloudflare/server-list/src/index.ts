@@ -15,6 +15,8 @@ import { isKvMetadataWithinLimit, validateHeartbeat } from "./validation";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 const PERSIST_LAST_SEEN_INTERVAL_MS = 15 * 60 * 1000;
+const MAX_SEARCH_SCANNED = 1000;
+const MAX_SEARCH_PAGES = 20;
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
@@ -162,6 +164,27 @@ async function listServers(request: Request, url: URL, env: Env): Promise<Respon
     return errorResponse(400, "INVALID_CURSOR", "Cursor is too long.");
   }
 
+  const name = url.searchParams.get("name")?.trim();
+  const host = url.searchParams.get("host")?.trim();
+  const portText = url.searchParams.get("port");
+  if (name !== undefined && (name.length === 0 || name.length > 100)) {
+    return errorResponse(400, "INVALID_SEARCH", "Name must be between 1 and 100 characters.");
+  }
+  if ((host === undefined) !== (portText === null) || (host !== undefined && (host.length === 0 || host.length > 45))) {
+    return errorResponse(400, "INVALID_SEARCH", "Host and port must be provided together; host must be 1 to 45 characters.");
+  }
+  if (portText !== null && !/^[1-9]\d{0,4}$/.test(portText)) {
+    return errorResponse(400, "INVALID_SEARCH", "Port must be an integer between 1 and 65535.");
+  }
+  const port = portText === null ? undefined : Number(portText);
+  if (port !== undefined && port > 65535) {
+    return errorResponse(400, "INVALID_SEARCH", "Port must be an integer between 1 and 65535.");
+  }
+
+  if (name !== undefined || host !== undefined) {
+    return searchServers(env, { name, host, port }, limit, cursor);
+  }
+
   const result = await env.SERVER_CACHE.list<ActiveServer>({
     prefix: ACTIVE_SERVER_PREFIX,
     limit,
@@ -183,6 +206,58 @@ async function listServers(request: Request, url: URL, env: Env): Promise<Respon
     success: true,
     servers,
     ...(!result.list_complete && result.cursor ? { nextCursor: result.cursor } : {}),
+  };
+  return json(response, 200, { "Cache-Control": "public, max-age=10" });
+}
+
+async function searchServers(
+  env: Env,
+  filters: { name?: string; host?: string; port?: number },
+  limit: number,
+  cursor?: string,
+): Promise<Response> {
+  const servers: ActiveServer[] = [];
+  const oldestAcceptedHeartbeat = Date.now() - ACTIVE_SERVER_TTL_SECONDS * 1000;
+  let scanned = 0;
+  let pages = 0;
+  let nextCursor = cursor;
+  let complete = false;
+  const nameSearch = filters.name?.toLowerCase();
+  const hostSearch = filters.host?.toLowerCase();
+
+  while (!complete && servers.length < limit && scanned < MAX_SEARCH_SCANNED && pages < MAX_SEARCH_PAGES) {
+    const result = await env.SERVER_CACHE.list<ActiveServer>({
+      prefix: ACTIVE_SERVER_PREFIX,
+      limit: Math.min(100, limit - servers.length, MAX_SEARCH_SCANNED - scanned),
+      cursor: nextCursor,
+    });
+    pages++;
+    scanned += result.keys.length;
+    complete = result.list_complete;
+    nextCursor = result.list_complete ? undefined : result.cursor;
+
+    const candidates = result.keys
+      .map((key) => key.metadata)
+      .filter((server): server is ActiveServer =>
+        server !== null &&
+        server !== undefined &&
+        server.protocolVersion === API_VERSION &&
+        server.lastHeartbeat >= oldestAcceptedHeartbeat &&
+        (nameSearch === undefined || server.serverName.toLowerCase().includes(nameSearch)) &&
+        (hostSearch === undefined || (server.host.toLowerCase() === hostSearch && server.port === filters.port)),
+      );
+    const activeListingIds = await getActiveListingIds(candidates, env.DB);
+    servers.push(...candidates.filter((server) => activeListingIds.has(server.listingId)));
+
+    if (!complete && !nextCursor) {
+      throw new Error("Server-list pagination did not return a continuation cursor.");
+    }
+  }
+
+  const response: ServerListResponse = {
+    success: true,
+    servers,
+    ...(!complete && nextCursor ? { nextCursor } : {}),
   };
   return json(response, 200, { "Cache-Control": "public, max-age=10" });
 }

@@ -34,7 +34,7 @@ Production traffic is served from `https://list.s1servers.com`. Wrangler manages
 - `DELETE /api/v2/portal/listings/{id}` revokes a listing and evicts current presence.
 - `PUT /api/v2/listings/{id}/heartbeat` publishes presence using `Authorization: Bearer <secret>`.
 - `DELETE /api/v2/listings/{id}/presence` removes presence during graceful shutdown.
-- `GET /api/v2/servers?limit=50&cursor=...` returns active, protocol-compatible candidates.
+- `GET /api/v2/servers?limit=50&cursor=...` returns active, protocol-compatible candidates. Optional `name` searches server names; `host` and `port` together match an advertised address. See the [public API guide](../../docfx/docs/public-server-list-api.md) for response fields and pagination.
 
 Cloudflare supplies the advertised host through `CF-Connecting-IP`; heartbeat payloads cannot choose arbitrary connection targets.
 Anonymous `POST /api/v2/listings` registration is intentionally rejected. Discord access tokens and Steam assertions are used only to establish an identity and are not retained.
