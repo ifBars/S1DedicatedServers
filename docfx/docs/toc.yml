@@ -42,6 +42,10 @@
     href: commands/admin-commands.md
   - name: Player Management
     href: commands/player-management.md
+- name: Integrations
+  items:
+  - name: Public Server List API
+    href: public-server-list-api.md
 - name: Modding
   items:
   - name: Overview

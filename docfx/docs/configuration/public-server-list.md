@@ -21,7 +21,7 @@ publicListingId = ''
 publicListingSecret = ''
 ```
 
-Leave `publicListingId` and `publicListingSecret` empty when enabling discovery for the first time. The server registers after the game, save, gameplay transport, and TCP status-query endpoint are ready, then writes both values back to `server_config.toml`.
+Create a listing at the [server portal](https://s1servers.com/server-portal), then copy its issued ID and secret into `publicListingId` and `publicListingSecret`. The server begins sending heartbeats after the game, save, gameplay transport, and TCP status-query endpoint are ready.
 
 `publicListingSecret` is a credential. Do not publish it in support logs, screenshots, container templates, or public configuration examples.
 
@@ -36,6 +36,8 @@ An opted-in server publishes:
 - Game, mod, and directory protocol versions
 
 The directory does not publish the server password, operator identities, player identities, save data, or listing secret.
+
+Third-party services can read opted-in server metadata through the [Public Server List API](../public-server-list-api.md).
 
 ## Availability and Verification
 

@@ -12,6 +12,7 @@ Key docs:
 - [Permissions](configuration/permissions.md)
 - [Host Console](host-console.md)
 - [Client Mod Verification](configuration/client-mod-verification.md)
+- [Public Server List API](public-server-list-api.md)
 - [Commands](commands.md)
 - [Mod API Overview](modding/overview.md)
 - [Addon Configuration](modding/configuration.md)
