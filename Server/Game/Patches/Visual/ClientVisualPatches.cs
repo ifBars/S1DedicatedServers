@@ -4,13 +4,33 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 #if IL2CPP
-using AvatarImpostorType = Il2CppScheduleOne.AvatarFramework.Impostors.AvatarImpostor;
+using AvatarImpostorType = Il2CppScheduleOne.Avatar.Impostors.AvatarImpostor;
+using InstancingManagerType = Il2CppScheduleOne.Instancing.InstancingManager;
 #else
-using AvatarImpostorType = ScheduleOne.AvatarFramework.Impostors.AvatarImpostor;
+using AvatarImpostorType = ScheduleOne.Avatar.Impostors.AvatarImpostor;
+using InstancingManagerType = ScheduleOne.Instancing.InstancingManager;
 #endif
 
 namespace DedicatedServerMod.Server.Game.Patches.Visual
 {
+    /// <summary>
+    /// Avoids allocating and dispatching GPU instance buffers on a headless host.
+    /// </summary>
+    [HarmonyPatch(typeof(InstancingManagerType), "Start")]
+    internal static class InstancingManagerStartPatches
+    {
+        private static bool Prefix(InstancingManagerType __instance)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
+            {
+                return true;
+            }
+
+            __instance.enabled = false;
+            return false;
+        }
+    }
+
     internal static class OptionalClientVisualPatchTargets
     {
         internal static MethodBase ResolveFirst(string methodName, params string[] typeNames)

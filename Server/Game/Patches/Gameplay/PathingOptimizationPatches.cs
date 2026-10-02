@@ -419,9 +419,9 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
                 callback != null ||
                 interruptExistingCallback ||
                 !usesBroadCacheTolerance ||
-                !movement.HasDestination ||
-                movement.Agent == null ||
-                (!movement.Agent.pathPending && !movement.IsMoving))
+                !movement._hasDestination ||
+                movement._agent == null ||
+                (!movement._agent.pathPending && !movement.IsMoving))
             {
                 return false;
             }

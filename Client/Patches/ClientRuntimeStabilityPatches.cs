@@ -5,9 +5,7 @@ using DedicatedServerMod.Utils;
 #if IL2CPP
 using ConfigurationServiceNetworkerType = Il2CppScheduleOne.Configuration.ConfigurationServiceNetworker;
 using Il2CppScheduleOne.DevUtilities;
-using NPCActionType = Il2CppScheduleOne.NPCs.Schedules.NPCAction;
 using NPCEventStayInBuildingType = Il2CppScheduleOne.NPCs.Schedules.NPCEvent_StayInBuilding;
-using NPCType = Il2CppScheduleOne.NPCs.NPC;
 using Il2CppScheduleOne.PlayerScripts;
 using MessageType = Il2CppScheduleOne.Messaging.Message;
 using MSGConversationType = Il2CppScheduleOne.Messaging.MSGConversation;
@@ -15,9 +13,7 @@ using TrashItemType = Il2CppScheduleOne.Trash.TrashItem;
 #else
 using ConfigurationServiceNetworkerType = ScheduleOne.Configuration.ConfigurationServiceNetworker;
 using ScheduleOne.DevUtilities;
-using NPCActionType = ScheduleOne.NPCs.Schedules.NPCAction;
 using NPCEventStayInBuildingType = ScheduleOne.NPCs.Schedules.NPCEvent_StayInBuilding;
-using NPCType = ScheduleOne.NPCs.NPC;
 using ScheduleOne.PlayerScripts;
 using MessageType = ScheduleOne.Messaging.Message;
 using MSGConversationType = ScheduleOne.Messaging.MSGConversation;
@@ -104,15 +100,6 @@ namespace DedicatedServerMod.Client.Patches
     [HarmonyPatch(typeof(NPCEventStayInBuildingType), "RpcLogic___PlayEnterAnimation_2166136261")]
     internal static class NPCEventStayInBuildingEnterAnimationClientPatches
     {
-        private static readonly System.Reflection.FieldInfo NpcField =
-            AccessTools.Field(typeof(NPCActionType), "npc");
-
-        [HarmonyPrepare]
-        private static bool Prepare()
-        {
-            return NpcField != null;
-        }
-
         private static bool Prefix(NPCEventStayInBuildingType __instance)
         {
             if (!DedicatedRuntimeContext.IsActive)
@@ -127,7 +114,7 @@ namespace DedicatedServerMod.Client.Patches
                     return false;
                 }
 
-                var npc = NpcField?.GetValue(__instance) as NPCType;
+                var npc = __instance.npc;
                 if (npc == null ||
                     npc.Movement == null ||
                     npc.Avatar == null ||

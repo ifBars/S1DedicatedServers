@@ -159,7 +159,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
 
                 LoadManagerType loadManager = Singleton<LoadManagerType>.Instance;
                 QuestManagerType questManager = NetworkSingleton<QuestManagerType>.Instance;
-                bool playerDataReady = playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.playerDataRetrieveReturned;
+                bool playerDataReady = playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.PlayerLoaded;
                 bool worldReady = loadManager != null && !loadManager.IsLoading && loadManager.IsGameLoaded;
 
                 if (playerDataReady && worldReady && questManager?.DefaultQuests != null)
@@ -226,7 +226,7 @@ namespace DedicatedServerMod.Server.Player.Runtime
             }
 
             LoadManagerType timedOutLoadManager = Singleton<LoadManagerType>.Instance;
-            bool timedOutPlayerDataReady = playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.playerDataRetrieveReturned;
+            bool timedOutPlayerDataReady = playerInfo.PlayerInstance != null && playerInfo.PlayerInstance.PlayerLoaded;
             bool timedOutWorldReady = timedOutLoadManager != null && !timedOutLoadManager.IsLoading && timedOutLoadManager.IsGameLoaded;
             DebugLog.Warning(
                 $"Timed out replaying quest state to ClientId {playerInfo.ClientId}: " +

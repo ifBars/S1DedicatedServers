@@ -1,11 +1,15 @@
 using DedicatedServerMod.Server.Game.Patches.Common;
 using HarmonyLib;
 #if IL2CPP
+using OptimizedLightType = Il2CppScheduleOne.DevUtilities.OptimizedLight;
+using ReflectionProbeManagerType = Il2CppScheduleOne.Reflections.ReflectionProbeManager;
 using BlinkingLightType = Il2CppScheduleOne.Lighting.BlinkingLight;
 using FlickeringLightType = Il2CppScheduleOne.Lighting.FlickeringLight;
 using PoliceLightType = Il2CppScheduleOne.Lighting.PoliceLight;
 using ReflectionProbeUpdaterType = Il2CppScheduleOne.Lighting.ReflectionProbeUpdater;
 #else
+using OptimizedLightType = ScheduleOne.DevUtilities.OptimizedLight;
+using ReflectionProbeManagerType = ScheduleOne.Reflections.ReflectionProbeManager;
 using BlinkingLightType = ScheduleOne.Lighting.BlinkingLight;
 using FlickeringLightType = ScheduleOne.Lighting.FlickeringLight;
 using PoliceLightType = ScheduleOne.Lighting.PoliceLight;
@@ -14,6 +18,36 @@ using ReflectionProbeUpdaterType = ScheduleOne.Lighting.ReflectionProbeUpdater;
 
 namespace DedicatedServerMod.Server.Game.Patches.Visual
 {
+    /// <summary>
+    /// Disables beta reflection blending, which requires compute shaders unavailable in headless mode.
+    /// </summary>
+    [HarmonyPatch(typeof(ReflectionProbeManagerType), "Start")]
+    internal static class ReflectionProbeManagerStartPatches
+    {
+        private static bool Prefix(ReflectionProbeManagerType __instance)
+        {
+            if (!DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
+            {
+                return true;
+            }
+
+            __instance.enabled = false;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Avoids registering camera-driven light culling on a host without a rendered view.
+    /// </summary>
+    [HarmonyPatch(typeof(OptimizedLightType), "Start")]
+    internal static class OptimizedLightStartPatches
+    {
+        private static bool Prefix()
+        {
+            return !DedicatedServerPatchCommon.IsDedicatedHeadlessServer();
+        }
+    }
+
     /// <summary>
     /// Disables decorative flickering-light animation on dedicated headless servers.
     /// </summary>

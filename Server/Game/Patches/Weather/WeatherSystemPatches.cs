@@ -1,19 +1,87 @@
 using HarmonyLib;
+using System.Collections.Generic;
+using System.Reflection;
 using DedicatedServerMod.Server.Game.Patches.Common;
 using DedicatedServerMod.Utils;
 #if IL2CPP
 using Il2CppFishNet;
 using EnvironmentManagerType = Il2CppScheduleOne.Weather.EnvironmentManager;
 using MaskControllerType = Il2CppScheduleOne.Weather.MaskController;
+using ActionType = Il2CppSystem.Action;
 #else
 using FishNet;
 using EnvironmentManagerType = ScheduleOne.Weather.EnvironmentManager;
 using MaskControllerType = ScheduleOne.Weather.MaskController;
+using ActionType = System.Action;
 #endif
 using UnityEngine;
 
 namespace DedicatedServerMod.Server.Game.Patches.Weather
 {
+    /// <summary>
+    /// Skips beta mask modifications after headless GPU initialization was bypassed.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class MaskControllerModificationPatches
+    {
+        [HarmonyTargetMethods]
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(MaskControllerType), nameof(MaskControllerType.UpdateMaskMap));
+            yield return AccessTools.Method(typeof(MaskControllerType), nameof(MaskControllerType.SetModificationState));
+            yield return AccessTools.Method(typeof(MaskControllerType), nameof(MaskControllerType.ApplyModifications));
+            yield return AccessTools.Method(typeof(MaskControllerType), nameof(MaskControllerType.AddHippieModification));
+            yield return AccessTools.Method(typeof(MaskControllerType), nameof(MaskControllerType.RemoveHippieModification));
+        }
+
+        private static bool Prefix()
+        {
+            return !DedicatedHeadlessWeatherCompatibility.ShouldBypassHeadlessWeatherMask();
+        }
+    }
+
+    /// <summary>
+    /// Completes weather initialization without building a texture array on the headless host.
+    /// </summary>
+    [HarmonyPatch(typeof(MaskControllerType), nameof(MaskControllerType.BuildTextureArrayAsync))]
+    internal static class MaskControllerBuildTextureArrayPatches
+    {
+        private static bool Prefix(ActionType onComplete)
+        {
+            if (!DedicatedHeadlessWeatherCompatibility.ShouldBypassHeadlessWeatherMask())
+            {
+                return true;
+            }
+
+            onComplete?.Invoke();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Releases only allocated mask resources when the headless host skipped compute initialization.
+    /// </summary>
+    [HarmonyPatch(typeof(MaskControllerType), "OnDestroy")]
+    internal static class MaskControllerOnDestroyPatches
+    {
+        private static bool Prefix(MaskControllerType __instance)
+        {
+            if (!Application.isBatchMode)
+            {
+                return true;
+            }
+
+            __instance._wetMaskTexture?.Release();
+            __instance._wetMaskTexture = null;
+            __instance._maskRenderTexture?.Release();
+            __instance._maskRenderTexture = null;
+            __instance._modificationStatesBuffer?.Release();
+            __instance._modificationStatesBuffer = null;
+            __instance._modificationDataBuffer?.Release();
+            __instance._modificationDataBuffer = null;
+            return false;
+        }
+    }
     /// <summary>
     /// Disables GPU-backed weather mask generation on dedicated servers because
     /// headless and nographics mode cannot reliably run the compute shader pipeline.

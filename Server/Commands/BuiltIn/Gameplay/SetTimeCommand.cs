@@ -6,9 +6,11 @@ using DedicatedServerMod.Shared.Permissions;
 using Il2CppFishNet;
 using Il2CppScheduleOne.DevUtilities;
 using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
+using SleepControllerType = Il2CppScheduleOne.GameTime.SleepController;
 #else
 using ScheduleOne.DevUtilities;
 using TimeManagerType = ScheduleOne.GameTime.TimeManager;
+using SleepControllerType = ScheduleOne.GameTime.SleepController;
 #endif
 
 namespace DedicatedServerMod.Server.Commands.BuiltIn.Gameplay
@@ -46,14 +48,14 @@ namespace DedicatedServerMod.Server.Commands.BuiltIn.Gameplay
                 return;
             }
 
-            if (timeManager.IsSleepInProgress)
+            if (NetworkSingleton<SleepControllerType>.Instance != null && NetworkSingleton<SleepControllerType>.Instance.IsSleepInProgress)
             {
                 context.ReplyError("Can't set time while sleep is in progress.");
                 return;
             }
 
             int targetTime = int.Parse(context.Arguments[0]);
-            timeManager.SetTimeAndSync(targetTime);
+            timeManager.SetTime_Server(targetTime);
             context.Reply($"Server time set to {TimeManagerType.Get12HourTime(targetTime, true)} ({targetTime:D4}).");
         }
     }

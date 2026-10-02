@@ -9,6 +9,8 @@
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>DedicatedServerMod</RootNamespace>
+		<!-- Test-host dependencies must not become assembly resolution candidates for the mod. -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
 		<LangVersion>default</LangVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<Configurations>Mono_Client;Mono_Server;Il2cpp_Client;Il2cpp_Server;Documentation</Configurations>

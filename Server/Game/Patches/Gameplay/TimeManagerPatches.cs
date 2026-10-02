@@ -8,11 +8,13 @@ using Il2CppFishNet;
 using Il2CppScheduleOne.DevUtilities;
 using LoadManagerType = Il2CppScheduleOne.Persistence.LoadManager;
 using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
+using SleepControllerType = Il2CppScheduleOne.GameTime.SleepController;
 #else
 using FishNet;
 using ScheduleOne.DevUtilities;
 using LoadManagerType = ScheduleOne.Persistence.LoadManager;
 using TimeManagerType = ScheduleOne.GameTime.TimeManager;
+using SleepControllerType = ScheduleOne.GameTime.SleepController;
 #endif
 using UnityEngine;
 
@@ -61,7 +63,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
             }
 
             var loadManager = Singleton<LoadManagerType>.Instance;
-            if (loadManager == null || loadManager.IsLoading || !loadManager.IsGameLoaded || __instance.IsSleepInProgress)
+            if (loadManager == null || loadManager.IsLoading || !loadManager.IsGameLoaded || (NetworkSingleton<SleepControllerType>.Instance != null && NetworkSingleton<SleepControllerType>.Instance.IsSleepInProgress))
             {
                 return;
             }
@@ -111,41 +113,4 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     }
     */
 
-    [HarmonyPatch(typeof(TimeManagerType), nameof(TimeManagerType.StartSleep))]
-    internal static class TimeManagerStartSleepPatches
-    {
-        private static bool Prefix()
-        {
-            if (!InstanceFinder.IsServer)
-            {
-                return true;
-            }
-
-            return DedicatedServerPatchCommon.CountSleepEligiblePlayers() > 0;
-        }
-    }
-
-    [HarmonyPatch(typeof(TimeManagerType), nameof(TimeManagerType.StartSleep))]
-    internal static class TimeManagerStartSleepHeadlessPatches
-    {
-        private static void Postfix(TimeManagerType __instance)
-        {
-            ForceHeadlessHostSleepDone(__instance);
-        }
-
-        public static void ForceHeadlessHostSleepDone(TimeManagerType __instance)
-        {
-            if (!InstanceFinder.IsServer || !DedicatedServerPatchCommon.IsDedicatedHeadlessServer())
-            {
-                return;
-            }
-
-            if (__instance == null || !__instance.IsSleepInProgress || __instance.HostSleepDone)
-            {
-                return;
-            }
-
-            __instance.SetHostSleepDone(done: true);
-        }
-    }
 }

@@ -467,7 +467,16 @@ namespace DedicatedServerMod.Server.Core
             DebugLog.StartupDebug("Creating load requests for save data");
             int queuedLoadRequests = 0;
             int skippedLoadRequests = 0;
+            // The beta assigns dependency order to base saveables (matching native LoadManager).
+            var orderedSaveables = new List<BaseSaveableContractType>();
             foreach (BaseSaveableContractType baseSaveable in Singleton<SaveManager>.Instance.BaseSaveables)
+            {
+                if (baseSaveable != null)
+                {
+                    orderedSaveables.Add(baseSaveable);
+                }
+            }
+            foreach (BaseSaveableContractType baseSaveable in orderedSaveables.OrderBy(saveable => saveable.LoadOrder))
             {
                 SaveableContractType saveable = null;
 #if IL2CPP
@@ -666,7 +675,7 @@ namespace DedicatedServerMod.Server.Core
                     p.gameObject.name = Constants.GhostHostObjectName;
                     PlayerGameCompatibility.SetHasCompletedIntro(p, true);
                     p.SetVisible(false, network: true);
-                    p.SetVisibleToLocalPlayer(false);
+                    p.SetThirdPersonMeshesVisibility(false);
                     var mv = p.GetComponent<PlayerMovement>();
                     if (mv != null) mv.Teleport(new Vector3(16.456f, 31.176f, -165.366f));
                     else p.transform.position = new Vector3(16.456f, 31.176f, -165.366f);
@@ -762,24 +771,19 @@ namespace DedicatedServerMod.Server.Core
                     return;
                 }
 
-                string json = File.ReadAllText(playerJsonPath);
-                PlayerData playerData = JsonUtility.FromJson<PlayerData>(json);
-                if (playerData == null)
+                var nativePlayerManager = Singleton<ScheduleOne.PlayerScripts.PlayerManager>.Instance;
+                if (nativePlayerManager != null && nativePlayerManager.TryGetPlayerData(
+                    ScheduleOne.PlayerScripts.Player.Local.PlayerCode, true, out var fullData))
                 {
-                    DebugLog.Warning("Failed to deserialize loopback Player_0 data; forcing intro complete in memory.");
-                    PlayerGameCompatibility.SetHasCompletedIntro(ScheduleOne.PlayerScripts.Player.Local, true);
-                    return;
+                    fullData.BasicData.IntroCompleted = true;
+                    ScheduleOne.PlayerScripts.Player.Local.SetPlayerData_Client(null, fullData);
+                    DebugLog.StartupDebug("Loopback host data loaded from Player_0 before onLoadComplete.");
                 }
-
-                if (string.IsNullOrWhiteSpace(playerData.PlayerCode) && !string.IsNullOrWhiteSpace(ScheduleOne.PlayerScripts.Player.Local.PlayerCode))
+                else
                 {
-                    playerData.PlayerCode = ScheduleOne.PlayerScripts.Player.Local.PlayerCode;
+                    DebugLog.Warning("Could not retrieve loopback Player_0 data; forcing intro complete in memory.");
                 }
-
-                playerData.IntroCompleted = true;
-                ScheduleOne.PlayerScripts.Player.Local.Load(playerData, player0Dir);
                 PlayerGameCompatibility.SetHasCompletedIntro(ScheduleOne.PlayerScripts.Player.Local, true);
-                DebugLog.StartupDebug("Loopback host data loaded directly from Player_0 before onLoadComplete.");
             }
             catch (Exception ex)
             {
