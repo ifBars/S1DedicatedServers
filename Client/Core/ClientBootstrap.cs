@@ -257,7 +257,6 @@ namespace DedicatedServerMod.Client.Core
             {
                 // Initialize client-side patch helpers.
                 Patches.SleepPatches.Initialize();
-                Patches.DailySummaryPatches.Initialize();
                 Patches.PolicePatches.Initialize();
                 Patches.GhostHostUiPatches.Initialize();
                 Patches.PauseMenuPatches.Initialize();

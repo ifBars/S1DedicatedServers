@@ -13,12 +13,10 @@ using UnityEngine;
 #if IL2CPP
 using Il2CppFishNet.Connection;
 using SettingsType = Il2CppScheduleOne.DevUtilities.Settings;
-using TimeManagerType = Il2CppScheduleOne.GameTime.TimeManager;
 using PlayerType = Il2CppScheduleOne.PlayerScripts.Player;
 #else
 using FishNet.Connection;
 using SettingsType = ScheduleOne.DevUtilities.Settings;
-using TimeManagerType = ScheduleOne.GameTime.TimeManager;
 using PlayerType = ScheduleOne.PlayerScripts.Player;
 #endif
 
@@ -71,7 +69,6 @@ namespace DedicatedServerMod.Server.Game
                 PatchPlayerServerNameValidation();
                 appliedPatches.Add("PlayerNameFriendGatePatch");
                 PatchCasinoRemoteClientFlow();
-                PatchHeadlessSleepCompletion();
                 PatchEasyFeedbackHeadlessLogCollector();
                 PatchDisplaySettingsPerformanceOverride();
 
@@ -168,7 +165,7 @@ namespace DedicatedServerMod.Server.Game
                 MethodInfo target = typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                     .FirstOrDefault(mi =>
                     {
-                        if (!mi.Name.StartsWith("RpcLogic___ReceivePlayerNameData_", StringComparison.Ordinal))
+                        if (!mi.Name.StartsWith("RpcLogic___SetPlayerNameAndId_Client_", StringComparison.Ordinal))
                         {
                             return false;
                         }
@@ -228,7 +225,7 @@ namespace DedicatedServerMod.Server.Game
                 MethodInfo target = typeof(PlayerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                     .FirstOrDefault(mi =>
                     {
-                        if (!mi.Name.StartsWith("RpcLogic___SendPlayerNameData_", StringComparison.Ordinal))
+                        if (!mi.Name.StartsWith("RpcLogic___SetPlayerNameAndId_Server_", StringComparison.Ordinal))
                         {
                             return false;
                         }
@@ -276,39 +273,6 @@ namespace DedicatedServerMod.Server.Game
             catch (Exception ex)
             {
                 DebugLog.Error("Error patching Player SendPlayerNameData RPC", ex);
-            }
-        }
-
-        /// <summary>
-        /// Patches the generated sleep RPC logic so headless servers mark host sleep
-        /// complete even when the runtime bypasses the wrapper-level StartSleep postfix.
-        /// </summary>
-        private void PatchHeadlessSleepCompletion()
-        {
-            try
-            {
-                MethodInfo target = typeof(TimeManagerType).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                    .FirstOrDefault(mi =>
-                        mi.Name.StartsWith("RpcLogic___StartSleep_", StringComparison.Ordinal)
-                        && mi.GetParameters().Length == 0);
-
-                if (target == null)
-                {
-                    DebugLog.Warning("Could not find TimeManager sleep RPC logic; headless sleep completion fallback was skipped.");
-                    return;
-                }
-
-                MethodInfo postfix = typeof(TimeManagerStartSleepHeadlessPatches).GetMethod(
-                    nameof(TimeManagerStartSleepHeadlessPatches.ForceHeadlessHostSleepDone),
-                    BindingFlags.Public | BindingFlags.Static);
-
-                harmony.Patch(target, postfix: new HarmonyMethod(postfix));
-                appliedPatches.Add("HeadlessSleepCompletionPatch");
-                DebugLog.StartupDebug($"Patched TimeManager sleep RPC logic for headless completion: {target.Name}");
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Error("Error patching TimeManager sleep RPC logic", ex);
             }
         }
 

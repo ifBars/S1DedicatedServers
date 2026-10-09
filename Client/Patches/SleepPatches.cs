@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 #if IL2CPP
@@ -122,41 +121,17 @@ namespace DedicatedServerMod.Client.Patches
             }
         }
 
-        [HarmonyPatch]
-        private static class SleepCanvasOpenPatch
+        [HarmonyPatch(typeof(SleepMenu), nameof(SleepMenu.OpenMenu))]
+        private static class SleepMenuOpenPatch
         {
-            [HarmonyTargetMethods]
-            private static IEnumerable<MethodBase> TargetMethods()
-            {
-                var setIsOpen = AccessTools.Method(typeof(SleepCanvas), "SetIsOpen");
-                if (setIsOpen != null)
-                {
-                    yield return setIsOpen;
-                }
-
-                var openMenu = AccessTools.Method(typeof(SleepCanvas), "OpenMenu");
-                if (openMenu != null)
-                {
-                    yield return openMenu;
-                }
-            }
-
             [HarmonyPrefix]
-            private static bool Prefix(MethodBase __originalMethod, object[] __args)
+            private static bool Prefix()
             {
-                bool opensCanvas = __originalMethod.Name != "SetIsOpen"
-                    || (__args.Length > 0 && __args[0] is bool open && open);
-
-                if (!opensCanvas)
-                {
-                    return true;
-                }
-
-                return SleepCanvasOpenPrefix();
+                return SleepMenuOpenPrefix();
             }
         }
 
-        private static bool SleepCanvasOpenPrefix()
+        private static bool SleepMenuOpenPrefix()
         {
             if (!DedicatedRuntimeContext.IsActive)
             {
@@ -169,7 +144,7 @@ namespace DedicatedServerMod.Client.Patches
                 {
                     if (!Managers.ServerDataStore.AllowSleeping)
                     {
-                        DebugLog.Debug("Server has disabled sleeping; suppressing SleepCanvas open");
+                        DebugLog.Debug("Server has disabled sleeping; suppressing SleepMenu open");
                         return false;
                     }
                 }
@@ -177,7 +152,7 @@ namespace DedicatedServerMod.Client.Patches
             }
             catch (Exception ex)
             {
-                DebugLog.Warning($"SleepCanvas_SetIsOpen_Prefix error: {ex.Message}");
+                DebugLog.Warning($"SleepMenu_SetIsOpen_Prefix error: {ex.Message}");
                 return true;
             }
         }

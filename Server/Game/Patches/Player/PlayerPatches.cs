@@ -24,7 +24,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
     {
         private static readonly MethodInfo ReceivePlayerNameDataMethod = AccessTools.Method(
             typeof(PlayerType),
-            "ReceivePlayerNameData",
+            "SetPlayerNameAndId_Client",
             new[] { typeof(NetworkConnection), typeof(string), typeof(string) });
 
         public static void BindPlayerIdentityPostfix(PlayerType __instance, NetworkConnection conn, string playerName, string id)
@@ -111,7 +111,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Player
             }
         }
 
-        [HarmonyPatch(typeof(PlayerType), "PlayerLoaded")]
+        [HarmonyPatch(typeof(PlayerType), "OnLocalPlayerLoaded")]
         [HarmonyPrefix]
         private static void PlayerLoadedPrefix(PlayerType __instance)
         {

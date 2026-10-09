@@ -2,9 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, beta ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, beta ]
   workflow_dispatch:
     inputs:
       assembly_branch:
@@ -52,6 +52,8 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ -n "${{ inputs.assembly_branch }}" ]]; then
             requested_branch="${{ inputs.assembly_branch }}"
+          elif [[ "${{ github.base_ref || github.ref_name }}" == "beta" ]]; then
+            requested_branch="beta"
           else
             requested_branch="master"
           fi
@@ -76,6 +78,9 @@ jobs:
           echo "mono_branch=$mono_branch" >> "$GITHUB_OUTPUT"
           echo "il2cpp_branch=$il2cpp_branch" >> "$GITHUB_OUTPUT"
           echo "Using Mono assemblies from $mono_branch and IL2CPP assemblies from $il2cpp_branch (requested: $requested_branch)"
+
+      - name: Test sleep patch registration and readiness
+        run: dotnet run --project tests/SleepControllerPatchTests/SleepControllerPatchTests.csproj
 
       - name: Restore Mono Assembly Cache
         id: mono-cache
