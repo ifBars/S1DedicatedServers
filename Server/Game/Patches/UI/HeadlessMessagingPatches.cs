@@ -51,7 +51,7 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
                 message.messageId = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
             }
 
-            MessageListType history = conversation.messageHistory;
+            MessageListType history = conversation._messageHistory;
             if (ContainsMessage(history, message.messageId))
             {
                 return;
@@ -74,14 +74,14 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
                 chain.id = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
             }
 
-            MessageChainListType chainHistory = conversation.messageChainHistory;
+            MessageChainListType chainHistory = conversation._messageChainHistory;
             if (ContainsMessageChain(chainHistory, chain.id))
             {
                 return;
             }
 
             chainHistory.Add(chain);
-            MessageListType messageHistory = conversation.messageHistory;
+            MessageListType messageHistory = conversation._messageHistory;
             for (int i = 0; i < chain.Messages.Count; i++)
             {
                 bool isLastMessage = i == chain.Messages.Count - 1;
@@ -114,7 +114,7 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
                 return;
             }
 
-            bool conversationCanBeHidden = conversation.sender?.NPCData?.Messaging?.ConversationCanBeHidden == true;
+            bool conversationCanBeHidden = conversation._sender.DisplayRelationshipInfo;
             if (ConversationEntryVisibilityPolicy.ShouldApply(visible, conversationCanBeHidden))
             {
                 conversation.EntryVisible = visible;
@@ -136,7 +136,7 @@ namespace DedicatedServerMod.Server.Game.Patches.UI
 
             if (network)
             {
-                NetworkSingleton<MessagingManagerType>.Instance.ClearResponses(conversation.sender.ID);
+                NetworkSingleton<MessagingManagerType>.Instance.ClearResponses_Server(conversation.ConversationId);
             }
         }
 

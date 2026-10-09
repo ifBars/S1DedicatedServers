@@ -298,7 +298,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         }
     }
 
-    [HarmonyPatch(typeof(NpcResponsesPoliceType), "HitByCar")]
+    [HarmonyPatch(typeof(NpcResponsesPoliceType), "RespondToHitByCar")]
     internal static class PoliceResponseHitByCarPatches
     {
         private static void Postfix(NpcResponsesPoliceType __instance, LandVehicleType vehicle)

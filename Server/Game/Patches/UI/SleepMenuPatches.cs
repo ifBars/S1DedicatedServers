@@ -11,8 +11,8 @@ using UnityEngine;
 
 namespace DedicatedServerMod.Server.Game.Patches.UI
 {
-    [HarmonyPatch(typeof(SleepCanvas), "SleepStart")]
-    internal static class SleepCanvasPatches
+    [HarmonyPatch(typeof(SleepMenu), "OnSleepStart")]
+    internal static class SleepMenuPatches
     {
         private static bool Prefix()
         {

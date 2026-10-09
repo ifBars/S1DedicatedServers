@@ -76,7 +76,7 @@ namespace DedicatedServerMod.Shared.Patches
                 }
                 catch (Exception ex)
                 {
-                    DebugLog.Warning($"Error invoking staggered action callback: {ex.Message}");
+                    DebugLog.Warning($"Error invoking staggered action callback: {ex}");
                 }
 
                 if (delay > 0f && i + 1 < snapshot.Count)

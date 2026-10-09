@@ -363,13 +363,13 @@ namespace DedicatedServerMod.Client.Managers
             timeline.Mark("PlayerLocalSpawned", $"{playerElapsed:F1}s");
 
             // --- Step 13 (native 702-703): Wait for player data ---
-            // Server sends ReceivePlayerData RPC which sets playerDataRetrieveReturned.
+            // The beta SetPlayerData_Client RPC completes local loading and sets PlayerLoaded.
             loadManager.LoadStatus = LoadManager.ELoadStatus.LoadingData;
             timeline.Mark("WaitForPlayerData");
             float dataWaitStart = Time.realtimeSinceStartup;
             yield return new WaitUntil((System.Func<bool>)(() =>
                 ShouldAbortJoinSequence(joinAttemptId) ||
-                Player.Local == null || Player.Local.playerDataRetrieveReturned));
+                Player.Local == null || Player.Local.PlayerLoaded));
 
             if (ShouldAbortJoinSequence(joinAttemptId))
             {
@@ -486,7 +486,6 @@ namespace DedicatedServerMod.Client.Managers
             TryClearLoadState("Property.OwnedProperties.Clear", () => Property.OwnedProperties.Clear());
             TryClearLoadState("Property.UnownedProperties.Clear", () => Property.UnownedProperties.Clear());
             TryClearLoadState("PlayerMovement.StaticMoveSpeedMultiplier", () => PlayerMovement.StaticMoveSpeedMultiplier = 1f);
-            TryClearLoadState("AvatarLookController.TempContainer", () => AvatarLookController.TempContainer = null);
             TryClearLoadState("Customer.onCustomerUnlocked", () => Customer.onCustomerUnlocked = null);
             TryClearLoadState("Customer.UnlockedCustomers.Clear", () => Customer.UnlockedCustomers.Clear());
             TryClearLoadState("Customer.LockedCustomers.Clear", () => Customer.LockedCustomers.Clear());
@@ -597,7 +596,7 @@ namespace DedicatedServerMod.Client.Managers
             }
 
             var localPlayer = Player.Local;
-            if (localPlayer == null || localPlayer.playerDataRetrieveReturned)
+            if (localPlayer == null)
             {
                 yield break;
             }
@@ -611,9 +610,14 @@ namespace DedicatedServerMod.Client.Managers
             string playerName = ResolveSteamPersonaName(localPlayer);
             string steamIdText = steamId.ToString(CultureInfo.InvariantCulture);
 
+            if (localPlayer.PlayerLoaded && localPlayer.PlayerCode == steamIdText)
+            {
+                yield break;
+            }
+
             try
             {
-                SendPlayerNameData(localPlayer, playerName, steamId, steamIdText);
+                localPlayer.SetPlayerNameAndId_Server(playerName, steamIdText);
                 DebugLog.PlayerLifecycleDebug($"Recovered local player identity after spawn: {playerName} ({steamIdText})");
             }
             catch (Exception ex)
@@ -625,7 +629,7 @@ namespace DedicatedServerMod.Client.Managers
             {
                 if (!InstanceFinder.IsServer)
                 {
-                    localPlayer.RequestPlayerData(steamIdText);
+                    localPlayer.RequestPlayerData_Server(steamIdText, false);
                     DebugLog.PlayerLifecycleDebug($"Requested player data after identity recovery for SteamID {steamIdText}");
                 }
             }
@@ -633,35 +637,6 @@ namespace DedicatedServerMod.Client.Managers
             {
                 DebugLog.Warning($"Failed to request player data after identity recovery: {ex.Message}");
             }
-        }
-
-        private static void SendPlayerNameData(Player localPlayer, string playerName, ulong steamId, string steamIdText)
-        {
-            var methods = typeof(Player).GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(method => method.Name == nameof(Player.SendPlayerNameData));
-
-            foreach (var method in methods)
-            {
-                var parameters = method.GetParameters();
-                if (parameters.Length != 2 || parameters[0].ParameterType != typeof(string))
-                {
-                    continue;
-                }
-
-                if (parameters[1].ParameterType == typeof(ulong))
-                {
-                    method.Invoke(localPlayer, new object[] { playerName, steamId });
-                    return;
-                }
-
-                if (parameters[1].ParameterType == typeof(string))
-                {
-                    method.Invoke(localPlayer, new object[] { playerName, steamIdText });
-                    return;
-                }
-            }
-
-            throw new MissingMethodException(typeof(Player).FullName, "SendPlayerNameData");
         }
 
         private static string ResolveSteamPersonaName(Player localPlayer)

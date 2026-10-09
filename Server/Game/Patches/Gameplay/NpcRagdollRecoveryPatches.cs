@@ -19,7 +19,7 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
     /// <remarks>
     /// Vanilla recovery remains authoritative and gets the first opportunity to run. This postfix only invokes the
     /// existing networked deactivation path after the NPC has remained continuously eligible for recovery for a
-    /// conservative fallback interval. Knocked-out, dead, unconscious, paused, and seizure ragdolls are excluded.
+    /// conservative fallback interval. Knocked-out, dead, unconscious and seizure ragdolls are excluded.
     /// </remarks>
     [HarmonyPatch(typeof(NpcMovementType), "FixedUpdate")]
     internal static class NpcRagdollRecoveryPatches
@@ -72,12 +72,12 @@ namespace DedicatedServerMod.Server.Game.Patches.Gameplay
         private static bool IsEligibleForFallback(NpcMovementType movement, out NpcType npc)
         {
             npc = null;
-            if (movement == null || movement.IsPaused || !movement.IsServerInitialized)
+            if (movement == null || !movement.IsServerInitialized)
             {
                 return false;
             }
 
-            npc = movement.npc;
+            npc = movement._npc;
             if (npc == null ||
                 npc.Avatar == null ||
                 npc.Health == null ||

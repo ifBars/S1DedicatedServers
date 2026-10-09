@@ -43,35 +43,6 @@ namespace DedicatedServerMod.Server.Game.Patches.Visual
     }
 
     /// <summary>
-    /// Disables repeated avatar culling and animator toggling work on dedicated headless servers.
-    /// </summary>
-    [HarmonyPatch(typeof(AvatarAnimationType), "Awake")]
-    internal static class AvatarAnimationAwakePatches
-    {
-        private static void Postfix(AvatarAnimationType __instance)
-        {
-            if (__instance == null)
-            {
-                return;
-            }
-
-            __instance.CancelInvoke("UpdateAnimationActive");
-        }
-    }
-
-    /// <summary>
-    /// Skips avatar animation culling work on dedicated headless servers.
-    /// </summary>
-    [HarmonyPatch(typeof(AvatarAnimationType), "UpdateAnimationActive")]
-    internal static class AvatarAnimationUpdateAnimationActivePatches
-    {
-        private static bool Prefix()
-        {
-            return !DedicatedServerPatchCommon.IsDedicatedHeadlessServer();
-        }
-    }
-
-    /// <summary>
     /// Reuses the stand-up clip start poses that AvatarAnimation already cached during Start().
     /// Dedicated servers still capture the live ragdoll pose, but they skip re-sampling the
     /// static stand-up clips every time an NPC recovers.
