@@ -9,7 +9,7 @@ using ScheduleOne.Product;
 
 namespace DedicatedServerMod.Server.Game.Patches.Visual
 {
-    [HarmonyPatch(typeof(ProductIconManager), "GenerateIcons")]
+    [HarmonyPatch(typeof(ProductIconManager), nameof(ProductIconManager.GenerateRuntimeIcons))]
     internal static class ProductIconManagerPatches
     {
         private static bool Prefix()
