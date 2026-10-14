@@ -8,6 +8,7 @@ using FishNet;
 using ScheduleOne.Persistence;
 #endif
 using UnityEngine;
+using UnityEngine.Events;
 using DedicatedServerMod.Shared.Configuration;
 
 namespace DedicatedServerMod.Server.Persistence
@@ -22,6 +23,8 @@ namespace DedicatedServerMod.Server.Persistence
 
         private DateTime lastAutoSave = DateTime.MinValue;
         private bool saveInProgress = false;
+        private bool shuttingDown;
+        private object autoSaveCoroutine;
 
         /// <summary>
         /// Raised when a save starts.
@@ -31,6 +34,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// <summary>
         /// Raised when a save completes.
         /// </summary>
+        /// <remarks>The final argument is true only when the native save completes without a reported save error.</remarks>
         public event Action<string, bool, bool> SaveCompleted;
 
         internal PersistenceManager(MelonLogger.Instance loggerInstance)
@@ -79,7 +83,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         private void StartAutoSaveLoop()
         {
-            MelonCoroutines.Start(AutoSaveLoop());
+            autoSaveCoroutine = MelonCoroutines.Start(AutoSaveLoop());
         }
 
         /// <summary>
@@ -87,11 +91,11 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         private IEnumerator AutoSaveLoop()
         {
-            while (ServerConfig.Instance.AutoSaveEnabled)
+            while (!shuttingDown && ServerConfig.Instance.AutoSaveEnabled)
             {
                 yield return new WaitForSeconds(ServerConfig.Instance.AutoSaveIntervalMinutes * 60f);
                 
-                if (ServerConfig.Instance.AutoSaveEnabled && InstanceFinder.IsServer)
+                if (!shuttingDown && ServerConfig.Instance.AutoSaveEnabled && InstanceFinder.IsServer)
                 {
                     TriggerAutoSave("periodic_auto_save");
                 }
@@ -103,6 +107,9 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         public void TriggerAutoSave(string reason)
         {
+            if (shuttingDown)
+                return;
+
             if (!ServerConfig.Instance.AutoSaveEnabled)
             {
                 logger.Msg("Auto-save disabled, skipping save request");
@@ -129,6 +136,9 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         public void TriggerManualSave(string reason)
         {
+            if (shuttingDown)
+                return;
+
             if (saveInProgress)
             {
                 logger.Warning("Save already in progress, queuing manual save");
@@ -152,71 +162,100 @@ namespace DedicatedServerMod.Server.Persistence
         {
             while (saveInProgress)
             {
-                yield return new WaitForSeconds(1f);
+                yield return null;
             }
 
-            yield return PerformSave(reason, isAutoSave);
+            if (!shuttingDown)
+                yield return PerformSave(reason, isAutoSave);
         }
 
         /// <summary>
         /// Perform the actual save operation
         /// </summary>
-        private IEnumerator PerformSave(string reason, bool isAutoSave)
+        private IEnumerator PerformSave(string reason, bool isAutoSave, Action<bool> completed = null)
         {
+            while (saveInProgress)
+                yield return null;
+
             saveInProgress = true;
-            SaveStarted?.Invoke(reason, isAutoSave);
-
-            logger.Msg($"Starting {(isAutoSave ? "auto" : "manual")} save: {reason}");
-
-            if (SaveManager.Instance == null)
-            {
-                logger.Error("SaveManager instance not available");
-                saveInProgress = false;
-                SaveCompleted?.Invoke(reason, isAutoSave, false);
-                yield break;
-            }
-
-            bool saveStarted = false;
+            bool success = false;
+            bool nativeSaveStarted = false;
+            bool nativeSaveCompleted = false;
+            var saveManager = SaveManager.Instance;
+            UnityAction onStarted = (UnityAction)delegate { nativeSaveStarted = true; };
+            UnityAction onCompleted = (UnityAction)delegate { nativeSaveCompleted = true; };
+            float startedAt = Time.realtimeSinceStartup;
             try
             {
-                API.ModManager.NotifyBeforeSave();
-                SaveManager.Instance.Save();
-                saveStarted = true;
-                logger.Msg("Save operation initiated through SaveManager");
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error calling SaveManager.Save(): {ex}");
-                saveInProgress = false;
-                SaveCompleted?.Invoke(reason, isAutoSave, false);
-                yield break;
-            }
-
-            if (saveStarted)
-            {
-                float timeout = 30f;
-                float elapsed = 0f;
-
-                while (elapsed < timeout)
+                if (saveManager == null || LoadManager.Instance == null ||
+                    !LoadManager.Instance.IsGameLoaded || string.IsNullOrEmpty(LoadManager.Instance.LoadedGameFolderPath))
                 {
-                    // Might be better if we check SaveManager save status; for now, assume complete within 5s
-                    yield return new WaitForSeconds(0.5f);
-                    elapsed += 0.5f;
-                    if (elapsed >= 5f)
-                        break;
+                    logger.Error("No loaded game available to save");
+                    yield break;
+                }
+
+                // A save started by the game must finish before we request our own.
+                while (saveManager != null && saveManager.IsSaving)
+                    yield return null;
+
+                bool initiated = false;
+                try
+                {
+                    SaveStarted?.Invoke(reason, isAutoSave);
+                    logger.Msg($"Starting {(isAutoSave ? "auto" : "manual")} save: {reason}");
+                    saveManager.onSaveStart?.AddListener(onStarted);
+                    saveManager.onSaveComplete?.AddListener(onCompleted);
+                    API.ModManager.NotifyBeforeSave();
+                    saveManager.Save();
+                    nativeSaveStarted |= saveManager.IsSaving;
+                    initiated = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Error calling SaveManager.Save(): {ex}");
+                }
+
+                if (!initiated || !nativeSaveStarted)
+                {
+                    logger.Error($"Save did not start: {reason}");
+                    yield break;
+                }
+
+                bool warned = false;
+                while (saveManager != null && saveManager.IsSaving)
+                {
+                    if (!warned && Time.realtimeSinceStartup - startedAt >= 30f)
+                    {
+                        logger.Warning($"Still waiting for native save completion: {reason}. Keeping the world running.");
+                        warned = true;
+                    }
+                    yield return null;
+                }
+
+                success = saveManager != null && nativeSaveCompleted && !SaveManager.SaveError;
+                if (!success)
+                {
+                    logger.Error($"Save failed or did not report completion: {reason}");
+                    yield break;
                 }
 
                 if (isAutoSave)
-                {
                     lastAutoSave = DateTime.Now;
-                }
 
                 API.ModManager.NotifyAfterSave();
-                logger.Msg($"Save completed: {reason} (elapsed: {elapsed:F1}s)");
+                logger.Msg($"Save completed: {reason} (elapsed: {Time.realtimeSinceStartup - startedAt:F1}s)");
             }
-
-            saveInProgress = false;
-            SaveCompleted?.Invoke(reason, isAutoSave, true);
+            finally
+            {
+                if (saveManager != null)
+                {
+                    saveManager.onSaveStart?.RemoveListener(onStarted);
+                    saveManager.onSaveComplete?.RemoveListener(onCompleted);
+                }
+                saveInProgress = false;
+                completed?.Invoke(success);
+                SaveCompleted?.Invoke(reason, isAutoSave, success);
+            }
         }
 
         /// <summary>
@@ -273,30 +312,45 @@ namespace DedicatedServerMod.Server.Persistence
         }
 
         /// <summary>
-        /// Shutdown the persistence manager
+        /// Drains in-flight saves and performs the final save while the world is still running.
         /// </summary>
+        internal IEnumerator SaveForShutdown(Action<bool> completed)
+        {
+            shuttingDown = true;
+            if (autoSaveCoroutine != null)
+            {
+                MelonCoroutines.Stop(autoSaveCoroutine);
+                autoSaveCoroutine = null;
+            }
+            while (saveInProgress)
+                yield return null;
+
+            // Startup can be stopped before there is a world to save.
+            if (!InstanceFinder.IsServer || LoadManager.Instance == null || !LoadManager.Instance.IsGameLoaded)
+            {
+                completed(true);
+                yield break;
+            }
+
+            yield return PerformSave("server_shutdown", false, completed);
+        }
+
+        internal void CancelShutdown()
+        {
+            shuttingDown = false;
+            if (ServerConfig.Instance.AutoSaveEnabled)
+                StartAutoSaveLoop();
+        }
+
         internal void Shutdown()
         {
-            try
+            shuttingDown = true;
+            if (autoSaveCoroutine != null)
             {
-                // Trigger final save before shutdown
-                if (InstanceFinder.IsServer && !saveInProgress)
-                {
-                    TriggerManualSave("server_shutdown");
-                    
-                    var waitTime = DateTime.Now.AddSeconds(5);
-                    while (saveInProgress && DateTime.Now < waitTime)
-                    {
-                        Thread.Sleep(100);
-                    }
-                }
-
-                logger.Msg("Persistence manager shutdown");
+                MelonCoroutines.Stop(autoSaveCoroutine);
+                autoSaveCoroutine = null;
             }
-            catch (Exception ex)
-            {
-                logger.Error($"Error during persistence manager shutdown: {ex}");
-            }
+            logger.Msg("Persistence manager shutdown");
         }
     }
 
