@@ -254,7 +254,21 @@ namespace DedicatedServerMod.Server.Persistence
                 }
                 saveInProgress = false;
                 completed?.Invoke(success);
-                SaveCompleted?.Invoke(reason, isAutoSave, success);
+                var subscribers = SaveCompleted;
+                if (subscribers != null)
+                {
+                    foreach (Action<string, bool, bool> subscriber in subscribers.GetInvocationList())
+                    {
+                        try
+                        {
+                            subscriber(reason, isAutoSave, success);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error($"Error in SaveCompleted subscriber: {ex}");
+                        }
+                    }
+                }
             }
         }
 

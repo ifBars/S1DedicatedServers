@@ -102,7 +102,41 @@ Run("shutdown before world load does not try to save", () =>
     MelonCoroutines.Start(manager.SaveForShutdown(success => shutdown = success));
     Check(shutdown == true && SaveManager.Instance.Calls == 0);
 });
+foreach (bool saveError in new[] { false, true })
+{
+    Run($"throwing save subscribers do not interrupt shutdown continuation (saveError={saveError})", () =>
+    {
+        var manager = Create();
+        int observed = 0;
+        manager.SaveCompleted += (_, _, _) => throw new InvalidOperationException("injected subscriber failure");
+        manager.SaveCompleted += (_, _, _) => observed++;
+        bool? resumed = null;
+        MelonCoroutines.Start(ObserveShutdown(manager, success => resumed = success));
+        SaveManager.Instance.Finish(error: saveError);
+        MelonCoroutines.Tick();
+        Check(resumed == !saveError && observed == 1 && !manager.SaveInProgress);
+        Check(SaveManager.Instance.onSaveStart.ListenerCount == 0 && SaveManager.Instance.onSaveComplete.ListenerCount == 0);
+        Check(MelonLogger.Instance.Errors.Count(message => message.Contains("injected subscriber failure")) == 1);
+
+        if (saveError)
+        {
+            manager.CancelShutdown();
+            resumed = null;
+            MelonCoroutines.Start(ObserveShutdown(manager, success => resumed = success));
+            SaveManager.Instance.Finish();
+            MelonCoroutines.Tick();
+            Check(resumed == true && observed == 2 && !manager.SaveInProgress);
+        }
+    });
+}
 Console.WriteLine($"PASS|PersistenceManagerTests|cases={cases}");
+
+static System.Collections.IEnumerator ObserveShutdown(PersistenceManager manager, Action<bool> resumed)
+{
+    bool saved = false;
+    yield return manager.SaveForShutdown(success => saved = success);
+    resumed(saved);
+}
 
 void Run(string name, Action test)
 {
@@ -122,5 +156,6 @@ static PersistenceManager Create()
     ServerConfig.Instance = new();
     FishNet.InstanceFinder.IsServer = true;
     ModManager.AfterSaves = 0;
+    MelonLogger.Instance.Errors.Clear();
     return new PersistenceManager(new MelonLogger.Instance());
 }

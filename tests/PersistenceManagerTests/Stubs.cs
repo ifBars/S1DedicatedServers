@@ -66,9 +66,10 @@ namespace MelonLoader
     {
         public sealed class Instance
         {
+            public static readonly List<string> Errors = new();
             public void Msg(string text) { }
             public void Warning(string text) { }
-            public void Error(string text) { }
+            public void Error(string text) => Errors.Add(text);
         }
     }
 
