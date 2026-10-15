@@ -35,6 +35,8 @@ You can change that layout by editing `permissions.toml`.
 - `perm <info|grant|deny|revoke|tempgrant> ...`: inspect and mutate direct permission nodes
 - `op`, `deop`, `admin`, `deadmin`: compatibility wrappers for built-in staff groups
 
+`shutdown` waits for any active save, then completes a final save before disconnecting players or stopping game systems. If the final save reports an error, shutdown is cancelled and the server stays running. Resolve the save error and retry. A save that takes longer than 30 seconds logs a warning and continues waiting. Stopping the process externally cannot wait for a final save.
+
 `settime` expects a four-digit game clock value such as `0800`, `1330`, or `1800`. `settimescale` changes Unity's global time scale and should be treated as an operator-only diagnostic or recovery tool, not normal gameplay tuning.
 
 See [Permissions](configuration/permissions.md) for file structure, group defaults, and rule precedence.

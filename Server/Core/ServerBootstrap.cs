@@ -13,6 +13,7 @@ using DedicatedServerMod.Server.HostConsole;
 using DedicatedServerMod.Server.Permissions;
 using DedicatedServerMod.Server.WebPanel;
 using System.Collections.Concurrent;
+using System.Collections;
 
 [assembly: MelonInfo(typeof(DedicatedServerMod.Server.Core.ServerBootstrap), "DedicatedServerHost", DedicatedServerMod.API.Version.ModVersion, DedicatedServerMod.Utils.Constants.Author)]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -284,9 +285,12 @@ namespace DedicatedServerMod.Server.Core
 
         public override void OnApplicationQuit()
         {
-            if (_isInitialized && !_isShuttingDown)
+            if (_isInitialized)
             {
-                Shutdown("Application quit");
+                _quitRequested = true;
+                // Unity is already quitting; coroutines cannot finish a final save here.
+                _logger.Warning("Application is quitting. Use the shutdown command to complete a final save before teardown.");
+                CompleteShutdown("Application quit");
             }
         }
 
@@ -371,8 +375,10 @@ namespace DedicatedServerMod.Server.Core
         }
 
         /// <summary>
-        /// Shutdown the server gracefully
+        /// Begins a graceful shutdown, completing the final save before disconnecting players or stopping subsystems.
         /// </summary>
+        /// <param name="reason">The reason reported to players and written to the log.</param>
+        /// <remarks>Shutdown proceeds asynchronously on the main thread. A failed final save cancels shutdown.</remarks>
         public static void Shutdown(string reason = "Server shutdown requested")
         {
             if (_isShuttingDown)
@@ -389,7 +395,29 @@ namespace DedicatedServerMod.Server.Core
 
             _isShuttingDown = true;
             _logger.Msg($"=== Server Shutdown Initiated: {reason} ===");
-            
+            MelonCoroutines.Start(ShutdownRoutine(reason));
+        }
+
+        private static IEnumerator ShutdownRoutine(string reason)
+        {
+            bool saved = true;
+            if (_persistenceManager != null)
+                yield return _persistenceManager.SaveForShutdown(success => saved = success);
+
+            if (!saved)
+            {
+                _persistenceManager?.CancelShutdown();
+                _isShuttingDown = false;
+                _logger.Error("Shutdown cancelled because the final save failed. The server is still running; resolve the save error and retry shutdown.");
+                yield break;
+            }
+
+            CompleteShutdown(reason);
+        }
+
+        private static void CompleteShutdown(string reason)
+        {
+            _isShuttingDown = true;
             try
             {
                 // Notify API mods prior to tearing down subsystems

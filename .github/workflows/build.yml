@@ -44,6 +44,9 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Run persistence regression checks
+        run: dotnet run --project tests/PersistenceManagerTests/PersistenceManagerTests.csproj
+
       - name: Determine Assembly Branch
         id: assembly-branch
         shell: bash
