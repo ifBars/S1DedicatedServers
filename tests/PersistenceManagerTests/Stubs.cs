@@ -79,26 +79,49 @@ namespace MelonLoader
         {
             internal Stack<IEnumerator> Stack = new(new[] { iterator });
             internal float ResumeAt;
+            internal bool Queued;
+            internal bool EnumeratorToken;
         }
         private static readonly List<Routine> Routines = new();
+        public static bool QueueStarts;
+        public static int StopCalls;
+        public static int ActiveCount => Routines.Count;
         public static object Start(IEnumerator iterator)
         {
-            var routine = new Routine(iterator);
+            var routine = new Routine(iterator) { Queued = QueueStarts, EnumeratorToken = QueueStarts };
             Routines.Add(routine);
-            Advance(routine);
+            if (!routine.Queued) Advance(routine);
             return routine;
         }
-        public static void Stop(object routine) => Routines.Remove((Routine)routine);
+        public static void Stop(object token)
+        {
+            StopCalls++;
+            var routine = (Routine)token;
+            if ((!QueueStarts && routine.EnumeratorToken) || !Routines.Contains(routine))
+                throw new NullReferenceException("routine is null");
+            Routines.Remove(routine);
+        }
+        public static void FlushQueued()
+        {
+            QueueStarts = false;
+            foreach (var routine in Routines.Where(routine => routine.Queued).ToArray())
+            {
+                routine.Queued = false;
+                Advance(routine);
+            }
+        }
         public static void Tick(float seconds = 1f)
         {
             UnityEngine.Time.realtimeSinceStartup += seconds;
             foreach (var routine in Routines.ToArray())
-                if (Routines.Contains(routine) && routine.ResumeAt <= UnityEngine.Time.realtimeSinceStartup)
+                if (Routines.Contains(routine) && !routine.Queued && routine.ResumeAt <= UnityEngine.Time.realtimeSinceStartup)
                     Advance(routine);
         }
         public static void Reset()
         {
             Routines.Clear();
+            QueueStarts = false;
+            StopCalls = 0;
             UnityEngine.Time.realtimeSinceStartup = 0;
         }
         private static void Advance(Routine routine)
