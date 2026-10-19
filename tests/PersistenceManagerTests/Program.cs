@@ -53,6 +53,32 @@ Run("failed shutdown restarts only one autosave generation", () =>
     MelonCoroutines.Tick(60);
     Check(SaveManager.Instance.Calls == 2 && MelonCoroutines.ActiveCount == 0);
 });
+Run("direct persistence teardown retires an early autosave without stopping its token", () =>
+{
+    var manager = Create();
+    MelonCoroutines.QueueStarts = true;
+    manager.Initialize();
+    MelonCoroutines.FlushQueued();
+    manager.Shutdown();
+    MelonCoroutines.Tick(60);
+    Check(SaveManager.Instance.Calls == 0 && MelonCoroutines.ActiveCount == 0 && MelonCoroutines.StopCalls == 0);
+});
+Run("a queued old loop cannot start after shutdown is cancelled", () =>
+{
+    var manager = Create();
+    MelonCoroutines.QueueStarts = true;
+    manager.Initialize();
+    LoadManager.Instance.IsGameLoaded = false;
+    bool? shutdown = null;
+    var finalSave = manager.SaveForShutdown(success => shutdown = success);
+    Check(!finalSave.MoveNext() && shutdown == true);
+    manager.CancelShutdown();
+    LoadManager.Instance.IsGameLoaded = true;
+    MelonCoroutines.FlushQueued();
+    Check(MelonCoroutines.ActiveCount == 1);
+    MelonCoroutines.Tick(60);
+    Check(SaveManager.Instance.Calls == 1);
+});
 Run("completion follows native save, including saves longer than 30 seconds", () =>
 {
     var manager = Create();
