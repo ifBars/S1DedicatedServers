@@ -24,7 +24,7 @@ namespace DedicatedServerMod.Server.Persistence
         private DateTime lastAutoSave = DateTime.MinValue;
         private bool saveInProgress = false;
         private bool shuttingDown;
-        private object autoSaveCoroutine;
+        private int autoSaveGeneration;
 
         /// <summary>
         /// Raised when a save starts.
@@ -83,19 +83,19 @@ namespace DedicatedServerMod.Server.Persistence
         /// </summary>
         private void StartAutoSaveLoop()
         {
-            autoSaveCoroutine = MelonCoroutines.Start(AutoSaveLoop());
+            MelonCoroutines.Start(AutoSaveLoop(++autoSaveGeneration));
         }
 
         /// <summary>
         /// Auto-save coroutine that runs periodically
         /// </summary>
-        private IEnumerator AutoSaveLoop()
+        private IEnumerator AutoSaveLoop(int generation)
         {
-            while (!shuttingDown && ServerConfig.Instance.AutoSaveEnabled)
+            while (generation == autoSaveGeneration && !shuttingDown && ServerConfig.Instance.AutoSaveEnabled)
             {
                 yield return new WaitForSeconds(ServerConfig.Instance.AutoSaveIntervalMinutes * 60f);
                 
-                if (!shuttingDown && ServerConfig.Instance.AutoSaveEnabled && InstanceFinder.IsServer)
+                if (generation == autoSaveGeneration && !shuttingDown && ServerConfig.Instance.AutoSaveEnabled && InstanceFinder.IsServer)
                 {
                     TriggerAutoSave("periodic_auto_save");
                 }
@@ -331,11 +331,9 @@ namespace DedicatedServerMod.Server.Persistence
         internal IEnumerator SaveForShutdown(Action<bool> completed)
         {
             shuttingDown = true;
-            if (autoSaveCoroutine != null)
-            {
-                MelonCoroutines.Stop(autoSaveCoroutine);
-                autoSaveCoroutine = null;
-            }
+            // Early MelonLoader tokens may be queued enumerators rather than Unity coroutines.
+            // Invalidate the loop cooperatively, including after a failed shutdown is cancelled.
+            autoSaveGeneration++;
             while (saveInProgress)
                 yield return null;
 
@@ -359,11 +357,7 @@ namespace DedicatedServerMod.Server.Persistence
         internal void Shutdown()
         {
             shuttingDown = true;
-            if (autoSaveCoroutine != null)
-            {
-                MelonCoroutines.Stop(autoSaveCoroutine);
-                autoSaveCoroutine = null;
-            }
+            autoSaveGeneration++;
             logger.Msg("Persistence manager shutdown");
         }
     }

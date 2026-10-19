@@ -5,6 +5,54 @@ using MelonLoader;
 using ScheduleOne.Persistence;
 
 int cases = 0;
+foreach (string state in new[] { "queued", "running", "completed", "promoted" })
+{
+    Run($"shutdown awaits its own final save with {state} autosave", () =>
+    {
+        var manager = Create();
+        MelonCoroutines.QueueStarts = state == "queued" || state == "promoted";
+        manager.Initialize();
+        if (state == "completed")
+        {
+            ServerConfig.Instance.AutoSaveEnabled = false;
+            MelonCoroutines.Tick(60);
+        }
+        if (state == "promoted") MelonCoroutines.FlushQueued();
+
+        bool? shutdown = null;
+        MelonCoroutines.Start(manager.SaveForShutdown(success => shutdown = success));
+        MelonCoroutines.FlushQueued();
+        Check(shutdown == null && SaveManager.Instance.Calls == 1);
+        MelonCoroutines.Tick(120);
+        Check(shutdown == null && SaveManager.Instance.Calls == 1);
+        SaveManager.Instance.Finish();
+        MelonCoroutines.Tick();
+        Check(shutdown == true && ModManager.AfterSaves == 1);
+        manager.Shutdown();
+        MelonCoroutines.Tick(120);
+        Check(MelonCoroutines.ActiveCount == 0 && MelonCoroutines.StopCalls == 0);
+    });
+}
+Run("failed shutdown restarts only one autosave generation", () =>
+{
+    var manager = Create();
+    manager.Initialize();
+    bool? shutdown = null;
+    MelonCoroutines.Start(manager.SaveForShutdown(success => shutdown = success));
+    SaveManager.Instance.Finish(error: true);
+    MelonCoroutines.Tick();
+    Check(shutdown == false);
+    manager.CancelShutdown();
+    MelonCoroutines.Tick(60);
+    Check(SaveManager.Instance.Calls == 2 && manager.SaveInProgress);
+    Check(MelonLogger.Instance.Errors.Count == 1);
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
+    Check(ModManager.AfterSaves == 1 && MelonCoroutines.ActiveCount == 1);
+    manager.Shutdown();
+    MelonCoroutines.Tick(60);
+    Check(SaveManager.Instance.Calls == 2 && MelonCoroutines.ActiveCount == 0);
+});
 Run("completion follows native save, including saves longer than 30 seconds", () =>
 {
     var manager = Create();
