@@ -47,6 +47,9 @@ jobs:
       - name: Run persistence regression checks
         run: dotnet run --project tests/PersistenceManagerTests/PersistenceManagerTests.csproj
 
+      - name: Run player join bootstrap regression checks
+        run: dotnet run --project tests/PlayerJoinBootstrapTests/PlayerJoinBootstrapTests.csproj
+
       - name: Determine Assembly Branch
         id: assembly-branch
         shell: bash
