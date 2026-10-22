@@ -2,6 +2,15 @@ using System.Collections;
 
 namespace UnityEngine
 {
+    public enum LogType { Error, Assert, Warning, Log, Exception }
+    public static class Application
+    {
+        public delegate void LogCallback(string message, string stackTrace, LogType type);
+        public static event LogCallback logMessageReceived;
+        public static int ListenerCount => logMessageReceived?.GetInvocationList().Length ?? 0;
+        public static void Log(string message, string stackTrace = "", LogType type = LogType.Error) =>
+            logMessageReceived?.Invoke(message, stackTrace, type);
+    }
     public static class Time { public static float realtimeSinceStartup; }
     public sealed class WaitForSeconds(float seconds) { public float Seconds = seconds; }
 }
@@ -38,6 +47,7 @@ namespace ScheduleOne.Persistence
         public bool RejectSave;
         public bool CompleteSynchronously;
         public bool ThrowOnSave;
+        public string ErrorDuringSave;
         public int Calls;
         public UnityEngine.Events.UnityEvent onSaveStart = new();
         public UnityEngine.Events.UnityEvent onSaveComplete = new();
@@ -49,6 +59,7 @@ namespace ScheduleOne.Persistence
             SaveError = false;
             IsSaving = true;
             onSaveStart.Invoke();
+            if (ErrorDuringSave != null) UnityEngine.Application.Log(ErrorDuringSave);
             if (CompleteSynchronously) Finish();
         }
         public void Finish(bool error = false)

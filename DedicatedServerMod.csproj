@@ -841,6 +841,7 @@
 		
 		<!-- Persistence system -->
 		<Compile Include="Server\Persistence\PersistenceManager.cs" />
+		<Compile Include="Server\Persistence\NativeSaveDiagnostics.cs" />
 		<Compile Include="Server\Persistence\SaveInitializer.cs" />
 		
 		<!-- Game systems -->

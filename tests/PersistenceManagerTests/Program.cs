@@ -78,6 +78,8 @@ Run("a queued old loop cannot start after shutdown is cancelled", () =>
     Check(MelonCoroutines.ActiveCount == 1);
     MelonCoroutines.Tick(60);
     Check(SaveManager.Instance.Calls == 1);
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
 });
 Run("completion follows native save, including saves longer than 30 seconds", () =>
 {
@@ -203,6 +205,90 @@ foreach (bool saveError in new[] { false, true })
         }
     });
 }
+Run("a logged native write failure blocks shutdown even when the native error flag is clear", () =>
+{
+    var manager = Create();
+    SaveManager.Instance.ErrorDuringSave = "Failed to write save data file. Exception: denied\nData path: Game.json\nSave string: SECRET_WORLD_DATA";
+    bool? shutdown = null;
+    MelonCoroutines.Start(manager.SaveForShutdown(success => shutdown = success));
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
+    Check(shutdown == false && !SaveManager.SaveError && ModManager.AfterSaves == 0);
+    Check(MelonLogger.Instance.Errors.Any(message => message.Contains("Data path: Game.json")));
+    Check(MelonLogger.Instance.Errors.All(message => !message.Contains("SECRET_WORLD_DATA")));
+    Check(UnityEngine.Application.ListenerCount == 0);
+
+    manager.CancelShutdown();
+    SaveManager.Instance.ErrorDuringSave = null;
+    manager.TriggerAutoSave("recovered");
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
+    Check(ModManager.AfterSaves == 1 && manager.LastAutoSave != DateTime.MinValue);
+});
+Run("diagnostics span asynchronous saves but ignore unrelated errors and warnings", () =>
+{
+    var manager = Create();
+    bool? completed = null;
+    manager.SaveCompleted += (_, _, success) => completed = success;
+    manager.TriggerAutoSave("asynchronous-error");
+    UnityEngine.Application.Log("Failed to write save data file. denied");
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
+    Check(completed == false && manager.LastAutoSave == DateTime.MinValue);
+    Check(UnityEngine.Application.ListenerCount == 0);
+    UnityEngine.Application.Log("Failed to write save data file. outside save");
+    manager.TriggerManualSave("unrelated-error");
+    UnityEngine.Application.Log("Unrelated rendering error");
+    UnityEngine.Application.Log("There are still save requests", "ScheduleOne.Persistence.SaveManager", UnityEngine.LogType.Warning);
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
+    Check(completed == true && ModManager.AfterSaves == 1);
+});
+Run("synchronous save failures are captured before the save returns", () =>
+{
+    var manager = Create();
+    SaveManager.Instance.CompleteSynchronously = true;
+    SaveManager.Instance.ErrorDuringSave = "Error generating save string for TestObject: invalid state";
+    bool? completed = null;
+    manager.SaveCompleted += (_, _, success) => completed = success;
+    manager.TriggerManualSave("synchronous-error");
+    Check(completed == false && ModManager.AfterSaves == 0 && !manager.SaveInProgress);
+});
+Run("missing completion and native errors have distinct diagnostic flags", () =>
+{
+    var manager = Create();
+    manager.TriggerManualSave("missing-event");
+    SaveManager.Instance.IsSaving = false;
+    MelonCoroutines.Tick();
+    Check(MelonLogger.Instance.Errors.Any(message => message.Contains("nativeCompleted=False, nativeSaveError=False")));
+    manager.TriggerManualSave("native-error");
+    SaveManager.Instance.Finish(error: true);
+    MelonCoroutines.Tick();
+    Check(MelonLogger.Instance.Errors.Any(message => message.Contains("nativeCompleted=True, nativeSaveError=True")));
+});
+Run("errors from a preceding native save do not contaminate the requested save", () =>
+{
+    var manager = Create();
+    SaveManager.Instance.IsSaving = true;
+    manager.TriggerManualSave("queued-after-native");
+    Check(UnityEngine.Application.ListenerCount == 0);
+    UnityEngine.Application.Log("Error completing save request for NPCs: preceding failure");
+    SaveManager.Instance.Finish(error: true);
+    MelonCoroutines.Tick();
+    SaveManager.Instance.Finish();
+    MelonCoroutines.Tick();
+    Check(ModManager.AfterSaves == 1 && MelonLogger.Instance.Errors.Count == 0);
+});
+Run("diagnostics bound output and recognize persistence exceptions without a known message", () =>
+{
+    var diagnostics = new NativeSaveDiagnostics();
+    diagnostics.Capture("custom serializer failed", "ScheduleOne.Persistence.SaveRequest.Complete()", UnityEngine.LogType.Exception);
+    for (int i = 0; i < 12; i++)
+        diagnostics.Capture("Failed to write save data file." + new string('x', 4096) + "\r\nSave string: SECRET", "", UnityEngine.LogType.Error);
+    Check(diagnostics.ErrorCount == 13 && diagnostics.Messages.Count == 8);
+    Check(diagnostics.Messages[0] == "custom serializer failed");
+    Check(diagnostics.Messages.All(message => message.Length <= 2060 && !message.Contains("SECRET")));
+});
 Console.WriteLine($"PASS|PersistenceManagerTests|cases={cases}");
 
 static System.Collections.IEnumerator ObserveShutdown(PersistenceManager manager, Action<bool> resumed)
@@ -214,7 +300,7 @@ static System.Collections.IEnumerator ObserveShutdown(PersistenceManager manager
 
 void Run(string name, Action test)
 {
-    try { test(); cases++; }
+    try { test(); Check(UnityEngine.Application.ListenerCount == 0); cases++; }
     catch (Exception ex) { throw new Exception(name, ex); }
 }
 static void Check(bool condition)

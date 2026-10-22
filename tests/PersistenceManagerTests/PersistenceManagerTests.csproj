@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Server/Persistence/PersistenceManager.cs" Link="PersistenceManager.cs" />
+    <Compile Include="../../Server/Persistence/NativeSaveDiagnostics.cs" Link="NativeSaveDiagnostics.cs" />
   </ItemGroup>
 </Project>
