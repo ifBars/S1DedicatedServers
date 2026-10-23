@@ -252,7 +252,7 @@ namespace DedicatedServerMod.API
         /// This is human-facing release metadata. The release workflow derives release behavior from
         /// <see cref="ModVersion"/>, not from this date.
         /// </remarks>
-        public const string ReleaseDate = "2026-10-21";
+        public const string ReleaseDate = "2026-10-22";
 
         /// <summary>
         /// The Git commit or tag this version was built from.
