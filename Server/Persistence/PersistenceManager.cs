@@ -34,7 +34,7 @@ namespace DedicatedServerMod.Server.Persistence
         /// <summary>
         /// Raised when a save completes.
         /// </summary>
-        /// <remarks>The final argument is true only when the native save completes without a reported save error.</remarks>
+        /// <remarks>The final argument is true only when the native save completes without a reported save error or captured native persistence error.</remarks>
         public event Action<string, bool, bool> SaveCompleted;
 
         internal PersistenceManager(MelonLogger.Instance loggerInstance)
@@ -184,6 +184,9 @@ namespace DedicatedServerMod.Server.Persistence
             var saveManager = SaveManager.Instance;
             UnityAction onStarted = (UnityAction)delegate { nativeSaveStarted = true; };
             UnityAction onCompleted = (UnityAction)delegate { nativeSaveCompleted = true; };
+            var diagnostics = new NativeSaveDiagnostics();
+            Application.LogCallback onLog = (Application.LogCallback)diagnostics.Capture;
+            bool capturingLogs = false;
             float startedAt = Time.realtimeSinceStartup;
             try
             {
@@ -206,6 +209,12 @@ namespace DedicatedServerMod.Server.Persistence
                     saveManager.onSaveStart?.AddListener(onStarted);
                     saveManager.onSaveComplete?.AddListener(onCompleted);
                     API.ModManager.NotifyBeforeSave();
+#if IL2CPP
+                    Application.add_logMessageReceived(onLog);
+#else
+                    Application.logMessageReceived += onLog;
+#endif
+                    capturingLogs = true;
                     saveManager.Save();
                     nativeSaveStarted |= saveManager.IsSaving;
                     initiated = true;
@@ -232,10 +241,13 @@ namespace DedicatedServerMod.Server.Persistence
                     yield return null;
                 }
 
-                success = saveManager != null && nativeSaveCompleted && !SaveManager.SaveError;
+                success = saveManager != null && nativeSaveCompleted && !SaveManager.SaveError && diagnostics.ErrorCount == 0;
                 if (!success)
                 {
-                    logger.Error($"Save failed or did not report completion: {reason}");
+                    logger.Error($"Save failed: {reason} (nativeCompleted={nativeSaveCompleted}, " +
+                        $"nativeSaveError={SaveManager.SaveError}, persistenceErrors={diagnostics.ErrorCount}, " +
+                        $"saveManagerAvailable={saveManager != null}). Check the native persistence errors below " +
+                        "and the Unity player log for the failing file or object.");
                     yield break;
                 }
 
@@ -247,6 +259,19 @@ namespace DedicatedServerMod.Server.Persistence
             }
             finally
             {
+                // Unsubscribe before forwarding logs so logger integrations cannot feed back into capture.
+                if (capturingLogs)
+                {
+#if IL2CPP
+                    Application.remove_logMessageReceived(onLog);
+#else
+                    Application.logMessageReceived -= onLog;
+#endif
+                }
+                foreach (string message in diagnostics.Messages)
+                    logger.Error($"Native persistence error: {message}");
+                if (diagnostics.ErrorCount > diagnostics.Messages.Count)
+                    logger.Error($"{diagnostics.ErrorCount - diagnostics.Messages.Count} additional persistence errors omitted. See the Unity player log.");
                 if (saveManager != null)
                 {
                     saveManager.onSaveStart?.RemoveListener(onStarted);
