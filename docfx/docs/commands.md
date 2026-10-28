@@ -17,6 +17,26 @@ The built-in group defaults are:
 
 You can change that layout by editing `permissions.toml`.
 
+## Opening the In-Game Console
+
+The default keyboard binding is **Backquote** (the grave-accent key, usually below Esc and left of `1` on a US keyboard). It shares a key with `~`, but you do not need to hold Shift. DedicatedServerMod uses the game's console toggle action; it does not add a separate console hotkey. Keyboard layouts and customized bindings can affect which key you use.
+
+1. Install the DedicatedServerMod **client** build matching your game's Mono or IL2CPP runtime, and use compatible client/server mod versions. Installing only the server mod does not enable remote players' console UI.
+2. On the server, allow `console.open` for the player's group in `UserData/permissions.toml`, and ensure the player's user entry belongs to that group. Adding a permission to a group does not assign players to it. See [Permissions](configuration/permissions.md) for membership and rule precedence.
+3. After editing the file while the server is running, run `reloadpermissions` from the server console. This reloads permissions and refreshes connected players' capability snapshots. `reloadconfig` reloads a different file.
+4. Join the dedicated server, finish loading, close the pause menu, and press Backquote. Press it again or use Esc to close the console.
+
+`console.open` only permits opening the UI. Commands still require their own permission nodes; you do not need to grant `console.command.*` or make someone an operator just to open it.
+
+### If the Console Still Does Not Open
+
+- Confirm the client mod loaded successfully in the client's `MelonLoader/Latest.log`.
+- Check the player's group membership and any matching denies in `permissions.toml`. A group allow can be overridden according to the permission rules.
+- With debug logging enabled, check the client's `Permission capability snapshot updated: open=True` message. `open=False` means the latest snapshot does not authorize console access; no snapshot message means permission delivery or client initialization needs investigation.
+- The old `Could not find ConsoleUI.IS_CONSOLE_ENABLED property` error is associated with [issue #47](https://github.com/ifBars/S1DedicatedServers/issues/47). Update the client mod if that error appears. Current code supports both `IsConsoleEnabled` and the legacy property name; a similar symptom alone does not establish the same cause.
+
+If access remains broken, include the game version, client and server mod versions, Mono or IL2CPP runtime, keyboard layout, and relevant client log messages in the report. Note whether the console never appears or opens and immediately closes.
+
 ## Common Commands
 
 - `help`: show command help
