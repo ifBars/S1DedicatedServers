@@ -37,6 +37,8 @@ Permission checks are node based, not role-list based.
 - most console commands map to `console.command.<commandword>`
 - framework management commands also expose dedicated nodes such as `server.save`, `player.kick`, and `permissions.reload`
 
+For the console key, required client mod, and reloading file edits, see [Opening the In-Game Console](../commands.md#opening-the-in-game-console). Granting `console.open` authorizes the UI; it does not assign group membership or grant command permissions.
+
 When multiple rules match the same request, the service resolves them in this order:
 
 1. More specific rules beat broader wildcard rules.

@@ -287,8 +287,15 @@ namespace DedicatedServerMod.Client.Managers
         private static System.Collections.IEnumerator FocusInputField(TMPInputField inputField)
         {
             yield return null;
-            UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
-            UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(inputField.gameObject);
+            var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+            if (inputField == null || !inputField.gameObject.activeInHierarchy || eventSystem == null)
+            {
+                yield break;
+            }
+
+            // Clearing an already-selected console field invokes ConsoleUI.Deselected and closes it.
+            eventSystem.SetSelectedGameObject(inputField.gameObject);
+            inputField.ActivateInputField();
         }
 
         private static string ExtractCommandWord(string rawInput)

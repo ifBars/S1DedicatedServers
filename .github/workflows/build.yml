@@ -50,6 +50,9 @@ jobs:
       - name: Run player join bootstrap regression checks
         run: dotnet run --project tests/PlayerJoinBootstrapTests/PlayerJoinBootstrapTests.csproj
 
+      - name: Run console input regression checks
+        run: dotnet run --project tests/ConsoleInputPatchTests/ConsoleInputPatchTests.csproj
+
       - name: Determine Assembly Branch
         id: assembly-branch
         shell: bash
