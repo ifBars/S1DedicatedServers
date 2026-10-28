@@ -112,8 +112,13 @@ jobs:
             echo "make_latest=true" >> "$GITHUB_OUTPUT"
           fi
 
-  create-release:
+  regression:
     needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    uses: ./.github/workflows/regression-tests.yml
+
+  create-release:
+    needs: [check-version, regression]
     if: needs.check-version.outputs.version-changed == 'true'
     runs-on: windows-latest
     permissions:
@@ -479,7 +484,7 @@ jobs:
           body_path: release_notes.md
           draft: false
           prerelease: ${{ needs.check-version.outputs.prerelease == 'true' }}
-          make_latest: ${{ needs.check-version.outputs.make_latest }}
+          make_latest: ${{ needs.check-version.outputs.make-latest }}
           files: |
             release/Mono-Server.zip
             release/Mono-Client.zip

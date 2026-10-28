@@ -1,0 +1,13 @@
+{
+  "repository": "k073l/s1-codearchiver",
+  "branches": {
+    "alternate": "314b7e2f97c134e1abbbfdbc4d8bd2af2e76be6e",
+    "alternate-beta": "9011807297d284945b69c98e188da6982428f42c"
+  },
+  "watched_paths": {
+    "ScheduleOne-stripped/UI/ConsoleUI.cs": "Console opening, closing, reopening, focus and command history",
+    "ScheduleOne-stripped/GameInput.cs": "Console input action, typing state and session boundaries",
+    "ScheduleOne-stripped/UI/PauseMenu.cs": "Paused console input and native co-op behavior",
+    "ScheduleOne-stripped/PlayerScripts/Player.cs": "Player readiness and permission snapshot identity"
+  }
+}
