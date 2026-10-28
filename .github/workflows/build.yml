@@ -18,7 +18,11 @@ on:
           - beta
 
 jobs:
+  regression:
+    uses: ./.github/workflows/regression-tests.yml
+
   build:
+    needs: regression
     runs-on: windows-latest
     steps:
       - name: Checkout DedicatedServerMod
@@ -43,15 +47,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-
-      - name: Run persistence regression checks
-        run: dotnet run --project tests/PersistenceManagerTests/PersistenceManagerTests.csproj
-
-      - name: Run player join bootstrap regression checks
-        run: dotnet run --project tests/PlayerJoinBootstrapTests/PlayerJoinBootstrapTests.csproj
-
-      - name: Run console input regression checks
-        run: dotnet run --project tests/ConsoleInputPatchTests/ConsoleInputPatchTests.csproj
 
       - name: Determine Assembly Branch
         id: assembly-branch
@@ -87,9 +82,6 @@ jobs:
           echo "mono_branch=$mono_branch" >> "$GITHUB_OUTPUT"
           echo "il2cpp_branch=$il2cpp_branch" >> "$GITHUB_OUTPUT"
           echo "Using Mono assemblies from $mono_branch and IL2CPP assemblies from $il2cpp_branch (requested: $requested_branch)"
-
-      - name: Test sleep patch registration and readiness
-        run: dotnet run --project tests/SleepControllerPatchTests/SleepControllerPatchTests.csproj
 
       - name: Restore Mono Assembly Cache
         id: mono-cache
@@ -292,13 +284,18 @@ jobs:
 
   summary:
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [regression, build]
     if: always()
     steps:
       - name: Build Summary
+        shell: bash
         run: |
           echo "=== Build Complete ==="
           echo "Mono Server: ${{ needs.build.result }}"
           echo "Mono Client: ${{ needs.build.result }}"
           echo "IL2CPP Server: ${{ needs.build.result }}"
           echo "IL2CPP Client: ${{ needs.build.result }}"
+
+          if [[ "${{ needs.regression.result }}" != "success" || "${{ needs.build.result }}" != "success" ]]; then
+            exit 1
+          fi

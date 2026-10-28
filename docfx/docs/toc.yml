@@ -44,6 +44,8 @@
     href: commands/player-management.md
 - name: Integrations
   items:
+  - name: Game Update Validation
+    href: game-update-validation.md
   - name: Public Server List API
     href: public-server-list-api.md
 - name: Modding

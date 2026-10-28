@@ -1,0 +1,26 @@
+name: Regression Tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test archive watcher and publication gates
+        run: python -m unittest discover -s tests/ArchiveWatcherTests -v
+      - name: Run game-independent regression checks
+        shell: pwsh
+        run: ./scripts/ci/Run-RegressionTests.ps1
+
