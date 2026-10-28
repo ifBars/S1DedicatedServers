@@ -24,7 +24,7 @@ foreach (bool open in new[] { false, true })
     ui.ToggleConsoleReference.action.Performed = pressed;
 
     bool handled = dedicated && client && !host;
-    bool toggle = handled && allowed && !paused && pressed;
+    bool toggle = handled && (open || allowed) && !paused && pressed;
     bool expectedOpen = toggle ? !open : open;
     Assert(ConsoleInputPatches.UpdatePrefix(ui) == !handled, "native Update delegation");
     Assert(ui.canvas.enabled == expectedOpen, "visibility");
@@ -36,6 +36,21 @@ foreach (bool open in new[] { false, true })
 DedicatedRuntimeContext.IsActive = true;
 InstanceFinder.IsClient = true;
 InstanceFinder.IsHost = false;
+AdminStatusManager.Allowed = true;
+Singleton<PauseMenu>.Instance = new PauseMenu();
+var revokedAccess = new ConsoleUI();
+revokedAccess.ToggleConsoleReference.action.Performed = true;
+Assert(!ConsoleInputPatches.UpdatePrefix(revokedAccess) && revokedAccess.canvas.enabled, "open before revocation");
+AdminStatusManager.Allowed = false;
+revokedAccess.ToggleConsoleReference.action.Performed = false;
+ConsoleInputPatches.UpdatePrefix(revokedAccess);
+Assert(revokedAccess.canvas.enabled && revokedAccess.ToggleCalls == 1, "revocation without input does not toggle");
+revokedAccess.ToggleConsoleReference.action.Performed = true;
+ConsoleInputPatches.UpdatePrefix(revokedAccess);
+Assert(!revokedAccess.canvas.enabled && revokedAccess.ToggleCalls == 2, "close after revocation");
+ConsoleInputPatches.UpdatePrefix(revokedAccess);
+Assert(!revokedAccess.canvas.enabled && revokedAccess.ToggleCalls == 2, "cannot reopen after revocation");
+cases++;
 AdminStatusManager.Allowed = true;
 var missingCanvas = new ConsoleUI { canvas = null };
 Assert(ConsoleInputPatches.UpdatePrefix(missingCanvas), "missing canvas delegates to game");

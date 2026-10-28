@@ -31,7 +31,8 @@ namespace DedicatedServerMod.Client.Patches
             var toggle = __instance.ToggleConsoleReference;
             var pauseMenu = Singleton<PauseMenu>.Instance;
             if (toggle != null && toggle.action != null && toggle.action.WasPerformedThisFrame() &&
-                pauseMenu != null && !pauseMenu.IsPaused && AdminStatusManager.CanOpenConsole())
+                pauseMenu != null && !pauseMenu.IsPaused &&
+                (__instance.canvas.enabled || AdminStatusManager.CanOpenConsole()))
             {
                 __instance.SetIsOpen(!__instance.canvas.enabled);
             }
