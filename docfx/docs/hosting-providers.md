@@ -37,6 +37,28 @@ Want a hosted server instead of running the dedicated server yourself? The provi
     </div>
   </section>
 
+  <section id="shockbyte" class="hosting-provider-card" aria-label="Shockbyte supported provider">
+    <div class="hosting-provider-card__body">
+      <div class="hosting-provider-brand">
+        <p class="hosting-provider-eyebrow">Supported provider</p>
+        <a class="hosting-provider-logo-link" href="https://shockbyte.com/partner/ifbars" rel="sponsored" aria-label="Open Shockbyte">
+          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/shockbyte-logo-light.svg" alt="Shockbyte" />
+          <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/shockbyte-logo.svg" alt="Shockbyte" />
+        </a>
+      </div>
+      <div class="hosting-provider-details">
+        <p>
+          Supports IL2CPP and Mono, with panel console input and graceful
+          shutdown confirmed by Shockbyte.
+        </p>
+        <div class="hosting-provider-actions">
+          <a class="hosting-provider-button" href="https://shockbyte.com/partner/ifbars" rel="sponsored">Visit Shockbyte</a>
+          <span class="hosting-provider-offer">25% off with <code>ifbars</code></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="kinetic-hosting" class="hosting-provider-card" aria-label="Kinetic Hosting supported provider">
     <div class="hosting-provider-card__body">
       <div class="hosting-provider-brand">
@@ -74,27 +96,6 @@ Want a hosted server instead of running the dedicated server yourself? The provi
         </p>
         <div class="hosting-provider-actions">
           <a class="hosting-provider-button" href="https://rspwn.click/bars">Visit RespawnHost</a>
-        </div>
-      </div>
-    </div>
-  </section>
-  <section id="shockbyte" class="hosting-provider-card" aria-label="Shockbyte supported provider">
-    <div class="hosting-provider-card__body">
-      <div class="hosting-provider-brand">
-        <p class="hosting-provider-eyebrow">Supported provider</p>
-        <a class="hosting-provider-logo-link" href="https://shockbyte.com/partner/ifbars" rel="sponsored" aria-label="Open Shockbyte">
-          <img class="hosting-provider-logo hosting-provider-logo--light-theme" src="assets/shockbyte-logo-light.svg" alt="Shockbyte" />
-          <img class="hosting-provider-logo hosting-provider-logo--dark-theme" src="assets/shockbyte-logo.svg" alt="Shockbyte" />
-        </a>
-      </div>
-      <div class="hosting-provider-details">
-        <p>
-          Supports IL2CPP and Mono, with panel console input and graceful
-          shutdown confirmed by Shockbyte.
-        </p>
-        <div class="hosting-provider-actions">
-          <a class="hosting-provider-button" href="https://shockbyte.com/partner/ifbars" rel="sponsored">Visit Shockbyte</a>
-          <span class="hosting-provider-offer">25% off with <code>ifbars</code></span>
         </div>
       </div>
     </div>
