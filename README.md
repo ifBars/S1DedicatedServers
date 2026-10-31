@@ -26,11 +26,13 @@ Prefer renting a server instead of running one yourself? [Cybrancee](https://cyb
 
 For provider status, compatibility notes, and self-hosting guidance, see the [Hosting Providers documentation](https://docs.s1servers.com/docs/hosting-providers).
 
+Hosting providers: S1DedicatedServers is not currently seeking additional affiliate partnerships. Please read the [hosting partnership policy](https://docs.s1servers.com/docs/hosting-providers.html#hosting-partnership-inquiries) before sending a proposal.
+
 ## Quick Start
 
 1. Download the latest release from [GitHub Releases](https://github.com/ifBars/S1DedicatedServers/releases).
 2. Follow the [Quick Start guide](https://docs.s1servers.com/).
-3. Review the [configuration overview](https://docs.s1servers.com/docs/configuration.html) before opening a server to other players.
+3. Review the [configuration overview](https://docs.s1servers.com/docs/configuration.html) and complete the [save/shutdown/reload checks](https://docs.s1servers.com/docs/configuration/startup-and-deployment.html#verify-a-new-install-or-upgrade) before opening a server to other players.
 4. For native Windows server installs, make sure `steam_appid.txt` exists beside `Schedule I.exe` and contains only `3164500`. The packaged `start_server.bat` creates it if missing, starts with `--stdio-console`, and forwards any extra arguments you pass to it.
 5. If hosting and playing on the same PC, launch the normal game client before starting the Steam game server.
 6. Check the [troubleshooting guide](https://docs.s1servers.com/docs/troubleshooting.html) if startup, networking, or authentication goes wrong.

@@ -46,6 +46,8 @@ Cybrancee, Kinetic Hosting, RespawnHost, and Shockbyte are supported providers. 
 
 See [Hosting Providers](docs/hosting-providers.md) for provider links, affiliate disclosure, verification notes, and third-party host guidance.
 
+Hosting providers: please read the [hosting partnership policy](docs/hosting-providers.md#hosting-partnership-inquiries) before sending a proposal. Additional affiliate partnerships are not currently being sought.
+
 ## Create a Server Install
 
 1. Copy your Schedule I game folder to a new location. This becomes the dedicated server install.
@@ -57,8 +59,8 @@ See [Hosting Providers](docs/hosting-providers.md) for provider links, affiliate
    3164500
    ```
 
-5. Run `start_server.bat` once so the mod generates `server_config.toml`, then close it. The packaged launcher starts with `--stdio-console`, so you can type commands directly into the MelonLoader console.
-6. Edit `server_config.toml` and set `saveGamePath`.
+5. Run `start_server.bat` once so the mod generates `server_config.toml`, then stop it with the `shutdown` console command and wait for process exit. The packaged launcher starts with `--stdio-console`, so you can type commands directly into the MelonLoader console.
+6. Edit `server_config.toml`; leave `[storage].saveGamePath` empty for the server-managed world, or set it to a specific world folder.
 7. Start the server again with `start_server.bat`. Extra arguments are forwarded to `Schedule I.exe`, for example `start_server.bat --server-name "My Server" --max-players 8`.
 
 If you host the Steam game server on the same PC where you play, launch the normal Schedule I client first. Steam may block starting the game client after the Steam game server process is already running, but the reverse order works: start the client, then start `start_server.bat`.
@@ -74,6 +76,8 @@ For save path details, see [Save Path](docs/configuration/save-path.md).
 The S1DS client can remain installed for single-player and native co-op. Dedicated transport, messaging, gameplay, and presentation behavior activates only when you start an S1DS dedicated-server connection.
 
 ## After First Boot
+
+Before inviting players, complete the [install/upgrade verification checklist](docs/configuration/startup-and-deployment.md#verify-a-new-install-or-upgrade): connect, save, shut down, restart, and confirm the world persisted. On Wine/Proton hosts, configure a [UTF-8 launch environment and retained Unity log](docs/configuration/startup-and-deployment.md#linux-wine-and-hosted-panels) first.
 
 - [Overview](docs/index.md)
 - [Configuration](docs/configuration.md) to harden and tune the server

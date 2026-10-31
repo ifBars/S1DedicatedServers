@@ -25,7 +25,7 @@ Both paths still require your own Steam credentials for the first game install.
 Stable releases publish `latest` and the exact version tag. Prereleases publish the exact version tag only, without the leading `v` from the GitHub release tag.
 
 ```bash
-docker pull ghcr.io/ifbars/s1dedicatedservers:1.0.0
+docker pull ghcr.io/ifbars/s1dedicatedservers:1.1.6
 ```
 
 Use `latest` only after a stable release has been published:
@@ -37,34 +37,40 @@ docker pull ghcr.io/ifbars/s1dedicatedservers:latest
 Run the published image with Mono:
 
 ```bash
-docker run --name s1ds ^
-  -p 38465:38465/udp ^
-  -p 38465:38465/tcp ^
-  -p 27016:27016/udp ^
-  -e STEAM_USER=your_steam_login ^
-  -e STEAM_PASS=your_steam_password ^
-  -e S1DS_RUNTIME=mono ^
-  -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:1.0.0
+docker run --name s1ds --stop-timeout 120 \
+  -p 38465:38465/udp \
+  -p 38465:38465/tcp \
+  -p 27016:27016/udp \
+  -e STEAM_USER=your_steam_login \
+  -e STEAM_PASS=your_steam_password \
+  -e S1DS_RUNTIME=mono \
+  -e LANG=C.UTF-8 \
+  -e LC_ALL=C.UTF-8 \
+  -v s1ds-game:/home/steam/game \
+  ghcr.io/ifbars/s1dedicatedservers:1.1.6
 ```
 
 Run the published image with IL2CPP:
 
 ```bash
-docker run --name s1ds ^
-  -p 38465:38465/udp ^
-  -p 38465:38465/tcp ^
-  -p 27016:27016/udp ^
-  -e STEAM_USER=your_steam_login ^
-  -e STEAM_PASS=your_steam_password ^
-  -e S1DS_RUNTIME=il2cpp ^
-  -v s1ds-game:/home/steam/game ^
-  ghcr.io/ifbars/s1dedicatedservers:1.0.0
+docker run --name s1ds --stop-timeout 120 \
+  -p 38465:38465/udp \
+  -p 38465:38465/tcp \
+  -p 27016:27016/udp \
+  -e STEAM_USER=your_steam_login \
+  -e STEAM_PASS=your_steam_password \
+  -e S1DS_RUNTIME=il2cpp \
+  -e LANG=C.UTF-8 \
+  -e LC_ALL=C.UTF-8 \
+  -v s1ds-game:/home/steam/game \
+  ghcr.io/ifbars/s1dedicatedservers:1.1.6
 ```
 
-On Linux/macOS shells, replace `^` line continuations with `\`.
+The examples use Bash line continuations (`\`).
 
 For Docker Compose, the included example now pulls from GHCR by default.
+
+The examples pin 1.1.6 rather than the older 1.0.0 image, which predates the save/shutdown fixes. For later upgrades, choose an exact published release tag and use client packages from that same release.
 
 ## Build Locally From Release Assets
 
@@ -78,6 +84,7 @@ Docker/
   Dockerfile
   docker-compose.example.yml
   run.sh
+  server-lifecycle.sh
   README.md
   DedicatedServerMod_Mono_Server.dll
   DedicatedServerMod_Il2cpp_Server.dll
@@ -105,28 +112,32 @@ First boot needs Steam credentials because the container installs Schedule I thr
 Mono example:
 
 ```bash
-docker run --name s1ds ^
-  -p 38465:38465/udp ^
-  -p 38465:38465/tcp ^
-  -p 27016:27016/udp ^
-  -e STEAM_USER=your_steam_login ^
-  -e STEAM_PASS=your_steam_password ^
-  -e S1DS_RUNTIME=mono ^
-  -v s1ds-game:/home/steam/game ^
+docker run --name s1ds --stop-timeout 120 \
+  -p 38465:38465/udp \
+  -p 38465:38465/tcp \
+  -p 27016:27016/udp \
+  -e STEAM_USER=your_steam_login \
+  -e STEAM_PASS=your_steam_password \
+  -e S1DS_RUNTIME=mono \
+  -e LANG=C.UTF-8 \
+  -e LC_ALL=C.UTF-8 \
+  -v s1ds-game:/home/steam/game \
   s1ds-dedicated-server
 ```
 
 IL2CPP example:
 
 ```bash
-docker run --name s1ds ^
-  -p 38465:38465/udp ^
-  -p 38465:38465/tcp ^
-  -p 27016:27016/udp ^
-  -e STEAM_USER=your_steam_login ^
-  -e STEAM_PASS=your_steam_password ^
-  -e S1DS_RUNTIME=il2cpp ^
-  -v s1ds-game:/home/steam/game ^
+docker run --name s1ds --stop-timeout 120 \
+  -p 38465:38465/udp \
+  -p 38465:38465/tcp \
+  -p 27016:27016/udp \
+  -e STEAM_USER=your_steam_login \
+  -e STEAM_PASS=your_steam_password \
+  -e S1DS_RUNTIME=il2cpp \
+  -e LANG=C.UTF-8 \
+  -e LC_ALL=C.UTF-8 \
+  -v s1ds-game:/home/steam/game \
   s1ds-dedicated-server
 ```
 
@@ -135,10 +146,12 @@ docker run --name s1ds ^
 An example Compose file is included as `docker-compose.example.yml`. Copy it to `docker-compose.yml`, then create a `.env` file beside it with your Steam credentials and runtime selection:
 
 ```env
-S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:1.0.0
+S1DS_IMAGE=ghcr.io/ifbars/s1dedicatedservers:1.1.6
 STEAM_USER=your_steam_login
 STEAM_PASS=your_steam_password
 S1DS_RUNTIME=mono
+LANG=C.UTF-8
+LC_ALL=C.UTF-8
 # Leave STEAM_BRANCH unset to use the runtime default.
 STEAM_BRANCH=
 # Optional on first login when Steam prompts for a code.
@@ -147,7 +160,7 @@ STEAM_GUARD=
 FORCE_STEAMCMD_UPDATE=false
 ```
 
-Use `ghcr.io/ifbars/s1dedicatedservers:latest` for the latest stable release, or pin `S1DS_IMAGE` to an exact version tag such as `ghcr.io/ifbars/s1dedicatedservers:1.0.0` when you want controlled upgrades. Prereleases should use the exact version tag shown on the GitHub release without the leading `v`.
+Use `ghcr.io/ifbars/s1dedicatedservers:latest` for the latest stable release, or pin `S1DS_IMAGE` to an exact version tag such as `ghcr.io/ifbars/s1dedicatedservers:1.1.6` when you want controlled upgrades. Prereleases should use the exact version tag shown on the GitHub release without the leading `v`.
 
 Start it with:
 
@@ -172,6 +185,24 @@ This cleanup is safe and idempotent on every startup. It does not remove `MelonL
 If startup reports an Il2CppInterop generation error such as `Pass11ComputeTypeSpecifics`, stop the server, delete only the `cpp2il_out` directory shown above, then start the server so it regenerates the output. The container performs this recovery automatically on every startup.
 
 Do not use a MelonLoader downgrade or reinstall as the primary fix: the inspected `0.7.0` through `0.7.3` releases share the stale-output behavior, and reinstalling often appears to help only because it removes this directory. The image remains pinned to the currently tested MelonLoader `0.7.2` until an upstream release containing [MelonLoader PR #1193](https://github.com/LavaGang/MelonLoader/pull/1193) is tested.
+
+## UTF-8 Launch Environment
+
+Pass `LANG=C.UTF-8` and `LC_ALL=C.UTF-8` to the container, as shown in the examples. The supplied Compose file reads them from `.env` through `env_file`; a `.env` file alone does not inject variables into an arbitrary third-party Compose service. For a custom image or hosted panel, confirm that the locale is installed and that both variables reach the Wine/game process, or choose another installed UTF-8 locale.
+
+[Issue #71](https://github.com/ifBars/S1DedicatedServers/issues/71) reported save failures at `NPCs/Javier Pérez` that were resolved by setting these variables. The same path was later reported in [#78](https://github.com/ifBars/S1DedicatedServers/issues/78), where the affected service's resolution is still unconfirmed. Locale changes apply on the next launch; preserve recovery copies and review [save-failure recovery](https://docs.s1servers.com/docs/troubleshooting/save-load.html#saves-fail-or-shutdown-is-cancelled) before restarting a world that cannot save.
+
+## Stopping and Restarting
+
+Images built from the current source force the S1DS stdio console on and keep a private command pipe open even when Docker provides no stdin. SIGTERM/SIGINT writes `shutdown` once and waits for game process exit, keeping Xvfb alive until the final save finishes. Repeated stop signals do not kill the game or queue duplicate shutdowns. Attached/panel stdin is forwarded when available; EOF does not close the private pipe. The wrapper returns the game's exit code.
+
+The Compose example sets `stop_grace_period: 2m`; direct `docker run` examples use `--stop-timeout 120`. Docker can still send SIGKILL after this deadline. Allow more time for large worlds/slow storage, or request an unlimited wait with `docker stop --timeout -1 s1ds`. See Docker's [stop timeout reference](https://docs.docker.com/reference/cli/docker/container/stop/#timeout).
+
+If the final save fails, S1DS cancels shutdown and the supervisor continues waiting. Resolve the native persistence error, then send a new `shutdown` through the configured TCP console or attached stdin. Repeated Docker stop signals are not a save retry. With an unlimited timeout, stopping remains pending until the game exits.
+
+The already-published 1.1.6 image used by the pinned examples still has the old immediate-termination handler. Build from source to use the new handler until a release containing it is published. On older images, manually send `shutdown` through the configured console and wait for `Save completed: server_shutdown`, `=== Server Shutdown Complete ===`, and game exit before stopping/recreating the container. Increasing an old image's timeout alone does not add graceful shutdown.
+
+Before inviting players, verify a disposable/copied world: connect, run `save` and confirm S1DS reports completion, run `shutdown` and confirm its separate final save, then restart/reconnect and check player progression, owned businesses/properties, and placed objects. Keep known-good backups outside the active save folder. See the [full verification checklist](https://docs.s1servers.com/docs/configuration/startup-and-deployment.html#verify-a-new-install-or-upgrade).
 
 ## Notes
 

@@ -141,11 +141,21 @@ For hosted control panels, [Host Console](host-console.md) is usually the right 
 
 ## For Commercial Hosting Providers
 
-If you offer commercial S1DedicatedServers hosting, you are welcome to contact the project maintainer for setup guidance, version coordination, or partnership and affiliate options.
+### Hosting Partnership Inquiries
+
+S1DedicatedServers already has established referral arrangements with four hosting providers and is not currently seeking additional affiliate partnerships. Offers of commission, customer discounts, or complimentary hosting alone are unlikely to be considered.
+
+New proposals are considered selectively where they offer a substantial benefit beyond our existing arrangements. Please include the complete proposed terms and what you would expect in return. Generic affiliate invitations may not receive a response.
+
+Hosting providers can use the public [setup](../index.md), [deployment](configuration/startup-and-deployment.md), and [host console](host-console.md) documentation independently. Doing so does not establish a partnership or guarantee placement in the project's provider recommendations.
+
+### Independent Hosting
 
 Attribution and links to the project are optional, but appreciated. If you choose to provide attribution, use `S1DedicatedServers` / `DedicatedServerMod` by `ifBars` and link to the official releases or documentation.
 
 We also recommend keeping bundled builds current with public releases and showing customers the installed runtime and version.
+
+Before offering or updating a hosted install, complete the [save/shutdown/reload checks](configuration/startup-and-deployment.md#verify-a-new-install-or-upgrade). On Linux/Wine/Proton, configure an installed [UTF-8 locale and retained Unity log](configuration/startup-and-deployment.md#linux-wine-and-hosted-panels) in the game's actual launch environment. Make sure the panel's Stop/Restart action requests S1DS `shutdown` rather than immediately terminating the process.
 
 Commercial providers must not imply supported-provider, recommended, affiliate, sponsor, official, or exclusive status unless a written arrangement exists.
 

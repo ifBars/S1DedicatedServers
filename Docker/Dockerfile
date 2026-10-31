@@ -94,6 +94,7 @@ EXPOSE 27016/udp
 
 # Copy and set up the run script
 COPY --chown=steam:steam run.sh /home/steam/run.sh
+COPY --chown=steam:steam server-lifecycle.sh /home/steam/server-lifecycle.sh
 RUN chmod +x /home/steam/run.sh
 
 ENV STEAM_BRANCH=""

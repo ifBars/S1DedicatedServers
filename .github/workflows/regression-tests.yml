@@ -7,6 +7,16 @@ permissions:
   contents: read
 
 jobs:
+  docker-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Docker lifecycle script syntax
+        run: bash -n Docker/run.sh && bash -n Docker/server-lifecycle.sh
+      - name: Test graceful container shutdown
+        run: python3 -m unittest discover -s tests/DockerLifecycleTests -v
+
   regression:
     runs-on: windows-latest
     timeout-minutes: 10

@@ -1,6 +1,6 @@
 services:
   s1ds:
-    image: ${S1DS_IMAGE:-ghcr.io/ifbars/s1dedicatedservers:1.0.0}
+    image: ${S1DS_IMAGE:-ghcr.io/ifbars/s1dedicatedservers:1.1.6}
     # Set S1DS_IMAGE in .env to an exact release tag. The latest tag is stable-only.
     # Set S1DS_RUNTIME in .env to mono or il2cpp. When STEAM_BRANCH is blank, the
     # container automatically selects the expected game branch for that runtime.
@@ -11,6 +11,8 @@ services:
     #   dockerfile: Dockerfile
     container_name: s1ds
     restart: unless-stopped
+    # Allow the final save to finish before Docker escalates to SIGKILL.
+    stop_grace_period: 2m
     env_file:
       - .env
     ports:

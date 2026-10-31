@@ -36,6 +36,8 @@ For panel environments, prefer startup flags that keep Unity and MelonLoader out
 
 That lets the panel capture the game log stream directly. Hidden desktop console settings are not a substitute for stdout logging in hosted environments.
 
+Some Wine/panel setups do not expose Unity output with `-logFile -`. In that case, use a writable Windows path visible to the game, such as `-logFile "Z:\home\container\UnityPlayer.log"`, and retain that file alongside `MelonLoader/Latest.log`. See [Wine launch settings](configuration/startup-and-deployment.md#linux-wine-and-hosted-panels) for UTF-8 locale requirements and log-path details.
+
 If you launch the executable manually instead of using the packaged batch file, add `--stdio-console` to force the stdio host console on:
 
 ```batch
@@ -54,6 +56,12 @@ If you launch the executable manually instead of using the packaged batch file, 
 - `exit` and `quit` remain TCP-session commands only and are not special in stdio mode
 - TCP console sessions do not have a server-side idle read timeout, so long-lived `nc` or telnet sessions stay usable until the client or network closes them
 - TCP console sessions are command sessions, not live stdout mirrors. Use `logs [lines]` or `tail [lines]` to print a bounded snapshot from the current MelonLoader log when a hosted panel proxies the TCP console instead of forwarding process logs.
+
+### Readiness and Stop Actions
+
+TCP sessions emit the exact line `Type 'help' for commands.` before the extended session hints. Existing host integrations, including Cybrancee's, use this connection banner as a panel readiness signal. Preserve the exact text when matching that integration; it confirms command-session availability, not a completed world load or successful save. Check `=== DEDICATED SERVER READY (orchestrator) ===` and run the [installation checks](configuration/startup-and-deployment.md#verify-a-new-install-or-upgrade) as well.
+
+Configure the panel's Stop/Restart action to send `shutdown` and wait for its final save, `=== Server Shutdown Complete ===`, and process exit. Do not map it to TCP-session `quit`/`exit`, stdin EOF, or an immediate process kill. Failed final saves intentionally leave the server running. See [safe shutdown](configuration/startup-and-deployment.md#stop-and-restart-safely) and [save-failure recovery](troubleshooting/save-load.md#saves-fail-or-shutdown-is-cancelled).
 
 ### When to use TCP instead
 

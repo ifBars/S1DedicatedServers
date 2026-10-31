@@ -331,6 +331,7 @@ SERVER_LAUNCH_ARGS=(
     -batchmode
     -nographics
     --dedicated-server
+    --stdio-console
     --require-auth
     --auth-provider steam_game_server
     --messaging-backend steam_networking_sockets
@@ -340,25 +341,6 @@ SERVER_LAUNCH_ARGS=(
 echo "Starting game server with Wine..."
 echo "Launch args: ${SERVER_LAUNCH_ARGS[*]}"
 echo "WINEDLLOVERRIDES=${WINEDLLOVERRIDES}"
-wine "Schedule I.exe" "${SERVER_LAUNCH_ARGS[@]}" &
-GAME_PID=$!
-
-# Function to handle shutdown
-cleanup() {
-    echo "Shutting down..."
-    kill $GAME_PID 2>/dev/null || true
-    kill $XVFB_PID 2>/dev/null || true
-    exit 0
-}
-
-# Set up signal handlers
-trap cleanup SIGTERM SIGINT
-
-# Wait for the game process
-wait $GAME_PID
-GAME_EXIT_CODE=$?
-
-echo "Game server exited with code: $GAME_EXIT_CODE"
-
-# Clean up
-kill $XVFB_PID 2>/dev/null || true
+# Replace PID 1 so Docker's stop signal reaches the console/exit coordinator.
+export S1DS_XVFB_PID="$XVFB_PID"
+exec bash "$(dirname -- "${BASH_SOURCE[0]}")/server-lifecycle.sh" wine "Schedule I.exe" "${SERVER_LAUNCH_ARGS[@]}"

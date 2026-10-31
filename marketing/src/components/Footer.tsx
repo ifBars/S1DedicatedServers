@@ -93,10 +93,11 @@ const Footer = () => {
               <img src={logoIcon} alt="" className="w-5 h-5 opacity-50" />
               <span className="text-xs text-muted-foreground">S1DedicatedServers</span>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
               <a href="https://github.com/ifBars/S1DedicatedServers" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">GitHub</a>
               <a href="https://docs.s1servers.com/docs/index.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Docs</a>
               <a href="https://docs.s1servers.com/docs/hosting-providers.html" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Hosting Providers</a>
+              <a href="https://docs.s1servers.com/docs/hosting-providers.html#hosting-partnership-inquiries" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Hosting Partnership Policy</a>
               <a href="https://github.com/ifBars/S1DedicatedServers/releases" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Releases</a>
             </div>
           </div>

@@ -9,6 +9,49 @@ Use this page when you need the operational details that do not belong in the hi
 - If `[storage].saveGamePath` is empty, the server uses `UserData/DedicatedServerSave` and prepares the folder before loading. Set a custom path only when you want to host a specific Schedule I save folder.
 - For hosted panels that control the process through stdin/stdout, follow [Host Console](../host-console.md) and prefer `-logFile -` so Unity and MelonLoader logs stay visible to the host.
 
+## Linux, Wine, and Hosted Panels
+
+Set an installed UTF-8 locale in the environment that launches Wine or Proton, before the game starts. For example, if `C.UTF-8` is available:
+
+```bash
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+```
+
+These are Linux/container environment variables, not `server_config.toml` settings. Set them in the service, container, or panel startup environment; changing an unrelated shell does not change an already-running game process. For the packaged Docker Compose deployment, put both variables in the `.env` file passed to the service. A managed host may need to configure this for you.
+
+[Issue #71](https://github.com/ifBars/S1DedicatedServers/issues/71) reported failed writes to `NPCs/Javier Pérez` without a UTF-8 locale and successful saves after setting these variables. [Issue #78](https://github.com/ifBars/S1DedicatedServers/issues/78) later reported the same path failure on a Kinetic-hosted IL2CPP server; resolution on that service remains unconfirmed. A matching error is a reason to check the launch environment, not proof that every save failure is a locale problem. See [failed saves and recovery](../troubleshooting/save-load.md#saves-fail-or-shutdown-is-cancelled) before restarting a world whose saves are failing.
+
+Retain both the MelonLoader log and Unity player log. If `-logFile -` does not expose Unity errors through Wine or the panel, use a writable Windows path visible to the game instead, for example `-logFile "Z:\home\container\UnityPlayer.log"`. Adapt the path to the host's filesystem mapping and ask the provider for this file if it is not exposed in the panel.
+
+## Verify a New Install or Upgrade
+
+Run these checks on a disposable world or a separate copy of your save before opening the server to players:
+
+1. Confirm the startup log shows the intended S1DS version and Mono or IL2CPP runtime. Use client/server packages from the same release and matching game builds.
+2. Wait for `=== DEDICATED SERVER READY (orchestrator) ===`, then connect a client and verify the expected world loaded. A running process or panel status alone does not prove world readiness.
+3. Run `save` through the server console. Wait for S1DS's `Save completed: manual_save_by_console` message and check for `Native persistence error` entries. Command acceptance and updated file timestamps are not save-completion evidence.
+4. Run `shutdown` and wait for `Save completed: server_shutdown`, then `=== Server Shutdown Complete ===` and process exit. If the final save fails, the server deliberately remains running; investigate the error rather than forcing a restart.
+5. Restart and reconnect. Check representative player progression, owned properties/businesses, and placed objects. Keep a separate backup from a confirmed successful save.
+
+## Stop and Restart Safely
+
+Send the S1DS `shutdown` command over the server's stdio or TCP console before stopping a service, recreating a container, or updating game/mod files. Let the final save and process exit finish before relaunching. Saves taking more than 30 seconds emit a warning and continue waiting; do not treat that warning as permission to kill the process.
+
+Configure panel Stop/Restart actions to request `shutdown` and allow the process to exit. Closing stdin, disconnecting a TCP session, or sending the TCP-session `exit`/`quit` commands does not request a server shutdown. Images built from the current Docker source turn SIGTERM/SIGINT into a stdio `shutdown` request and wait for game exit; Docker can still force termination when its external stop timeout expires. Older published images, including 1.1.6, terminate the game directly and require a manual console shutdown before stopping the container. See [Docker shutdown guidance](../docker.md#stopping-and-restarting).
+
+Use a current release. The shutdown ordering defect in [#71](https://github.com/ifBars/S1DedicatedServers/issues/71) was fixed in 1.1.2; the separate autosave cancellation exception in [#74](https://github.com/ifBars/S1DedicatedServers/issues/74) was fixed in 1.1.3. Version 1.1.5 added native write-error diagnostics and rejects partial saves that could previously report success. These fixes do not repair an existing world or establish the cause of every hosted save failure.
+
+## Updating the Game or Mod
+
+1. Complete `shutdown` and wait for process exit before changing installed files. Preserve a known-good backup of the save and configuration.
+2. Update/validate the intended Schedule I branch, then reapply the deployment's pinned MelonLoader version. Game validation can overwrite loader files.
+3. For IL2CPP, remove only `MelonLoader/Dependencies/Il2CppAssemblyGenerator/Cpp2IL/cpp2il_out` while the game is stopped, before relaunching. Stale Cpp2IL output can survive a game update and break interop generation. Do not delete saves, `Mods`, or the whole `MelonLoader` directory as a routine cache repair. The official Docker entrypoint performs this targeted cleanup automatically.
+4. Apply the matching S1DS server release package and update players' client packages. For Docker, pull an exact newer image tag or rebuild from that release's `Docker.zip`; updating game files alone does not replace the image's bundled mod DLLs.
+5. Repeat the [save/shutdown/reload verification](#verify-a-new-install-or-upgrade) before reopening the world.
+
+See [Docker interop recovery](../docker.md#il2cpp-interop-cache-cleanup) for details. A MelonLoader downgrade is not the primary fix for stale Cpp2IL output.
+
 ## Host Sizing
 
 Current baseline observation for a mostly idle server:

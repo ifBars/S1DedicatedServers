@@ -314,6 +314,7 @@ Docker/*
 !Docker/Dockerfile
 !Docker/docker-compose.example.yml
 !Docker/run.sh
+!Docker/server-lifecycle.sh
 !Docker/README.md
 Docker/MelonLoader.x64/
 Docker/MelonLoader/

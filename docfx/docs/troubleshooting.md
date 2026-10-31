@@ -7,13 +7,21 @@ description: Diagnose common DedicatedServerMod startup, connection, authenticat
 
 Mono and IL2CPP are both supported. If a problem only reproduces on one runtime, open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues) and include whether the failing runtime is `Mono_Server`, `Mono_Client`, `Il2cpp_Server`, or `Il2cpp_Client`, plus the relevant logs.
 
-### Server won’t start: save path not set
-- Error mentions `saveGamePath` not configured.
-- Edit `server_config.toml` and set `saveGamePath` to the world folder. On Windows, a single-quoted TOML string is the easiest format for backslash paths.
+## Setup and Persistence Checks
+
+- [Save failures, cancelled shutdowns, native error fields, and recovery precautions](troubleshooting/save-load.md#saves-fail-or-shutdown-is-cancelled)
+- [UTF-8 launch environment and Unity logs for Wine/Proton hosts](configuration/startup-and-deployment.md#linux-wine-and-hosted-panels)
+- [Save/shutdown/reload verification after installation or an upgrade](configuration/startup-and-deployment.md#verify-a-new-install-or-upgrade)
+- [In-game console binding, permissions, and opening/reopening problems](commands.md#opening-the-in-game-console)
+
+### Server won’t start: save path cannot be prepared
+- Leaving `[storage].saveGamePath` empty is supported and uses `UserData/DedicatedServerSave`; an empty setting alone is not a startup error.
+- Check the resolved path in the startup log and the specific file-access or load error. Confirm the game process can read and write that folder.
+- Set a custom `saveGamePath` only when you intend to host another world folder. On Windows, a single-quoted TOML string is the easiest format for backslash paths. See [Save Path](configuration/save-path.md).
 
 ### Server saves to DevSave
-- Ensure you set `saveGamePath`.
-- Check logs for `Restored loaded save path:` after the Main scene loads.
+- Check the resolved default or custom save path in the startup log and confirm the intended world loads. An empty `saveGamePath` should use `UserData/DedicatedServerSave`, not `DevSave`.
+- Follow [Save/Load troubleshooting](troubleshooting/save-load.md) and include the startup and save logs when reporting an unexpected destination.
 - Open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues).
 
 ### Clients stuck or time freezes at 4:00
@@ -21,6 +29,17 @@ Mono and IL2CPP are both supported. If a problem only reproduces on one runtime,
 - Keep `timeProgressionMultiplier` above zero and restart after changing time-related config.
 - Check the client logs for 1 minute based time syncs. (Time UI will be stuck on 4AM between 4 and 7AM)
 - Open an issue on the [GitHub repository](https://github.com/ifBars/S1DedicatedServers/issues).
+
+### Docker/Wine startup messages or .NET runtime installation stalls
+
+- Wine `fixme:*`, ALSA/audio-device, and headless graphics warnings alone do not identify a mod startup failure. In [#28](https://github.com/ifBars/S1DedicatedServers/issues/28), the reporter confirmed the server was running despite those messages. Check whether the process exits, restarts, or reaches S1DS readiness, then find the first actionable exception in the server and Unity logs.
+- For IL2CPP stalls at MelonLoader's .NET installer, use a current image and check `WINEPREFIX`. [#26](https://github.com/ifBars/S1DedicatedServers/issues/26) exposed an older image whose runtime was hidden by a game-directory mount. The current image installs the Windows .NET desktop runtime at `/home/steam/wineprefix`, outside `/home/steam/game`. Do not override that prefix with an empty or stale mounted prefix and expect the preinstalled runtime to remain available.
+- Preserve game/save volumes when upgrading the image. See [Docker Deployment](docker.md); deleting your world or publishing the loopback web-panel port is not a startup repair.
+
+### IL2CPP interop generation fails after a game update
+
+- If errors such as `Pass11ComputeTypeSpecifics` follow a game update, follow the [stopped-server update sequence](configuration/startup-and-deployment.md#updating-the-game-or-mod), including the targeted `cpp2il_out` cleanup. The official Docker entrypoint already performs that cleanup.
+- Keep the error log if startup still fails afterward. A similar symptom does not establish that the cache is the cause, and a MelonLoader downgrade is not the default recovery.
 
 ### Console says you lack permission
 - Add your SteamID64 to `permissions.toml`, usually by assigning the built-in `operator` or `administrator` group under `[user.<steamid>]`.

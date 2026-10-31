@@ -30,6 +30,8 @@ The default keyboard binding is **Backquote** (the grave-accent key, usually bel
 
 ### If the Console Still Does Not Open
 
+- Update to 1.1.6 or later before troubleshooting the IL2CPP console failing to open, or the console closing immediately when reopened on either runtime. [PR #81](https://github.com/ifBars/S1DedicatedServers/pull/81) fixed those input/focus paths; granting broader permissions is not the remedy for that client defect.
+
 - Confirm the client mod loaded successfully in the client's `MelonLoader/Latest.log`.
 - Check the player's group membership and any matching denies in `permissions.toml`. A group allow can be overridden according to the permission rules.
 - With debug logging enabled, check the client's `Permission capability snapshot updated: open=True` message. `open=False` means the latest snapshot does not authorize console access; no snapshot message means permission delivery or client initialization needs investigation.
